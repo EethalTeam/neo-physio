@@ -1,0 +1,10 @@
+[
+  { "id": 1, "name": "Severe, unremitting pain" },
+  { "id": 2, "name": "Pain unaffected by medication or position" },
+  { "id": 3, "name": "Severe night pain" },
+  { "id": 4, "name": "Severe spasm" },
+  { "id": 5, "name": "Inability to urinate or control urination" },
+  { "id": 6, "name": "Fever or night sweats" },
+  { "id": 7, "name": "Recent unexplained weight loss" },
+  { "id": 8, "name": "Numbness or pins and needles" }
+]

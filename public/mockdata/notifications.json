@@ -1,0 +1,24 @@
+
+[
+  {
+    "id": 1,
+    "userRole": "hod",
+    "message": "Upcoming consultation for John Doe on 2025-10-15",
+    "read": false,
+    "timestamp": "2025-10-06T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "userRole": "admin",
+    "message": "New lead 'Emily Carter' has been qualified. Please review.",
+    "read": true,
+    "timestamp": "2025-10-05T14:30:00Z"
+  },
+  {
+    "id": 3,
+    "userRole": "physio",
+    "message": "HOD review for patient Jane Smith is scheduled on 2024-02-05.",
+    "read": false,
+    "timestamp": "2025-10-06T11:00:00Z"
+  }
+]

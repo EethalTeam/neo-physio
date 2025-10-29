@@ -1,0 +1,199 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, UserPlus, Calendar, DollarSign, TrendingUp, Activity } from 'lucide-react';
+
+const SuperAdminDashboard = () => {
+  const [stats, setStats] = useState({
+    totalLeads: 0,
+    totalPatients: 0,
+    totalSessions: 0,
+    monthlyRevenue: 0,
+    activePhysios: 0,
+    completedSessions: 0
+  });
+
+  useEffect(() => {
+    // Load mock data and calculate stats
+    Promise.all([
+      fetch('/mockdata/leads.json').then(res => res.json()),
+      fetch('/mockdata/patients.json').then(res => res.json()),
+      fetch('/mockdata/sessions.json').then(res => res.json()),
+      fetch('/mockdata/physios.json').then(res => res.json())
+    ]).then(([leads, patients, sessions, physios]) => {
+      const completedSessions = sessions.filter(s => s.status === 'completed');
+      const monthlyRevenue = completedSessions.reduce((sum, session) => {
+        const physio = physios.find(p => p.id === session.physioId);
+        return sum + (physio?.ratePerSession || 0);
+      }, 0);
+
+      setStats({
+        totalLeads: leads.length,
+        totalPatients: patients.length,
+        totalSessions: sessions.length,
+        monthlyRevenue,
+        activePhysios: physios.filter(p => p.active).length,
+        completedSessions: completedSessions.length
+      });
+    }).catch(err => console.error('Error loading dashboard data:', err));
+  }, []);
+
+  const statCards = [
+    {
+      title: 'Total Leads',
+      value: stats.totalLeads,
+      icon: UserPlus,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      title: 'Total Patients',
+      value: stats.totalPatients,
+      icon: Users,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
+    },
+    {
+      title: 'Total Sessions',
+      value: stats.totalSessions,
+      icon: Calendar,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100'
+    },
+    {
+      title: 'Monthly Revenue',
+      value: `₹${stats.monthlyRevenue.toLocaleString()}`,
+      icon: DollarSign,
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-100'
+    },
+    {
+      title: 'Active Physios',
+      value: stats.activePhysios,
+      icon: Activity,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100'
+    },
+    {
+      title: 'Completed Sessions',
+      value: stats.completedSessions,
+      icon: TrendingUp,
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-100'
+    }
+  ];
+
+  return (
+    <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Super Admin Dashboard</h1>
+        <p className="text-gray-600">Complete overview of your physiotherapy service management</p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {statCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+              <Card className="medical-card hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    {stat.title}
+                  </CardTitle>
+                  <div className={`p-2 rounded-full ${stat.bgColor}`}>
+                    <Icon className={`h-4 w-4 ${stat.color}`} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Updated in real-time
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          <Card className="medical-card">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest updates across the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <p className="text-sm text-gray-600">New patient registered: John Doe</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <p className="text-sm text-gray-600">Session completed by Dr. Smith</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <p className="text-sm text-gray-600">Lead qualified: Jane Wilson</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <p className="text-sm text-gray-600">Review scheduled for tomorrow</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+        >
+          <Card className="medical-card">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Frequently used operations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <button className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                  <UserPlus className="text-blue-600 mb-2" size={20} />
+                  <p className="text-sm font-medium">Add New Lead</p>
+                </button>
+                <button className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                  <Calendar className="text-green-600 mb-2" size={20} />
+                  <p className="text-sm font-medium">Schedule Session</p>
+                </button>
+                <button className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                  <Users className="text-purple-600 mb-2" size={20} />
+                  <p className="text-sm font-medium">Manage Physios</p>
+                </button>
+                <button className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                  <TrendingUp className="text-orange-600 mb-2" size={20} />
+                  <p className="text-sm font-medium">View Reports</p>
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default SuperAdminDashboard;

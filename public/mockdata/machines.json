@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "name": "Ultrasound Therapy Unit",
+    "description": "High-frequency sound waves for deep tissue healing",
+    "active": true,
+    "category": "therapy",
+    "manufacturer": "PhysioTech",
+    "model": "UT-2000"
+  },
+  {
+    "id": 2,
+    "name": "TENS Machine",
+    "description": "Transcutaneous Electrical Nerve Stimulation for pain relief",
+    "active": true,
+    "category": "pain_management",
+    "manufacturer": "MedDevice",
+    "model": "TENS-Pro"
+  },
+  {
+    "id": 3,
+    "name": "Treadmill",
+    "description": "Motorized treadmill for gait training and cardio",
+    "active": true,
+    "category": "exercise",
+    "manufacturer": "FitnessPro",
+    "model": "TM-500"
+  },
+  {
+    "id": 4,
+    "name": "Parallel Bars",
+    "description": "Adjustable parallel bars for balance and mobility training",
+    "active": true,
+    "category": "mobility",
+    "manufacturer": "RehabEquip",
+    "model": "PB-300"
+  },
+  {
+    "id": 5,
+    "name": "Interferential Therapy Unit",
+    "description": "Medium frequency electrical stimulation for pain relief",
+    "active": false,
+    "category": "therapy",
+    "manufacturer": "TherapyMax",
+    "model": "IFT-150"
+  },
+  {
+    "id": 6,
+    "name": "Exercise Bike",
+    "description": "Stationary bike for lower limb strengthening",
+    "active": true,
+    "category": "exercise",
+    "manufacturer": "CardioFit",
+    "model": "EB-200"
+  }
+]
