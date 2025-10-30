@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -662,7 +661,7 @@ const PatientManagement = () => {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Label htmlFor="returnToHubKms">Kms from Previous Appointment</Label>
+                      <Label htmlFor="returnToHubKms">Kms from Last Patient to Hub</Label>
                       <Input id="returnToHubKms" type="number" placeholder="Distance for return trip" value={assignForm.returnToHubKms} onChange={(e) => setAssignForm(p => ({ ...p, returnToHubKms: e.target.value }))} />
                     </div>
                   </AccordionContent>

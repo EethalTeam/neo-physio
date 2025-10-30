@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,35 +6,43 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Settings, Search, Wrench, CheckCircle, XCircle, PlusCircle, Trash2, Edit } from 'lucide-react';
+import { Settings, Search, Wrench, CheckCircle, XCircle, PlusCircle, Trash2, Edit, Package, PackageCheck, PackageSearch, Users, Wrench as Tool } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 const MachineryMaster = () => {
   const [machines, setMachines] = useState([]);
+  const [physios, setPhysios] = useState([]);
   const [filteredMachines, setFilteredMachines] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState(null);
+  const [managingMachine, setManagingMachine] = useState(null);
 
   const initialFormState = {
     name: '',
     description: '',
     category: '',
     manufacturer: '',
-    model: ''
+    model: '',
+    totalCount: 1,
   };
   const [machineForm, setMachineForm] = useState(initialFormState);
 
+  const [assignPhysioId, setAssignPhysioId] = useState('');
+  const [assignCount, setAssignCount] = useState(1);
+
   useEffect(() => {
-    fetch('/mockdata/machines.json')
-      .then(res => res.json())
-      .then(data => {
-        setMachines(data);
-        setFilteredMachines(data);
-      })
-      .catch(err => console.error('Error loading machines:', err));
+    Promise.all([
+      fetch('/mockdata/machines.json').then(res => res.json()),
+      fetch('/mockdata/physios.json').then(res => res.json())
+    ]).then(([machinesData, physiosData]) => {
+      setMachines(machinesData);
+      setFilteredMachines(machinesData);
+      setPhysios(physiosData.filter(p => p.role === 'physio'));
+    }).catch(err => console.error('Error loading data:', err));
   }, []);
 
   useEffect(() => {
@@ -48,40 +57,48 @@ const MachineryMaster = () => {
     }
   }, [machines, searchTerm]);
 
-  const handleToggleStatus = (machineId) => {
-    setMachines(prev => prev.map(machine =>
-      machine.id === machineId ? { ...machine, active: !machine.active } : machine
-    ));
-    toast({
-      title: "Machine Status Updated",
-      description: "Machine status has been updated successfully"
-    });
-  };
-
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setMachineForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (value) => {
-    setMachineForm(prev => ({ ...prev, category: value }));
+  const handleSelectChange = (name, value) => {
+    setMachineForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (editingMachine) {
-      setMachines(prev => prev.map(m => m.id === editingMachine.id ? { ...m, ...machineForm } : m));
+      setMachines(prev => prev.map(m => {
+        if (m.id === editingMachine.id) {
+          const countDifference = machineForm.totalCount - m.totalCount;
+          return { 
+            ...m, 
+            ...machineForm,
+            inventory: {
+              ...m.inventory,
+              available: Math.max(0, m.inventory.available + countDifference)
+            }
+          };
+        }
+        return m;
+      }));
       toast({ title: "Success", description: "Equipment updated successfully." });
     } else {
       const newMachine = {
         id: Date.now(),
         ...machineForm,
-        active: true
+        active: true,
+        inventory: {
+          available: parseInt(machineForm.totalCount, 10) || 0,
+          inUse: [],
+          underMaintenance: 0,
+        }
       };
       setMachines(prev => [newMachine, ...prev]);
       toast({ title: "Success", description: "New equipment added." });
     }
-    setIsDialogOpen(false);
+    setIsFormOpen(false);
     setEditingMachine(null);
     setMachineForm(initialFormState);
   };
@@ -93,30 +110,142 @@ const MachineryMaster = () => {
       description: machine.description,
       category: machine.category,
       manufacturer: machine.manufacturer,
-      model: machine.model
+      model: machine.model,
+      totalCount: machine.totalCount,
     });
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleDeleteMachine = (machineId) => {
     setMachines(prev => prev.filter(m => m.id !== machineId));
-    toast({
-      title: "Deleted",
-      description: "Equipment has been removed.",
-      variant: "destructive"
-    });
+    toast({ title: "Deleted", description: "Equipment has been removed.", variant: "destructive" });
   };
 
   const openNewMachineDialog = () => {
     setEditingMachine(null);
     setMachineForm(initialFormState);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
-  const handleMaintenanceSchedule = (machineId) => {
-    toast({
-      title: "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀"
-    });
+  const openInventoryDialog = (machine) => {
+    setManagingMachine(machine);
+    setIsInventoryOpen(true);
+  };
+
+  const handleAssignToPhysio = () => {
+    if (!assignPhysioId || assignCount <= 0) {
+      toast({ title: "Invalid Input", description: "Please select a physio and enter a valid count.", variant: "destructive" });
+      return;
+    }
+
+    setMachines(prev => prev.map(m => {
+      if (m.id === managingMachine.id) {
+        if (m.inventory.available < assignCount) {
+          toast({ title: "Not enough stock", description: `Only ${m.inventory.available} units available.`, variant: "destructive" });
+          return m;
+        }
+
+        const newInUse = [...m.inventory.inUse];
+        const physioIndex = newInUse.findIndex(item => item.physioId === parseInt(assignPhysioId));
+
+        if (physioIndex > -1) {
+          newInUse[physioIndex].count += parseInt(assignCount);
+        } else {
+          newInUse.push({ physioId: parseInt(assignPhysioId), count: parseInt(assignCount) });
+        }
+
+        const updatedMachine = {
+          ...m,
+          inventory: {
+            ...m.inventory,
+            available: m.inventory.available - parseInt(assignCount),
+            inUse: newInUse,
+          }
+        };
+        setManagingMachine(updatedMachine); // Update the dialog state
+        return updatedMachine;
+      }
+      return m;
+    }));
+    toast({ title: "Success", description: "Equipment assigned to physio." });
+    setAssignPhysioId('');
+    setAssignCount(1);
+  };
+
+  const handleReturnFromPhysio = (physioId, returnCount) => {
+     setMachines(prev => prev.map(m => {
+      if (m.id === managingMachine.id) {
+        const newInUse = [...m.inventory.inUse];
+        const physioIndex = newInUse.findIndex(item => item.physioId === physioId);
+        
+        if (physioIndex === -1) return m;
+
+        const currentCount = newInUse[physioIndex].count;
+        const actualReturnCount = Math.min(returnCount, currentCount);
+
+        if (currentCount - actualReturnCount <= 0) {
+          newInUse.splice(physioIndex, 1);
+        } else {
+          newInUse[physioIndex].count -= actualReturnCount;
+        }
+
+        const updatedMachine = {
+          ...m,
+          inventory: {
+            ...m.inventory,
+            available: m.inventory.available + actualReturnCount,
+            inUse: newInUse,
+          }
+        };
+        setManagingMachine(updatedMachine);
+        return updatedMachine;
+      }
+      return m;
+    }));
+    toast({ title: "Success", description: "Equipment returned to stock." });
+  };
+
+  const handleSetMaintenance = (count) => {
+    setMachines(prev => prev.map(m => {
+      if (m.id === managingMachine.id) {
+        if (m.inventory.available < count) {
+          toast({ title: "Not enough stock", description: `Only ${m.inventory.available} units available for maintenance.`, variant: "destructive" });
+          return m;
+        }
+        const updatedMachine = {
+          ...m,
+          inventory: {
+            ...m.inventory,
+            available: m.inventory.available - count,
+            underMaintenance: m.inventory.underMaintenance + count,
+          }
+        };
+        setManagingMachine(updatedMachine);
+        return updatedMachine;
+      }
+      return m;
+    }));
+    toast({ title: "Success", description: `${count} unit(s) moved to maintenance.` });
+  };
+
+  const handleReturnFromMaintenance = (count) => {
+    setMachines(prev => prev.map(m => {
+      if (m.id === managingMachine.id) {
+        const actualReturnCount = Math.min(count, m.inventory.underMaintenance);
+        const updatedMachine = {
+          ...m,
+          inventory: {
+            ...m.inventory,
+            available: m.inventory.available + actualReturnCount,
+            underMaintenance: m.inventory.underMaintenance - actualReturnCount,
+          }
+        };
+        setManagingMachine(updatedMachine);
+        return updatedMachine;
+      }
+      return m;
+    }));
+    toast({ title: "Success", description: `${count} unit(s) returned from maintenance.` });
   };
 
   const getCategoryIcon = (category) => {
@@ -129,147 +258,138 @@ const MachineryMaster = () => {
     }
   };
 
-  const getCategoryColor = (category) => {
-    switch (category) {
-      case 'therapy': return 'bg-blue-100 text-blue-800';
-      case 'exercise': return 'bg-green-100 text-green-800';
-      case 'pain_management': return 'bg-purple-100 text-purple-800';
-      case 'mobility': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex justify-between items-center"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Machinery Master</h1>
-          <p className="text-gray-600">Manage physiotherapy equipment and machinery</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Equipment Inventory</h1>
+          <p className="text-gray-600">Manage and track all physiotherapy equipment.</p>
         </div>
-        <Button onClick={openNewMachineDialog}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New Equipment
-        </Button>
+        <Button onClick={openNewMachineDialog}><PlusCircle className="mr-2 h-4 w-4" /> Add New Equipment</Button>
       </motion.div>
 
       <Card className="medical-card">
-        <CardHeader>
-          <CardTitle>Search Equipment</CardTitle>
-          <CardDescription>Find equipment by name or category</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by name or category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
+        <CardHeader><CardTitle>Search Equipment</CardTitle></CardHeader>
+        <CardContent><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by name or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10"/></div></CardContent>
       </Card>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
         <Card className="medical-card">
-          <CardHeader>
-            <CardTitle>Equipment ({filteredMachines.length})</CardTitle>
-            <CardDescription>All physiotherapy equipment in the system</CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle>Equipment ({filteredMachines.length})</CardTitle><CardDescription>Overview of all equipment inventory.</CardDescription></CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredMachines.map((machine) => (
-                <motion.div
-                  key={machine.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="border rounded-lg p-6 hover:shadow-md transition-shadow flex flex-col"
-                >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${machine.active ? 'bg-green-100' : 'bg-gray-100'}`}>
-                      {getCategoryIcon(machine.category)}
-                    </div>
+              {filteredMachines.map((machine) => {
+                const inUseCount = machine.inventory.inUse.reduce((sum, item) => sum + item.count, 0);
+                return (
+                <motion.div key={machine.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-6 hover:shadow-lg transition-shadow flex flex-col bg-white">
+                  <div className="flex items-start space-x-4 mb-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${machine.active ? 'bg-blue-100' : 'bg-gray-100'}`}>{getCategoryIcon(machine.category)}</div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">{machine.name}</h3>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className={`px-2 py-1 text-xs rounded-full ${getCategoryColor(machine.category)}`}>{machine.category.replace('_', ' ')}</span>
-                        {machine.active ? <CheckCircle className="text-green-600" size={16} /> : <XCircle className="text-red-600" size={16} />}
-                      </div>
+                      <h3 className="font-bold text-lg text-gray-800">{machine.name}</h3>
+                      <p className="text-sm text-gray-500">{machine.manufacturer} {machine.model}</p>
                     </div>
+                    <span className={`px-2 py-1 text-xs rounded-full font-semibold ${machine.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{machine.active ? 'Active' : 'Inactive'}</span>
                   </div>
 
-                  <div className="space-y-3 mb-4 flex-grow">
-                    <p className="text-sm text-gray-600">{machine.description}</p>
-                    <div className="space-y-2">
-                      <div className="flex justify-between"><span className="text-sm text-gray-600">Manufacturer:</span><span className="text-sm font-medium">{machine.manufacturer}</span></div>
-                      <div className="flex justify-between"><span className="text-sm text-gray-600">Model:</span><span className="text-sm font-medium">{machine.model}</span></div>
-                      <div className="flex justify-between"><span className="text-sm text-gray-600">Status:</span><span className={`text-sm font-medium ${machine.active ? 'text-green-600' : 'text-red-600'}`}>{machine.active ? 'Active' : 'Inactive'}</span></div>
+                  <div className="space-y-4 mb-6 flex-grow">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-semibold text-center text-gray-700 mb-3">Inventory Status</h4>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div><p className="text-2xl font-bold text-green-600">{machine.inventory.available}</p><p className="text-xs text-gray-500">Available</p></div>
+                        <div><p className="text-2xl font-bold text-orange-600">{inUseCount}</p><p className="text-xs text-gray-500">In Use</p></div>
+                        <div><p className="text-2xl font-bold text-red-600">{machine.inventory.underMaintenance}</p><p className="text-xs text-gray-500">Maintenance</p></div>
+                      </div>
+                      <div className="text-center mt-3 pt-2 border-t"><p className="text-sm text-gray-600">Total Stock: <span className="font-bold">{machine.totalCount}</span></p></div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
+                    <Button onClick={() => openInventoryDialog(machine)} className="w-full"><Package className="mr-2 h-4 w-4" /> Manage Inventory</Button>
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleEditMachine(machine)} className="flex-1"><Edit size={14} className="mr-1" /> Edit</Button>
-                      <Button size="sm" variant={machine.active ? "destructive" : "default"} onClick={() => handleToggleStatus(machine.id)} className="flex-1">{machine.active ? 'Deactivate' : 'Activate'}</Button>
-                    </div>
-                    <div className="flex space-x-2 mt-2">
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} className="mr-1" /> Delete</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the equipment.</AlertDialogDescription></AlertDialogHeader>
-                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMachine(machine.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                        </AlertDialogContent>
+                        <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} className="mr-1" /> Delete</Button></AlertDialogTrigger>
+                        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the equipment and its inventory records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMachine(machine.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                       </AlertDialog>
-                      <Button size="sm" variant="outline" onClick={() => handleMaintenanceSchedule(machine.id)} className="flex-1">Maintenance</Button>
                     </div>
                   </div>
                 </motion.div>
-              ))}
+              )})}
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{editingMachine ? 'Edit Equipment' : 'Add New Equipment'}</DialogTitle>
-            <DialogDescription>{editingMachine ? 'Update the details below.' : 'Fill in the details to add new equipment.'}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleFormSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="name" className="text-right">Name</Label><Input id="name" name="name" value={machineForm.name} onChange={handleFormChange} className="col-span-3" required /></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="description" className="text-right">Description</Label><Input id="description" name="description" value={machineForm.description} onChange={handleFormChange} className="col-span-3" required /></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="category" className="text-right">Category</Label>
-                <Select onValueChange={handleSelectChange} value={machineForm.category}>
-                  <SelectTrigger className="col-span-3"><SelectValue placeholder="Select a category" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="therapy">Therapy</SelectItem>
-                    <SelectItem value="exercise">Exercise</SelectItem>
-                    <SelectItem value="pain_management">Pain Management</SelectItem>
-                    <SelectItem value="mobility">Mobility</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="manufacturer" className="text-right">Manufacturer</Label><Input id="manufacturer" name="manufacturer" value={machineForm.manufacturer} onChange={handleFormChange} className="col-span-3" required /></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="model" className="text-right">Model</Label><Input id="model" name="model" value={machineForm.model} onChange={handleFormChange} className="col-span-3" required /></div>
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>{editingMachine ? 'Edit Equipment' : 'Add New Equipment'}</DialogTitle></DialogHeader>
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1"><Label>Name</Label><Input name="name" value={machineForm.name} onChange={handleFormChange} required /></div>
+              <div className="space-y-1"><Label>Category</Label><Select onValueChange={(v) => handleSelectChange('category', v)} value={machineForm.category}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger><SelectContent><SelectItem value="therapy">Therapy</SelectItem><SelectItem value="exercise">Exercise</SelectItem><SelectItem value="pain_management">Pain Management</SelectItem><SelectItem value="mobility">Mobility</SelectItem></SelectContent></Select></div>
             </div>
-            <DialogFooter>
-              <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-              <Button type="submit">{editingMachine ? 'Save Changes' : 'Create Equipment'}</Button>
-            </DialogFooter>
+            <div className="space-y-1"><Label>Description</Label><Input name="description" value={machineForm.description} onChange={handleFormChange} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1"><Label>Manufacturer</Label><Input name="manufacturer" value={machineForm.manufacturer} onChange={handleFormChange} /></div>
+              <div className="space-y-1"><Label>Model</Label><Input name="model" value={machineForm.model} onChange={handleFormChange} /></div>
+            </div>
+            <div className="space-y-1"><Label>Total Stock Count</Label><Input name="totalCount" type="number" min="1" value={machineForm.totalCount} onChange={handleFormChange} required /></div>
+            <DialogFooter><Button type="button" variant="secondary" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingMachine ? 'Save Changes' : 'Create Equipment'}</Button></DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isInventoryOpen} onOpenChange={setIsInventoryOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Manage Inventory: {managingMachine?.name}</DialogTitle>
+            <DialogDescription>Assign, return, or manage maintenance for this equipment.</DialogDescription>
+          </DialogHeader>
+          {managingMachine && (
+            <div className="flex-1 overflow-y-auto pr-4 -mr-4 space-y-6">
+              <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Users />In Use by Physios</CardTitle></CardHeader>
+                <CardContent>
+                  {managingMachine.inventory.inUse.length > 0 ? (
+                    <ul className="space-y-2">
+                      {managingMachine.inventory.inUse.map(item => {
+                        const physio = physios.find(p => p.id === item.physioId);
+                        return (
+                          <li key={item.physioId} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                            <div><span className="font-semibold">{physio?.name || 'Unknown Physio'}</span>: <span className="text-blue-600 font-bold">{item.count}</span> unit(s)</div>
+                            <Button size="sm" variant="outline" onClick={() => handleReturnFromPhysio(item.physioId, 1)}>Return 1</Button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : <p className="text-sm text-gray-500">Not currently in use by any physio.</p>}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2"><PackageCheck />Assign to Physio</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p>Available to assign: <span className="font-bold text-green-600">{managingMachine.inventory.available}</span></p>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1"><Label>Physiotherapist</Label><Select value={assignPhysioId} onValueChange={setAssignPhysioId}><SelectTrigger><SelectValue placeholder="Select a physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent></Select></div>
+                    <div className="w-24"><Label>Count</Label><Input type="number" min="1" max={managingMachine.inventory.available} value={assignCount} onChange={(e) => setAssignCount(e.target.value)} /></div>
+                    <Button onClick={handleAssignToPhysio}>Assign</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Tool />Under Maintenance</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p>Currently in maintenance: <span className="font-bold text-red-600">{managingMachine.inventory.underMaintenance}</span></p>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => handleSetMaintenance(1)} disabled={managingMachine.inventory.available < 1}>Move 1 to Maintenance</Button>
+                    <Button size="sm" variant="secondary" onClick={() => handleReturnFromMaintenance(1)} disabled={managingMachine.inventory.underMaintenance < 1}>Return 1 from Maintenance</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,56 +1,86 @@
+
 [
   {
     "id": 1,
     "name": "Ultrasound Therapy Unit",
-    "description": "High-frequency sound waves for deep tissue healing",
+    "description": "For deep tissue heating and pain relief.",
+    "category": "pain_management",
+    "manufacturer": "PhysioMed",
+    "model": "US-2000",
     "active": true,
-    "category": "therapy",
-    "manufacturer": "PhysioTech",
-    "model": "UT-2000"
+    "totalCount": 5,
+    "inventory": {
+      "available": 2,
+      "inUse": [
+        { "physioId": 101, "count": 1 },
+        { "physioId": 102, "count": 1 }
+      ],
+      "underMaintenance": 1
+    }
   },
   {
     "id": 2,
     "name": "TENS Machine",
-    "description": "Transcutaneous Electrical Nerve Stimulation for pain relief",
-    "active": true,
+    "description": "Transcutaneous Electrical Nerve Stimulation for pain management.",
     "category": "pain_management",
-    "manufacturer": "MedDevice",
-    "model": "TENS-Pro"
+    "manufacturer": "PainFree Inc.",
+    "model": "T-100",
+    "active": true,
+    "totalCount": 10,
+    "inventory": {
+      "available": 7,
+      "inUse": [
+        { "physioId": 103, "count": 2 }
+      ],
+      "underMaintenance": 1
+    }
   },
   {
     "id": 3,
-    "name": "Treadmill",
-    "description": "Motorized treadmill for gait training and cardio",
-    "active": true,
+    "name": "Stationary Bike",
+    "description": "For cardiovascular and lower limb strengthening exercises.",
     "category": "exercise",
-    "manufacturer": "FitnessPro",
-    "model": "TM-500"
+    "manufacturer": "FitLife",
+    "model": "CyclePro",
+    "active": true,
+    "totalCount": 3,
+    "inventory": {
+      "available": 3,
+      "inUse": [],
+      "underMaintenance": 0
+    }
   },
   {
     "id": 4,
-    "name": "Parallel Bars",
-    "description": "Adjustable parallel bars for balance and mobility training",
-    "active": true,
+    "name": "Shoulder Pulley",
+    "description": "Aids in improving range of motion for the shoulder.",
     "category": "mobility",
-    "manufacturer": "RehabEquip",
-    "model": "PB-300"
+    "manufacturer": "RehabTools",
+    "model": "SP-Basic",
+    "active": false,
+    "totalCount": 8,
+    "inventory": {
+      "available": 8,
+      "inUse": [],
+      "underMaintenance": 0
+    }
   },
   {
     "id": 5,
-    "name": "Interferential Therapy Unit",
-    "description": "Medium frequency electrical stimulation for pain relief",
-    "active": false,
+    "name": "IFT Machine",
+    "description": "Interferential Therapy for pain relief and circulation.",
     "category": "therapy",
-    "manufacturer": "TherapyMax",
-    "model": "IFT-150"
-  },
-  {
-    "id": 6,
-    "name": "Exercise Bike",
-    "description": "Stationary bike for lower limb strengthening",
+    "manufacturer": "PhysioMed",
+    "model": "IFT-500",
     "active": true,
-    "category": "exercise",
-    "manufacturer": "CardioFit",
-    "model": "EB-200"
+    "totalCount": 4,
+    "inventory": {
+      "available": 1,
+      "inUse": [
+        { "physioId": 101, "count": 1 },
+        { "physioId": 104, "count": 2 }
+      ],
+      "underMaintenance": 0
+    }
   }
 ]

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Fuel } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
@@ -23,7 +23,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Share2, label: 'References', path: '/references' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
-        { icon: Fuel, label: 'Petrol Allowance', path: '/petrol-allowance' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
       ],
       admin: [
@@ -35,7 +34,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Share2, label: 'References', path: '/references' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
-        { icon: Fuel, label: 'Petrol Allowance', path: '/petrol-allowance' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
       ],
       hod: [

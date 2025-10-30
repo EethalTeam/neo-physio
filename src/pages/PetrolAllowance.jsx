@@ -210,10 +210,7 @@ const PetrolAllowance = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="range" selected={dateRange} onSelect={(e)=>{console.log(e,"e");
-                  if(e){
-                    setDateRange(e)
-                  }}} initialFocus />
+                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
               </PopoverContent>
             </Popover>
           </div>
@@ -327,7 +324,7 @@ const PetrolAllowance = () => {
         </motion.div>
       )}
 
-      {/* <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.6 }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.6 }}>
         <Card className="medical-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><FileText size={20} /> Audit Trail</CardTitle>
@@ -345,7 +342,7 @@ const PetrolAllowance = () => {
             </ul>
           </CardContent>
         </Card>
-      </motion.div> */}
+      </motion.div>
 
       <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
         <DialogContent>

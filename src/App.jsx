@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -20,6 +21,7 @@ import ReferenceMaster from '@/pages/ReferenceMaster';
 import Payroll from '@/pages/Payroll';
 import RedFlagsMaster from '@/pages/RedFlagsMaster';
 import PetrolAllowance from '@/pages/PetrolAllowance';
+import MonthlySummary from '@/pages/MonthlySummary';
 
 function App() {
   return (
@@ -110,6 +112,14 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
                 <Layout>
                   <PetrolAllowance />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+             <Route path="/monthly-summary" element={
+              <ProtectedRoute allowedRoles={['physio']}>
+                <Layout>
+                  <MonthlySummary />
                 </Layout>
               </ProtectedRoute>
             } />
