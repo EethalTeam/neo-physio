@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
@@ -14,6 +15,16 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     ];
 
+    const mastersSubmenu = {
+        icon: Database,
+        label: 'Masters',
+        isMenu: true,
+        submenu: [
+             { icon: Layers, label: 'Categories', path: '/categories' },
+             { icon: Flag, label: 'Red Flags', path: '/red-flags' },
+            ]
+    };
+    
     const roleBasedItems = {
       super_admin: [
         { icon: UserPlus, label: 'Leads', path: '/leads' },
@@ -22,9 +33,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: 'Physios', path: '/physios' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Share2, label: 'References', path: '/references' },
+        mastersSubmenu,
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
-        { icon: Layers, label: 'Categories', path: '/categories' },
-        { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
       ],
@@ -35,8 +45,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: 'Physios', path: '/physios' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Share2, label: 'References', path: '/references' },
-        { icon: Wallet, label: 'Expenses', path: '/expenses' },
-        { icon: Layers, label: 'Categories', path: '/categories' },
+        mastersSubmenu,
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
@@ -54,7 +63,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ],
     };
     
-    // Add monthly summary for physio if not already there
     if(user?.role === 'physio' && !roleBasedItems.physio.find(item => item.path === '/monthly-summary')) {
         roleBasedItems.physio.push({ icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'});
     }
@@ -62,6 +70,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
     return [...baseItems, ...(roleBasedItems[user?.role] || [])];
   };
+  
+  const [openAccordion, setOpenAccordion] = useState('');
 
   const menuItems = getMenuItems();
 
@@ -75,6 +85,32 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     closed: { opacity: 0, x: -10 },
   };
 
+  const NavItem = ({ item }) => {
+    const Icon = item.icon;
+    const isActive = location.pathname === item.path;
+    return (
+        <Link
+          to={item.path}
+          title={item.label}
+          className={`flex items-center h-12 rounded-lg transition-all duration-200 ${
+            isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
+          } ${isOpen ? 'px-4' : 'justify-center'}`}
+        >
+          <Icon size={20} className="shrink-0" />
+          {isOpen && (
+            <motion.span
+              initial={false}
+              animate={isOpen ? 'open' : 'closed'}
+              variants={textVariants}
+              className="ml-3 font-medium whitespace-nowrap"
+            >
+              {item.label}
+            </motion.span>
+          )}
+        </Link>
+    );
+  };
+  
   return (
     <>
       <div
@@ -107,32 +143,40 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         </div>
 
         <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                title={item.label}
-                className={`flex items-center h-12 mx-3 my-1 rounded-lg transition-all duration-200 ${
-                  isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
-                } ${isOpen ? 'px-4' : 'justify-center'}`}
-              >
-                <Icon size={20} className="shrink-0" />
-                {isOpen && (
-                  <motion.span
-                    initial={false}
-                    animate={isOpen ? 'open' : 'closed'}
-                    variants={textVariants}
-                    className="ml-3 font-medium whitespace-nowrap"
-                  >
-                    {item.label}
-                  </motion.span>
+        <Accordion type="single" collapsible value={openAccordion} onValueChange={setOpenAccordion} className="w-full">
+          {menuItems.map((item, index) => (
+             <div key={index} className="mx-3 my-1">
+                {item.isMenu ? (
+                    <AccordionItem value={item.label} className="border-none">
+                       <AccordionTrigger className={`flex items-center h-12 rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:no-underline ${isOpen ? 'px-4' : 'justify-center'}`}>
+                           <div className="flex items-center">
+                            <item.icon size={20} className="shrink-0" />
+                            {isOpen && (
+                                <motion.span
+                                initial={false}
+                                animate={isOpen ? 'open' : 'closed'}
+                                variants={textVariants}
+                                className="ml-3 font-medium whitespace-nowrap"
+                                >
+                                {item.label}
+                                </motion.span>
+                            )}
+                           </div>
+                       </AccordionTrigger>
+                        <AccordionContent className="pl-6 pr-2 py-0">
+                           {isOpen && item.submenu.map((subItem, subIndex) => (
+                                <div key={subIndex} className="my-1">
+                                    <NavItem item={subItem} />
+                                </div>
+                           ))}
+                        </AccordionContent>
+                    </AccordionItem>
+                ) : (
+                    <NavItem item={item} />
                 )}
-              </Link>
-            );
-          })}
+            </div>
+          ))}
+        </Accordion>
         </nav>
       </motion.div>
     </>
