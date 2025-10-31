@@ -347,17 +347,17 @@ const PetrolAllowance = () => {
       <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Generate Petrol Allowance</DialogTitle>
-            <DialogDescription>Enter the rate per km to calculate the allowance for the selected period ({dateRange.from ? format(dateRange.from, 'MMMM yyyy') : ''}).</DialogDescription>
+            <DialogTitle>Monthly petrol allowance will be generated</DialogTitle>
+            {/* <DialogDescription>Enter the rate per km to calculate the allowance for the selected period ({dateRange.from ? format(dateRange.from, 'MMMM yyyy') : ''}).</DialogDescription> */}
           </DialogHeader>
-          <div className="space-y-4 pt-4">
+          {/* <div className="space-y-4 pt-4">
             <Label htmlFor="ratePerKmGenerate">Rate per Km (₹)</Label>
             <Input id="ratePerKmGenerate" type="number" value={ratePerKm} onChange={(e) => setRatePerKm(Number(e.target.value))} />
-          </div>
-          <DialogFooter>
+          </div> */}
+          {/* <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setIsGenerateOpen(false)}>Cancel</Button>
             <Button onClick={handleGenerateReport}>Generate Report</Button>
-          </DialogFooter>
+          </DialogFooter> */}
         </DialogContent>
       </Dialog>
     </div>

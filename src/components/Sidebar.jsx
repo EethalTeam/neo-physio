@@ -35,6 +35,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Share2, label: 'References', path: '/references' },
         mastersSubmenu,
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
+        { icon: Wallet, label: 'Petrol Allowance', path: '/petrol-allowance' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
       ],
