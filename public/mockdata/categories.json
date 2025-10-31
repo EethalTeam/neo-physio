@@ -1,0 +1,45 @@
+
+[
+  {
+    "id": 1,
+    "name": "Revenue from Patient",
+    "type": "Income",
+    "status": "Active"
+  },
+  {
+    "id": 2,
+    "name": "Other Income",
+    "type": "Income",
+    "status": "Active"
+  },
+  {
+    "id": 3,
+    "name": "Employee Salary",
+    "type": "Expense",
+    "status": "Active"
+  },
+  {
+    "id": 4,
+    "name": "Office Expense",
+    "type": "Expense",
+    "status": "Active"
+  },
+  {
+    "id": 5,
+    "name": "Referral Commission",
+    "type": "Expense",
+    "status": "Active"
+  },
+  {
+    "id": 6,
+    "name": "Machine Maintenance",
+    "type": "Expense",
+    "status": "Active"
+  },
+  {
+    "id": 7,
+    "name": "Other Expense",
+    "type": "Expense",
+    "status": "Active"
+  }
+]

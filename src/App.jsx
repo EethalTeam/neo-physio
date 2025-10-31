@@ -22,6 +22,8 @@ import Payroll from '@/pages/Payroll';
 import RedFlagsMaster from '@/pages/RedFlagsMaster';
 import PetrolAllowance from '@/pages/PetrolAllowance';
 import MonthlySummary from '@/pages/MonthlySummary';
+import ExpenseManagement from '@/pages/ExpenseManagement';
+import CategoryMaster from '@/pages/CategoryMaster';
 
 function App() {
   return (
@@ -128,6 +130,22 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
                 <Layout>
                   <RedFlagsMaster />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/expenses" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+                <Layout>
+                  <ExpenseManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+             <Route path="/categories" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+                <Layout>
+                  <CategoryMaster />
                 </Layout>
               </ProtectedRoute>
             } />

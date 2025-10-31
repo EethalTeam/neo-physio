@@ -1,0 +1,85 @@
+
+[
+  {
+    "id": 1,
+    "type": "Income",
+    "date": "2025-10-15",
+    "amount": 5000,
+    "category": "Revenue from Patient",
+    "categoryId": 1,
+    "description": "Session fees for P001",
+    "createdBy": "Admin",
+    "linkedEntity": {
+      "patientName": "Aarav Sharma",
+      "patientCode": "P001"
+    }
+  },
+  {
+    "id": 2,
+    "type": "Expense",
+    "date": "2025-10-20",
+    "amount": 25000,
+    "category": "Employee Salary",
+    "categoryId": 3,
+    "description": "Salary for Dr. Priya Sharma",
+    "createdBy": "Super Admin",
+    "linkedEntity": {
+      "employeeName": "Dr. Priya Sharma",
+      "month": "October 2025"
+    }
+  },
+  {
+    "id": 3,
+    "type": "Expense",
+    "date": "2025-10-22",
+    "amount": 1200,
+    "category": "Machine Maintenance",
+    "categoryId": 6,
+    "description": "Ultrasound machine repair",
+    "createdBy": "Admin",
+    "linkedEntity": {
+      "machineName": "Ultrasound Machine",
+      "vendorName": "MedTech Services"
+    }
+  },
+  {
+    "id": 4,
+    "type": "Expense",
+    "date": "2025-10-25",
+    "amount": 350,
+    "category": "Office Expense",
+    "categoryId": 4,
+    "description": "Stationery supplies",
+    "createdBy": "Admin",
+    "linkedEntity": {
+      "vendorName": "OfficeMart"
+    }
+  },
+  {
+    "id": 5,
+    "type": "Income",
+    "date": "2025-10-28",
+    "amount": 1500,
+    "category": "Other Income",
+    "categoryId": 2,
+    "description": "Sale of old equipment",
+    "createdBy": "Super Admin",
+    "linkedEntity": {
+      "sourceName": "Scrap Dealer Inc."
+    }
+  },
+  {
+    "id": 6,
+    "type": "Expense",
+    "date": "2025-09-20",
+    "amount": 25000,
+    "category": "Employee Salary",
+    "categoryId": 3,
+    "description": "Salary for Dr. Priya Sharma",
+    "createdBy": "Super Admin",
+    "linkedEntity": {
+      "employeeName": "Dr. Priya Sharma",
+      "month": "September 2025"
+    }
+  }
+]

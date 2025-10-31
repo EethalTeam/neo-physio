@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
@@ -21,6 +22,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: 'Physios', path: '/physios' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Share2, label: 'References', path: '/references' },
+        { icon: Wallet, label: 'Expenses', path: '/expenses' },
+        { icon: Layers, label: 'Categories', path: '/categories' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
@@ -32,6 +35,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: 'Physios', path: '/physios' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Share2, label: 'References', path: '/references' },
+        { icon: Wallet, label: 'Expenses', path: '/expenses' },
+        { icon: Layers, label: 'Categories', path: '/categories' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
@@ -45,8 +50,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       ],
       physio: [
         { icon: Calendar, label: 'My Sessions', path: '/sessions' },
+        { icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'}
       ],
     };
+    
+    // Add monthly summary for physio if not already there
+    if(user?.role === 'physio' && !roleBasedItems.physio.find(item => item.path === '/monthly-summary')) {
+        roleBasedItems.physio.push({ icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'});
+    }
+
 
     return [...baseItems, ...(roleBasedItems[user?.role] || [])];
   };
