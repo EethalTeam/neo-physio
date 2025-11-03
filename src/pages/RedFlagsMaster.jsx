@@ -8,22 +8,47 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { PlusCircle, Edit, Trash2, Flag } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+// import { json } from 'stream/consumers';
 
 const RedFlagsMaster = () => {
   const [redFlags, setRedFlags] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingFlag, setEditingFlag] = useState(null);
-  const [flagName, setFlagName] = useState('');
+  const [flagName, setFlagName] = useState({
+    flagdescription: ""
+  });
 
-  useEffect(() => {
-    fetch('/mockdata/redflags.json')
-      .then(res => res.json())
-      .then(data => setRedFlags(data))
-      .catch(err => console.error('Error loading red flags:', err));
-  }, []);
+  console.log(redFlags)
 
-  const handleFormSubmit = (e) => {
+  // useEffect(() => {
+  //   fetch('/mockdata/redflags.json')
+  //     .then(res => res.json())
+  //     .then(data => setRedFlags(data))
+  //     .catch(err => console.error('Error loading red flags:', err));
+  // }, []);
+
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
+    console.log(flagName)
+    try {
+
+      const res = await fetch("http://localhost:8001/api/Redflag/createRedflag", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({redflagName :flagName,isActive:true,redflagCode:"rf001"})
+      })
+      if (res.ok) {
+        const red = await res.json()
+        setRedFlags([...redFlags, red])
+        setFlagName({
+          flagdescription: ""
+        })
+      }
+
+    } catch (error) {
+      console.log(error)
+    }
+
     if (editingFlag) {
       setRedFlags(prev => prev.map(flag => flag.id === editingFlag.id ? { ...flag, name: flagName } : flag));
       toast({ title: "Success", description: "Red flag updated." });
@@ -49,10 +74,47 @@ const RedFlagsMaster = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (flagId) => {
-    setRedFlags(prev => prev.filter(flag => flag.id !== flagId));
-    toast({ title: "Deleted", description: "Red flag has been removed.", variant: "destructive" });
+  const handleDelete = async (flagId) => {
+   
+    try {
+      const res = await fetch(`http://localhost:8001/api/Redflag/deleteRedflag/${flagId}`, {
+        method: 'DELETE'
+      })
+      if (!res.ok) {
+        setRedFlags(prev => prev.filter(flag => flag.id !== flagId));
+        toast({ title: "Deleted", description: "Red flag has been removed.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.log(error)
+    }
+
+
   };
+
+  const handleget = async () => {
+    try {
+    
+      const res = await fetch("http://localhost:8001/api/Redflag/getAllRedflag",{
+        method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body : JSON.stringify({})
+      })
+      const result=await res.json()
+      setRedFlags(result)
+
+      
+
+    } catch (error) {
+      console.log(error)
+    }
+  
+  }
+     useEffect(() => {
+    handleget()
+  }, [])
+
+
+ 
 
   return (
     <div className="space-y-6">
@@ -76,7 +138,7 @@ const RedFlagsMaster = () => {
                 <div key={flag.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50/50">
                   <div className="flex items-center gap-3">
                     <Flag className="text-red-500" size={16} />
-                    <span className="text-gray-800">{flag.name}</span>
+                    <span className="text-gray-800">{flag.redflagName}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="outline" onClick={() => handleEdit(flag)}><Edit size={14} /></Button>
