@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 const CategoryMaster = () => {
   const [categories, setCategories] = useState([]);
@@ -23,11 +24,39 @@ const CategoryMaster = () => {
   const [categoryForm, setCategoryForm] = useState(initialFormState);
 
   useEffect(() => {
-    fetch('/mockdata/categories.json')
-      .then(res => res.json())
-      .then(data => setCategories(data))
-      .catch(err => console.error('Error loading categories:', err));
+    // fetch('/mockdata/categories.json')
+    //   .then(res => res.json())
+    //   .then(data => setCategories(data))
+    //   .catch(err => console.error('Error loading categories:', err));
+    getExpenseCategory()
   }, []);
+
+    const getExpenseCategory = async () => {
+    try {
+      const response = await apiRequest("ExpenseCategory/getAllExpenseCategory", {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setCategories(response)
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+    const deleteExpenseCategory = async(id)=>{
+    try {
+      const response = await apiRequest("ExpenseCategory/deleteExpenseCategory", {
+        method: 'POST',
+        body: JSON.stringify({_id:id}),
+      });
+
+      getExpenseCategory();
+      return response;
+    } catch (error) {0
+      console.error('Error:', error);
+      throw error;
+    }
+  }
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -38,22 +67,57 @@ const CategoryMaster = () => {
       setCategoryForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
+  // const handleFormSubmit = (e) => {
+  //   e.preventDefault();
     
-    if (editingCategory) {
-      setCategories(prev => prev.map(cat => cat.id === editingCategory.id ? { ...cat, ...categoryForm } : cat));
-      toast({ title: "Success", description: "Category updated successfully." });
-    } else {
-      const newCategory = { id: Date.now(), ...categoryForm };
-      setCategories(prev => [newCategory, ...prev]);
-      toast({ title: "Success", description: "New category added." });
-    }
-    setIsFormOpen(false);
-    setEditingCategory(null);
-    setCategoryForm(initialFormState);
-  };
+  //   if (editingCategory) {
+  //     setCategories(prev => prev.map(cat => cat.id === editingCategory.id ? { ...cat, ...categoryForm } : cat));
+  //     toast({ title: "Success", description: "Category updated successfully." });
+  //   } else {
+  //     const newCategory = { id: Date.now(), ...categoryForm };
+  //     setCategories(prev => [newCategory, ...prev]);
+  //     toast({ title: "Success", description: "New category added." });
+  //   }
+  //   setIsFormOpen(false);
+  //   setEditingCategory(null);
+  //   setCategoryForm(initialFormState);
+  // };
 
+    const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if(editingCategory){
+      updateProjectStatus(categoryForm)
+    }else{
+      createProjectStatus(categoryForm)
+    }
+    setOpen(false);
+  };
+    const createProjectStatus = async (data) => {
+      try {
+        const response = await apiRequest("ExpenseCategory/createExpenseCategory", {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+        getExpenseCategory()
+        return response;
+      } catch (error) {
+        console.error('Error:', error);
+        throw error;
+      }
+    };
+   const updateProjectStatus = async(data)=>{
+ try {
+      const response = await apiRequest("ExpenseCategory/updateExpenseCategory", {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+   getExpenseCategory()
+      return response;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+   }
   const handleEdit = (category) => {
     setEditingCategory(category);
     setCategoryForm(category);
@@ -61,7 +125,8 @@ const CategoryMaster = () => {
   };
 
   const handleDelete = (categoryId) => {
-    setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+    deleteExpenseCategory(categoryId)
     toast({ title: "Deleted", description: "Category has been removed.", variant: "destructive" });
   };
 
@@ -126,7 +191,7 @@ const CategoryMaster = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(cat.id)}>Delete</AlertDialogAction>
+                                <AlertDialogAction onClick={() => handleDelete(cat._id)}>Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
