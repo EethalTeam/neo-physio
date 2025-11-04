@@ -14,11 +14,16 @@ const RedFlagsMaster = () => {
   const [redFlags, setRedFlags] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingFlag, setEditingFlag] = useState(null);
-  const [flagName, setFlagName] = useState({
-    flagdescription: ""
-  });
+  const initialRedflag = {
+    redflagName: '',
+    redflagCode: '',
+    isActive: true
+  }
 
-  console.log(redFlags)
+
+  const [flagName, setFlagName] = useState(initialRedflag);
+  console.log(flagName, "flagName")
+
 
   // useEffect(() => {
   //   fetch('/mockdata/redflags.json')
@@ -29,42 +34,49 @@ const RedFlagsMaster = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log(flagName)
-    try {
 
-      const res = await fetch("http://localhost:8001/api/Redflag/createRedflag", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({redflagName :flagName,isActive:true,redflagCode:"rf001"})
-      })
-      if (res.ok) {
-        const red = await res.json()
-        setRedFlags([...redFlags, red])
-        setFlagName({
-          flagdescription: ""
+
+    const createRedflag = async () => {
+      try {
+
+        const res = await fetch("http://localhost:8001/api/Redflag/createRedflag", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ redflagName: flagName.redflagName, isActive: true, redflagCode: flagName.redflagCode })
         })
-      }
+        if (res.ok) {
+          const red = await res.json()
+          // setRedFlags([...redFlags, red])
+          handleget()
+          setFlagName({
+            initialRedflag: ""
+          })
+          toast({ title: "Success", description: "New red flag added." });
 
-    } catch (error) {
-      console.log(error)
+        }
+
+      } catch (error) {
+        console.log(error)
+      }
     }
 
+
     if (editingFlag) {
+      updateRedflag(flagName)
       setRedFlags(prev => prev.map(flag => flag.id === editingFlag.id ? { ...flag, name: flagName } : flag));
-      toast({ title: "Success", description: "Red flag updated." });
     } else {
+      createRedflag(flagName)
       const newFlag = { id: Date.now(), name: flagName };
       setRedFlags(prev => [...prev, newFlag]);
-      toast({ title: "Success", description: "New red flag added." });
     }
     setIsFormOpen(false);
     setEditingFlag(null);
-    setFlagName('');
+    setFlagName(initialRedflag);
   };
 
   const handleEdit = (flag) => {
     setEditingFlag(flag);
-    setFlagName(flag.name);
+    setFlagName(flag);
     setIsFormOpen(true);
   };
 
@@ -74,14 +86,17 @@ const RedFlagsMaster = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (flagId) => {
-   
+  const handleDelete = async (id) => {
+
     try {
-      const res = await fetch(`http://localhost:8001/api/Redflag/deleteRedflag/${flagId}`, {
-        method: 'DELETE'
+      const res = await fetch('http://localhost:8001/api/Redflag/deleteRedflag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _id: id })
       })
-      if (!res.ok) {
-        setRedFlags(prev => prev.filter(flag => flag.id !== flagId));
+      handleget()
+      if (res.ok) {
+        // setRedFlags(prev => prev.filter(flag => flag.id !== _id));
         toast({ title: "Deleted", description: "Red flag has been removed.", variant: "destructive" });
       }
     } catch (error) {
@@ -93,29 +108,47 @@ const RedFlagsMaster = () => {
 
   const handleget = async () => {
     try {
-    
-      const res = await fetch("http://localhost:8001/api/Redflag/getAllRedflag",{
-        method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body : JSON.stringify({})
+
+      const res = await fetch("http://localhost:8001/api/Redflag/getAllRedflag", {
+        method: 'POST',
+        body: JSON.stringify({})
       })
-      const result=await res.json()
+      const result = await res.json()
       setRedFlags(result)
 
-      
+
 
     } catch (error) {
       console.log(error)
     }
-  
+
   }
-     useEffect(() => {
+  useEffect(() => {
     handleget()
   }, [])
 
 
- 
+  const updateRedflag = async () => {
+    try {
+      const response = await fetch("http://localhost:8001/api/Redflag/updateRedflag", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ redflagName: flagName.redflagName, isActive: true, redflagCode: flagName.redflagCode ,RedflagIDPK:flagName.RedflagIDPK })
+      });
+      toast({ title: "Success", description: "Category updated successfully." });
+      handleget()
+      setIsFormOpen(false)
+      return response;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
 
+    const handleChangeRedflag = (e) => {
+    const { name, value } = e.target;
+    setFlagName(prev => ({ ...prev, [name]: value }));
+    }
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
@@ -151,7 +184,7 @@ const RedFlagsMaster = () => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(flag.id)}>Delete</AlertDialogAction>
+                          <AlertDialogAction onClick={() => handleDelete(flag.RedflagIDPK)}>Delete</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
@@ -170,8 +203,12 @@ const RedFlagsMaster = () => {
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="flagName">Flag Description</Label>
-              <Input id="flagName" value={flagName} onChange={(e) => setFlagName(e.target.value)} placeholder="e.g., Severe night pain" required />
+              <Label htmlFor="redflagCode">Flag Code</Label>
+              <Input id="redflagCode" name='redflagCode' value={flagName.redflagCode} onChange={handleChangeRedflag} placeholder="e.g., RF001" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="redflagName">Flag Description</Label>
+              <Input id="redflagName" name="redflagName" value={flagName.redflagName} onChange={handleChangeRedflag}  placeholder="e.g., Severe night pain" required />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>

@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map  } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
@@ -22,6 +24,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         submenu: [
              { icon: Layers, label: 'Categories', path: '/categories' },
              { icon: Flag, label: 'Red Flags', path: '/red-flags' },
+             { icon: Map, label : 'Country',path :'/country'}
             ]
     };
     
@@ -37,7 +40,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
         { icon: Wallet, label: 'Petrol Allowance', path: '/petrol-allowance' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
-        { icon: BarChart3, label: 'Reports', path: '/reports' },
+        { icon: BarChart3, label: 'Reports', path: '/reports' }        
       ],
       admin: [
         { icon: UserPlus, label: 'Leads', path: '/leads' },
@@ -50,6 +53,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
+          { icon: Map, label : 'Country',path :'/country'}
+
       ],
       hod: [
         { icon: Users, label: 'Patients', path: '/patients' },

@@ -24,6 +24,7 @@ import PetrolAllowance from '@/pages/PetrolAllowance';
 import MonthlySummary from '@/pages/MonthlySummary';
 import ExpenseManagement from '@/pages/ExpenseManagement';
 import CategoryMaster from '@/pages/CategoryMaster';
+import Country from '@/pages/Country'
 
 function App() {
   return (
@@ -54,6 +55,14 @@ function App() {
               </ProtectedRoute>
             } />
             
+                <Route path="/country" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <Country />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/patients" element={
               <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
                 <Layout>
