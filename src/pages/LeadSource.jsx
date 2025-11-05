@@ -12,46 +12,46 @@ import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
-const Country = () => {
-  const [country, setCountry] = useState([]);
+const LeadSource = () => {
+  const [lead, setLead] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCountry, setEditingCountry] = useState(null);
-  const initialFormCountry = { 
-    countryName: '', 
-    countryCode: '', 
+  const [editingLead, setEditingLead] = useState(null);
+  const initialFormLead = { 
+    leadSourceCode: '', 
+    leadSourceName: '', 
     isActive: true,
   };
-  const [countryForm, setCountryForm] = useState(initialFormCountry);
+  const [leadForm, setLeadForm] = useState(initialFormLead);
 
   useEffect(() => {
     // fetch('/mockdata/categories.json')
     //   .then(res => res.json())
     //   .then(data => setCategories(data))
     //   .catch(err => console.error('Error loading categories:', err));
-    getCountry()
+    getLeadSource()
   }, []);
 
-    const getCountry = async () => {
+    const getLeadSource = async () => {
     try {
-      const response = await apiRequest("Country/getAllCountry", {
+      const response = await apiRequest("LeadSource/getAllLeadSource", {
         method: 'POST',
         body: JSON.stringify({}),
       });
-      setCountry(response)
+      setLead(response)
     } catch (error) {
       console.error('Error:', error);
       throw error;
     }
   }
-    const deleteCountry = async(id)=>{
+    const deleteLeadSource = async(id)=>{
     try {
         console.log("Deleting ID:", id); 
-      const response = await apiRequest("Country/deleteCountry", {
+      const response = await apiRequest("LeadSource/deleteLeadSource", {
         method: 'POST',
         body: JSON.stringify({_id:id}),
       });
-        toast({ title: "Deleted", description: "Country has been removed.", variant: "destructive" });
-      getCountry();
+        toast({ title: "Deleted", description: "LeadSource has been removed.", variant: "destructive" });
+      getLeadSource();
       return response;
     } catch (error) {0
       console.error('Error:', error);
@@ -59,14 +59,14 @@ const Country = () => {
     }
   }
 
-  const handleChangeCountry = (e) => {
+  const handleChangeLead = (e) => {
     console.log(e.target.name, e.target.value,e, "e in change ")
     const { name, value } = e.target;
-    setCountryForm(prev => ({ ...prev, [name]: value }));
+    setLeadForm(prev => ({ ...prev, [name]: value }));
   };
   
   const handleRadioChange = (name, value) => {
-      setCountryForm(prev => ({ ...prev, [name]: value }));
+      setLeadForm(prev => ({ ...prev, [name]: value }));
   };
 
   // const handleFormSubmit = (e) => {
@@ -87,21 +87,21 @@ const Country = () => {
 
     const handleFormSubmit = (e) => {
     e.preventDefault();
-    if(editingCountry){
-      updateCountry(countryForm)
+    if(editingLead){
+      updateLeadSource(leadForm)
     }else{
-      createCountry(countryForm)
+      createLeadSource(leadForm)
     }
      setIsFormOpen(false)
   };
-    const createCountry = async (data) => {
+    const createLeadSource = async (data) => {
       try {
-        const response = await apiRequest("Country/CreateCountry", {
+        const response = await apiRequest("LeadSource/createLeadSource", {
           method: 'POST',
           body: JSON.stringify(data),
         });
-         toast({ title: "Success", description: "Country Create successfully." });
-        getCountry()
+         toast({ title: "Success", description: "LeadSource Create successfully." });
+        getLeadSource()
         setIsFormOpen(false)
         return response;
       } catch (error) {
@@ -109,14 +109,14 @@ const Country = () => {
         throw error;
       }
     };
-   const updateCountry = async(data)=>{
+   const updateLeadSource = async(data)=>{
  try {
-      const response = await apiRequest("Country/updateCountry", {
+      const response = await apiRequest("LeadSource/updateLeadSource", {
         method: 'POST',
         body: JSON.stringify(data),
       });
-        toast({ title: "Success", description: "Country updated successfully." });
-        getCountry()
+        toast({ title: "Success", description: "LeadSource updated successfully." });
+        getLeadSource()
        setIsFormOpen(false)
       return response;
     } catch (error) {
@@ -124,13 +124,13 @@ const Country = () => {
       throw error;
     }
    }
-  const handleEdit = (countryData) => {
-    setEditingCountry(true);
-   setCountryForm({
-  countryName: countryData.countryName,
-    countryCode: countryData.countryCode,
-    isActive: countryData.isActive,
-    CountryIDPK: countryData.CountryIDPK,
+  const handleEdit = (leadSource) => {
+    setEditingLead(true);
+   setLeadForm({
+  leadSourceName: leadSource.leadSourceName,
+    leadSourceCode: leadSource.leadSourceCode,
+    isActive: leadSource.isActive,
+    LeadIDPK: leadSource.LeadIDPK,
    })
 
     // setCountry(countryData);
@@ -139,13 +139,13 @@ const Country = () => {
 
   const handleDelete = (id) => {
     // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
-    deleteCountry(id)
+    deleteLeadSource(id)
     // toast({ title: "Deleted", description: "Country has been removed.", variant: "destructive" });
   };
 
   const openNewDialog = () => {
-    setEditingCountry(null);
-    setCountryForm(initialFormCountry);
+    setEditingLead(null);
+    setLeadForm(initialFormLead);
     setIsFormOpen(true);
   };
 
@@ -153,19 +153,19 @@ const Country = () => {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Country </h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Lead Source </h1>
           {/* <p className="text-gray-600 mt-1">Manage income and expense categories.</p> */}
         </div>
         <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
-          <PlusCircle size={18} className="mr-2" /> Add New Country
+          <PlusCircle size={18} className="mr-2" /> Add New Lead Source
         </Button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
         <Card className="medical-card">
           <CardHeader>
-            <CardTitle>All Country ({country.length})</CardTitle>
-            <CardDescription>List of all defined transaction Country.</CardDescription>
+            <CardTitle>All Lead Source ({lead.length})</CardTitle>
+            <CardDescription>List of all defined transaction Lead Source.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="table-responsive-wrapper">
@@ -179,9 +179,9 @@ const Country = () => {
                   </tr> */}
                 </thead>
                 <tbody>
-                  {country.map((count) => (
-                    <tr key={count._id} className="border-b hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3 font-medium text-gray-800">{count.countryName}</td>
+                  {lead.map((leadSource) => (
+                    <tr key={leadSource._id} className="border-b hover:bg-gray-50/50 transition-colors">
+                      <td className="p-3 font-medium text-gray-800">{leadSource.leadSourceName}</td>
                       {/* <td className="p-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${cat.ExpenseCategoryType === 'Income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {cat.ExpenseCategoryType}
@@ -194,17 +194,17 @@ const Country = () => {
                       </td> */}
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(count)}><Edit size={14} /></Button>
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(leadSource)}><Edit size={14} /></Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will permanently delete the Country.</AlertDialogDescription>
+                                <AlertDialogDescription>This will permanently delete the Lead Source.</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(count.CountryIDPK)}>Delete</AlertDialogAction>
+                                <AlertDialogAction onClick={() => handleDelete(leadSource.LeadIDPK)}>Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -222,17 +222,17 @@ const Country = () => {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingCountry ? 'Edit Country' : 'Add New Country'}</DialogTitle>
-            <DialogDescription>Define a new Country for tracking transactions.</DialogDescription>
+            <DialogTitle>{editingLead ? 'Edit Lead' : 'Add New Lead'}</DialogTitle>
+            <DialogDescription>Define a new Lead for tracking transactions.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="countryCode"> Country Code</Label>
-              <Input id="countryCode" name="countryCode" value={countryForm.countryCode} onChange={(e)=>{handleChangeCountry(e)}} required placeholder="e.g., CO001" />
+              <Label htmlFor="leadSourceCode"> Lead Code</Label>
+              <Input id="leadSourceCode" name="leadSourceCode" value={leadForm.leadSourceCode} onChange={(e)=>{handleChangeLead(e)}} required placeholder="e.g., PH001" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="countryName"> Country Name</Label>
-              <Input id="countryName" name="countryName" value={countryForm.countryName} onChange={handleChangeCountry} required placeholder="e.g., India" />
+              <Label htmlFor="leadSourceName"> Lead Source Name</Label>
+              <Input id="leadSourceName" name="leadSourceName" value={leadForm.leadSourceName} onChange={handleChangeLead} required placeholder="e.g., India" />
             </div>
             
             {/* <div className="space-y-3">
@@ -245,7 +245,7 @@ const Country = () => {
             
              <div className="space-y-3">
               <Label>Status</Label>
-              <RadioGroup name="isActive" value={countryForm.isActive} onValueChange={(val) => handleRadioChange('isActive', val)} className="flex gap-4">
+              <RadioGroup name="isActive" value={leadForm.isActive} onValueChange={(val) => handleRadioChange('isActive', val)} className="flex gap-4">
                 <div className="flex items-center space-x-2"><RadioGroupItem value={true} id="status-active" /><Label htmlFor="status-active">Active</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value={false} id="status-inactive" /><Label htmlFor="status-inactive">Inactive</Label></div>
               </RadioGroup>
@@ -253,7 +253,7 @@ const Country = () => {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingCountry ? 'Save Changes' : 'Add Country'}</Button>
+              <Button type="submit">{editingLead ? 'Save Changes' : 'Add LeadSource'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -262,4 +262,4 @@ const Country = () => {
   );
 };
 
-export default Country;
+export default LeadSource;

@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map  } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map , SquareCode  } from 'lucide-react';  
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-
+ 
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
@@ -24,7 +24,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         submenu: [
              { icon: Layers, label: 'Categories', path: '/categories' },
              { icon: Flag, label: 'Red Flags', path: '/red-flags' },
-             { icon: Map, label : 'Country',path :'/country'}
+             { icon: Map, label : 'Country',path :'/country'},
+             { icon: Map, label : 'State',path :'/state'},
+             { icon: Map, label : 'City',path :'/city'},
+             { icon: Layers , label : 'Physio Category',path :'/physioCategory'},
+             { icon: SquareCode, label : 'Lead Source', path : '/leadSource' },
+             { icon: SquareCode, label : 'Gender', path : '/gender' },
+           
+             
+
             ]
     };
     

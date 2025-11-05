@@ -1,4 +1,4 @@
- 
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,66 +12,70 @@ import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
-const Country = () => {
-  const [country, setCountry] = useState([]);
+const Gender = () => {
+  const [gender, setGender] = useState([]);
+  console.log(gender)
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCountry, setEditingCountry] = useState(null);
-  const initialFormCountry = { 
-    countryName: '', 
-    countryCode: '', 
+  const [editingGender, setEditingGender] = useState(null);
+  const initialFormGender = {
+    genderCode: '',
+    genderName: '',
     isActive: true,
   };
-  const [countryForm, setCountryForm] = useState(initialFormCountry);
+  const [genderForm, setGenderForm] = useState(initialFormGender);
 
   useEffect(() => {
     // fetch('/mockdata/categories.json')
     //   .then(res => res.json())
     //   .then(data => setCategories(data))
     //   .catch(err => console.error('Error loading categories:', err));
-    getCountry()
+    getGender()
   }, []);
 
-    const getCountry = async () => {
+  const getGender = async () => {
     try {
-      const response = await apiRequest("Country/getAllCountry", {
+      const response = await apiRequest("Gender/getAllGender", {
         method: 'POST',
         body: JSON.stringify({}),
       });
-      setCountry(response)
+      
+      setGender(response)
+    
     } catch (error) {
       console.error('Error:', error);
       throw error;
     }
   }
-    const deleteCountry = async(id)=>{
+  const deleteGender = async (id) => {
     try {
-        console.log("Deleting ID:", id); 
-      const response = await apiRequest("Country/deleteCountry", {
+      console.log("Deleting ID:", id);
+      const response = await apiRequest("Gender/deleteGender", {
         method: 'POST',
-        body: JSON.stringify({_id:id}),
+        body: JSON.stringify({ _id: id }),
       });
-        toast({ title: "Deleted", description: "Country has been removed.", variant: "destructive" });
-      getCountry();
+      toast({ title: "Deleted", description: "Gender has been removed.", variant: "destructive" });
+      getGender();
       return response;
-    } catch (error) {0
+    } catch (error) {
+      0
       console.error('Error:', error);
-      throw error;    
+      throw error;
     }
   }
 
-  const handleChangeCountry = (e) => {
-    console.log(e.target.name, e.target.value,e, "e in change ")
+  const handleChangeGender = (e) => {
+    console.log(e.target.name, e.target.value, e, "e in change ")
     const { name, value } = e.target;
-    setCountryForm(prev => ({ ...prev, [name]: value }));
+    setGenderForm(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handleRadioChange = (name, value) => {
-      setCountryForm(prev => ({ ...prev, [name]: value }));
+    setGenderForm(prev => ({ ...prev, [name]: value }));
   };
 
   // const handleFormSubmit = (e) => {
   //   e.preventDefault();
-    
+
   //   if (editingCategory) {
   //     setCategories(prev => prev.map(cat => cat.id === editingCategory.id ? { ...cat, ...categoryForm } : cat));
   //     toast({ title: "Success", description: "Category updated successfully." });
@@ -85,53 +89,53 @@ const Country = () => {
   //   setCategoryForm(initialFormState);
   // };
 
-    const handleFormSubmit = (e) => {
+  const handleFormSubmit = (e) => {
     e.preventDefault();
-    if(editingCountry){
-      updateCountry(countryForm)
-    }else{
-      createCountry(countryForm)
+    if (editingGender) {
+      updateGender(genderForm)
+    } else {
+      createGender(genderForm)
     }
-     setIsFormOpen(false)
+    setIsFormOpen(false)
   };
-    const createCountry = async (data) => {
-      try {
-        const response = await apiRequest("Country/CreateCountry", {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
-         toast({ title: "Success", description: "Country Create successfully." });
-        getCountry()
-        setIsFormOpen(false)
-        return response;
-      } catch (error) {
-        console.error('Error:', error);
-        throw error;
-      }
-    };
-   const updateCountry = async(data)=>{
- try {
-      const response = await apiRequest("Country/updateCountry", {
+  const createGender = async (data) => {
+    try {
+      const response = await apiRequest("Gender/createGender", {
         method: 'POST',
         body: JSON.stringify(data),
       });
-        toast({ title: "Success", description: "Country updated successfully." });
-        getCountry()
-       setIsFormOpen(false)
+      toast({ title: "Success", description: "Gender Create successfully." });
+      getGender()
+      setIsFormOpen(false)
       return response;
     } catch (error) {
       console.error('Error:', error);
       throw error;
     }
-   }
-  const handleEdit = (countryData) => {
-    setEditingCountry(true);
-   setCountryForm({
-  countryName: countryData.countryName,
-    countryCode: countryData.countryCode,
-    isActive: countryData.isActive,
-    CountryIDPK: countryData.CountryIDPK,
-   })
+  };
+  const updateGender = async (data) => {
+    try {
+      const response = await apiRequest("Gender/updateGender", {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      toast({ title: "Success", description: "Gender updated successfully." });
+      getGender()
+      setIsFormOpen(false)
+      return response;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+  const handleEdit = (gender) => {
+    setEditingGender(true);
+    setGenderForm({
+      genderName: gender.genderName,
+      genderCode: gender.genderCode,
+      isActive: gender.isActive,
+      GenderIDPK: gender.GenderIDPK,
+    })
 
     // setCountry(countryData);
     setIsFormOpen(true);
@@ -139,13 +143,13 @@ const Country = () => {
 
   const handleDelete = (id) => {
     // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
-    deleteCountry(id)
+    deleteGender(id)
     // toast({ title: "Deleted", description: "Country has been removed.", variant: "destructive" });
   };
 
   const openNewDialog = () => {
-    setEditingCountry(null);
-    setCountryForm(initialFormCountry);
+    setEditingGender(null);
+    setGenderForm(initialFormGender);
     setIsFormOpen(true);
   };
 
@@ -153,19 +157,19 @@ const Country = () => {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Country </h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Gender </h1>
           {/* <p className="text-gray-600 mt-1">Manage income and expense categories.</p> */}
         </div>
         <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
-          <PlusCircle size={18} className="mr-2" /> Add New Country
+          <PlusCircle size={18} className="mr-2" /> Add New Gender
         </Button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
         <Card className="medical-card">
           <CardHeader>
-            <CardTitle>All Country ({country.length})</CardTitle>
-            <CardDescription>List of all defined transaction Country.</CardDescription>
+            <CardTitle>All Gender ({gender.length})</CardTitle>
+            <CardDescription>List of all defined transaction Gender.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="table-responsive-wrapper">
@@ -179,9 +183,9 @@ const Country = () => {
                   </tr> */}
                 </thead>
                 <tbody>
-                  {country.map((count) => (
-                    <tr key={count._id} className="border-b hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3 font-medium text-gray-800">{count.countryName}</td>
+                  {gender.map((gen) => (
+                    <tr key={gen._id} className="border-b hover:bg-gray-50/50 transition-colors">
+                      <td className="p-3 font-medium text-gray-800">{gen.genderName}</td>
                       {/* <td className="p-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${cat.ExpenseCategoryType === 'Income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {cat.ExpenseCategoryType}
@@ -194,17 +198,17 @@ const Country = () => {
                       </td> */}
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(count)}><Edit size={14} /></Button>
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(gen)}><Edit size={14} /></Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will permanently delete the Country.</AlertDialogDescription>
+                                <AlertDialogDescription>This will permanently delete the Gender.</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(count.CountryIDPK)}>Delete</AlertDialogAction>
+                                <AlertDialogAction onClick={() => handleDelete(gen.GenderIDPK)}>Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -222,19 +226,19 @@ const Country = () => {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingCountry ? 'Edit Country' : 'Add New Country'}</DialogTitle>
-            <DialogDescription>Define a new Country for tracking transactions.</DialogDescription>
+            <DialogTitle>{editingGender ? 'Edit Gender' : 'Add New Gender'}</DialogTitle>
+            {/* <DialogDescription>Define a new Gender  for tracking transactions.</DialogDescription> */}
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="countryCode"> Country Code</Label>
-              <Input id="countryCode" name="countryCode" value={countryForm.countryCode} onChange={(e)=>{handleChangeCountry(e)}} required placeholder="e.g., CO001" />
+              <Label htmlFor="genderCode"> Gender Code</Label>
+              <Input id="genderCode" name="genderCode" value={genderForm.genderCode} onChange={(e) => { handleChangeGender(e) }} required placeholder="e.g., PH001" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="countryName"> Country Name</Label>
-              <Input id="countryName" name="countryName" value={countryForm.countryName} onChange={handleChangeCountry} required placeholder="e.g., India" />
+              <Label htmlFor="genderName"> Gender Name</Label>
+              <Input id="genderName" name="genderName" value={genderForm.genderName} onChange={handleChangeGender} required placeholder="e.g., India" />
             </div>
-            
+
             {/* <div className="space-y-3">
               <Label>Expense Category Type</Label>
               <RadioGroup name="ExpenseCategoryType" value={categoryForm.ExpenseCategoryType} onValueChange={(val) => handleRadioChange('ExpenseCategoryType', val)} className="flex gap-4">
@@ -242,10 +246,10 @@ const Country = () => {
                 <div className="flex items-center space-x-2"><RadioGroupItem value="Expense" id="type-expense" /><Label htmlFor="type-expense">Expense</Label></div>
               </RadioGroup>
             </div> */}
-            
-             <div className="space-y-3">
+
+            <div className="space-y-3">
               <Label>Status</Label>
-              <RadioGroup name="isActive" value={countryForm.isActive} onValueChange={(val) => handleRadioChange('isActive', val)} className="flex gap-4">
+              <RadioGroup name="isActive" value={genderForm.isActive} onValueChange={(val) => handleRadioChange('isActive', val)} className="flex gap-4">
                 <div className="flex items-center space-x-2"><RadioGroupItem value={true} id="status-active" /><Label htmlFor="status-active">Active</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value={false} id="status-inactive" /><Label htmlFor="status-inactive">Inactive</Label></div>
               </RadioGroup>
@@ -253,7 +257,7 @@ const Country = () => {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingCountry ? 'Save Changes' : 'Add Country'}</Button>
+              <Button type="submit">{editingGender ? 'Save Changes' : 'Add LeadSource'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -262,4 +266,4 @@ const Country = () => {
   );
 };
 
-export default Country;
+export default Gender;

@@ -25,6 +25,11 @@ import MonthlySummary from '@/pages/MonthlySummary';
 import ExpenseManagement from '@/pages/ExpenseManagement';
 import CategoryMaster from '@/pages/CategoryMaster';
 import Country from '@/pages/Country'
+import State from '@/pages/State';
+import City from '@/pages/City';
+import PhysioCategory from '@/pages/PhysioCategory';
+import LeadSource from '@/pages/LeadSource'
+import Gender from '@/pages/Gender';
 
 function App() {
   return (
@@ -59,6 +64,47 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
                 <Layout>
                   <Country />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+               <Route path="/state" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <State />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+               <Route path="/city" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <City />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+              <Route path="/physioCategory" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <PhysioCategory />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+
+             <Route path="/leadSource" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <LeadSource />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/gender" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <Gender />
                 </Layout>
               </ProtectedRoute>
             } />
