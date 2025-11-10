@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import PatientDetailsDialog from '@/components/PatientDetailsDialog';
+import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 const PatientManagement = () => {
   const { user } = useAuth();
@@ -32,22 +33,22 @@ const PatientManagement = () => {
 
   const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
   const [assigningPatient, setAssigningPatient] = useState(null);
-  const initialAssignState = { 
-    physiotherapistAssigned: '', 
-    startDate: null, 
-    sessionTime: '', 
-    totalDays: '', 
-    shortTermGoal: '', 
-    goalDuration: '', 
-    goalDescription: '', 
+  const initialAssignState = {
+    Physiotherapist: '',
+    sessionStartDate: null,
+    sessionTime: '',
+    totalSessionDays: '',
+    InitialShorttermGoal: '',
+    goalDuration: '',
+    goalDescription: '',
     reviewFrequency: '',
     visitOrder: 1,
-    kmsFromHub: '',
+    KmsfromHub: '',
     kmsFromPrevious: '',
     returnToHubKms: '',
   };
   const [assignForm, setAssignForm] = useState(initialAssignState);
-  
+
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewingPatient, setViewingPatient] = useState(null);
 
@@ -65,38 +66,189 @@ const PatientManagement = () => {
   const [patientHistory, setPatientHistory] = useState([]);
 
   const initialFormState = {
-    patientId: '', name: '', age: '', gender: '', contact: '', address: '', category: '', medicalHistory: '', documents: [],
-    consultationDate: null, bystanderName: '', relationWithPatient: '', altMobNo: '', pin: '', diagnosis: '', physiotherapistAssigned: '', reviewDate: null,
-    diabetic: 'no', hypertension: 'no', arthritis: 'no', trauma: 'no', osteoporosis: 'no', historyOfSurgery: 'no', historyOfSurgeryDetails: '', historyOfFall: 'no', historyOfFallDetails: '', otherMedicalConditions: '', currentMedications: '',
-    lifestyle: 'sedentary', smokingAlcohol: 'no', dietaryHabits: '',
-    contraindications: '',
-    painLevel: '', rangeOfMotion: '', muscleStrength: '', postureGaitAnalysis: '', functionalLimitations: '', adlAbility: '',
-    shortTermGoals: '', longTermGoals: '', recommendedTherapy: '', frequencyOfSessions: '', durationOfTreatment: '', modalities: 'no', modalityList: [], targetedArea: '', noOfDays: '',
+    patientCode: '', patientName: '', patientAge: '', patientGenderId: '', patientNumber: '', patientAddress: '', category: '', MedicalHistoryAndRiskFactor: '', documents: [],
+    consultationDate: null, byStandar: '', Relation: '', patientAltNum: '', patientPinCode: '', patientCondition: '', Physiotherapist: '', reviewDate: null,
+    historyOfSurgery: '', historyOfSurgeryDetails: '', historyOfFall: '', historyOfFallDetails: '', otherMedCon: '', currMed: '',
+    typesOfLifeStyle: '', smokingOrAlcohol: '', dietaryHabits: '',
+    Contraindications: '', goalDescription: '',
+    painLevel: '', rangeOfMotion: '', muscleStrength: '', postureOrGaitAnalysis: '', functionalLimitations: '', ADLAbility: '',
+    shortTermGoals: '', longTermGoals: '', RecomTherapy: '', Frequency: '', Duration: '', Modalities: '', modalityList: [], targetedArea: '', noOfDays: '',
     hodNotes: '',
     goalLog: [],
     travelDetails: null,
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
+  // console.log(patientForm,"patientForm")
   const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
+  const [risk, setRisk] = useState([]) //for dropdown 
+
+  const [gender, setGender] = useState([])
+  const [radio, setRadio] = useState([])
+  console.log(radio)
+
+
+
+
+
+
+  //api for getall pshyio 
+  const getAllpshyio = async () => {
+    try {
+      const res = await apiRequest("Physio/getAllPhysio", {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      setPhysios(res.physios)
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
+  //api call  and get all risk Factor 
 
   useEffect(() => {
-    Promise.all([
-      fetch('/mockdata/patients.json').then(res => res.json()),
-      fetch('/mockdata/physios.json').then(res => res.json()),
-      fetch('/mockdata/sessions.json').then(res => res.json())
-    ]).then(([patientsData, physiosData, sessionsData]) => {
-      setPatients(patientsData);
-      setFilteredPatients(patientsData);
-      setPhysios(physiosData);
-      setSessions(sessionsData);
-    }).catch(err => console.error('Error loading data:', err));
-  }, []);
+    getAllRisk()
+    getAllpshyio()
+    getAllGender()
+  }, [])
+
+  const getAllRisk = async () => {
+    try {
+      const res = await apiRequest("RiskFactor/getAllRiskFactor", {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      setRisk(res)
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
+
+  //Gender api for drop down 
+  const getAllGender = async () => {
+    try {
+      const res = await apiRequest("Gender/getAllGender", {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      setGender(res)
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
+  //api call and getAllPatient
+  const getAllPatient = async () => {
+    try {
+      const res = await apiRequest("Patient/getAllPatient", {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+
+      setFilteredPatients(res);
+      setPhysios(res);
+      setSessions(res);
+
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
+
+  //api call and delete Patients
+  const deletePatient = async (id) => {
+    try {
+      console.log("Deleting ID:", id);
+      const response = await apiRequest("Patient/deletePatient", {
+        method: 'POST',
+        body: JSON.stringify({ _id: id }),
+
+      });
+      toast({ title: "Deleted", description: "Patients has been removed.", variant: "destructive" });
+      getAllPatient();
+
+      setFilteredPatients(response);
+      setPhysios(response);
+      setSessions(response);
+
+
+      return response;
+    } catch (error) {
+
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
+
+  //api for update Patients
+
+  const updatePatient = async (data) => {
+    try {
+      const response = await apiRequest("Patient/updatePatient", {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      toast({ title: "Success", description: "Patient updated successfully." });
+      getAllPatient()
+      setIsFormOpen(false)
+      setFilteredPatients(response);
+      setPhysios(response);
+      setSessions(response);
+      return response;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
+
+  //api for create patients
+
+  const createPatient = async (data) => {
+
+    try {
+      const response = await apiRequest("Patient/createPatient", {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      toast({ title: "Success", description: "Patient Create successfully." });
+      getAllPatient()
+      setIsFormOpen(false)
+      setFilteredPatients(response);
+      setPhysios(response);
+      setSessions(response)
+      return response;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  };
+
+
+  // useEffect(() => {
+  //   Promise.all([
+  //     fetch('/mockdata/patients.json').then(res => res.json()),
+  //     fetch('/mockdata/physios.json').then(res => res.json()),
+  //     fetch('/mockdata/sessions.json').then(res => res.json())
+  //   ]).then(([patientsData, physiosData, sessionsData]) => {
+  //     setPatients(patientsData);
+  //     setFilteredPatients(patientsData);
+  //     setPhysios(physiosData);
+  //     setSessions(sessionsData);
+  //   }).catch(err => console.error('Error loading data:', err));
+  // }, []);
 
   useEffect(() => {
     if (searchTerm) {
       const filtered = patients.filter(patient =>
-        patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.contact.includes(searchTerm) ||
+        patient.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.patientNumber.includes(searchTerm) ||
         patient.patientId?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredPatients(filtered);
@@ -124,6 +276,16 @@ const PatientManagement = () => {
     setPatientForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleRadio = (name, value, id) => {
+    // setRadio(prev => ({ ...prev, [name]: value }));
+    setRadio(prev => [...prev, { RiskFactorID: id, isExist: value === 'yes' ? true : false }])
+    setPatientForm(prev => ({ ...prev, [name]: value }));
+
+
+  };
+
+
+
   const handleDateChange = (name, date) => {
     setPatientForm(prev => ({ ...prev, [name]: date }));
   };
@@ -139,11 +301,13 @@ const PatientManagement = () => {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (editingPatient) {
-      setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
+      // setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
+      updatePatient(patientForm)
       toast({ title: "Success", description: "Patient details updated." });
     } else {
-      const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
-      setPatients(prev => [newPatient, ...prev]);
+      // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
+      // setPatients(prev => [newPatient, ...prev]);
+      createPatient([{ ...patientForm, MedicalHistoryAndRiskFactor: radio }])
       toast({ title: "Success", description: "New patient created." });
     }
     setIsFormOpen(false);
@@ -166,12 +330,14 @@ const PatientManagement = () => {
 
   const handleNewPatient = () => {
     setEditingPatient(null);
-    setPatientForm({ ...initialFormState, patientId: generatePatientId() });
+    setPatientForm({ ...initialFormState, patientCode: generatePatientId() });
     setIsFormOpen(true);
   };
 
   const handleDeletePatient = (patientId) => {
     setPatients(prev => prev.filter(p => p.id !== patientId));
+    deletePatient(patientId)
+
     toast({ title: "Deleted", description: "Patient has been removed.", variant: "destructive" });
   };
 
@@ -179,7 +345,7 @@ const PatientManagement = () => {
     setViewingPatient(patient);
     setIsDetailsOpen(true);
   };
-  
+
   const handleUpdateFeedback = () => {
     setPatients(prev => prev.map(p => {
       if (p.id === reviewingPatient.id) {
@@ -194,7 +360,7 @@ const PatientManagement = () => {
             status: 'Feedback Updated'
           };
         } else {
-           newGoalLog.push({
+          newGoalLog.push({
             goal: p.shortTermGoals || 'Initial Goal',
             date: new Date().toISOString().split('T')[0],
             status: 'Feedback Updated',
@@ -212,17 +378,17 @@ const PatientManagement = () => {
   };
 
   const handleLogAndOpenNewGoal = () => {
-     setPatients(prev => prev.map(p => {
+    setPatients(prev => prev.map(p => {
       if (p.id === reviewingPatient.id) {
         const newGoalLog = [...(p.goalLog || [])];
         if (p.shortTermGoals) {
-            newGoalLog.push({
-                goal: p.shortTermGoals,
-                date: new Date().toISOString().split('T')[0],
-                status: 'Reviewed & Completed',
-                feedback: reviewForm.feedback,
-                satisfaction: reviewForm.satisfaction
-            });
+          newGoalLog.push({
+            goal: p.shortTermGoals,
+            date: new Date().toISOString().split('T')[0],
+            status: 'Reviewed & Completed',
+            feedback: reviewForm.feedback,
+            satisfaction: reviewForm.satisfaction
+          });
         }
         return { ...p, goalLog: newGoalLog };
       }
@@ -236,15 +402,15 @@ const PatientManagement = () => {
   const handleNewGoalSubmit = (e) => {
     e.preventDefault();
     setPatients(prev => prev.map(p => {
-        if (p.id === reviewingPatient.id) {
-            return {
-                ...p,
-                shortTermGoals: newGoalForm.newShortTermGoal,
-                goalDuration: newGoalForm.newGoalDuration,
-                reviewDate: newGoalForm.nextReviewDate,
-            };
-        }
-        return p;
+      if (p.id === reviewingPatient.id) {
+        return {
+          ...p,
+          shortTermGoals: newGoalForm.newShortTermGoal,
+          goalDuration: newGoalForm.newGoalDuration,
+          reviewDate: newGoalForm.nextReviewDate,
+        };
+      }
+      return p;
     }));
     toast({ title: "New Goal Set!", description: `A new goal has been set for ${reviewingPatient.name}.` });
     setIsNewGoalOpen(false);
@@ -266,15 +432,15 @@ const PatientManagement = () => {
       setAssigningPatient(patient);
       setAssignForm({
         ...initialAssignState,
-        physiotherapistAssigned: patient.physiotherapistAssigned || '',
-        shortTermGoal: patient.shortTermGoals || '',
+        Physiotherapist: patient.Physiotherapist || '',
+        InitialShorttermGoal: patient.InitialShorttermGoal || '',
         goalDuration: patient.goalDuration || '',
-        totalDays: patient.noOfDays || '',
+        totalSessionDays: patient.noOfDays || '',
         ...(patient.travelDetails || {})
       });
       setIsAssignPhysioOpen(true);
     } else {
-       toast({ title: "Access Denied", description: "You do not have permission to assign physiotherapists.", variant: "destructive" });
+      toast({ title: "Access Denied", description: "You do not have permission to assign physiotherapists.", variant: "destructive" });
     }
   };
 
@@ -282,15 +448,15 @@ const PatientManagement = () => {
     e.preventDefault();
     setPatients(prev => prev.map(p => {
       if (p.id === assigningPatient.id) {
-        return { 
-          ...p, 
-          physiotherapistAssigned: assignForm.physiotherapistAssigned,
+        return {
+          ...p,
+          physiotherapistAssigned: assignForm.Physiotherapist,
           sessionStartDate: assignForm.startDate,
           sessionTime: assignForm.sessionTime,
           noOfDays: assignForm.totalDays,
           shortTermGoals: assignForm.shortTermGoal,
           goalDuration: assignForm.goalDuration,
-          treatmentPlan: { ...(p.treatmentPlan || {}), description: assignForm.goalDescription },
+          treatmentPlan: { ...(p.treatmentPlan || {}), goalDescription: assignForm.goalDescription },
           reviewFrequency: assignForm.reviewFrequency,
           travelDetails: {
             visitOrder: parseInt(assignForm.visitOrder),
@@ -302,7 +468,7 @@ const PatientManagement = () => {
       }
       return p;
     }));
-    toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.name}.` });
+    toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
     setIsAssignPhysioOpen(false);
     setAssigningPatient(null);
     setAssignForm(initialAssignState);
@@ -329,15 +495,17 @@ const PatientManagement = () => {
     setIsHistoryOpen(true);
   };
 
-  const renderRadioGroup = (label, name, value) => (
+  const renderRadioGroup = (label, name, value, id) => (
     <div className="flex items-center space-x-4">
       <Label className="w-24">{label}</Label>
-      <RadioGroup value={value} onValueChange={(v) => handleRadioChange(name, v)} className="flex gap-4">
+      <RadioGroup value={patientForm[name] || 'no'} onValueChange={(v) => handleRadio(name, v, id)} className="flex gap-4">
         <div className="flex items-center space-x-2"><RadioGroupItem value="yes" id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
-        <div className="flex items-center space-x-2"><RadioGroupItem value="no" id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
+        <div className="flex items-center space-x-2"><RadioGroupItem value="no" active='no' id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
       </RadioGroup>
     </div>
+
   );
+
 
   return (
     <div className="space-y-6">
@@ -367,17 +535,17 @@ const PatientManagement = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredPatients.map((patient) => (
-                <motion.div key={patient.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
+                <motion.div key={patient.PatientIDPK} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
                   <div className="flex items-center space-x-3 mb-3">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><User className="text-blue-600" size={20} /></div>
                     <div>
-                      <h3 className="font-semibold text-gray-800">{patient.name}</h3>
+                      <h3 className="font-semibold text-gray-800">{patient.patientName}</h3>
                       <p className="text-sm text-gray-600">{patient.patientId}</p>
-                      <p className="text-sm text-gray-600">{patient.age} years, {patient.gender}</p>
+                      <p className="text-sm text-gray-600">{patient.patientAge} years, {patient.gender.genderName}</p>
                     </div>
                   </div>
                   <div className="space-y-2 mb-4 flex-grow">
-                    <p className="text-sm"><strong>Contact:</strong> {patient.contact}</p>
+                    <p className="text-sm"><strong>Contact:</strong> {patient.patientNumber}</p>
                     <p className="text-sm"><strong>Category:</strong><span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{patient.category}</span></p>
                     <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PPP") : 'Not set'}</p>
                     <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PPP") : 'N/A'}</p>
@@ -403,7 +571,7 @@ const PatientManagement = () => {
                       {(user?.role === 'admin' || user?.role === 'super_admin') && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} /><span>Delete</span></Button></AlertDialogTrigger>
-                          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the patient and all their records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePatient(patient.id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the patient and all their records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
                       )}
                     </div>
@@ -414,20 +582,20 @@ const PatientManagement = () => {
           </CardContent>
         </Card>
       </motion.div>
-      
+
       <PatientDetailsDialog isOpen={isDetailsOpen} onOpenChange={setIsDetailsOpen} patient={viewingPatient} />
-      
+
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
         <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
-          <DialogHeader><DialogTitle>Review Goal for {reviewingPatient?.name}</DialogTitle><DialogDescription>Update feedback and satisfaction for the current goal.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Review Goal for {reviewingPatient?.patientName}</DialogTitle><DialogDescription>Update feedback and satisfaction for the current goal.</DialogDescription></DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <div className="space-y-4 pt-4">
               <div>
                 <Label className="font-semibold">Current Goal</Label>
                 <p className="text-sm text-gray-700 p-2 bg-gray-100 rounded-md mt-1">{reviewingPatient?.shortTermGoals || "No current goal set."}</p>
               </div>
-              <div className="space-y-2"><Label htmlFor="feedback">Feedback / Suggestions</Label><textarea id="feedback" className="w-full p-2 border rounded-md" value={reviewForm.feedback} onChange={(e) => setReviewForm(p => ({...p, feedback: e.target.value}))} /></div>
-              <div className="space-y-2"><Label>Satisfaction (%)</Label><div className="flex items-center gap-2 flex-wrap">{[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(p => (<Button key={p} type="button" variant={reviewForm.satisfaction === p ? 'default' : 'outline'} size="sm" onClick={() => setReviewForm(f => ({...f, satisfaction: p}))}>{p}%</Button>))}</div></div>
+              <div className="space-y-2"><Label htmlFor="feedback">Feedback / Suggestions</Label><textarea id="feedback" className="w-full p-2 border rounded-md" value={reviewForm.feedback} onChange={(e) => setReviewForm(p => ({ ...p, feedback: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Satisfaction (%)</Label><div className="flex items-center gap-2 flex-wrap">{[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(p => (<Button key={p} type="button" variant={reviewForm.satisfaction === p ? 'default' : 'outline'} size="sm" onClick={() => setReviewForm(f => ({ ...f, satisfaction: p }))}>{p}%</Button>))}</div></div>
             </div>
           </div>
           <DialogFooter className="pt-4">
@@ -437,25 +605,25 @@ const PatientManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <Dialog open={isNewGoalOpen} onOpenChange={setIsNewGoalOpen}>
-          <DialogContent className="max-w-lg">
-              <DialogHeader>
-                  <DialogTitle>Set Next Goal for {reviewingPatient?.name}</DialogTitle>
-                  <DialogDescription>Define the next short-term goal and review date.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleNewGoalSubmit} className="space-y-4 pt-4">
-                  <div className="space-y-2"><Label htmlFor="newShortTermGoal">New Short-term Goal</Label><Input id="newShortTermGoal" value={newGoalForm.newShortTermGoal} onChange={(e) => setNewGoalForm(p => ({...p, newShortTermGoal: e.target.value}))} /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2"><Label htmlFor="newGoalDuration">New Goal Duration (days)</Label><Input id="newGoalDuration" type="number" value={newGoalForm.newGoalDuration} onChange={(e) => setNewGoalForm(p => ({...p, newGoalDuration: e.target.value}))} /></div>
-                      <div className="space-y-2"><Label>Next Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !newGoalForm.nextReviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{newGoalForm.nextReviewDate ? format(newGoalForm.nextReviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newGoalForm.nextReviewDate} onSelect={(d) => setNewGoalForm(p => ({...p, nextReviewDate: d}))} initialFocus /></PopoverContent></Popover></div>
-                  </div>
-                  <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setIsNewGoalOpen(false)}>Cancel</Button>
-                      <Button type="submit">Set New Goal</Button>
-                  </DialogFooter>
-              </form>
-          </DialogContent>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Set Next Goal for {reviewingPatient?.patientName}</DialogTitle>
+            <DialogDescription>Define the next short-term goal and review date.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNewGoalSubmit} className="space-y-4 pt-4">
+            <div className="space-y-2"><Label htmlFor="newShortTermGoal">New Short-term Goal</Label><Input id="newShortTermGoal" value={newGoalForm.newShortTermGoal} onChange={(e) => setNewGoalForm(p => ({ ...p, newShortTermGoal: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label htmlFor="newGoalDuration">New Goal Duration (days)</Label><Input id="newGoalDuration" type="number" value={newGoalForm.newGoalDuration} onChange={(e) => setNewGoalForm(p => ({ ...p, newGoalDuration: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Next Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !newGoalForm.nextReviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{newGoalForm.nextReviewDate ? format(newGoalForm.nextReviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newGoalForm.nextReviewDate} onSelect={(d) => setNewGoalForm(p => ({ ...p, nextReviewDate: d }))} initialFocus /></PopoverContent></Popover></div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsNewGoalOpen(false)}>Cancel</Button>
+              <Button type="submit">Set New Goal</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
@@ -492,38 +660,52 @@ const PatientManagement = () => {
               <Accordion type="multiple" defaultValue={['item-1']} className="w-full">
                 <AccordionItem value="item-1"><AccordionTrigger>Patient Details</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Patient ID</Label><Input value={patientForm.patientId} disabled /></div>
+                    <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required /></div>
                     <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus /></PopoverContent></Popover></div>
-                    <div className="space-y-2"><Label>Name</Label><Input name="name" value={patientForm.name} onChange={handleFormChange} required /></div>
+                    <div className="space-y-2"><Label>Name</Label><Input name="patientName" value={patientForm.patientName} onChange={handleFormChange} required /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Age</Label><Input name="age" type="number" value={patientForm.age} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2"><Label>Gender</Label><Select onValueChange={(v) => handleSelectChange('gender', v)} value={patientForm.gender}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select></div>
-                    <div className="space-y-2"><Label>Bystander Name</Label><Input name="bystanderName" value={patientForm.bystanderName} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Age</Label><Input name="patientAge" type="number" value={patientForm.patientAge} onChange={handleFormChange} required /></div>
+                    <div className="space-y-2">
+                      <Label>Gender</Label>
+                      <Select value={patientForm.patientGenderId} onValueChange={(v) => handleSelectChange('patientGenderId', v)}>
+                        <SelectTrigger><SelectValue placeholder="Select Gender" /></SelectTrigger>
+                        <SelectContent>
+                          {gender.map((g) => (
+                            <SelectItem key={g.GenderIDPK} value={g.GenderIDPK}>{g.genderName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2"><Label>Bystander Name</Label><Input name="byStandar" value={patientForm.byStandar} onChange={handleFormChange} /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Relation With Patient</Label><Input name="relationWithPatient" value={patientForm.relationWithPatient} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>Mobile No.</Label><Input name="contact" value={patientForm.contact} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2"><Label>Alt. Mobile No.</Label><Input name="altMobNo" value={patientForm.altMobNo} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Relation With Patient</Label><Input name="Relation" value={patientForm.Relation} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Mobile No.</Label><Input name="patientNumber" value={patientForm.patientNumber} onChange={handleFormChange} required /></div>
+                    <div className="space-y-2"><Label>Alt. Mobile No.</Label><Input name="patientAltNum" value={patientForm.patientAltNum} onChange={handleFormChange} /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Address</Label><Input name="address" value={patientForm.address} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2"><Label>PIN Code</Label><Input name="pin" value={patientForm.pin} onChange={handleFormChange} required /></div>
+                    <div className="space-y-2"><Label>Address</Label><Input name="patientAddress" value={patientForm.patientAddress} onChange={handleFormChange} required /></div>
+                    <div className="space-y-2"><Label>PIN Code</Label><Input name="patientPinCode" value={patientForm.patientPinCode} onChange={handleFormChange} required /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="diagnosis" value={patientForm.diagnosis} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('physiotherapistAssigned', v)} value={patientForm.physiotherapistAssigned}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent></Select></div>
+                    <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div>
                     <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus /></PopoverContent></Popover></div>
                   </div>
                 </AccordionContent></AccordionItem>
-                
+
                 <AccordionItem value="item-2"><AccordionTrigger>Medical History & Risk Factors</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {renderRadioGroup('Diabetic', 'diabetic', patientForm.diabetic)}
-                    {renderRadioGroup('Hypertension', 'hypertension', patientForm.hypertension)}
-                    {renderRadioGroup('Arthritis', 'arthritis', patientForm.arthritis)}
-                    {renderRadioGroup('Trauma', 'trauma', patientForm.trauma)}
-                    {renderRadioGroup('Osteoporosis', 'osteoporosis', patientForm.osteoporosis)}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
+                    {
+                      risk.map((risk) => (
+                        <div key={risk.RiskFactorIDPK}>
+                          {renderRadioGroup(risk.RiskFactorName, risk.RiskFactorName.toLowerCase(), risk.RiskFactorName, risk.RiskFactorIDPK)}
+
+                        </div>
+                      ))}
+
+
                   </div>
                   <div className="space-y-2">{renderRadioGroup('History of Surgery', 'historyOfSurgery', patientForm.historyOfSurgery)}</div>
                   {patientForm.historyOfSurgery === 'yes' && <div className="space-y-2"><Label>Details</Label><textarea name="historyOfSurgeryDetails" rows={2} className="w-full p-2 border rounded-md" value={patientForm.historyOfSurgeryDetails} onChange={handleFormChange} /></div>}
@@ -534,12 +716,12 @@ const PatientManagement = () => {
                 </AccordionContent></AccordionItem>
 
                 <AccordionItem value="item-3"><AccordionTrigger>Lifestyle Information</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="space-y-2"><Label>Type of Lifestyle</Label><RadioGroup value={patientForm.lifestyle} onValueChange={(v) => handleRadioChange('lifestyle', v)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="ls-sedentary" /><Label htmlFor="ls-sedentary">Sedentary</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="moderate" id="ls-moderate" /><Label htmlFor="ls-moderate">Moderate</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ls-active" /><Label htmlFor="ls-active">Active</Label></div></RadioGroup></div>
-                  <div className="space-y-2">{renderRadioGroup('Smoking / Alcohol', 'smokingAlcohol', patientForm.smokingAlcohol)}</div>
+                  <div className="space-y-2"><Label>Type of Lifestyle</Label><RadioGroup value={patientForm.typesOfLifeStyle} onValueChange={(v) => handleRadio('typesOfLifeStyle', v)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="ls-sedentary" /><Label htmlFor="ls-sedentary">Sedentary</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="moderate" id="ls-moderate" /><Label htmlFor="ls-moderate">Moderate</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ls-active" /><Label htmlFor="ls-active">Active</Label></div></RadioGroup></div>
+                  <div className="space-y-2">{renderRadioGroup('Smoking / Alcohol', 'smokingOrAlcohol', patientForm.smokingOrAlcohol)}</div>
                   <div className="space-y-2"><Label>Dietary Habits</Label><textarea name="dietaryHabits" rows={2} className="w-full p-2 border rounded-md" value={patientForm.dietaryHabits} onChange={handleFormChange} /></div>
                 </AccordionContent></AccordionItem>
 
-                <AccordionItem value="item-4"><AccordionTrigger>Contraindications</AccordionTrigger><AccordionContent><textarea name="contraindications" rows={3} className="w-full p-2 border rounded-md" value={patientForm.contraindications} onChange={handleFormChange} /></AccordionContent></AccordionItem>
+                <AccordionItem value="item-4"><AccordionTrigger>Contraindications</AccordionTrigger><AccordionContent><textarea name="contraindications" rows={3} className="w-full p-2 border rounded-md" value={patientForm.Contraindications} onChange={handleFormChange} /></AccordionContent></AccordionItem>
 
                 <AccordionItem value="item-5"><AccordionTrigger>Assessment Parameters</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -547,28 +729,28 @@ const PatientManagement = () => {
                     <div className="space-y-2"><Label>Range of Motion</Label><Input name="rangeOfMotion" value={patientForm.rangeOfMotion} onChange={handleFormChange} /></div>
                     <div className="space-y-2"><Label>Muscle Strength (0-5)</Label><Input name="muscleStrength" type="number" value={patientForm.muscleStrength} onChange={handleFormChange} /></div>
                   </div>
-                  <div className="space-y-2"><Label>Posture / Gait Analysis</Label><textarea name="postureGaitAnalysis" rows={2} className="w-full p-2 border rounded-md" value={patientForm.postureGaitAnalysis} onChange={handleFormChange} /></div>
+                  <div className="space-y-2"><Label>Posture / Gait Analysis</Label><textarea name="postureOrGaitAnalysis" rows={2} className="w-full p-2 border rounded-md" value={patientForm.postureOrGaitAnalysis} onChange={handleFormChange} /></div>
                   <div className="space-y-2"><Label>Functional Limitations</Label><textarea name="functionalLimitations" rows={2} className="w-full p-2 border rounded-md" value={patientForm.functionalLimitations} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>ADL Ability</Label><textarea name="adlAbility" rows={2} className="w-full p-2 border rounded-md" value={patientForm.adlAbility} onChange={handleFormChange} /></div>
+                  <div className="space-y-2"><Label>ADL Ability</Label><textarea name="ADLAbility" rows={2} className="w-full p-2 border rounded-md" value={patientForm.ADLAbility} onChange={handleFormChange} /></div>
                 </AccordionContent></AccordionItem>
 
                 <AccordionItem value="item-6"><AccordionTrigger>Treatment Plan</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="space-y-2"><Label>Short-term Goals</Label><textarea name="shortTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.shortTermGoals} onChange={handleFormChange} /></div>
                   <div className="space-y-2"><Label>Long-term Goals</Label><textarea name="longTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.longTermGoals} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>Recommended Therapy</Label><textarea name="recommendedTherapy" rows={2} className="w-full p-2 border rounded-md" value={patientForm.recommendedTherapy} onChange={handleFormChange} /></div>
+                  <div className="space-y-2"><Label>Recommended Therapy</Label><textarea name="RecomTherapy" rows={2} className="w-full p-2 border rounded-md" value={patientForm.RecomTherapy} onChange={handleFormChange} /></div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Frequency (per week)</Label><Input name="frequencyOfSessions" type="number" value={patientForm.frequencyOfSessions} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>Duration (weeks/months)</Label><Input name="durationOfTreatment" value={patientForm.durationOfTreatment} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Frequency (per week)</Label><Input name="Frequency" type="number" value={patientForm.Frequency} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Duration (weeks/months)</Label><Input name="Duration" value={patientForm.Duration} onChange={handleFormChange} /></div>
                     <div className="space-y-2"><Label>No of Days</Label><Input name="noOfDays" type="number" value={patientForm.noOfDays} onChange={handleFormChange} /></div>
                   </div>
-                  <div className="space-y-2">{renderRadioGroup('Modalities', 'modalities', patientForm.modalities)}</div>
-                  {patientForm.modalities === 'yes' && <motion.div initial={{opacity: 0, height: 0}} animate={{opacity: 1, height: 'auto'}} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalitiesOptions.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} checked={patientForm.modalityList.includes(mod)} onCheckedChange={(checked) => { setPatientForm(prev => ({ ...prev, modalityList: checked ? [...prev.modalityList, mod] : prev.modalityList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
+                  <div className="space-y-2">{renderRadioGroup('Modalities', 'modalities', patientForm.Modalities)}</div>
+                  {patientForm.Modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalitiesOptions.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} checked={patientForm.modalityList.includes(mod)} onCheckedChange={(checked) => { setPatientForm(prev => ({ ...prev, modalityList: checked ? [...prev.modalityList, mod] : prev.modalityList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
                   <div className="space-y-2"><Label>Targeted Area</Label><Input name="targetedArea" value={patientForm.targetedArea} onChange={handleFormChange} /></div>
                 </AccordionContent></AccordionItem>
 
                 <AccordionItem value="item-7"><AccordionTrigger>HOD Notes</AccordionTrigger><AccordionContent><textarea name="hodNotes" rows={3} className="w-full p-2 border rounded-md" value={patientForm.hodNotes} onChange={handleFormChange} /></AccordionContent></AccordionItem>
               </Accordion>
-              
+
               <div className="space-y-2 pt-4">
                 <Label>Upload Documents</Label>
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
@@ -599,7 +781,7 @@ const PatientManagement = () => {
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
                       <Label>Physiotherapist</Label>
-                      <Select onValueChange={(v) => setAssignForm(p => ({ ...p, physiotherapistAssigned: v }))} value={assignForm.physiotherapistAssigned}>
+                      <Select onValueChange={(v) => setAssignForm(p => ({ ...p, Physiotherapist: v }))} value={assignForm.Physiotherapist}>
                         <SelectTrigger><SelectValue placeholder="Select a physiotherapist" /></SelectTrigger>
                         <SelectContent>{physios.filter(p => p.role === 'physio').map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}</SelectContent>
                       </Select>
@@ -650,8 +832,8 @@ const PatientManagement = () => {
                     </div>
                     {assignForm.visitOrder == 1 && (
                       <div className="space-y-2">
-                        <Label htmlFor="kmsFromHub">Kms from Hub</Label>
-                        <Input id="kmsFromHub" type="number" placeholder="Distance from hub to first patient" value={assignForm.kmsFromHub} onChange={(e) => setAssignForm(p => ({ ...p, kmsFromHub: e.target.value }))} />
+                        <Label htmlFor="KmsfromHub">Kms from Hub</Label>
+                        <Input id="KmsfromHub" type="number" placeholder="Distance from hub to first patient" value={assignForm.KmsfromHub} onChange={(e) => setAssignForm(p => ({ ...p, KmsfromHub: e.target.value }))} />
                       </div>
                     )}
                     {assignForm.visitOrder > 1 && (

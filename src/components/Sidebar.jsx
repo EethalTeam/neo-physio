@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map , SquareCode  } from 'lucide-react';  
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map , SquareCode,ShieldPlus  } from 'lucide-react';  
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
  
@@ -30,6 +30,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
              { icon: Layers , label : 'Physio Category',path :'/physioCategory'},
              { icon: SquareCode, label : 'Lead Source', path : '/leadSource' },
              { icon: SquareCode, label : 'Gender', path : '/gender' },
+             { icon: ShieldPlus, label : 'Risk Factor', path : '/riskFactor' },
            
              
 
