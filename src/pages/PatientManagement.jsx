@@ -69,26 +69,32 @@ const PatientManagement = () => {
     patientCode: '', patientName: '', patientAge: '', patientGenderId: '', patientNumber: '', patientAddress: '', category: '', MedicalHistoryAndRiskFactor: '', documents: [],
     consultationDate: null, byStandar: '', Relation: '', patientAltNum: '', patientPinCode: '', patientCondition: '', Physiotherapist: '', reviewDate: null,
     historyOfSurgery: '', historyOfSurgeryDetails: '', historyOfFall: '', historyOfFallDetails: '', otherMedCon: '', currMed: '',
-    typesOfLifeStyle: '', smokingOrAlcohol: '', dietaryHabits: '',
+    typesOfLifeStyle: '', smokingOrAlcohol: false, dietaryHabits: '',
     Contraindications: '', goalDescription: '',
     painLevel: '', rangeOfMotion: '', muscleStrength: '', postureOrGaitAnalysis: '', functionalLimitations: '', ADLAbility: '',
-    shortTermGoals: '', longTermGoals: '', RecomTherapy: '', Frequency: '', Duration: '', Modalities: '', modalityList: [], targetedArea: '', noOfDays: '',
+    shortTermGoals: '', longTermGoals: '', RecomTherapy: '', Frequency: '', Duration: '', Modalities: false, modalityList: [], targetedArea: '', noOfDays: '',
     hodNotes: '',
     goalLog: [],
     travelDetails: null,
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
-  // console.log(patientForm,"patientForm")
   const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
   const [risk, setRisk] = useState([]) //for dropdown 
 
   const [gender, setGender] = useState([])
   const [radio, setRadio] = useState([])
-  console.log(radio)
+  // console.log(radio,"radio")
 
 
 
+  //api call  and get all risk Factor 
 
+  useEffect(() => {
+    getAllRisk()
+    getAllpshyio()
+    getAllGender()
+    getAllPatient()
+  }, [])
 
 
   //api for getall pshyio 
@@ -104,14 +110,6 @@ const PatientManagement = () => {
       throw error;
     }
   }
-
-  //api call  and get all risk Factor 
-
-  useEffect(() => {
-    getAllRisk()
-    getAllpshyio()
-    getAllGender()
-  }, [])
 
   const getAllRisk = async () => {
     try {
@@ -141,7 +139,6 @@ const PatientManagement = () => {
     }
   }
 
-  //api call and getAllPatient
   const getAllPatient = async () => {
     try {
       const res = await apiRequest("Patient/getAllPatient", {
@@ -150,9 +147,7 @@ const PatientManagement = () => {
       })
 
       setFilteredPatients(res);
-      setPhysios(res);
-      setSessions(res);
-
+      setPatients(res);
     } catch (error) {
       console.error('Error:', error);
       throw error;
@@ -163,7 +158,6 @@ const PatientManagement = () => {
   //api call and delete Patients
   const deletePatient = async (id) => {
     try {
-      console.log("Deleting ID:", id);
       const response = await apiRequest("Patient/deletePatient", {
         method: 'POST',
         body: JSON.stringify({ _id: id }),
@@ -211,7 +205,7 @@ const PatientManagement = () => {
   //api for create patients
 
   const createPatient = async (data) => {
-
+// console.log(data,"data")
     try {
       const response = await apiRequest("Patient/createPatient", {
         method: 'POST',
@@ -258,7 +252,7 @@ const PatientManagement = () => {
   }, [patients, searchTerm]);
 
   const generatePatientId = () => {
-    const lastId = patients.length > 0 ? Math.max(...patients.map(p => parseInt(p.patientId.replace('PAT', '')))) : 0;
+    const lastId = patients.length > 0 ? Math.max(...patients.map(p => parseInt(p.patientCode.replace('PAT', '')))) : 0;
     const newId = lastId + 1;
     return `PAT${String(newId).padStart(6, '0')}`;
   };
@@ -273,7 +267,7 @@ const PatientManagement = () => {
   };
 
   const handleRadioChange = (name, value) => {
-    setPatientForm(prev => ({ ...prev, [name]: value }));
+    setPatientForm(prev => ({ ...prev, [name]: Boolean(value) }));
   };
 
   const handleRadio = (name, value, id) => {
@@ -307,12 +301,12 @@ const PatientManagement = () => {
     } else {
       // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
       // setPatients(prev => [newPatient, ...prev]);
-      createPatient([{ ...patientForm, MedicalHistoryAndRiskFactor: radio }])
+      createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio })
       toast({ title: "Success", description: "New patient created." });
     }
-    setIsFormOpen(false);
-    setEditingPatient(null);
-    setPatientForm(initialFormState);
+    // setIsFormOpen(false);
+    // setEditingPatient(null);
+    // setPatientForm(initialFormState);
   };
 
   const handleEditPatient = (patient) => {
@@ -495,12 +489,12 @@ const PatientManagement = () => {
     setIsHistoryOpen(true);
   };
 
-  const renderRadioGroup = (label, name, value, id) => (
+  const renderRadioGroup = (label, name, value, id, group) => (
     <div className="flex items-center space-x-4">
       <Label className="w-24">{label}</Label>
-      <RadioGroup value={patientForm[name] || 'no'} onValueChange={(v) => handleRadio(name, v, id)} className="flex gap-4">
-        <div className="flex items-center space-x-2"><RadioGroupItem value="yes" id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
-        <div className="flex items-center space-x-2"><RadioGroupItem value="no" active='no' id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
+      <RadioGroup value={patientForm[name] || value} onValueChange={(v) => { group ? handleRadio(name, v, id) : handleRadioChange(name, v)}} className="flex gap-4">
+        <div className="flex items-center space-x-2"><RadioGroupItem value={true} id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
+        <div className="flex items-center space-x-2"><RadioGroupItem value={false} active='no' id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
       </RadioGroup>
     </div>
 
@@ -541,7 +535,7 @@ const PatientManagement = () => {
                     <div>
                       <h3 className="font-semibold text-gray-800">{patient.patientName}</h3>
                       <p className="text-sm text-gray-600">{patient.patientId}</p>
-                      <p className="text-sm text-gray-600">{patient.patientAge} years, {patient.gender.genderName}</p>
+                      <p className="text-sm text-gray-600">{patient.patientAge} years, {patient.patientGenderId.genderName}</p>
                     </div>
                   </div>
                   <div className="space-y-2 mb-4 flex-grow">
@@ -700,7 +694,7 @@ const PatientManagement = () => {
                     {
                       risk.map((risk) => (
                         <div key={risk.RiskFactorIDPK}>
-                          {renderRadioGroup(risk.RiskFactorName, risk.RiskFactorName.toLowerCase(), risk.RiskFactorName, risk.RiskFactorIDPK)}
+                          {renderRadioGroup(risk.RiskFactorName, risk.RiskFactorName.toLowerCase(), risk.RiskFactorName, risk.RiskFactorIDPK,true)}
 
                         </div>
                       ))}
@@ -716,7 +710,7 @@ const PatientManagement = () => {
                 </AccordionContent></AccordionItem>
 
                 <AccordionItem value="item-3"><AccordionTrigger>Lifestyle Information</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="space-y-2"><Label>Type of Lifestyle</Label><RadioGroup value={patientForm.typesOfLifeStyle} onValueChange={(v) => handleRadio('typesOfLifeStyle', v)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="ls-sedentary" /><Label htmlFor="ls-sedentary">Sedentary</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="moderate" id="ls-moderate" /><Label htmlFor="ls-moderate">Moderate</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ls-active" /><Label htmlFor="ls-active">Active</Label></div></RadioGroup></div>
+                  <div className="space-y-2"><Label>Type of Lifestyle</Label><RadioGroup value={patientForm.typesOfLifeStyle} onValueChange={(v) => handleRadioChange('typesOfLifeStyle', v)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="ls-sedentary" /><Label htmlFor="ls-sedentary">Sedentary</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="moderate" id="ls-moderate" /><Label htmlFor="ls-moderate">Moderate</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ls-active" /><Label htmlFor="ls-active">Active</Label></div></RadioGroup></div>
                   <div className="space-y-2">{renderRadioGroup('Smoking / Alcohol', 'smokingOrAlcohol', patientForm.smokingOrAlcohol)}</div>
                   <div className="space-y-2"><Label>Dietary Habits</Label><textarea name="dietaryHabits" rows={2} className="w-full p-2 border rounded-md" value={patientForm.dietaryHabits} onChange={handleFormChange} /></div>
                 </AccordionContent></AccordionItem>
