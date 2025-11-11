@@ -15,34 +15,109 @@ const ReferenceMaster = () => {
   const [references, setReferences] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReference, setEditingReference] = useState(null);
-  const initialFormState = { 
-    name: '', 
-    commissionValue: '',
-    commissionCategory: 'patient',
-    commissionType: 'percentage'
+  const initialFormState = {
+    // name: '', 
+    // commissionValue: '',
+    // commissionCategory: 'patient',
+    // commissionType: 'percentage'
+    sourceName: '',
+    IsperPatient: '',
+    IsperSession: '',
+    Ispercentage: '',
+    Isrupees: '',
+    CommissionPercentage: '',
+    commissionAmount: ''
   };
   const [referenceForm, setReferenceForm] = useState(initialFormState);
 
+  // useEffect(() => {
+  //   fetch('/mockdata/references.json')
+  //     .then(res => res.json())
+  //     .then(data => {
+  //       // Adapt old data structure for backward compatibility
+  //       const adaptedData = data.map(ref => {
+  //           if (typeof ref.commission === 'number') {
+  //               return {
+  //                   ...ref,
+  //                   commissionCategory: 'patient',
+  //                   commissionType: 'percentage',
+  //                   commissionValue: ref.commission
+  //               }
+  //           }
+  //           return ref;
+  //       });
+  //       setReferences(adaptedData);
+  //     })
+  //     .catch(err => console.error('Error loading references:', err));
+  // }, []);
+
+
+  //api for getAllReference
+
   useEffect(() => {
-    fetch('/mockdata/references.json')
-      .then(res => res.json())
-      .then(data => {
-        // Adapt old data structure for backward compatibility
-        const adaptedData = data.map(ref => {
-            if (typeof ref.commission === 'number') {
-                return {
-                    ...ref,
-                    commissionCategory: 'patient',
-                    commissionType: 'percentage',
-                    commissionValue: ref.commission
-                }
-            }
-            return ref;
+    getAllReference()
+  }, [])
+  const getAllReference = async () => {
+    try {
+      const res = await apiRequest("References/getALLReferences",
+        {
+          method: 'POST',
+          body: JSON.stringify({})
         });
-        setReferences(adaptedData);
-      })
-      .catch(err => console.error('Error loading references:', err));
-  }, []);
+      setReferences(res);
+    } catch (error) {
+      console.error("not able to getall Reference:", error);
+    }
+  };
+
+  //api for create Reference
+  const createReference = async () => {
+    try {
+      const res = await apiRequest("References/getALLReferences",
+        {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+      setReferences(res);
+       getAllReference()
+    } catch (error) {
+      console.error("Not able to Create Reference:", error);
+    }
+  };
+  
+//api for update the Reference
+  const updateReference = async () => {
+    try {
+      const res = await apiRequest("References/updateReferences",
+        {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+      setReferences(res);
+       getAllReference()
+    } catch (error) {
+      console.error("Not able to update Reference:", error);
+    }
+  };
+
+
+  //api for delete
+    const deleteReference = async (id) => {
+    try {
+      console.log("Deleting ID:", id);
+      const response = await apiRequest("References/deleteReferences", {
+        method: 'POST',
+        body: JSON.stringify({ _id: id }),
+      });
+      toast({ title: "Deleted", description: "Reference has been removed.", variant: "destructive" });
+     getAllReference()
+      return response;
+    } catch (error) {
+      
+      console.error('Error:', error);
+      throw error;
+    }
+  }
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -56,16 +131,18 @@ const ReferenceMaster = () => {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     const newReferenceData = {
-        ...referenceForm,
-        commissionValue: parseFloat(referenceForm.commissionValue)
+      ...referenceForm,
+      commissionValue: parseFloat(referenceForm.commissionValue)
     };
 
     if (editingReference) {
       setReferences(prev => prev.map(ref => ref.id === editingReference.id ? { ...ref, ...newReferenceData } : ref));
+      updateReference(referenceForm)
       toast({ title: "Success", description: "Reference source updated." });
     } else {
       const newReference = { id: Date.now(), ...newReferenceData };
       setReferences(prev => [newReference, ...prev]);
+      createReference(referenceForm)
       toast({ title: "Success", description: "New reference source added." });
     }
     setIsFormOpen(false);
@@ -75,17 +152,25 @@ const ReferenceMaster = () => {
 
   const handleEdit = (reference) => {
     setEditingReference(reference);
-    setReferenceForm({ 
-        name: reference.name, 
-        commissionValue: reference.commissionValue.toString(),
-        commissionCategory: reference.commissionCategory || 'patient',
-        commissionType: reference.commissionType || 'percentage'
+    setReferenceForm({
+      // name: reference.name,
+      // commissionValue: reference.commissionValue.toString(),
+      // commissionCategory: reference.commissionCategory || 'patient',
+      // commissionType: reference.commissionType || 'percentage'
+      sourceName:reference.sourceName?reference.sourceName:null,
+      IsperPatient:reference.IsperPatient?reference.IsperPatient:null,
+      IsperSession:reference.IsperSession?reference.IsperSession:null,
+      Ispercentage:reference.Ispercentage?reference.Ispercentage:null,
+      Isrupees:reference.Isrupees?reference.Isrupees:null,
+      CommissionPercentage:reference.CommissionPercentage?reference.CommissionPercentage:null,
+      commissionAmount:reference.commissionAmount?reference.commissionAmount:null
     });
     setIsFormOpen(true);
   };
 
-  const handleDelete = (referenceId) => {
-    setReferences(prev => prev.filter(ref => ref.id !== referenceId));
+  const handleDelete = (id) => {
+    // setReferences(prev => prev.filter(ref => ref.id !== Id));
+    deleteReference(id)
     toast({ title: "Deleted", description: "Reference source has been removed.", variant: "destructive" });
   };
 
@@ -132,7 +217,7 @@ const ReferenceMaster = () => {
                 <tbody>
                   {references.map((ref) => (
                     <tr key={ref.id} className="border-b hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3 font-medium text-gray-800">{ref.name}</td>
+                      <td className="p-3 font-medium text-gray-800">{ref.sourceName}</td>
                       <td className="p-3 text-gray-600">{getCommissionDisplay(ref)}</td>
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
@@ -146,7 +231,7 @@ const ReferenceMaster = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(ref.id)}>Delete</AlertDialogAction>
+                                <AlertDialogAction onClick={() => handleDelete(ref._id)}>Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -169,9 +254,9 @@ const ReferenceMaster = () => {
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
               <Label htmlFor="name">Source Name</Label>
-              <Input id="name" name="name" value={referenceForm.name} onChange={handleFormChange} required placeholder="e.g., Dr. Smith" />
+              <Input id="name" name="name" value={referenceForm.sourceName} onChange={handleFormChange} required placeholder="e.g., Dr. Smith" />
             </div>
-            
+
             <div className="space-y-3">
               <Label>Commission Category</Label>
               <RadioGroup name="commissionCategory" value={referenceForm.commissionCategory} onValueChange={(val) => handleRadioChange('commissionCategory', val)} className="flex gap-4">
