@@ -10,25 +10,25 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Share2, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
 const ReferenceMaster = () => {
   const [references, setReferences] = useState([]);
+  console.log(references)
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReference, setEditingReference] = useState(null);
   const initialFormState = {
-    // name: '', 
-    // commissionValue: '',
-    // commissionCategory: 'patient',
-    // commissionType: 'percentage'
+
+    _id:'',
     sourceName: '',
-    IsperPatient: '',
-    IsperSession: '',
-    Ispercentage: '',
-    Isrupees: '',
+    commissionValue: '',
+    commissionCategory: '',
+    commissionType: ' ',
     CommissionPercentage: '',
     commissionAmount: ''
   };
   const [referenceForm, setReferenceForm] = useState(initialFormState);
+  // console.log(referenceForm)
 
   // useEffect(() => {
   //   fetch('/mockdata/references.json')
@@ -57,44 +57,45 @@ const ReferenceMaster = () => {
   useEffect(() => {
     getAllReference()
   }, [])
-  const getAllReference = async () => {
+  const getAllReference = async (data) => {
     try {
       const res = await apiRequest("References/getALLReferences",
         {
           method: 'POST',
-          body: JSON.stringify({})
+          body: JSON.stringify(data)
         });
       setReferences(res);
+     
+
     } catch (error) {
       console.error("not able to getall Reference:", error);
     }
   };
 
   //api for create Reference
-  const createReference = async () => {
+  const createReference = async (data) => {
     try {
-      const res = await apiRequest("References/getALLReferences",
+      const res = await apiRequest("References/createReferences",
         {
           method: 'POST',
-          body: JSON.stringify({})
+          body: JSON.stringify(data)
         });
-      setReferences(res);
-       getAllReference()
+      getAllReference()
     } catch (error) {
       console.error("Not able to Create Reference:", error);
     }
   };
-  
-//api for update the Reference
-  const updateReference = async () => {
+
+  //api for update the Reference
+  const updateReference = async (data) => {
     try {
       const res = await apiRequest("References/updateReferences",
         {
           method: 'POST',
-          body: JSON.stringify({})
+          body: JSON.stringify(data)
         });
-      setReferences(res);
-       getAllReference()
+   
+      getAllReference()
     } catch (error) {
       console.error("Not able to update Reference:", error);
     }
@@ -102,18 +103,18 @@ const ReferenceMaster = () => {
 
 
   //api for delete
-    const deleteReference = async (id) => {
+  const deleteReference = async (id) => {
     try {
-      console.log("Deleting ID:", id);
+      
       const response = await apiRequest("References/deleteReferences", {
         method: 'POST',
         body: JSON.stringify({ _id: id }),
       });
       toast({ title: "Deleted", description: "Reference has been removed.", variant: "destructive" });
-     getAllReference()
+      getAllReference()
       return response;
     } catch (error) {
-      
+
       console.error('Error:', error);
       throw error;
     }
@@ -136,12 +137,12 @@ const ReferenceMaster = () => {
     };
 
     if (editingReference) {
-      setReferences(prev => prev.map(ref => ref.id === editingReference.id ? { ...ref, ...newReferenceData } : ref));
+      // setReferences(prev => prev.map(ref => ref._id === editingReference._id ? { ...ref, ...newReferenceData } : ref));
       updateReference(referenceForm)
       toast({ title: "Success", description: "Reference source updated." });
     } else {
-      const newReference = { id: Date.now(), ...newReferenceData };
-      setReferences(prev => [newReference, ...prev]);
+      // const newReference = { _id: Date.now(), ...newReferenceData };
+      // setReferences(prev => [newReference, ...prev]);
       createReference(referenceForm)
       toast({ title: "Success", description: "New reference source added." });
     }
@@ -150,20 +151,25 @@ const ReferenceMaster = () => {
     setReferenceForm(initialFormState);
   };
 
+
+
+  
+
   const handleEdit = (reference) => {
-    setEditingReference(reference);
+        
+
+    setEditingReference(true);
     setReferenceForm({
       // name: reference.name,
       // commissionValue: reference.commissionValue.toString(),
       // commissionCategory: reference.commissionCategory || 'patient',
       // commissionType: reference.commissionType || 'percentage'
-      sourceName:reference.sourceName?reference.sourceName:null,
-      IsperPatient:reference.IsperPatient?reference.IsperPatient:null,
-      IsperSession:reference.IsperSession?reference.IsperSession:null,
-      Ispercentage:reference.Ispercentage?reference.Ispercentage:null,
-      Isrupees:reference.Isrupees?reference.Isrupees:null,
-      CommissionPercentage:reference.CommissionPercentage?reference.CommissionPercentage:null,
-      commissionAmount:reference.commissionAmount?reference.commissionAmount:null
+       _id:reference._id?reference._id : null,
+      sourceName: reference.sourceName ? reference.sourceName : null,
+      commissionCategory: reference.commissionCategory? reference.commissionCategory:null,
+      commissionType: reference.commissionType? reference.commissionType:null,
+      CommissionPercentage: reference.CommissionPercentage ? reference.CommissionPercentage : null,
+      commissionAmount: reference.commissionAmount ? reference.commissionAmount : null
     });
     setIsFormOpen(true);
   };
@@ -171,7 +177,7 @@ const ReferenceMaster = () => {
   const handleDelete = (id) => {
     // setReferences(prev => prev.filter(ref => ref.id !== Id));
     deleteReference(id)
-    toast({ title: "Deleted", description: "Reference source has been removed.", variant: "destructive" });
+     
   };
 
   const openNewDialog = () => {
@@ -182,9 +188,11 @@ const ReferenceMaster = () => {
 
   const getCommissionDisplay = (ref) => {
     const category = ref.commissionCategory === 'patient' ? 'Per Patient' : 'Per Session';
-    const value = ref.commissionType === 'percentage' ? `${ref.commissionValue}%` : `₹${ref.commissionValue}`;
+    const value = ref.commissionType === 'percentage' ? `${ref.CommissionPercentage}%` : `₹${ref.commissionAmount}`;
     return `${value} (${category})`;
   }
+
+  
 
   return (
     <div className="space-y-6">
@@ -216,7 +224,7 @@ const ReferenceMaster = () => {
                 </thead>
                 <tbody>
                   {references.map((ref) => (
-                    <tr key={ref.id} className="border-b hover:bg-gray-50/50 transition-colors">
+                    <tr key={ref._id} className="border-b hover:bg-gray-50/50 transition-colors">
                       <td className="p-3 font-medium text-gray-800">{ref.sourceName}</td>
                       <td className="p-3 text-gray-600">{getCommissionDisplay(ref)}</td>
                       <td className="p-3">
@@ -253,31 +261,40 @@ const ReferenceMaster = () => {
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Source Name</Label>
-              <Input id="name" name="name" value={referenceForm.sourceName} onChange={handleFormChange} required placeholder="e.g., Dr. Smith" />
+              <Label htmlFor="sourceName">Source Name</Label>
+              <Input id="sourceName" name="sourceName" value={referenceForm.sourceName} onChange={handleFormChange} required placeholder="e.g., Dr. Smith" />
             </div>
 
             <div className="space-y-3">
               <Label>Commission Category</Label>
-              <RadioGroup name="commissionCategory" value={referenceForm.commissionCategory} onValueChange={(val) => handleRadioChange('commissionCategory', val)} className="flex gap-4">
+              {/* <RadioGroup name="commissionCategory" value={referenceForm.commissionCategory} onValueChange={(val) => handleRadioChange('commissionCategory', val)} className="flex gap-4">
                 <div className="flex items-center space-x-2"><RadioGroupItem value="patient" id="cat-patient" /><Label htmlFor="cat-patient">Per Patient</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="session" id="cat-session" /><Label htmlFor="cat-session">Per Session</Label></div>
+              </RadioGroup> */}
+              <RadioGroup name="commissionCategory" value={referenceForm.commissionCategory} onValueChange={(val) => handleRadioChange('commissionCategory', val)} className="flex gap-4">
+                <div className="flex items-center space-x-2"><RadioGroupItem value="perPatient" id="perPatient" /><Label htmlFor="perPatient">Per Patient</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="perSession" id="perSession" /><Label htmlFor="perSession">Per Session</Label></div>
               </RadioGroup>
             </div>
 
             <div className="space-y-3">
               <Label>Commission Type</Label>
               <RadioGroup name="commissionType" value={referenceForm.commissionType} onValueChange={(val) => handleRadioChange('commissionType', val)} className="flex gap-4">
-                <div className="flex items-center space-x-2"><RadioGroupItem value="percentage" id="type-percentage" /><Label htmlFor="type-percentage">Percentage (%)</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="rupees" id="type-rupees" /><Label htmlFor="type-rupees">Rupees (₹)</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="percentage" id="percentage" /><Label htmlFor="percentage">Percentage (%)</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="rupees" id="rupees" /><Label htmlFor="rupees">Rupees (₹)</Label></div>
               </RadioGroup>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="commissionValue">
+              <Label htmlFor={'percentage'? 'CommissionPercentage' :'commissionAmount'}>
                 Commission Value ({referenceForm.commissionType === 'percentage' ? '%' : '₹'})
               </Label>
-              <Input id="commissionValue" name="commissionValue" type="number" step="0.01" min="0" value={referenceForm.commissionValue} onChange={handleFormChange} required placeholder={referenceForm.commissionType === 'percentage' ? "e.g., 15" : "e.g., 500"} />
+              {
+                referenceForm.commissionType === 'percentage' ? 
+              <Input id="CommissionPercentage" name="CommissionPercentage" type="number" step="0.01" min="0" value={referenceForm.CommissionPercentage} onChange={handleFormChange} required placeholder= "e.g., 15" /> :
+              <Input id="commissionAmount" name="commissionAmount" type="number" step="0.01" min="0" value={referenceForm.commissionAmount} onChange={handleFormChange} required placeholder="e.g., 500"/>
+
+              }
             </div>
 
             <DialogFooter>

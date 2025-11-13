@@ -730,7 +730,7 @@ console.log(assignForm,"assignForm")
               <Accordion type="multiple" defaultValue={['item-1']} className="w-full">
                 <AccordionItem value="item-1"><AccordionTrigger>Patient Details</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required /></div>
+                    <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required disabled/></div>
                     <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus /></PopoverContent></Popover></div>
                     <div className="space-y-2"><Label>Name</Label><Input name="patientName" value={patientForm.patientName} onChange={handleFormChange} required /></div>
                   </div>
