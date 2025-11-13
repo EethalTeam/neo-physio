@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import PatientDetailsDialog from '@/components/PatientDetailsDialog';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
+ 
 
 const PatientManagement = () => {
   const { user } = useAuth();
@@ -34,10 +35,11 @@ const PatientManagement = () => {
   const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
   const [assigningPatient, setAssigningPatient] = useState(null);
   const initialAssignState = {
-    _id:'',
+    _id: '',
+    physioName:'',
     Physiotherapist: '',
-    physioId:'',
-    sessionStartDate: null,
+    physioId: '',
+    sessionStartDate: '',
     sessionTime: '',
     totalSessionDays: '',
     InitialShorttermGoal: '',
@@ -46,12 +48,12 @@ const PatientManagement = () => {
     reviewFrequency: '',
     visitOrder: 1,
     KmsfromHub: '',
-    KmsfLPatienttoHub:'',
+    KmsfLPatienttoHub: '',
     kmsFromPrevious: '',
-   
+
   };
   const [assignForm, setAssignForm] = useState(initialAssignState);
-console.log(assignForm,"assignForm")
+  // console.log(assignForm, "assignForm")
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewingPatient, setViewingPatient] = useState(null);
 
@@ -69,9 +71,9 @@ console.log(assignForm,"assignForm")
   const [patientHistory, setPatientHistory] = useState([]);
 
   const initialFormState = {
-    _id:'',patientCode: '', patientName: '', patientAge: '', patientGenderId: '', patientNumber: '', patientAddress: '', category: '', MedicalHistoryAndRiskFactor: '', documents: [],
+    _id: '', patientCode: '', patientName: '', patientAge: '', patientGenderId: '', patientNumber: '', patientAddress: '', category: '', MedicalHistoryAndRiskFactor: '', documents: [],
     consultationDate: null, byStandar: '', Relation: '', patientAltNum: '', patientPinCode: '', patientCondition: '', Physiotherapist: '', reviewDate: null,
-    historyOfSurgery: '', historyOfSurgeryDetails: '', historyOfFall: '', historyOfFallDetails: '', otherMedCon: '', currMed: '',
+    historyOfSurgery: false, historyOfSurgeryDetails: '', historyOfFall: false, historyOfFallDetails: '', otherMedCon: '', currMed: '',
     typesOfLifeStyle: '', smokingOrAlcohol: false, dietaryHabits: '',
     Contraindications: '', goalDescription: '',
     painLevel: '', rangeOfMotion: '', muscleStrength: '', postureOrGaitAnalysis: '', functionalLimitations: '', ADLAbility: '',
@@ -81,7 +83,7 @@ console.log(assignForm,"assignForm")
     travelDetails: null, genderName: ''
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
-  // console.log(patientForm,"patientForm")
+  console.log(patientForm,"patientForm")
   const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
   const [risk, setRisk] = useState([]) //for dropdown 
 
@@ -210,7 +212,7 @@ console.log(assignForm,"assignForm")
   //api for create patients
 
   const createPatient = async (data) => {
-    // console.log(data,"data")
+    console.log(data,"data")
     try {
       const response = await apiRequest("Patient/createPatient", {
         method: 'POST',
@@ -225,6 +227,29 @@ console.log(assignForm,"assignForm")
       throw error;
     }
   };
+
+
+  // useEffect(() => {
+  //   AssignPhysio()
+  // }, [])
+  //api for Assign physio
+  const AssignPhysio = async (data) => {
+    try {
+      const response = await apiRequest("Patient/AssignPhysio", {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      toast({ title: "Success", description: "Assign updated successfully." });
+      getAllPatient()
+      setIsAssignPhysioOpen(false)
+
+      return response;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+
 
 
   // useEffect(() => {
@@ -269,7 +294,7 @@ console.log(assignForm,"assignForm")
   };
 
   const handleRadioChange = (name, value) => {
-    setPatientForm(prev => ({ ...prev, [name]: value}));
+    setPatientForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleRadio = (name, value, id) => {
@@ -315,69 +340,71 @@ console.log(assignForm,"assignForm")
     if (user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') {
       setEditingPatient(true);
       const formData = {
-          _id:patient._id?patient._id:null,
-          patientCode: patient.patientCode ? patient.patientCode : null,
-          patientName: patient.patientName ? patient.patientName : null,
-          patientAge: patient.patientAge ? patient.patientAge : null,
-          patientGenderId: patient.patientGenderId._id ? patient.patientGenderId._id : null,
-          patientNumber: patient.patientNumber ? patient.patientNumber : null,
-          patientAddress: patient.patientAddress ? patient.patientAddress : null,
-          category: patient.category ? patient.category : null,
-          MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor ? patient.MedicalHistoryAndRiskFactor : null,
-          documents: patient.documents ? patient.documents : [],
-          consultationDate: patient.consultationDate ? new Date(patient.consultationDate) : '',
-          byStandar: patient.byStandar ? patient.byStandar : null,
-          Relation: patient.Relation ? patient.Relation : null,
-          patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
-          patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
-          patientCondition: patient.patientCondition ? patient.patientCondition : null,
-          Physiotherapist: patient.Physiotherapist ? patient.Physiotherapist : null,
-          reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : '',
-          historyOfSurgery: patient.historyOfSurgery ? patient.historyOfSurgery : null,
-          historyOfSurgeryDetails: patient.historyOfSurgeryDetails ? patient.historyOfSurgeryDetails : null,
-          historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
-          historyOfFallDetails: patient.historyOfFallDetails ? patient.historyOfFallDetails : null,
-          otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
-          currMed: patient.currMed ? patient.currMed : null,
-          typesOfLifeStyle: patient.typesOfLifeStyle ? patient.typesOfLifeStyle : null,
-          smokingOrAlcohol: patient.smokingOrAlcohol ? patient.smokingOrAlcohol : false,
-          dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
-          Contraindications: patient.Contraindications ? patient.Contraindications : null,
-          goalDescription: patient.goalDescription ? patient.goalDescription : null,
-          painLevel: patient.painLevel ? patient.painLevel : null,
-          rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
-          muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
-          postureOrGaitAnalysis: patient.postureOrGaitAnalysis ? patient.postureOrGaitAnalysis : null,
-          functionalLimitations: patient.functionalLimitations ? patient.functionalLimitations : null,
-          ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
-          shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
-          longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
-          RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
-          Frequency: patient.Frequency ? patient.Frequency : null,
-          Duration: patient.Duration ? patient.Duration : null,
-          Modalities: patient.Modalities ? patient.Modalities : false,
-          modalityList: patient.modalityList ? patient.modalityList : [],
-          targetedArea: patient.targetedArea ? patient.targetedArea : null,
-          noOfDays: patient.noOfDays ? patient.noOfDays : null,
-          hodNotes: patient.hodNotes ? patient.hodNotes : null,
-          goalLog: patient.goalLog ? patient.goalLog : [],
-          travelDetails: patient.travelDetails ? patient.travelDetails : null,
-          genderName: patient.patientGenderId.genderName ? patient.patientGenderId.genderName : null
-        };
+        _id: patient._id ? patient._id : null,
+        patientCode: patient.patientCode ? patient.patientCode : null,
+        patientName: patient.patientName ? patient.patientName : null,
+        patientAge: patient.patientAge ? patient.patientAge : null,
+        patientGenderId: patient.patientGenderId._id ? patient.patientGenderId._id : null,
+        patientNumber: patient.patientNumber ? patient.patientNumber : null,
+        patientAddress: patient.patientAddress ? patient.patientAddress : null,
+        category: patient.category ? patient.category : null,
+        MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor ? patient.MedicalHistoryAndRiskFactor : null,
+        documents: patient.documents ? patient.documents : [],
+        consultationDate: patient.consultationDate ? new Date(patient.consultationDate) : '',
+        byStandar: patient.byStandar ? patient.byStandar : null,
+        Relation: patient.Relation ? patient.Relation : null,
+        patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
+        patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
+        patientCondition: patient.patientCondition ? patient.patientCondition : null,
+        Physiotherapist: patient.Physiotherapist ? patient.Physiotherapist : null,
+        reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : '',
+        historyOfSurgery: patient.historyOfSurgery ? patient.historyOfSurgery : null,
+        historyOfSurgeryDetails: patient.historyOfSurgeryDetails ? patient.historyOfSurgeryDetails : null,
+        historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
+        historyOfFallDetails: patient.historyOfFallDetails ? patient.historyOfFallDetails : null,
+        otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
+        currMed: patient.currMed ? patient.currMed : null,
+        typesOfLifeStyle: patient.typesOfLifeStyle ? patient.typesOfLifeStyle : null,
+        smokingOrAlcohol: patient.smokingOrAlcohol ? patient.smokingOrAlcohol : false,
+        dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
+        Contraindications: patient.Contraindications ? patient.Contraindications : null,
+        goalDescription: patient.goalDescription ? patient.goalDescription : null,
+        painLevel: patient.painLevel ? patient.painLevel : null,
+        rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
+        muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
+        postureOrGaitAnalysis: patient.postureOrGaitAnalysis ? patient.postureOrGaitAnalysis : null,
+        functionalLimitations: patient.functionalLimitations ? patient.functionalLimitations : null,
+        ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
+        shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
+        longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
+        RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
+        Frequency: patient.Frequency ? patient.Frequency : null,
+        Duration: patient.Duration ? patient.Duration : null,
+        Modalities: patient.Modalities ? patient.Modalities : false,
+        modalityList: patient.modalityList ? patient.modalityList : [],
+        targetedArea: patient.targetedArea ? patient.targetedArea : null,
+        noOfDays: patient.noOfDays ? patient.noOfDays : null,
+        hodNotes: patient.hodNotes ? patient.hodNotes : null,
+        goalLog: patient.goalLog ? patient.goalLog : [],
+        travelDetails: patient.travelDetails ? patient.travelDetails : null,
+        genderName: patient.patientGenderId.genderName ? patient.patientGenderId.genderName : null
+      };
       if (patient.consultationDate) formData.consultationDate = new Date(patient.consultationDate);
       if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
-      let radio=[]
-      const RiskFactor=patient.MedicalHistoryAndRiskFactor.map(val=>{
-        if(val.isExist){
-        radio.push({RiskFactorID: val.RiskFactorID._id, isExist:val.isExist})}
-        return {[val.RiskFactorID.RiskFactorName]:val.isExist.toString()}}
-        )
-        setRadio(radio)
-        if(RiskFactor.length > 0){
-          RiskFactor.map(val=>
-            formData[Object.keys(val)[0].toLowerCase()]= val[Object.keys(val)[0]]=='true'
-            )
+      let radio = []
+      const RiskFactor = patient.MedicalHistoryAndRiskFactor.map(val => {
+        if (val.isExist) {
+          radio.push({ RiskFactorID: val.RiskFactorID._id, isExist: val.isExist })
         }
+        return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() }
+      }
+      )
+      setRadio(radio)
+      if (RiskFactor.length > 0) {
+        RiskFactor.map(val =>
+          formData[Object.keys(val)[0].toLowerCase()] = val[Object.keys(val)[0]] == 'true'
+        )
+      }
       setPatientForm(formData);
       setIsFormOpen(true);
     } else {
@@ -485,16 +512,26 @@ console.log(assignForm,"assignForm")
   };
 
   const openAssignPhysioDialog = (patient) => {
+    console.log(patient,"patient")
     if (user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') {
       setAssigningPatient(patient);
       setAssignForm({
-        ...initialAssignState,
-        _id:patient._id,
-        Physiotherapist: patient?.physioId || '',
-        physioId:patient?.physioId || '',
+        _id: patient._id?patient._id:null,
+        Physiotherapist: patient.physioId ? patient.physioId.physioName:null,
+        physioId: patient.physioId ? patient.physioId._id : '',
         InitialShorttermGoal: patient.InitialShorttermGoal || '',
         goalDuration: patient.goalDuration || '',
-        totalSessionDays: patient.totalSessionDays || '',
+        totalSessionDays: patient.totalSessionDays ||'',
+        sessionStartDate: patient.sessionStartDate ?  new Date(patient.sessionStartDate) :'',
+        sessionTime: patient.sessionTime ||  '',
+        goalDescription: patient.goalDescription || " ",
+        reviewFrequency: patient.reviewFrequency || "",
+        visitOrder: patient.visitOrder || '',
+        KmsfromHub: patient.KmsfromHub || '',
+        KmsfLPatienttoHub: patient.KmsfLPatienttoHub || '',
+        kmsFromPrevious: patient.kmsFromPrevious || ''
+
+
 
       });
       setIsAssignPhysioOpen(true);
@@ -527,12 +564,13 @@ console.log(assignForm,"assignForm")
     //   }
     //   return p;
     // }));
-    console.log({...assigningPatient,...assignForm},"...assigningPatient,...assignForm")
-    // updatePatient(...assigningPatient,...assignForm)
+    console.log(assignForm, "...assigningPatient,...assignForm")
+
+   AssignPhysio(assignForm)
     toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
-    setIsAssignPhysioOpen(false);
-    setAssigningPatient(null);
-    setAssignForm(initialAssignState);
+    // setIsAssignPhysioOpen(false);
+    // setAssigningPatient(null);
+    // setAssignForm(initialAssignState);
   };
 
   const handleViewHistory = (patient) => {
@@ -556,12 +594,12 @@ console.log(assignForm,"assignForm")
     setIsHistoryOpen(true);
   };
 
-  const renderRadioGroup = (label, name, value, id, group,dynamic) => (
+  const renderRadioGroup = (label, name, value, id, group, dynamic) => (
     <div className="flex items-center space-x-4">
       <Label className="w-24">{label}</Label>
-      <RadioGroup value={patientForm[name] || (group ? false:'no')} onValueChange={(v) => { dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v) }} className="flex gap-4">
+      <RadioGroup value={patientForm[name] || (group ? false : 'no')} onValueChange={(v) => { dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v) }} className="flex gap-4">
         <div className="flex items-center space-x-2"><RadioGroupItem value={group ? true : 'yes'} id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
-        <div className="flex items-center space-x-2"><RadioGroupItem value={group ? false: 'no'}  id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
+        <div className="flex items-center space-x-2"><RadioGroupItem value={group ? false : 'no'} id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
       </RadioGroup>
     </div>
 
@@ -621,7 +659,7 @@ console.log(assignForm,"assignForm")
                     <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PPP") : 'N/A'}</p>
                     {patient.shortTermGoals && (
                       <div className="text-sm mt-2 p-2 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
-                        <p><strong>Goal:</strong> {patient.shortTermGoals} ({patient.goalDuration} days)</p>
+                        <p><strong>Goal:</strong> {patient.InitialShorttermGoal} ({patient.goalDuration} days)</p>
                       </div>
                     )}
                   </div>
@@ -730,7 +768,7 @@ console.log(assignForm,"assignForm")
               <Accordion type="multiple" defaultValue={['item-1']} className="w-full">
                 <AccordionItem value="item-1"><AccordionTrigger>Patient Details</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required disabled/></div>
+                    <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required disabled /></div>
                     <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus /></PopoverContent></Popover></div>
                     <div className="space-y-2"><Label>Name</Label><Input name="patientName" value={patientForm.patientName} onChange={handleFormChange} required /></div>
                   </div>
@@ -752,7 +790,7 @@ console.log(assignForm,"assignForm")
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Relation With Patient</Label><Input name="Relation" value={patientForm.Relation} onChange={handleFormChange} /></div>
                     <div className="space-y-2"><Label>Mobile No.</Label><Input name="patientNumber" value={patientForm.patientNumber} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2"><Label>Alt. Mobile No.</Label><Input name="patientAltNum" value={patientForm.patientAltNum} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Alt. Mobile No.</Label><Input name="patientAltNum"   value={patientForm.patientAltNum} onChange={handleFormChange} /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Address</Label><Input name="patientAddress" value={patientForm.patientAddress} onChange={handleFormChange} required /></div>
@@ -770,7 +808,7 @@ console.log(assignForm,"assignForm")
                     {
                       risk.map((risk) => (
                         <div key={risk.RiskFactorIDPK}>
-                          {renderRadioGroup(risk.RiskFactorName, risk.RiskFactorName.toLowerCase(), patientForm[risk.RiskFactorName.toLowerCase()], risk.RiskFactorIDPK, true,true)}
+                          {renderRadioGroup(risk.RiskFactorName, risk.RiskFactorName.toLowerCase(), patientForm[risk.RiskFactorName.toLowerCase()], risk.RiskFactorIDPK, true, true)}
 
                         </div>
                       ))}
@@ -787,7 +825,7 @@ console.log(assignForm,"assignForm")
 
                 <AccordionItem value="item-3"><AccordionTrigger>Lifestyle Information</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="space-y-2"><Label>Type of Lifestyle</Label><RadioGroup value={patientForm.typesOfLifeStyle} onValueChange={(v) => handleRadioChange('typesOfLifeStyle', v)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="ls-sedentary" /><Label htmlFor="ls-sedentary">Sedentary</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="moderate" id="ls-moderate" /><Label htmlFor="ls-moderate">Moderate</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ls-active" /><Label htmlFor="ls-active">Active</Label></div></RadioGroup></div>
-                  <div className="space-y-2">{renderRadioGroup('Smoking / Alcohol', 'smokingOrAlcohol', patientForm.smokingOrAlcohol,'',true)}</div>
+                  <div className="space-y-2">{renderRadioGroup('Smoking / Alcohol', 'smokingOrAlcohol', patientForm.smokingOrAlcohol, '', true)}</div>
                   <div className="space-y-2"><Label>Dietary Habits</Label><textarea name="dietaryHabits" rows={2} className="w-full p-2 border rounded-md" value={patientForm.dietaryHabits} onChange={handleFormChange} /></div>
                 </AccordionContent></AccordionItem>
 
@@ -813,7 +851,7 @@ console.log(assignForm,"assignForm")
                     <div className="space-y-2"><Label>Duration (weeks/months)</Label><Input name="Duration" value={patientForm.Duration} onChange={handleFormChange} /></div>
                     <div className="space-y-2"><Label>No of Days</Label><Input name="noOfDays" type="number" value={patientForm.noOfDays} onChange={handleFormChange} /></div>
                   </div>
-                  <div className="space-y-2">{renderRadioGroup('Modalities', 'Modalities', patientForm.Modalities,'',true)}</div>
+                  <div className="space-y-2">{renderRadioGroup('Modalities', 'Modalities', patientForm.Modalities, '', true)}</div>
                   {patientForm.Modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalitiesOptions.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} checked={patientForm.modalityList.includes(mod)} onCheckedChange={(checked) => { setPatientForm(prev => ({ ...prev, modalityList: checked ? [...prev.modalityList, mod] : prev.modalityList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
                   <div className="space-y-2"><Label>Targeted Area</Label><Input name="targetedArea" value={patientForm.targetedArea} onChange={handleFormChange} /></div>
                 </AccordionContent></AccordionItem>
@@ -855,15 +893,15 @@ console.log(assignForm,"assignForm")
                         <SelectTrigger><SelectValue placeholder="Select a physiotherapist" /></SelectTrigger>
                         <SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent>
                       </Select>
-                      
-                   </div>
+
+                    </div>
                     {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Session Start Date</Label>
                         <Popover>
-                          <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !assignForm.sessionStartDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{assignForm.sessionStartDate ? format(assignForm.sessionStartDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
+                          <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !assignForm.sessionStartDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{ assignForm.sessionStartDate ? format( assignForm.sessionStartDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
                           <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={assignForm.sessionStartDate} onSelect={(d) => setAssignForm(p => ({ ...p, sessionStartDate: d }))} initialFocus /></PopoverContent>
                         </Popover>
                       </div>
@@ -875,7 +913,7 @@ console.log(assignForm,"assignForm")
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="totalSessionDays">Total Session Days</Label>
-                        <Input id="totalSessionDays" type="number" placeholder="e.g., 30" value={assignForm.totalSessionDays} onChange={(e) => setAssignForm(p => ({ ...p, totalSessionDays: e.target.value }))} />
+                        <Input id="totalSessionDays"  type="number" placeholder="e.g., 30" value={assignForm.totalSessionDays} onChange={(e) => setAssignForm(p => ({ ...p, totalSessionDays: e.target.value }))} />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="reviewFrequency">Review Frequency (in days)</Label>
@@ -883,8 +921,8 @@ console.log(assignForm,"assignForm")
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="shortTermGoal">Initial Short-term Goal</Label>
-                      <Input id="shortTermGoal" placeholder="e.g., Walk for 15 mins without pain" value={assignForm.shortTermGoal} onChange={(e) => setAssignForm(p => ({ ...p, shortTermGoal: e.target.value }))} />
+                      <Label htmlFor="InitialShorttermGoal">Initial Short-term Goal</Label>
+                      <Input id="InitialShorttermGoal" placeholder="e.g., Walk for 15 mins without pain" value={assignForm.InitialShorttermGoal} onChange={(e) => setAssignForm(p => ({ ...p, InitialShorttermGoal: e.target.value }))} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="goalDuration">Goal Duration (in days)</Label>

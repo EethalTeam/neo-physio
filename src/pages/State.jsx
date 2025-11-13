@@ -23,7 +23,7 @@ const [countries,setCountries] = useState([])
     StateCode: '', 
     CountryId:'',
     isActive: true,
-    // countryName:'',
+    countryName:'',
   };
   const [stateForm, setStateForm] = useState(initialFormState);
 
@@ -54,11 +54,11 @@ const getCountries = async () => {
     getState()
   }, []);
 
-    const getState = async () => {
+    const getState = async (data) => {
     try {
       const response = await apiRequest("State/getAllState", {
         method: 'POST',
-        body: JSON.stringify({}),
+        body: JSON.stringify(data),
       });
       setState(response)
     } catch (error) {
@@ -155,7 +155,7 @@ const getCountries = async () => {
     isActive: StateData.isActive,
     StateIDPK: StateData.StateIDPK,
     CountryId :StateData.CountryId,
-    // countryName: StateData.countryName
+    countryName: StateData.countryName?StateData.countryName:null
      
    })
 
