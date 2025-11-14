@@ -17,6 +17,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format, getYear, getMonth } from 'date-fns';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -27,12 +28,12 @@ const ExpenseManagement = () => {
     const [masters, setMasters] = useState({ patients: [], physios: [], machines: [], references: [] });
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTx, setEditingTx] = useState(null);
-    
+
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth()).toString()); // 0-indexed
 
-    const [filterState, setFilterState] = useState({ 
-        categoryId: '', 
+    const [filterState, setFilterState] = useState({
+        categoryId: '',
         linkedEntity: {},
         year: new Date().getFullYear().toString(),
         month: 'all'
@@ -40,14 +41,157 @@ const ExpenseManagement = () => {
     const [advancedFilteredTransactions, setAdvancedFilteredTransactions] = useState(null);
 
     const initialFormState = {
-        type: 'Expense',
-        date: new Date(),
-        amount: '',
-        categoryId: '',
-        description: '',
-        linkedEntity: {}
+        ExpenseTypeID,
+        ExpenseCategoryId,
+        expenseDate,
+        expenseAmount,
+        PhysioId,
+        physioDescription,
+        officeExpDes,
+        ReferenceId,
+        PatientId,
+        referenceDes,
+         MachineiId,
+        machineDes,
+        otherDescription,
+       
+        // type: 'Expense',
+        // date: new Date(),
+        // amount: '',
+        // categoryId: '',
+        // description: '',
     };
     const [formState, setFormState] = useState(initialFormState);
+    const [expense, SetExpense] = useState([])
+
+
+    useEffect(() => {
+        getExpense(),
+        getAllPhysio(),
+        getExpenseType(),
+        getAllExpenseCategory(),
+        getAllReference(),
+        getAllPatient(),
+        getAllMachie()
+
+
+    },[])
+    const getExpense = async (data) => {
+        try {
+            const response = await apiRequest("Expense/getAllExpense", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+            SetExpense(response)
+            return response
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+
+    }
+
+
+    const create = async (data) => {
+        try {
+            const response = await apiRequest("Expense/createExpense", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+            getExpense()
+            return response
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
+        }
+    }
+
+
+    const getAllPhysio = async (data) =>{
+        try {
+              const response = await apiRequest("Physio/getAllPhysio", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+             getExpense()
+             return response
+        } catch (error) {
+               console.error('Error:', error);
+            throw error;
+        }
+    }
+
+    const getExpenseType = async(data)=>{
+             try {
+              const response = await apiRequest("ExpenseType/getAllExpenseType", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+             getExpense()
+             return response
+        } catch (error) {
+               console.error('Error:', error);
+            throw error;
+        }       
+    }
+
+    const getAllExpenseCategory = async (data) => {
+            try {
+              const response = await apiRequest("ExpenseCategory/getAllExpenseCategory", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+             getExpense()
+             return response
+        } catch (error) {
+               console.error('Error:', error);
+            throw error;
+        } 
+    }
+
+    const getAllReference = async (data) =>{
+             try {
+              const response = await apiRequest("References/getALLReferences", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+             getExpense()
+             return response
+        } catch (error) {
+               console.error('Error:', error);
+            throw error;
+        } 
+    }
+
+
+
+     const getAllPatient = async (data) =>{
+             try {
+              const response = await apiRequest("Patient/getAllPatient", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+             getExpense()
+             return response
+        } catch (error) {
+               console.error('Error:', error);
+            throw error;
+        } 
+    }
+
+      const  getAllMachie = async (data) =>{
+             try {
+              const response = await apiRequest("Machinery/getAllMachinery", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+             getExpense()
+             return response
+        } catch (error) {
+               console.error('Error:', error);
+            throw error;
+        } 
+    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -86,7 +230,7 @@ const ExpenseManagement = () => {
         }
     };
 
-     const handleFilterChange = (name, value) => {
+    const handleFilterChange = (name, value) => {
         if (name.startsWith('linkedEntity.')) {
             const key = name.split('.')[1];
             setFilterState(prev => ({ ...prev, linkedEntity: { ...prev.linkedEntity, [key]: value } }));
@@ -94,7 +238,7 @@ const ExpenseManagement = () => {
             setFilterState(prev => ({ ...prev, [name]: value }));
         }
     };
-    
+
     const openNewDialog = () => {
         setEditingTx(null);
         setFormState(initialFormState);
@@ -104,7 +248,7 @@ const ExpenseManagement = () => {
     const handleFormSubmit = (e) => {
         e.preventDefault();
         const selectedCategory = categories.find(c => c.id === parseInt(formState.categoryId));
-        const newTransaction = { 
+        const newTransaction = {
             id: editingTx ? editingTx.id : Date.now(),
             createdBy: user.name,
             ...formState,
@@ -145,14 +289,14 @@ const ExpenseManagement = () => {
                 });
             });
         }
-        
+
         setAdvancedFilteredTransactions(filtered);
         toast({ title: "Filter Applied", description: `Found ${filtered.length} transactions.` });
     };
 
     const clearAdvancedFilter = () => {
-        setFilterState({ 
-            categoryId: '', 
+        setFilterState({
+            categoryId: '',
             linkedEntity: {},
             year: new Date().getFullYear().toString(),
             month: 'all'
@@ -191,7 +335,7 @@ const ExpenseManagement = () => {
                 <Textarea id="description" value={state.description || ''} onChange={(e) => handler('description', e.target.value)} required />
             </div>
         ) : null;
-        
+
         const onValueChange = (val, name) => handler(name, val);
 
         switch (category.name) {
@@ -207,13 +351,13 @@ const ExpenseManagement = () => {
                     {commonFields}
                 </>;
             case 'Other Income':
-                 return <>
+                return <>
                     <div className="space-y-2">
                         <Label>Source Name</Label>
                         <Input value={state.linkedEntity?.sourceName || ''} onChange={(e) => handler('linkedEntity.sourceName', e.target.value)} placeholder="e.g. Asset Sale" />
                     </div>
                     {commonFields}
-                 </>;
+                </>;
             case 'Employee Salary':
                 return <>
                     <div className="space-y-2">
@@ -226,7 +370,7 @@ const ExpenseManagement = () => {
                     {commonFields}
                 </>;
             case 'Machine Maintenance':
-                 return <>
+                return <>
                     <div className="space-y-2">
                         <Label>Machine</Label>
                         <Select value={state.linkedEntity?.machineName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.machineName')}>
@@ -235,12 +379,12 @@ const ExpenseManagement = () => {
                         </Select>
                     </div>
                     {commonFields}
-                 </>;
+                </>;
             case 'Referral Commission':
-                 return <>
+                return <>
                     <div className="space-y-2">
                         <Label>Reference Name</Label>
-                         <Select value={state.linkedEntity?.referenceName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.referenceName')}>
+                        <Select value={state.linkedEntity?.referenceName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.referenceName')}>
                             <SelectTrigger><SelectValue placeholder={isFilter ? "All References" : "Select Reference"} /></SelectTrigger>
                             <SelectContent>{masters.references.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}</SelectContent>
                         </Select>
@@ -253,36 +397,36 @@ const ExpenseManagement = () => {
                         </Select>
                     </div>
                     {commonFields}
-                 </>;
+                </>;
             default:
                 return commonFields;
         }
     };
-    
+
     const TransactionTable = ({ data, type }) => (
         <div className="table-responsive-wrapper">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="p-3 text-left font-semibold text-gray-600">Date</th>
-                <th className="p-3 text-left font-semibold text-gray-600">Category</th>
-                <th className="p-3 text-left font-semibold text-gray-600">Description</th>
-                <th className="p-3 text-right font-semibold text-gray-600">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(tx => (
-                <tr key={tx.id} className="border-b hover:bg-gray-50/50">
-                  <td className="p-3 text-gray-700">{format(new Date(tx.date), 'dd MMM, yyyy')}</td>
-                  <td className="p-3 text-gray-700">{tx.category}</td>
-                  <td className="p-3 text-gray-500 max-w-xs truncate">{tx.description}</td>
-                  <td className={`p-3 text-right font-medium ${type === 'Income' ? 'text-green-600' : 'text-red-600'}`}>
-                    ₹{tx.amount.toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <table className="w-full text-sm">
+                <thead>
+                    <tr className="border-b">
+                        <th className="p-3 text-left font-semibold text-gray-600">Date</th>
+                        <th className="p-3 text-left font-semibold text-gray-600">Category</th>
+                        <th className="p-3 text-left font-semibold text-gray-600">Description</th>
+                        <th className="p-3 text-right font-semibold text-gray-600">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {data.map(tx => (
+                        <tr key={tx.id} className="border-b hover:bg-gray-50/50">
+                            <td className="p-3 text-gray-700">{format(new Date(tx.date), 'dd MMM, yyyy')}</td>
+                            <td className="p-3 text-gray-700">{tx.category}</td>
+                            <td className="p-3 text-gray-500 max-w-xs truncate">{tx.description}</td>
+                            <td className={`p-3 text-right font-medium ${type === 'Income' ? 'text-green-600' : 'text-red-600'}`}>
+                                ₹{tx.amount.toLocaleString()}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 
@@ -299,20 +443,20 @@ const ExpenseManagement = () => {
             }],
         };
     }, [expenseTransactions]);
-    
+
     const yearOptions = useMemo(() => {
-      const years = new Set(transactions.map(tx => getYear(new Date(tx.date))));
-      if (!years.has(new Date().getFullYear())) {
-        years.add(new Date().getFullYear());
-      }
-      return Array.from(years).sort((a,b) => b-a).map(String);
+        const years = new Set(transactions.map(tx => getYear(new Date(tx.date))));
+        if (!years.has(new Date().getFullYear())) {
+            years.add(new Date().getFullYear());
+        }
+        return Array.from(years).sort((a, b) => b - a).map(String);
     }, [transactions]);
 
     const monthOptions = [
-      { value: 'all', label: 'All Months' },
-      { value: '0', label: 'January' }, { value: '1', label: 'February' }, { value: '2', label: 'March' }, { value: '3', label: 'April' }, { value: '4', label: 'May' }, { value: '5', label: 'June' }, { value: '6', label: 'July' }, { value: '7', label: 'August' }, { value: '8', label: 'September' }, { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
+        { value: 'all', label: 'All Months' },
+        { value: '0', label: 'January' }, { value: '1', label: 'February' }, { value: '2', label: 'March' }, { value: '3', label: 'April' }, { value: '4', label: 'May' }, { value: '5', label: 'June' }, { value: '6', label: 'July' }, { value: '7', label: 'August' }, { value: '8', label: 'September' }, { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
     ];
-    
+
     const reportMonthOptions = monthOptions.filter(m => m.value !== 'all');
 
     return (
@@ -339,12 +483,12 @@ const ExpenseManagement = () => {
                     <Card>
                         <CardHeader className="flex-row items-center space-x-4 space-y-0">
                             <div className="flex items-center gap-2">
-                               <Filter className="h-5 w-5 text-gray-500" />
-                               <h3 className="text-lg font-semibold">Report Filters</h3>
+                                <Filter className="h-5 w-5 text-gray-500" />
+                                <h3 className="text-lg font-semibold">Report Filters</h3>
                             </div>
                         </CardHeader>
                         <CardContent className="flex flex-wrap items-center gap-4">
-                             <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
                                 <Label htmlFor="year-select">Year:</Label>
                                 <Select value={selectedYear} onValueChange={setSelectedYear}>
                                     <SelectTrigger id="year-select" className="w-[120px]"><SelectValue /></SelectTrigger>
@@ -372,7 +516,7 @@ const ExpenseManagement = () => {
                     <Card>
                         <CardHeader><CardTitle>Expense Breakdown</CardTitle><CardDescription>Expenses by category for {reportMonthOptions.find(m => m.value === selectedMonth)?.label} {selectedYear}</CardDescription></CardHeader>
                         <CardContent className="flex justify-center items-center" style={{ height: '300px' }}>
-                           {expenseTransactions.length > 0 ? <Pie data={expenseByCategory} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }} /> : <p className="text-gray-500">No expense data for the selected period.</p>}
+                            {expenseTransactions.length > 0 ? <Pie data={expenseByCategory} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }} /> : <p className="text-gray-500">No expense data for the selected period.</p>}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -387,13 +531,13 @@ const ExpenseManagement = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-2"><Label>Year</Label><Select value={filterState.year} onValueChange={(val) => handleFilterChange('year', val)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{yearOptions.map(year => <SelectItem key={year} value={year}>{year}</SelectItem>)}</SelectContent></Select></div>
                                     <div className="space-y-2"><Label>Month</Label><Select value={filterState.month} onValueChange={(val) => handleFilterChange('month', val)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{monthOptions.map(month => <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>)}</SelectContent></Select></div>
-                                    <div className="space-y-2"><Label>Category</Label><Select value={filterState.categoryId} onValueChange={(val) => { handleFilterChange('categoryId', val); handleFilterChange('linkedEntity', {})}}><SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === 'Expense' && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                                    <div className="space-y-2"><Label>Category</Label><Select value={filterState.categoryId} onValueChange={(val) => { handleFilterChange('categoryId', val); handleFilterChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === 'Expense' && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                   {renderDynamicFields(filterState, handleFilterChange, true)}
+                                    {renderDynamicFields(filterState, handleFilterChange, true)}
                                 </div>
                             </div>
-                             <div className="flex gap-2">
+                            <div className="flex gap-2">
                                 <Button onClick={handleApplyAdvancedFilter}>Apply Filter</Button>
                                 <Button variant="outline" onClick={clearAdvancedFilter}>Clear Filter</Button>
                             </div>
@@ -445,7 +589,7 @@ const ExpenseManagement = () => {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2"><Label htmlFor="amount">Amount (₹)</Label><Input id="amount" type="number" value={formState.amount} onChange={(e) => handleFormChange('amount', e.target.value)} required min="0.01" step="0.01" /></div>
-                            <div className="space-y-2"><Label>Category</Label><Select value={formState.categoryId} onValueChange={(val) => { handleFormChange('categoryId', val); handleFormChange('linkedEntity', {})}}><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === formState.type && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                            <div className="space-y-2"><Label>Category</Label><Select value={formState.categoryId} onValueChange={(val) => { handleFormChange('categoryId', val); handleFormChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === formState.type && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                         {renderDynamicFields(formState, handleFormChange)}
                         <DialogFooter><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingTx ? 'Save Changes' : 'Add Transaction'}</Button></DialogFooter>

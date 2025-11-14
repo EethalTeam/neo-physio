@@ -16,9 +16,9 @@ const CategoryMaster = () => {
   const [categories, setCategories] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const initialFormState = { 
-    ExpenseCategoryName: '', 
-    ExpenseCategoryCode: '', 
+  const initialFormState = {
+    ExpenseCategoryName: '',
+    ExpenseCategoryCode: '',
     ExpenseCategoryType: 'Expense',
     isActive: true
   };
@@ -32,7 +32,7 @@ const CategoryMaster = () => {
     getExpenseCategory()
   }, []);
 
-    const getExpenseCategory = async () => {
+  const getExpenseCategory = async () => {
     try {
       const response = await apiRequest("ExpenseCategory/getAllExpenseCategory", {
         method: 'POST',
@@ -44,18 +44,19 @@ const CategoryMaster = () => {
       throw error;
     }
   }
-    const deleteExpenseCategory = async(id)=>{
+  const deleteExpenseCategory = async (id) => {
     try {
       const response = await apiRequest("ExpenseCategory/deleteExpenseCategory", {
         method: 'POST',
-        body: JSON.stringify({_id:id}),
+        body: JSON.stringify({ _id: id }),
       });
-        toast({ title: "Deleted", description: "Category has been removed.", variant: "destructive" });
+      toast({ title: "Deleted", description: "Category has been removed.", variant: "destructive" });
       getExpenseCategory();
       return response;
-    } catch (error) {0
+    } catch (error) {
+      0
       console.error('Error:', error);
-      throw error;    
+      throw error;
     }
   }
 
@@ -63,14 +64,14 @@ const CategoryMaster = () => {
     const { name, value } = e.target;
     setCategoryForm(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handleRadioChange = (name, value) => {
-      setCategoryForm(prev => ({ ...prev, [name]: value }));
+    setCategoryForm(prev => ({ ...prev, [name]: value }));
   };
 
   // const handleFormSubmit = (e) => {
   //   e.preventDefault();
-    
+
   //   if (editingCategory) {
   //     setCategories(prev => prev.map(cat => cat.id === editingCategory.id ? { ...cat, ...categoryForm } : cat));
   //     toast({ title: "Success", description: "Category updated successfully." });
@@ -84,45 +85,45 @@ const CategoryMaster = () => {
   //   setCategoryForm(initialFormState);
   // };
 
-    const handleFormSubmit = (e) => {
+  const handleFormSubmit = (e) => {
     e.preventDefault();
-    if(editingCategory){
+    if (editingCategory) {
       updateProjectStatus(categoryForm)
-    }else{
+    } else {
       createProjectStatus(categoryForm)
     }
     setOpen(false);
   };
-    const createProjectStatus = async (data) => {
-      try {
-        const response = await apiRequest("ExpenseCategory/createExpenseCategory", {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
-         toast({ title: "Success", description: "Category Create successfully." });
-        getExpenseCategory()
-        setIsFormOpen(false)
-        return response;
-      } catch (error) {
-        console.error('Error:', error);
-        throw error;
-      }
-    };
-   const updateProjectStatus = async(data)=>{
- try {
-      const response = await apiRequest("ExpenseCategory/updateExpenseCategory", {
+  const createProjectStatus = async (data) => {
+    try {
+      const response = await apiRequest("ExpenseCategory/createExpenseCategory", {
         method: 'POST',
         body: JSON.stringify(data),
       });
-        toast({ title: "Success", description: "Category updated successfully." });
-   getExpenseCategory()
-     setIsFormOpen(false)
+      toast({ title: "Success", description: "Category Create successfully." });
+      getExpenseCategory()
+      setIsFormOpen(false)
       return response;
     } catch (error) {
       console.error('Error:', error);
       throw error;
     }
-   }
+  };
+  const updateProjectStatus = async (data) => {
+    try {
+      const response = await apiRequest("ExpenseCategory/updateExpenseCategory", {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      toast({ title: "Success", description: "Category updated successfully." });
+      getExpenseCategory()
+      setIsFormOpen(false)
+      return response;
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
   const handleEdit = (category) => {
     setEditingCategory(category);
     setCategoryForm(category);
@@ -226,7 +227,7 @@ const CategoryMaster = () => {
               <Label htmlFor="name"> Expense Category Name</Label>
               <Input id="ExpenseCategoryName" name="ExpenseCategoryName" value={categoryForm.ExpenseCategoryName} onChange={handleFormChange} required placeholder="e.g., Office Rent" />
             </div>
-            
+
             <div className="space-y-3">
               <Label>Expense Category Type</Label>
               <RadioGroup name="ExpenseCategoryType" value={categoryForm.ExpenseCategoryType} onValueChange={(val) => handleRadioChange('ExpenseCategoryType', val)} className="flex gap-4">
@@ -234,8 +235,8 @@ const CategoryMaster = () => {
                 <div className="flex items-center space-x-2"><RadioGroupItem value="Expense" id="type-expense" /><Label htmlFor="type-expense">Expense</Label></div>
               </RadioGroup>
             </div>
-            
-             <div className="space-y-3">
+
+            <div className="space-y-3">
               <Label>Status</Label>
               <RadioGroup name="isActive" value={categoryForm.isActive} onValueChange={(val) => handleRadioChange('isActive', val)} className="flex gap-4">
                 <div className="flex items-center space-x-2"><RadioGroupItem value={true} id="status-active" /><Label htmlFor="status-active">Active</Label></div>

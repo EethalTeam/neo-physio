@@ -14,7 +14,7 @@ import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 const ExpenseType = () => {
   const [expenseType, setExpenseType] = useState([]);
-  console.log(expenseType,'expenseType')
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpenseType, setEditingExpenseType] = useState(null);
   const initialFormState = { 
