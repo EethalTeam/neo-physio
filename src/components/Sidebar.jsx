@@ -31,6 +31,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
              { icon: SquareCode, label : 'Lead Source', path : '/leadSource' },
              { icon: SquareCode, label : 'Gender', path : '/gender' },
              { icon: ShieldPlus, label : 'Risk Factor', path : '/riskFactor' },
+             { icon: Layers, label : 'Expense Type', path : '/expenseType' },
+
            
              
 

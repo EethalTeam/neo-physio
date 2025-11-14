@@ -31,6 +31,7 @@ import PhysioCategory from '@/pages/PhysioCategory';
 import LeadSource from '@/pages/LeadSource'
 import Gender from '@/pages/Gender';
 import RiskFactor from '@/pages/RiskFactor'
+import ExpenseType from'@/pages/ExpenseType'
 
 function App() {
   return (
@@ -114,6 +115,14 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
                 <Layout>
                   <RiskFactor />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/expenseType" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <ExpenseType />
                 </Layout>
               </ProtectedRoute>
             } />
