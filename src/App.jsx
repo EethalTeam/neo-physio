@@ -32,6 +32,7 @@ import LeadSource from '@/pages/LeadSource'
 import Gender from '@/pages/Gender';
 import RiskFactor from '@/pages/RiskFactor'
 import ExpenseType from'@/pages/ExpenseType'
+import FeesType from '@/pages/FeesType'
 
 function App() {
   return (
@@ -163,6 +164,14 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                 <Layout>
                   <ReferenceMaster />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+              <Route path="/feesType" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+                <Layout>
+                  <FeesType />
                 </Layout>
               </ProtectedRoute>
             } />

@@ -25,7 +25,6 @@ const ExpenseManagement = () => {
     const { user } = useAuth();
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
-    // const [masters, setMasters] = useState([]);
     const [masters, setMasters] = useState({ patients: [], physios: [], machines: [], references: [] });
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTx, setEditingTx] = useState(null);
@@ -34,7 +33,7 @@ const ExpenseManagement = () => {
     const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth()).toString()); // 0-indexed
 
     const [filterState, setFilterState] = useState({
-        categories: '',
+        categoryId: '',
         linkedEntity: {},
         year: new Date().getFullYear().toString(),
         month: 'all'
@@ -42,22 +41,20 @@ const ExpenseManagement = () => {
     const [advancedFilteredTransactions, setAdvancedFilteredTransactions] = useState(null);
 
     const initialFormState = {
-        ExpenseTypeID :"",
-        ExpenseTypeName :"",
-        ExpenseCategoryId :"",
-        expenseDate: '',
-        expenseAmount :"",
-        PhysioId :"",
-        physioDescription :"",
-        officeExpDes :"",
-        ReferenceId :"",
-        PatientId :"",
-        referenceDes :"",
-        MachineiId :"",
-        machineDes :"",
-        otherDescription :"",
-        linkedEntity:{}
-
+        ExpenseTypeID,
+        ExpenseCategoryId,
+        expenseDate,
+        expenseAmount,
+        PhysioId,
+        physioDescription,
+        officeExpDes,
+        ReferenceId,
+        PatientId,
+        referenceDes,
+         MachineiId,
+        machineDes,
+        otherDescription,
+       
         // type: 'Expense',
         // date: new Date(),
         // amount: '',
@@ -65,24 +62,20 @@ const ExpenseManagement = () => {
         // description: '',
     };
     const [formState, setFormState] = useState(initialFormState);
-    console.log(initialFormState,"initialFormState")
     const [expense, SetExpense] = useState([])
-    const [expenseType, SetExpenseType] = useState([])
-    const [expenseCategory,setExpenseCategory]= useState([])
 
 
     useEffect(() => {
         getExpense(),
-            getAllPhysio(),
-            getExpenseType(),
-            getAllExpenseCategory(),
-            getAllReference(),
-            getAllPatient(),
-            getAllMachie()
-            setMasters()
+        getAllPhysio(),
+        getExpenseType(),
+        getAllExpenseCategory(),
+        getAllReference(),
+        getAllPatient(),
+        getAllMachie()
 
 
-    }, [])
+    },[])
     const getExpense = async (data) => {
         try {
             const response = await apiRequest("Expense/getAllExpense", {
@@ -114,126 +107,119 @@ const ExpenseManagement = () => {
     }
 
 
-    const getAllPhysio = async (data) => {
+    const getAllPhysio = async (data) =>{
         try {
-            const response = await apiRequest("Physio/getAllPhysio", {
+              const response = await apiRequest("Physio/getAllPhysio", {
                 method: 'POST',
                 body: JSON.stringify(data),
             });
-            getExpense()
-             setMasters(response)
-        
+             getExpense()
+             return response
         } catch (error) {
-            console.error('Error:', error);
+               console.error('Error:', error);
             throw error;
         }
     }
 
-    const getExpenseType = async (data) => {
-        try {
-            const response = await apiRequest("ExpenseType/getAllExpenseType", {
+    const getExpenseType = async(data)=>{
+             try {
+              const response = await apiRequest("ExpenseType/getAllExpenseType", {
                 method: 'POST',
                 body: JSON.stringify(data),
             });
-            getExpense()
-            SetExpenseType(response)
-         
+             getExpense()
+             return response
         } catch (error) {
-            console.error('Error:', error);
+               console.error('Error:', error);
             throw error;
-        }
+        }       
     }
 
     const getAllExpenseCategory = async (data) => {
-        try {
-            const response = await apiRequest("ExpenseCategory/getAllExpenseCategory", {
+            try {
+              const response = await apiRequest("ExpenseCategory/getAllExpenseCategory", {
                 method: 'POST',
                 body: JSON.stringify(data),
             });
-            getExpense()
-            setExpenseCategory(response)
-            setCategories(response)
-            setMasters(response)
-         } catch (error) {
-            console.error('Error:', error);
-            throw error;
-        }
-    }
-
-    const getAllReference = async (data) => {
-        try {
-            const response = await apiRequest("References/getALLReferences", {
-                method: 'POST',
-                body: JSON.stringify(data),
-            });
-            getExpense()
-             setMasters(response)
-            return response
+             getExpense()
+             return response
         } catch (error) {
-            console.error('Error:', error);
+               console.error('Error:', error);
             throw error;
-        }
+        } 
     }
 
-
-
-    const getAllPatient = async (data) => {
-        try {
-            const response = await apiRequest("Patient/getAllPatient", {
+    const getAllReference = async (data) =>{
+             try {
+              const response = await apiRequest("References/getALLReferences", {
                 method: 'POST',
                 body: JSON.stringify(data),
             });
-            getExpense()
-            setMasters(response)
-            
+             getExpense()
+             return response
         } catch (error) {
-            console.error('Error:', error);
+               console.error('Error:', error);
             throw error;
-        }
+        } 
     }
 
-    const getAllMachie = async (data) => {
-        try {
-            const response = await apiRequest("Machinery/getAllMachinery", {
+
+
+     const getAllPatient = async (data) =>{
+             try {
+              const response = await apiRequest("Patient/getAllPatient", {
                 method: 'POST',
                 body: JSON.stringify(data),
             });
-            getExpense()
-             setMasters(response)
-            
+             getExpense()
+             return response
         } catch (error) {
-            console.error('Error:', error);
+               console.error('Error:', error);
             throw error;
-        }
+        } 
     }
 
-    // useEffect(() => {
-    //     const fetchData = async () => {
-    //         try {
-    //             const [txRes, catRes, patRes, phyRes, macRes, refRes] = await Promise.all([
-    //                 fetch('/mockdata/transactions.json'),
-    //                 fetch('/mockdata/categories.json'),
-    //                 fetch('/mockdata/patients.json'),
-    //                 fetch('/mockdata/physios.json'),
-    //                 fetch('/mockdata/machines.json'),
-    //                 fetch('/mockdata/references.json'),
-    //             ]);
-    //             const txData = await txRes.json();
-    //             setTransactions(txData);
-    //             setCategories(await catRes.json());
-    //             setMasters({
-    //                 patients: await patRes.json(),
-    //                 physios: await phyRes.json(),
-    //                 machines: await macRes.json(),
-    //                 references: await refRes.json(),
-    //             });
-    //         } catch (error) {
-    //             console.error("Failed to fetch data", error);
-    //             toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
-    //         }
-    //     };
-    //     fetchData();
-    // }, []);
+      const  getAllMachie = async (data) =>{
+             try {
+              const response = await apiRequest("Machinery/getAllMachinery", {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+             getExpense()
+             return response
+        } catch (error) {
+               console.error('Error:', error);
+            throw error;
+        } 
+    }
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [txRes, catRes, patRes, phyRes, macRes, refRes] = await Promise.all([
+                    fetch('/mockdata/transactions.json'),
+                    fetch('/mockdata/categories.json'),
+                    fetch('/mockdata/patients.json'),
+                    fetch('/mockdata/physios.json'),
+                    fetch('/mockdata/machines.json'),
+                    fetch('/mockdata/references.json'),
+                ]);
+                const txData = await txRes.json();
+                setTransactions(txData);
+                setCategories(await catRes.json());
+                setMasters({
+                    patients: await patRes.json(),
+                    physios: await phyRes.json(),
+                    machines: await macRes.json(),
+                    references: await refRes.json(),
+                });
+            } catch (error) {
+                console.error("Failed to fetch data", error);
+                toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
+            }
+        };
+        fetchData();
+    }, []);
 
     const handleFormChange = (name, value) => {
         if (name.startsWith('linkedEntity.')) {
@@ -261,14 +247,14 @@ const ExpenseManagement = () => {
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
-        const selectedCategory = categories.find(c => c.id === parseInt(formState.ExpenseCategoryId));
+        const selectedCategory = categories.find(c => c.id === parseInt(formState.categoryId));
         const newTransaction = {
             id: editingTx ? editingTx.id : Date.now(),
             createdBy: user.name,
-            ...formState,  
+            ...formState,
             amount: parseFloat(formState.amount) || 0,
             category: selectedCategory.name,
-            ExpenseCategoryId: parseInt(formState.ExpenseCategoryId),
+            categoryId: parseInt(formState.categoryId),
             date: format(formState.date, 'yyyy-MM-dd'),
         };
 
@@ -290,8 +276,8 @@ const ExpenseManagement = () => {
             return tx.type === 'Expense' && yearMatch && monthMatch;
         });
 
-        if (filterState.categories) {
-            filtered = filtered.filter(tx => tx.categories.toString() === filterState.categories);
+        if (filterState.categoryId) {
+            filtered = filtered.filter(tx => tx.categoryId.toString() === filterState.categoryId);
         }
 
         const linkedEntityFilters = Object.entries(filterState.linkedEntity).filter(([_, value]) => value);
@@ -310,7 +296,7 @@ const ExpenseManagement = () => {
 
     const clearAdvancedFilter = () => {
         setFilterState({
-            categories: '',
+            categoryId: '',
             linkedEntity: {},
             year: new Date().getFullYear().toString(),
             month: 'all'
@@ -372,7 +358,7 @@ const ExpenseManagement = () => {
                     </div>
                     {commonFields}
                 </>;
-            case 'Physio Salary':
+            case 'Employee Salary':
                 return <>
                     <div className="space-y-2">
                         <Label>Employee Name</Label>
@@ -545,7 +531,7 @@ const ExpenseManagement = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-2"><Label>Year</Label><Select value={filterState.year} onValueChange={(val) => handleFilterChange('year', val)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{yearOptions.map(year => <SelectItem key={year} value={year}>{year}</SelectItem>)}</SelectContent></Select></div>
                                     <div className="space-y-2"><Label>Month</Label><Select value={filterState.month} onValueChange={(val) => handleFilterChange('month', val)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{monthOptions.map(month => <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>)}</SelectContent></Select></div>
-                                    <div className="space-y-2"><Label>Category</Label><Select value={filterState.ExpenseCategoryId} onValueChange={(val) => { handleFilterChange('ExpenseCategoryId', val); handleFilterChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === 'Expense' && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                                    <div className="space-y-2"><Label>Category</Label><Select value={filterState.categoryId} onValueChange={(val) => { handleFilterChange('categoryId', val); handleFilterChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === 'Expense' && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {renderDynamicFields(filterState, handleFilterChange, true)}
@@ -597,47 +583,13 @@ const ExpenseManagement = () => {
                         <DialogDescription>Fill in the details for the transaction.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
-                        <div className="grid grid-cols-2 gap-4"> 
-                            <Select
-                                onValueChange={(v) => setFormState((prev) => ({ ...prev, ExpenseTypeID: v }))}
-                                value={formState.ExpenseTypeID}
-                            >
-                                
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {expenseType.map((expType) => (
-                                        <SelectItem key={expType._id} value={expType._id}>
-                                            {expType.ExpenseTypeName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            {/* <div className="space-y-2"><Label>Type</Label><Select value={formState.type} onValueChange={(val) => handleFormChange('type', val)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Expense">Expense</SelectItem><SelectItem value="Income">Income</SelectItem></SelectContent></Select></div> */}
-                            <div className="space-y-2"><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{formState.expenseDate ? format(formState.expenseDate, 'PPP') : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formState.expenseDate} onSelect={(val) => handleFormChange('date', val)} initialFocus /></PopoverContent></Popover></div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label>Type</Label><Select value={formState.type} onValueChange={(val) => handleFormChange('type', val)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Expense">Expense</SelectItem><SelectItem value="Income">Income</SelectItem></SelectContent></Select></div>
+                            <div className="space-y-2"><Label>Date</Label><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{formState.date ? format(formState.date, 'PPP') : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formState.date} onSelect={(val) => handleFormChange('date', val)} initialFocus /></PopoverContent></Popover></div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label htmlFor="expenseAmount">Amount (₹)</Label><Input id="expenseAmount" type="number" value={formState.expenseAmount} onChange={(e) => handleFormChange('expenseAmount', e.target.value)} required min="0.01" step="0.01" /></div>
-                            <div className="space-y-2"><Label htmlFor="ExpenseCategoryId">Select Categories</Label>
-                              <Select
-                                onValueChange={(v) => setFormState((prev) => ({ ...prev, ExpenseCategoryId: v }))}
-                                value={formState.ExpenseCategoryId}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {expenseCategory.map((expCate) => (
-                                        <SelectItem key={expCate._id} value={expCate._id}>
-                                            {expCate.ExpenseCategoryName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {/* <div className="space-y-2"><Label>Category</Label><Select value={formState.categoryId} onValueChange={(val) => { handleFormChange('categoryId', val); handleFormChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === formState.type && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div> */}
-                        </div>
+                            <div className="space-y-2"><Label htmlFor="amount">Amount (₹)</Label><Input id="amount" type="number" value={formState.amount} onChange={(e) => handleFormChange('amount', e.target.value)} required min="0.01" step="0.01" /></div>
+                            <div className="space-y-2"><Label>Category</Label><Select value={formState.categoryId} onValueChange={(val) => { handleFormChange('categoryId', val); handleFormChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === formState.type && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                         </div>
                         {renderDynamicFields(formState, handleFormChange)}
                         <DialogFooter><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingTx ? 'Save Changes' : 'Add Transaction'}</Button></DialogFooter>

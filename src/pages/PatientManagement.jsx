@@ -19,7 +19,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import PatientDetailsDialog from '@/components/PatientDetailsDialog';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
- 
+
 
 const PatientManagement = () => {
   const { user } = useAuth();
@@ -36,7 +36,7 @@ const PatientManagement = () => {
   const [assigningPatient, setAssigningPatient] = useState(null);
   const initialAssignState = {
     _id: '',
-    physioName:'',
+    physioName: '',
     Physiotherapist: '',
     physioId: '',
     sessionStartDate: '',
@@ -80,15 +80,16 @@ const PatientManagement = () => {
     shortTermGoals: '', longTermGoals: '', RecomTherapy: '', Frequency: '', Duration: '', Modalities: false, modalityList: [], targetedArea: '', noOfDays: '',
     hodNotes: '',
     goalLog: [],
-    travelDetails: null, genderName: ''
+    travelDetails: null, genderName: '', FeesTypeId: '', feeAmount: '', feesTypeAmount: ''
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
-  console.log(patientForm,"patientForm")
+  console.log(patientForm, "patientForm")
   const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
   const [risk, setRisk] = useState([]) //for dropdown 
 
   const [gender, setGender] = useState([])
   const [radio, setRadio] = useState([])
+  const [feesType, setFeesType] = useState([])
   // console.log(radio,"radio")
 
 
@@ -100,7 +101,25 @@ const PatientManagement = () => {
     getAllpshyio()
     getAllGender()
     getAllPatient()
+    getFeesType()
   }, [])
+
+
+
+  //api for FeesType
+
+  const getFeesType = async () => {
+    try {
+      const res = await apiRequest('FeesType/getAllFeesType', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      setFeesType(res)
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
 
 
   //api for getall pshyio 
@@ -212,7 +231,7 @@ const PatientManagement = () => {
   //api for create patients
 
   const createPatient = async (data) => {
-    console.log(data,"data")
+    console.log(data, "data")
     try {
       const response = await apiRequest("Patient/createPatient", {
         method: 'POST',
@@ -387,7 +406,10 @@ const PatientManagement = () => {
         hodNotes: patient.hodNotes ? patient.hodNotes : null,
         goalLog: patient.goalLog ? patient.goalLog : [],
         travelDetails: patient.travelDetails ? patient.travelDetails : null,
-        genderName: patient.patientGenderId.genderName ? patient.patientGenderId.genderName : null
+        genderName: patient.patientGenderId.genderName ? patient.patientGenderId.genderName : null,
+        FeesTypeId: patient.FeesTypeId._id ? patient.FeesTypeId._id : null,
+        feesTypeName: patient.FeesTypeId.feesTypeName ? patient.FeesTypeId.feesTypeName : null,
+        feeAmount: patient.feeAmount ? patient.feeAmount : null
       };
       if (patient.consultationDate) formData.consultationDate = new Date(patient.consultationDate);
       if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
@@ -512,18 +534,18 @@ const PatientManagement = () => {
   };
 
   const openAssignPhysioDialog = (patient) => {
-    console.log(patient,"patient")
+    console.log(patient, "patient")
     if (user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') {
       setAssigningPatient(patient);
       setAssignForm({
-        _id: patient._id?patient._id:null,
-        Physiotherapist: patient.physioId ? patient.physioId.physioName:null,
+        _id: patient._id ? patient._id : null,
+        Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
         physioId: patient.physioId ? patient.physioId._id : '',
         InitialShorttermGoal: patient.InitialShorttermGoal || '',
         goalDuration: patient.goalDuration || '',
-        totalSessionDays: patient.totalSessionDays ||'',
-        sessionStartDate: patient.sessionStartDate ?  new Date(patient.sessionStartDate) :'',
-        sessionTime: patient.sessionTime ||  '',
+        totalSessionDays: patient.totalSessionDays || '',
+        sessionStartDate: patient.sessionStartDate ? new Date(patient.sessionStartDate) : '',
+        sessionTime: patient.sessionTime || '',
         goalDescription: patient.goalDescription || " ",
         reviewFrequency: patient.reviewFrequency || "",
         visitOrder: patient.visitOrder || '',
@@ -566,7 +588,7 @@ const PatientManagement = () => {
     // }));
     console.log(assignForm, "...assigningPatient,...assignForm")
 
-   AssignPhysio(assignForm)
+    AssignPhysio(assignForm)
     toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
     // setIsAssignPhysioOpen(false);
     // setAssigningPatient(null);
@@ -790,12 +812,39 @@ const PatientManagement = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Relation With Patient</Label><Input name="Relation" value={patientForm.Relation} onChange={handleFormChange} /></div>
                     <div className="space-y-2"><Label>Mobile No.</Label><Input name="patientNumber" value={patientForm.patientNumber} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2"><Label>Alt. Mobile No.</Label><Input name="patientAltNum"   value={patientForm.patientAltNum} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Alt. Mobile No.</Label><Input name="patientAltNum" value={patientForm.patientAltNum} onChange={handleFormChange} /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Address</Label><Input name="patientAddress" value={patientForm.patientAddress} onChange={handleFormChange} required /></div>
                     <div className="space-y-2"><Label>PIN Code</Label><Input name="patientPinCode" value={patientForm.patientPinCode} onChange={handleFormChange} required /></div>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Fees Type</Label>
+                      <Select
+                        value={JSON.stringify({ id: patientForm.FeesTypeId, name: patientForm.FeesTypeName })}
+                        onValueChange={(v) => {
+                          const selected = JSON.parse(v);
+                          handleSelectChange('FeesTypeId', selected.id);
+                          handleSelectChange('FeesTypeName', selected.name);
+                        }}
+                      >                      <SelectTrigger><SelectValue placeholder="Select Fees" /></SelectTrigger>
+                        <SelectContent>
+                          {feesType.map((fee) => (
+                            <SelectItem
+                              key={fee._id}
+                              value={JSON.stringify({ id: fee._id, name: fee.feesTypeName })}
+                            >{fee.feesTypeName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2"><Label>Fees Amount ({patientForm.FeesTypeName == 'PerSession' ? 'PerSession' : 'PerMonth'})</Label>
+                      <Input name="feeAmount" value={patientForm.feeAmount} onChange={handleFormChange} placeholder={patientForm.FeesTypeName == 'PerSession' ? 'PerSession' : 'PerMonth'} />:
+
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div>
                     {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
@@ -901,7 +950,7 @@ const PatientManagement = () => {
                       <div className="space-y-2">
                         <Label>Session Start Date</Label>
                         <Popover>
-                          <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !assignForm.sessionStartDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{ assignForm.sessionStartDate ? format( assignForm.sessionStartDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
+                          <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !assignForm.sessionStartDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{assignForm.sessionStartDate ? format(assignForm.sessionStartDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
                           <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={assignForm.sessionStartDate} onSelect={(d) => setAssignForm(p => ({ ...p, sessionStartDate: d }))} initialFocus /></PopoverContent>
                         </Popover>
                       </div>
@@ -913,7 +962,7 @@ const PatientManagement = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="totalSessionDays">Total Session Days</Label>
-                        <Input id="totalSessionDays"  type="number" placeholder="e.g., 30" value={assignForm.totalSessionDays} onChange={(e) => setAssignForm(p => ({ ...p, totalSessionDays: e.target.value }))} />
+                        <Input id="totalSessionDays" type="number" placeholder="e.g., 30" value={assignForm.totalSessionDays} onChange={(e) => setAssignForm(p => ({ ...p, totalSessionDays: e.target.value }))} />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="reviewFrequency">Review Frequency (in days)</Label>
