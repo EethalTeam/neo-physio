@@ -80,7 +80,7 @@ const PatientManagement = () => {
     shortTermGoals: '', longTermGoals: '', RecomTherapy: '', Frequency: '', Duration: '', Modalities: false, modalityList: [], targetedArea: '', noOfDays: '',
     hodNotes: '',
     goalLog: [],
-    travelDetails: null, genderName: '', FeesTypeId: '', feeAmount: '', feesTypeAmount: ''
+    travelDetails: null, genderName: '', FeesTypeId: '', feeAmount: '', feesTypeAmount: '',ReferenceId:'',sourceName:''
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
   console.log(patientForm, "patientForm")
@@ -90,6 +90,7 @@ const PatientManagement = () => {
   const [gender, setGender] = useState([])
   const [radio, setRadio] = useState([])
   const [feesType, setFeesType] = useState([])
+  const [reference,setReference]= useState([])
   // console.log(radio,"radio")
 
 
@@ -102,8 +103,25 @@ const PatientManagement = () => {
     getAllGender()
     getAllPatient()
     getFeesType()
+    getReference()
   }, [])
 
+
+
+  //api for Reference 
+
+  const getReference = async () =>{
+    try {
+      const res = await apiRequest('References/getALLReferences', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+      setReference(res)
+    } catch (error) {
+          console.error('Error:', error);
+      throw error;
+    }
+  }
 
 
   //api for FeesType
@@ -409,7 +427,9 @@ const PatientManagement = () => {
         genderName: patient.patientGenderId.genderName ? patient.patientGenderId.genderName : null,
         FeesTypeId: patient.FeesTypeId._id ? patient.FeesTypeId._id : null,
         feesTypeName: patient.FeesTypeId.feesTypeName ? patient.FeesTypeId.feesTypeName : null,
-        feeAmount: patient.feeAmount ? patient.feeAmount : null
+        feeAmount: patient.feeAmount ? patient.feeAmount : null,
+        ReferenceId:patient.ReferenceId._id?patient.ReferenceId._id:null,
+        sourceName:patient.ReferenceId.sourceName?patient.ReferenceId.sourceName:null
       };
       if (patient.consultationDate) formData.consultationDate = new Date(patient.consultationDate);
       if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
@@ -849,7 +869,30 @@ const PatientManagement = () => {
                     <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div>
                     {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
                     <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus /></PopoverContent></Popover></div>
+                   
+                      <div className="space-y-2">
+                      <Label>Reference</Label>
+                      <Select
+                        value={JSON.stringify({ id: patientForm.ReferenceId, name: patientForm.sourceName })}
+                        onValueChange={(v) => {
+                          const selected = JSON.parse(v);
+                          handleSelectChange('ReferenceId', selected.id);
+                          handleSelectChange('sourceName', selected.name);
+                        }}
+                      >  <SelectTrigger><SelectValue placeholder="Select Reference" /></SelectTrigger>
+                        <SelectContent>
+                          {reference.map((ref) => (
+                            <SelectItem
+                              key={ref._id}
+                              value={JSON.stringify({ id: ref._id, name: ref.sourceName })}
+                            >{ref.sourceName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
+
                 </AccordionContent></AccordionItem>
 
                 <AccordionItem value="item-2"><AccordionTrigger>Medical History & Risk Factors</AccordionTrigger><AccordionContent className="space-y-4">

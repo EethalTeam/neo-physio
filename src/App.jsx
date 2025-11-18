@@ -33,6 +33,7 @@ import Gender from '@/pages/Gender';
 import RiskFactor from '@/pages/RiskFactor'
 import ExpenseType from'@/pages/ExpenseType'
 import FeesType from '@/pages/FeesType'
+import LeadStatus from '@/pages/LeadStatus';
 
 function App() {
   return (
@@ -100,6 +101,14 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
                 <Layout>
                   <LeadSource />
+                </Layout>
+              </ProtectedRoute>
+            } />
+               
+               <Route path="/leadStatus" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <LeadStatus />
                 </Layout>
               </ProtectedRoute>
             } />

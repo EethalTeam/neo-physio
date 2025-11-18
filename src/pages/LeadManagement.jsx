@@ -27,8 +27,10 @@ const LeadManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
+  const [reference, setReference] = useState([])
 
   const initialFormState = {
+    // _id:'',
     leadName: '',
     leadAge: '',
     leadGenderId: '',
@@ -38,14 +40,17 @@ const LeadManagement = () => {
     leadSourceId: '',
     leadMedicalHistory: '',
     //  physioCateName: '',
-     genderName: '',
-     leadSourceName:'',
+    genderName: '',
+    leadSourceName: '',
     leadDocuments: [],
-    leadId:'',
+    leadId: '',
+    ReferenceId: '',
+    sourceName: '',
     isQualified: false
   };
 
   const [leadForm, setLeadForm] = useState(initialFormState);
+  console.log( leadForm.leadSourceId,"leadForm leadSourceId")
 
   //  Load dropdown data
   useEffect(() => {
@@ -53,11 +58,34 @@ const LeadManagement = () => {
     getPhysio();
     getGender();
     getLead();
+    getReference()
   }, []);
+
+  //api for Reference 
+
+  const getReference = async () => {
+    try {
+      const res = await apiRequest('References/getALLReferences',
+        {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+      setReference(res);
+
+    } catch (error) {
+      console.error('Error loading leads:', error);
+
+    }
+  }
+
+
 
   const getLeadSource = async () => {
     try {
-      const res = await apiRequest('LeadSource/getAllLeadSource', { method: 'POST', body: JSON.stringify({}) });
+      const res = await apiRequest('LeadSource/getAllLeadSource', {
+         method: 'POST',
+          body: JSON.stringify({})
+         });
       setLeadSource(res || []);
     } catch (error) {
       console.error('Error loading LeadSource:', error);
@@ -66,7 +94,10 @@ const LeadManagement = () => {
 
   const getPhysio = async () => {
     try {
-      const res = await apiRequest('PhysioCategory/getAllPhysioCategory', { method: 'POST', body: JSON.stringify({}) });
+      const res = await apiRequest('PhysioCategory/getAllPhysioCategory', {
+         method: 'POST', body: JSON.stringify({}) 
+        }
+      );
       setPhysioCate(res || []);
     } catch (error) {
       console.error('Error loading Physio:', error);
@@ -75,7 +106,11 @@ const LeadManagement = () => {
 
   const getGender = async () => {
     try {
-      const res = await apiRequest('Gender/getAllGender', { method: 'POST', body: JSON.stringify({}) });
+      const res = await apiRequest('Gender/getAllGender', {
+         method: 'POST',
+          body: JSON.stringify({})
+         }
+        );
       setGender(res || []);
     } catch (error) {
       console.error('Error loading Gender:', error);
@@ -85,7 +120,10 @@ const LeadManagement = () => {
   // ✅ Get all leads
   const getLead = async () => {
     try {
-      const response = await apiRequest('Lead/getAllLead', { method: 'POST', body: JSON.stringify({}) });
+      const response = await apiRequest('Lead/getAllLead', {
+         method: 'POST',
+          body: JSON.stringify({}) 
+        });
       setLeads(response.leads || []);
       setFilteredLeads(response.leads || []);
     } catch (error) {
@@ -189,18 +227,21 @@ const LeadManagement = () => {
   const handleEdit = (lead) => {
     setEditingLead(true);
     setLeadForm({
+      // _id:lead._id?lead._id:'',
       leadName: lead.leadName || '',
       leadAge: lead.leadAge || '',
       leadGenderId: lead?.leadGenderId?._id || '',
       leadContactNo: lead.leadContactNo || '',
       leadAddress: lead.leadAddress || '',
-      physioCategoryId: lead?.physioCategoryId?._id|| '',
-      leadSourceId: lead?.leadSourceId?._id || '',
+      physioCategoryId: lead?.physioCategoryId?._id || '',
+      leadSourceId: lead.leadSourceId ?lead.leadSourceId?._id:'',
       leadMedicalHistory: lead.leadMedicalHistory || '',
-      leadId:lead._id || '',
-      physioCateName:lead?.physioCategoryId?.physioCateName || '',
-      genderName:lead?.leadGenderId?.genderName || '',
-      leadSourceName: lead?.leadSourceId?.leadSourceName || '',
+      leadId: lead._id || '',
+      physioCateName: lead?.physioCategoryId?.physioCateName || '',
+      genderName: lead?.leadGenderId?.genderName || '',
+      leadSourceName: lead.leadSourceId.leadSourceName? lead.leadSourceId.leadSourceName :null,
+      ReferenceId: lead.ReferenceId ? lead.ReferenceId._id : '',
+      sourceName: lead.ReferenceId ? lead.ReferenceId.sourceName : null,
       leadDocuments: lead.leadDocuments || [],
     });
     setIsFormOpen(true);
@@ -337,15 +378,57 @@ const LeadManagement = () => {
               </div>
               <div>
                 <Label>Lead Source</Label>
-                <Select value={leadForm.leadSourceId} onValueChange={(v) => handleSelectChange('leadSourceId', v)}>
+                {/* <Select value={leadForm.leadSourceId} onValueChange={(v) => handleSelectChange('leadSourceId', v)}>
                   <SelectTrigger><SelectValue placeholder="Select Lead Source" /></SelectTrigger>
                   <SelectContent>
                     {leadSource.map((leadS) => (
                       <SelectItem key={leadS.LeadIDPK} value={leadS.LeadIDPK}>{leadS.leadSourceName}</SelectItem>
                     ))}
                   </SelectContent>
+                </Select> */}
+
+                 <Select
+                  value={JSON.stringify({ LeadIDPK: leadForm.leadSourceId, name: leadForm.leadSourceName })}
+                  onValueChange={(v) => {
+                    const selected = JSON.parse(v);
+                    handleSelectChange('leadSourceId', selected.LeadIDPK);
+                    handleSelectChange('leadSourceName', selected.name);
+                  }}
+                >  <SelectTrigger><SelectValue placeholder="Select Lead Source" /></SelectTrigger>
+                  <SelectContent>
+                    {leadSource.map((leads) => (
+                      <SelectItem
+                        key={leads.LeadIDPK}
+                        value={JSON.stringify({ LeadIDPK: leads.LeadIDPK, name: leads.leadSourceName })}
+                      >{leads.leadSourceName}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
+              {
+               leadForm.leadSourceName === "Reference" ? <div className="space-y-2">
+                <Label>Reference</Label>
+                <Select
+                  value={JSON.stringify({ id: leadForm.ReferenceId, name: leadForm.sourceName })}
+                  onValueChange={(v) => {
+                    const selected = JSON.parse(v);
+                    handleSelectChange('ReferenceId', selected.id);
+                    handleSelectChange('sourceName', selected.name);
+                  }}
+                >  <SelectTrigger><SelectValue placeholder="Select Reference" /></SelectTrigger>
+                  <SelectContent>
+                    {reference.map((ref) => (
+                      <SelectItem
+                        key={ref._id}
+                        value={JSON.stringify({ id: ref._id, name: ref.sourceName })}
+                      >{ref.sourceName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div> : null
+              }
+
+          
             </div>
 
             <div><Label>Medical History</Label><textarea name="leadMedicalHistory" value={leadForm.leadMedicalHistory} onChange={handleFormChange} className="w-full border p-2 rounded-md" /></div>

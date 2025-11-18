@@ -26,7 +26,8 @@ const ExpenseManagement = () => {
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
     // const [masters, setMasters] = useState([]);
-    const [masters, setMasters] = useState({ patients: [], physios: [], machines: [], references: [] });
+    const [masters, setMasters] = useState({ patients: [], physio: [], machines: [], references: [] });
+    console.log(masters,"masters")
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTx, setEditingTx] = useState(null);
 
@@ -34,6 +35,7 @@ const ExpenseManagement = () => {
     const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth()).toString()); // 0-indexed
 
     const [filterState, setFilterState] = useState({
+        
         categories: '',
         linkedEntity: {},
         year: new Date().getFullYear().toString(),
@@ -42,21 +44,23 @@ const ExpenseManagement = () => {
     const [advancedFilteredTransactions, setAdvancedFilteredTransactions] = useState(null);
 
     const initialFormState = {
-        ExpenseTypeID :"",
-        ExpenseTypeName :"",
-        ExpenseCategoryId :"",
-        expenseDate: '',
-        expenseAmount :"",
-        PhysioId :"",
-        physioDescription :"",
-        officeExpDes :"",
-        ReferenceId :"",
-        PatientId :"",
-        referenceDes :"",
-        MachineiId :"",
-        machineDes :"",
-        otherDescription :"",
-        linkedEntity:{}
+        ExpenseTypeID: "",
+        ExpenseTypeName: "",
+        ExpenseCategoryId: "",
+        ExpenseCategoryName: "",
+        expenseDate: new Date(),
+        expenseAmount: "",
+        PhysioId: "",
+        physioName:'',
+        physioDescription: "",
+        officeExpDes: "",
+        ReferenceId: "",
+        PatientId: "",
+        referenceDes: "",
+        MachineiId: "",
+        machineDes: "",
+        otherDescription: "",
+        linkedEntity: {}
 
         // type: 'Expense',
         // date: new Date(),
@@ -65,10 +69,11 @@ const ExpenseManagement = () => {
         // description: '',
     };
     const [formState, setFormState] = useState(initialFormState);
-    console.log(initialFormState,"initialFormState")
+    console.log(initialFormState, "initialFormState")
     const [expense, SetExpense] = useState([])
     const [expenseType, SetExpenseType] = useState([])
-    const [expenseCategory,setExpenseCategory]= useState([])
+    const [expenseCategory, setExpenseCategory] = useState([])
+    const [physio,setPhysio] = useState([])
 
 
     useEffect(() => {
@@ -79,7 +84,7 @@ const ExpenseManagement = () => {
             getAllReference(),
             getAllPatient(),
             getAllMachie()
-            setMasters()
+
 
 
     }, [])
@@ -99,7 +104,7 @@ const ExpenseManagement = () => {
     }
 
 
-    const create = async (data) => {
+    const createExpense = async (data) => {
         try {
             const response = await apiRequest("Expense/createExpense", {
                 method: 'POST',
@@ -121,8 +126,9 @@ const ExpenseManagement = () => {
                 body: JSON.stringify(data),
             });
             getExpense()
-             setMasters(response)
-        
+            setMasters(prev => ({ ...prev, physio: response.physios }))
+            // setMasters(response)
+
         } catch (error) {
             console.error('Error:', error);
             throw error;
@@ -137,7 +143,7 @@ const ExpenseManagement = () => {
             });
             getExpense()
             SetExpenseType(response)
-         
+
         } catch (error) {
             console.error('Error:', error);
             throw error;
@@ -153,8 +159,8 @@ const ExpenseManagement = () => {
             getExpense()
             setExpenseCategory(response)
             setCategories(response)
-            setMasters(response)
-         } catch (error) {
+            // setMasters(response)
+        } catch (error) {
             console.error('Error:', error);
             throw error;
         }
@@ -167,7 +173,9 @@ const ExpenseManagement = () => {
                 body: JSON.stringify(data),
             });
             getExpense()
-             setMasters(response)
+            setMasters(prev => ({ ...prev, references: response }))
+
+            // setMasters(response)
             return response
         } catch (error) {
             console.error('Error:', error);
@@ -184,8 +192,10 @@ const ExpenseManagement = () => {
                 body: JSON.stringify(data),
             });
             getExpense()
-            setMasters(response)
-            
+            setMasters(prev => ({ ...prev, patients: response }))
+
+            // setMasters(response)
+
         } catch (error) {
             console.error('Error:', error);
             throw error;
@@ -199,8 +209,10 @@ const ExpenseManagement = () => {
                 body: JSON.stringify(data),
             });
             getExpense()
-             setMasters(response)
-            
+            setMasters(prev => ({ ...prev, machines: response }))
+
+            // setMasters(response)
+
         } catch (error) {
             console.error('Error:', error);
             throw error;
@@ -253,6 +265,10 @@ const ExpenseManagement = () => {
         }
     };
 
+    const handleSelectChange = (name, value) => {
+        setFormState((prev) => ({ ...prev, [name]: value }));
+    };
+
     const openNewDialog = () => {
         setEditingTx(null);
         setFormState(initialFormState);
@@ -265,7 +281,7 @@ const ExpenseManagement = () => {
         const newTransaction = {
             id: editingTx ? editingTx.id : Date.now(),
             createdBy: user.name,
-            ...formState,  
+            ...formState,
             amount: parseFloat(formState.amount) || 0,
             category: selectedCategory.name,
             ExpenseCategoryId: parseInt(formState.ExpenseCategoryId),
@@ -340,7 +356,8 @@ const ExpenseManagement = () => {
     }, [advancedFilteredTransactions]);
 
     const renderDynamicFields = (state, handler, isFilter = false) => {
-        const category = categories.find(c => c.id === parseInt(state.categoryId));
+        // const category = categories.find(c => c.id === parseInt(state.categoryId));
+        const category = formState.ExpenseCategoryName
         if (!category) return null;
 
         const commonFields = !isFilter ? (
@@ -350,16 +367,16 @@ const ExpenseManagement = () => {
             </div>
         ) : null;
 
-        const onValueChange = (val, name) => handler(name, val);
+        const onValueChange = (val,name) => handler(name, val);
 
-        switch (category.name) {
+        switch (category) {
             case 'Revenue from Patient':
                 return <>
                     <div className="space-y-2">
                         <Label>Patient Name</Label>
                         <Select value={state.linkedEntity?.patientName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.patientName')}>
                             <SelectTrigger><SelectValue placeholder="Select Patient" /></SelectTrigger>
-                            <SelectContent>{masters.patients.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{masters.patients.map(p => <SelectItem key={p.id} value={p._id}>{p.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     {commonFields}
@@ -375,21 +392,31 @@ const ExpenseManagement = () => {
             case 'Physio Salary':
                 return <>
                     <div className="space-y-2">
-                        <Label>Employee Name</Label>
-                        <Select value={state.linkedEntity?.employeeName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.employeeName')}>
-                            <SelectTrigger><SelectValue placeholder={isFilter ? "All Employees" : "Select Employee"} /></SelectTrigger>
-                            <SelectContent>{masters.physios.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                        <Label>Physio Name</Label>
+                        <Select value={state.linkedEntity?.physioName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.physioName')}>
+                            <SelectTrigger><SelectValue placeholder={isFilter ? "All Physio" : "Select Physio"} /></SelectTrigger>
+                            <SelectContent>{(masters.physio||[]).map(p => <SelectItem key={p.id} value={p.id}>{p.physioName}</SelectItem>)}</SelectContent>
                         </Select>
+
+                       
+                    
                     </div>
                     {commonFields}
                 </>;
             case 'Machine Maintenance':
                 return <>
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                         <Label>Machine</Label>
                         <Select value={state.linkedEntity?.machineName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.machineName')}>
                             <SelectTrigger><SelectValue placeholder={isFilter ? "All Machines" : "Select Machine"} /></SelectTrigger>
-                            <SelectContent>{masters.machines.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{(masters.machines || []).map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div> */}
+                       <div className="space-y-2">
+                        <Label>Machine</Label>
+                        <Select value={state.linkedEntity?.machineName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.machineName')}>
+                            <SelectTrigger><SelectValue placeholder={isFilter ? "All Machines" : "Select Machine"} /></SelectTrigger>
+                            <SelectContent>{(masters.machines || []).map(m => <SelectItem key={m.id} value={m.name}>{m.machineName}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     {commonFields}
@@ -398,16 +425,16 @@ const ExpenseManagement = () => {
                 return <>
                     <div className="space-y-2">
                         <Label>Reference Name</Label>
-                        <Select value={state.linkedEntity?.referenceName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.referenceName')}>
+                        <Select value={state.linkedEntity?.sourceName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.sourceName')}>
                             <SelectTrigger><SelectValue placeholder={isFilter ? "All References" : "Select Reference"} /></SelectTrigger>
-                            <SelectContent>{masters.references.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{(masters.references || []).map(r => <SelectItem key={r.id} value={r.name}>{r.sourceName}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
                         <Label>Patient Name</Label>
                         <Select value={state.linkedEntity?.patientName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.patientName')}>
                             <SelectTrigger><SelectValue placeholder={isFilter ? "All Patients" : "Select Patient"} /></SelectTrigger>
-                            <SelectContent>{masters.patients.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{(masters.patients || []).map(p => <SelectItem key={p.id} value={p.name}>{p.patientName}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     {commonFields}
@@ -597,20 +624,23 @@ const ExpenseManagement = () => {
                         <DialogDescription>Fill in the details for the transaction.</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
-                        <div className="grid grid-cols-2 gap-4"> 
+                        <div className="grid grid-cols-2 gap-4">
+
+
                             <Select
-                                onValueChange={(v) => setFormState((prev) => ({ ...prev, ExpenseTypeID: v }))}
-                                value={formState.ExpenseTypeID}
-                            >
-                                
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Type" />
-                                </SelectTrigger>
+                                value={formState.ExpenseTypeID ? JSON.stringify({ id: formState.ExpenseTypeID, name: formState.ExpenseTypeName }) : ''}
+                                onValueChange={(v) => {
+                                    const selected = JSON.parse(v);
+                                    handleSelectChange('ExpenseTypeID', selected.id);
+                                    handleSelectChange('ExpenseTypeName', selected.name);
+                                }}
+                            >  <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
                                 <SelectContent>
-                                    {expenseType.map((expType) => (
-                                        <SelectItem key={expType._id} value={expType._id}>
-                                            {expType.ExpenseTypeName}
-                                        </SelectItem>
+                                    {expenseType.map((exp) => (
+                                        <SelectItem
+                                            key={exp._id}
+                                            value={JSON.stringify({ id: exp._id, name: exp.ExpenseTypeName })}
+                                        >{exp.ExpenseTypeName}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -620,24 +650,33 @@ const ExpenseManagement = () => {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2"><Label htmlFor="expenseAmount">Amount (₹)</Label><Input id="expenseAmount" type="number" value={formState.expenseAmount} onChange={(e) => handleFormChange('expenseAmount', e.target.value)} required min="0.01" step="0.01" /></div>
-                            <div className="space-y-2"><Label htmlFor="ExpenseCategoryId">Select Categories</Label>
-                              <Select
-                                onValueChange={(v) => setFormState((prev) => ({ ...prev, ExpenseCategoryId: v }))}
-                                value={formState.ExpenseCategoryId}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {expenseCategory.map((expCate) => (
-                                        <SelectItem key={expCate._id} value={expCate._id}>
-                                            {expCate.ExpenseCategoryName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {/* <div className="space-y-2"><Label>Category</Label><Select value={formState.categoryId} onValueChange={(val) => { handleFormChange('categoryId', val); handleFormChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === formState.type && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div> */}
-                        </div>
+
+                            {
+                                formState.ExpenseTypeName == 'Expenses' ?
+                                    <div className="space-y-2"><Label htmlFor="ExpenseCategoryId">Select Categories</Label>
+                                        <Select
+                                            value={formState.ExpenseCategoryId ? JSON.stringify({ id: formState.ExpenseCategoryId, name: formState.ExpenseCategoryName }) : ''}
+                                            onValueChange={(v) => {
+                                                const selected = JSON.parse(v);
+                                                handleSelectChange('ExpenseCategoryId', selected.id);
+                                                handleSelectChange('ExpenseCategoryName', selected.name);
+                                            }}
+                                        >  <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                                            <SelectContent>
+                                                {expenseCategory.map((expCate) => (
+                                                    <SelectItem
+                                                        key={expCate._id}
+                                                        value={JSON.stringify({ id: expCate._id, name: expCate.ExpenseCategoryName })}
+                                                    >{expCate.ExpenseCategoryName}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
+                                        {/* <div className="space-y-2"><Label>Category</Label><Select value={formState.categoryId} onValueChange={(val) => { handleFormChange('categoryId', val); handleFormChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === formState.type && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div> */}
+                                    </div> : null
+
+                            }
+
                         </div>
                         {renderDynamicFields(formState, handleFormChange)}
                         <DialogFooter><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingTx ? 'Save Changes' : 'Add Transaction'}</Button></DialogFooter>
