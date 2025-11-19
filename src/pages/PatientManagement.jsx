@@ -83,7 +83,9 @@ const PatientManagement = () => {
     travelDetails: null, genderName: '', FeesTypeId: '', feeAmount: '', feesTypeAmount: '',ReferenceId:'',sourceName:''
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
-  console.log(patientForm, "patientForm")
+  console.log(patientForm.FeesTypeId, "FeesTypeId")
+  console.log(patientForm.ReferenceId, "ReferenceId")
+  
   const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
   const [risk, setRisk] = useState([]) //for dropdown 
 
@@ -424,12 +426,12 @@ const PatientManagement = () => {
         hodNotes: patient.hodNotes ? patient.hodNotes : null,
         goalLog: patient.goalLog ? patient.goalLog : [],
         travelDetails: patient.travelDetails ? patient.travelDetails : null,
-        genderName: patient.patientGenderId.genderName ? patient.patientGenderId.genderName : null,
-        FeesTypeId: patient.FeesTypeId._id ? patient.FeesTypeId._id : null,
-        feesTypeName: patient.FeesTypeId.feesTypeName ? patient.FeesTypeId.feesTypeName : null,
+        genderName: patient.patientGenderId ? patient.patientGenderId.genderName : null,
+        FeesTypeId: patient.FeesTypeId ? patient.FeesTypeId._id : null,
+        feesTypeName: patient.FeesTypeId ? patient.FeesTypeId.feesTypeName : null,
         feeAmount: patient.feeAmount ? patient.feeAmount : null,
-        ReferenceId:patient.ReferenceId._id?patient.ReferenceId._id:null,
-        sourceName:patient.ReferenceId.sourceName?patient.ReferenceId.sourceName:null
+        ReferenceId:patient.ReferenceId?patient.ReferenceId._id:null,
+        sourceName:patient.ReferenceId?patient.ReferenceId.sourceName:null
       };
       if (patient.consultationDate) formData.consultationDate = new Date(patient.consultationDate);
       if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);

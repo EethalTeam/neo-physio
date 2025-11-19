@@ -20,7 +20,9 @@ const LeadStatus = () => {
   const initialFormState = { 
     leadStatusName: '', 
     leadStatusCode: '',
-    isActive: true
+    isActive: true,
+    leadStatusColor:'',
+    leadStatusTextColor:''
   };
   const [leadStatusForm, setLeadStatusForm] = useState(initialFormState);
 
@@ -164,6 +166,8 @@ const LeadStatus = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
+                    <th className="text-left p-3 font-semibold text-gray-600">Lead Status Color</th>
+                    <th className="text-left p-3 font-semibold text-gray-600">Lead Status Text Color</th>
                     <th className="text-left p-3 font-semibold text-gray-600">Lead Status Name</th>
                     <th className="text-left p-3 font-semibold text-gray-600"> Status</th>
                     {/* <th className="text-left p-3 font-semibold text-gray-600">Status</th> */}
@@ -173,12 +177,10 @@ const LeadStatus = () => {
                 <tbody>
                   {leadStatus.map((lead) => (
                     <tr key={lead._id} className="border-b hover:bg-gray-50/50 transition-colors">
+                      <td><input type='color' value={lead.leadStatusColor} /></td>
+                      <td><input type='color' value={lead.leadStatusTextColor || '#ffffff'} /></td>
                       <td className="p-3 font-medium text-gray-800">{lead.leadStatusName}</td>
-                      {/* <td className="p-3">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${cat.ExpenseCategoryType === 'Income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {cat.ExpenseCategoryType}
-                        </span>
-                      </td> */}
+ 
                       <td className="p-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${lead.isActive ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
                           {lead.isActive ? 'Active' : 'Inactive'}
@@ -218,6 +220,18 @@ const LeadStatus = () => {
             <DialogDescription>Define a new LeadStatus for tracking transactions.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
+            <div className='gap-10 grid grid-cols-2'>
+              <div>
+                <Label htmlFor="leadStatusCode"> Lead Status Color</Label>
+              <Input type='color' id="leadStatusColor" name="leadStatusColor" value={leadStatusForm.leadStatusColor} onChange={handleFormChange} required className='max-w-sm '  />
+              </div>
+              <div>
+                <Label htmlFor="leadStatusTextColor"> Lead Status Text Color</Label>
+              <Input type='color' id="leadStatusTextColor" name="leadStatusTextColor" value={leadStatusForm.leadStatusTextColor} onChange={handleFormChange} required className='max-w-sm '  />
+              </div>
+              
+            
+            </div>
             <div className="space-y-2">
               <Label htmlFor="leadStatusCode"> Lead Status Code</Label>
               <Input id="leadStatusCode" name="leadStatusCode" value={leadStatusForm.leadStatusCode} onChange={handleFormChange} required placeholder="e.g., LS001" />

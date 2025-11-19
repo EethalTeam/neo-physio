@@ -28,6 +28,8 @@ const LeadManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [reference, setReference] = useState([])
+  const [qualify, setQualified] = useState("")
+  const [open, setOpen] = useState(false)
 
   const initialFormState = {
     // _id:'',
@@ -46,11 +48,13 @@ const LeadManagement = () => {
     leadId: '',
     ReferenceId: '',
     sourceName: '',
-    isQualified: false
+    isQualified: true,
+    LeadStatusId: '',
+    leadStatusName: ''
   };
-
+  const [leadStatus, setLeadStatus] = useState([])
   const [leadForm, setLeadForm] = useState(initialFormState);
-  console.log( leadForm.leadSourceId,"leadForm leadSourceId")
+  console.log(leadForm.LeadStatusId, "leadForm LeadStatusId")
 
   //  Load dropdown data
   useEffect(() => {
@@ -59,7 +63,28 @@ const LeadManagement = () => {
     getGender();
     getLead();
     getReference()
+    getLeadStatus()
   }, []);
+
+  // api for leadStatus 
+
+  const getLeadStatus = async () => {
+    try {
+      const res = await apiRequest('LeadStatus/getAllLeadStatus',
+        {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+      setLeadStatus(res)
+
+    } catch (error) {
+      console.error('Error loading leadStatus:', error);
+
+    }
+  }
+
+
+
 
   //api for Reference 
 
@@ -73,7 +98,7 @@ const LeadManagement = () => {
       setReference(res);
 
     } catch (error) {
-      console.error('Error loading leads:', error);
+      console.error('Error loading Reference:', error);
 
     }
   }
@@ -83,9 +108,9 @@ const LeadManagement = () => {
   const getLeadSource = async () => {
     try {
       const res = await apiRequest('LeadSource/getAllLeadSource', {
-         method: 'POST',
-          body: JSON.stringify({})
-         });
+        method: 'POST',
+        body: JSON.stringify({})
+      });
       setLeadSource(res || []);
     } catch (error) {
       console.error('Error loading LeadSource:', error);
@@ -95,8 +120,8 @@ const LeadManagement = () => {
   const getPhysio = async () => {
     try {
       const res = await apiRequest('PhysioCategory/getAllPhysioCategory', {
-         method: 'POST', body: JSON.stringify({}) 
-        }
+        method: 'POST', body: JSON.stringify({})
+      }
       );
       setPhysioCate(res || []);
     } catch (error) {
@@ -107,23 +132,23 @@ const LeadManagement = () => {
   const getGender = async () => {
     try {
       const res = await apiRequest('Gender/getAllGender', {
-         method: 'POST',
-          body: JSON.stringify({})
-         }
-        );
+        method: 'POST',
+        body: JSON.stringify({})
+      }
+      );
       setGender(res || []);
     } catch (error) {
       console.error('Error loading Gender:', error);
     }
   };
 
-  // ✅ Get all leads
+  //  Get all leads
   const getLead = async () => {
     try {
       const response = await apiRequest('Lead/getAllLead', {
-         method: 'POST',
-          body: JSON.stringify({}) 
-        });
+        method: 'POST',
+        body: JSON.stringify({})
+      });
       setLeads(response.leads || []);
       setFilteredLeads(response.leads || []);
     } catch (error) {
@@ -131,7 +156,7 @@ const LeadManagement = () => {
     }
   };
 
-  // ✅ Create Lead
+  //  Create Lead
   const createLead = async (data) => {
     try {
       const response = await apiRequest('Lead/createLead', {
@@ -147,7 +172,7 @@ const LeadManagement = () => {
     }
   };
 
-  // ✅ Update Lead
+  //  Update Lead
   const updateLead = async (data) => {
     try {
       const response = await apiRequest('Lead/updateLead', {
@@ -163,7 +188,7 @@ const LeadManagement = () => {
     }
   };
 
-  // ✅ Delete Lead
+  //  Delete Lead
   const deleteLead = async (id) => {
     try {
       await apiRequest('Lead/deleteLead', {
@@ -177,7 +202,7 @@ const LeadManagement = () => {
     }
   };
 
-  // ✅ Handle Search and Filter
+  //  Handle Search and Filter
   useEffect(() => {
     let filtered = leads;
     if (searchTerm) {
@@ -193,7 +218,7 @@ const LeadManagement = () => {
     setFilteredLeads(filtered);
   }, [searchTerm, statusFilter, leads]);
 
-  // ✅ Form Handlers
+  //  Form Handlers
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setLeadForm((prev) => ({ ...prev, [name]: value }));
@@ -223,7 +248,7 @@ const LeadManagement = () => {
     }
   };
 
-  // ✅ Edit
+  //  Edit
   const handleEdit = (lead) => {
     setEditingLead(true);
     setLeadForm({
@@ -234,14 +259,16 @@ const LeadManagement = () => {
       leadContactNo: lead.leadContactNo || '',
       leadAddress: lead.leadAddress || '',
       physioCategoryId: lead?.physioCategoryId?._id || '',
-      leadSourceId: lead.leadSourceId ?lead.leadSourceId?._id:'',
+      leadSourceId: lead.leadSourceId ? lead.leadSourceId?._id : '',
       leadMedicalHistory: lead.leadMedicalHistory || '',
       leadId: lead._id || '',
       physioCateName: lead?.physioCategoryId?.physioCateName || '',
       genderName: lead?.leadGenderId?.genderName || '',
-      leadSourceName: lead.leadSourceId.leadSourceName? lead.leadSourceId.leadSourceName :null,
+      leadSourceName: lead.leadSourceId.leadSourceName ? lead.leadSourceId.leadSourceName : null,
       ReferenceId: lead.ReferenceId ? lead.ReferenceId._id : '',
       sourceName: lead.ReferenceId ? lead.ReferenceId.sourceName : null,
+      LeadStatusId: lead.LeadStatusId ? lead.LeadStatusId._id : null,
+      leadStatusName: lead.LeadStatusId ? lead.LeadStatusId.leadSourceName : null,
       leadDocuments: lead.leadDocuments || [],
     });
     setIsFormOpen(true);
@@ -251,7 +278,13 @@ const LeadManagement = () => {
     setEditingLead(null);
     setLeadForm(initialFormState);
     setIsFormOpen(true);
+    // setQualified(true)
+
   };
+
+  // const openQualifiedDialog = () =>{
+  //   setQualified(true)
+  // }
 
   return (
     <div className="space-y-6">
@@ -308,14 +341,43 @@ const LeadManagement = () => {
                 <tr key={lead._id} className="border-b hover:bg-gray-50">
                   <td className="p-3">{lead.leadName}</td>
                   <td className="p-3">{lead.leadContactNo}</td>
-                  <td className="p-3">{lead?.physioCategoryId?.physioCateName}</td>
+                  <td className="p-3"><span className='text-xs font-extralight border-2 border-blue-200 p-2 bg-blue-200 text-blue-700 rounded-2xl'>{lead?.physioCategoryId?.physioCateName}</span></td>
                   <td className="p-3">{lead?.leadSourceId?.leadSourceName}</td>
-                  <td className="p-3">{lead.isQualified ? 'Qualified' : 'Pending'}</td>
+                  <td  ><span style={{backgroundColor:lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' ,color:lead.LeadStatusId.leadStatusTextColor}} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td>
                   <td className="p-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(lead)}>
+
+                    {/* <Button onClick={openNewLeadDialog}>Qualified</Button> */}
+                 {lead.LeadStatusId.leadStatusName !== 'Qualified' &&   <Button variant="default" onClick={() => setOpen(true)} className="bg-blue-600 hover:bg-blue-700"  >
+                      Qualified
+                    </Button>}
+                    <Dialog open={open} onOpenChange={setOpen} >
+                      <DialogContent className="max-w-md max-h-[90vh] backdrop-blur-lg">
+                        <DialogHeader>
+                          <DialogTitle>Qualify Lead</DialogTitle>
+                          <td>Schedule the initial consultation for </td>
+
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <Label>Consultation Date</Label>
+                          <Input type="date" value={qualify} onChange={(e) => setQualified(e.target.value)} />
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={() => setOpen(false)} variant="outline">
+                            Cancel
+                          </Button>
+
+                          <Button onClick={() => setOpen(false)}  >
+                            Qualify & Notify HOD
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+
+                   {lead.LeadStatusId.leadStatusName !== 'Qualified' && <Button size="sm" variant="outline" onClick={() => handleEdit(lead)}>
                       <Edit size={14} />
-                    </Button>
-                    <AlertDialog>
+                    </Button>}
+                    {lead.LeadStatusId.leadStatusName !== 'Qualified' &&    <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="destructive"><Trash2 size={14} /></Button>
                       </AlertDialogTrigger>
@@ -326,7 +388,7 @@ const LeadManagement = () => {
                           <AlertDialogAction onClick={() => deleteLead(lead._id)}>Delete</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
-                    </AlertDialog>
+                    </AlertDialog>}
                   </td>
                 </tr>
               ))}
@@ -361,8 +423,23 @@ const LeadManagement = () => {
               </div>
               <div><Label>Contact</Label><Input name="leadContactNo" value={leadForm.leadContactNo} onChange={handleFormChange} required /></div>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Address</Label><Input name="leadAddress" value={leadForm.leadAddress} onChange={handleFormChange} />
+              </div>
+              <div>
+                <Label>Lead Status</Label>
+                <Select value={leadForm.LeadStatusId} onValueChange={(v) => handleSelectChange('LeadStatusId', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select Lead Status" /></SelectTrigger>
+                  <SelectContent>
+                    {leadStatus.map((leadst) => (
+                      <SelectItem key={leadst._id} value={leadst._id}>{leadst.leadStatusName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            <div><Label>Address</Label><Input name="leadAddress" value={leadForm.leadAddress} onChange={handleFormChange} /></div>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -387,7 +464,7 @@ const LeadManagement = () => {
                   </SelectContent>
                 </Select> */}
 
-                 <Select
+                <Select
                   value={JSON.stringify({ LeadIDPK: leadForm.leadSourceId, name: leadForm.leadSourceName })}
                   onValueChange={(v) => {
                     const selected = JSON.parse(v);
@@ -406,29 +483,29 @@ const LeadManagement = () => {
                 </Select>
               </div>
               {
-               leadForm.leadSourceName === "Reference" ? <div className="space-y-2">
-                <Label>Reference</Label>
-                <Select
-                  value={JSON.stringify({ id: leadForm.ReferenceId, name: leadForm.sourceName })}
-                  onValueChange={(v) => {
-                    const selected = JSON.parse(v);
-                    handleSelectChange('ReferenceId', selected.id);
-                    handleSelectChange('sourceName', selected.name);
-                  }}
-                >  <SelectTrigger><SelectValue placeholder="Select Reference" /></SelectTrigger>
-                  <SelectContent>
-                    {reference.map((ref) => (
-                      <SelectItem
-                        key={ref._id}
-                        value={JSON.stringify({ id: ref._id, name: ref.sourceName })}
-                      >{ref.sourceName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div> : null
+                leadForm.leadSourceName === "Reference" ? <div className="space-y-2">
+                  <Label>Reference</Label>
+                  <Select
+                    value={JSON.stringify({ id: leadForm.ReferenceId, name: leadForm.sourceName })}
+                    onValueChange={(v) => {
+                      const selected = JSON.parse(v);
+                      handleSelectChange('ReferenceId', selected.id);
+                      handleSelectChange('sourceName', selected.name);
+                    }}
+                  >  <SelectTrigger><SelectValue placeholder="Select Reference" /></SelectTrigger>
+                    <SelectContent>
+                      {reference.map((ref) => (
+                        <SelectItem
+                          key={ref._id}
+                          value={JSON.stringify({ id: ref._id, name: ref.sourceName })}
+                        >{ref.sourceName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div> : null
               }
 
-          
+
             </div>
 
             <div><Label>Medical History</Label><textarea name="leadMedicalHistory" value={leadForm.leadMedicalHistory} onChange={handleFormChange} className="w-full border p-2 rounded-md" /></div>
