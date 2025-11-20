@@ -386,7 +386,7 @@ const PatientManagement = () => {
         patientGenderId: patient.patientGenderId._id ? patient.patientGenderId._id : null,
         patientNumber: patient.patientNumber ? patient.patientNumber : null,
         patientAddress: patient.patientAddress ? patient.patientAddress : null,
-        category: patient.category ? patient.category : null,
+        // category: patient.category ? patient.category : null,
         MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor ? patient.MedicalHistoryAndRiskFactor : null,
         documents: patient.documents ? patient.documents : [],
         consultationDate: patient.consultationDate ? new Date(patient.consultationDate) : '',
@@ -698,7 +698,7 @@ const PatientManagement = () => {
                   </div>
                   <div className="space-y-2 mb-4 flex-grow">
                     <p className="text-sm"><strong>Contact:</strong> {patient.patientNumber}</p>
-                    <p className="text-sm"><strong>Category:</strong><span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{patient.category}</span></p>
+                    {/* <p className="text-sm"><strong>Category:</strong><span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{patient.category}</span></p> */}
                     <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PPP") : 'Not set'}</p>
                     <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PPP") : 'N/A'}</p>
                     {patient.shortTermGoals && (
@@ -946,7 +946,7 @@ const PatientManagement = () => {
                     <div className="space-y-2"><Label>No of Days</Label><Input name="noOfDays" type="number" value={patientForm.noOfDays} onChange={handleFormChange} /></div>
                   </div>
                   <div className="space-y-2">{renderRadioGroup('Modalities', 'Modalities', patientForm.Modalities, '', true)}</div>
-                  {patientForm.Modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalitiesOptions.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} checked={patientForm.modalityList.includes(mod)} onCheckedChange={(checked) => { setPatientForm(prev => ({ ...prev, modalityList: checked ? [...prev.modalityList, mod] : prev.modalityList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
+                  {patientForm.Modalities === true && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalitiesOptions.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} checked={patientForm.modalityList.includes(mod)} onCheckedChange={(checked) => { setPatientForm(prev => ({ ...prev, modalityList: checked ? [...prev.modalityList, mod] : prev.modalityList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
                   <div className="space-y-2"><Label>Targeted Area</Label><Input name="targetedArea" value={patientForm.targetedArea} onChange={handleFormChange} /></div>
                 </AccordionContent></AccordionItem>
 

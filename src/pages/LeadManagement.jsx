@@ -28,8 +28,10 @@ const LeadManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [reference, setReference] = useState([])
-  const [qualify, setQualified] = useState("")
+  const [ConsultationDate,setConsultationDate]= useState("")
+  console.log(ConsultationDate,"ConsultationDate")
   const [open, setOpen] = useState(false)
+  const [LeadQualify,setLeadQualify] = useState({})
 
   const initialFormState = {
     // _id:'',
@@ -103,7 +105,29 @@ const LeadManagement = () => {
     }
   }
 
+const QualifyLead=async (lead)=>{
+ try {
+  const payload=lead
+  payload.ConsultationDate=ConsultationDate
 
+      const res = await apiRequest('Lead/QualifyLead',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        console.log(res,"res")
+if(res){
+  getLead()
+      toast({ title: 'Success', description: 'Lead qualified successfully.' });
+}else{
+  toast({ title: 'Failed', description: 'Lead qualify failed.' });
+}  
+
+    } catch (error) {
+      console.error('Error loading Reference:', error);
+
+    }
+}
 
   const getLeadSource = async () => {
     try {
@@ -348,8 +372,8 @@ const LeadManagement = () => {
                   <td className="p-3 flex gap-2">
 
                     {/* <Button onClick={openNewLeadDialog}>Qualified</Button> */}
-                 {lead.LeadStatusId.leadStatusName !== 'Qualified' &&   <Button variant="default" onClick={() => setOpen(true)} className="bg-blue-600 hover:bg-blue-700"  >
-                      Qualified
+                 {lead.LeadStatusId.leadStatusName !== 'Qualified' &&   <Button variant="default" onClick={() => {setLeadQualify(lead);setOpen(true)}} className="bg-blue-600 hover:bg-blue-700"  >
+                      Qualify
                     </Button>}
                     <Dialog open={open} onOpenChange={setOpen} >
                       <DialogContent className="max-w-md max-h-[90vh] backdrop-blur-lg">
@@ -360,14 +384,14 @@ const LeadManagement = () => {
                         </DialogHeader>
                         <div className="space-y-3">
                           <Label>Consultation Date</Label>
-                          <Input type="date" value={qualify} onChange={(e) => setQualified(e.target.value)} />
+                          <Input type="date" value={ConsultationDate} onChange={(e) => setConsultationDate(e.target.value)} />
                         </div>
                         <DialogFooter>
                           <Button onClick={() => setOpen(false)} variant="outline">
                             Cancel
                           </Button>
 
-                          <Button onClick={() => setOpen(false)}  >
+                          <Button onClick={() => {QualifyLead(LeadQualify);setOpen(false)}}  >
                             Qualify & Notify HOD
                           </Button>
                         </DialogFooter>
