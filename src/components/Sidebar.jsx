@@ -34,6 +34,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
              { icon: Layers, label : 'Expense Type', path : '/expenseType' },
              { icon: Layers, label : 'Fees Type', path : '/feesType' },
              { icon: Layers, label : 'Lead Status', path : '/leadStatus' },
+             { icon: Layers, label : 'Session Status', path : '/sessionStatus' },
+             { icon: Layers, label : 'Modalities', path : '/modalities' },
 
            
              
