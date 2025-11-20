@@ -34,6 +34,8 @@ import RiskFactor from '@/pages/RiskFactor'
 import ExpenseType from'@/pages/ExpenseType'
 import FeesType from '@/pages/FeesType'
 import LeadStatus from '@/pages/LeadStatus';
+import SessionStatus from '@/pages/SessionStatus';
+import Modalities from '@/pages/Modalities';
 
 function App() {
   return (
@@ -109,6 +111,22 @@ function App() {
               <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
                 <Layout>
                   <LeadStatus />
+                </Layout>
+              </ProtectedRoute>
+            } />
+                
+              <Route path="/sessionStatus" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <SessionStatus />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+              <Route path="/modalities" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <Modalities />
                 </Layout>
               </ProtectedRoute>
             } />
