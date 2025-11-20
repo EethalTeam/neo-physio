@@ -22,7 +22,7 @@ const LeadStatus = () => {
     leadStatusCode: '',
     isActive: true,
     leadStatusColor:'',
-    leadStatusTextColor:''
+    // leadStatusTextColor:''
   };
   const [leadStatusForm, setLeadStatusForm] = useState(initialFormState);
 
@@ -167,7 +167,7 @@ const LeadStatus = () => {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left p-3 font-semibold text-gray-600">Lead Status Color</th>
-                    <th className="text-left p-3 font-semibold text-gray-600">Lead Status Text Color</th>
+                    {/* <th className="text-left p-3 font-semibold text-gray-600">Lead Status Text Color</th> */}
                     <th className="text-left p-3 font-semibold text-gray-600">Lead Status Name</th>
                     <th className="text-left p-3 font-semibold text-gray-600"> Status</th>
                     {/* <th className="text-left p-3 font-semibold text-gray-600">Status</th> */}
@@ -178,7 +178,7 @@ const LeadStatus = () => {
                   {leadStatus.map((lead) => (
                     <tr key={lead._id} className="border-b hover:bg-gray-50/50 transition-colors">
                       <td><input type='color' value={lead.leadStatusColor} /></td>
-                      <td><input type='color' value={lead.leadStatusTextColor || '#ffffff'} /></td>
+                      {/* <td><input type='color' value={lead.leadStatusTextColor || '#ffffff'} /></td> */}
                       <td className="p-3 font-medium text-gray-800">{lead.leadStatusName}</td>
  
                       <td className="p-3">
@@ -225,10 +225,10 @@ const LeadStatus = () => {
                 <Label htmlFor="leadStatusCode"> Lead Status Color</Label>
               <Input type='color' id="leadStatusColor" name="leadStatusColor" value={leadStatusForm.leadStatusColor} onChange={handleFormChange} required className='max-w-sm '  />
               </div>
-              <div>
+              {/* <div>
                 <Label htmlFor="leadStatusTextColor"> Lead Status Text Color</Label>
               <Input type='color' id="leadStatusTextColor" name="leadStatusTextColor" value={leadStatusForm.leadStatusTextColor} onChange={handleFormChange} required className='max-w-sm '  />
-              </div>
+              </div> */}
               
             
             </div>
