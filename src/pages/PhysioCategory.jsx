@@ -232,7 +232,7 @@ const PhysioCategory = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="physioCateName"> Physio Category Name</Label>
-              <Input id="physioCateName" name="physioCateName" value={physioForm.physioCateName} onChange={handleChangePhysio} required placeholder="e.g., India" />
+              <Input id="physioCateName" name="physioCateName" value={physioForm.physioCateName} onChange={handleChangePhysio} required placeholder="e.g.,  Orthopedic Physiotherapy" />
             </div>
             
             {/* <div className="space-y-3">

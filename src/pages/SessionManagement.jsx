@@ -47,7 +47,7 @@ const SessionManagement = () => {
     sessionCode: '',
     patientId: '',
     physioId: '',
-    sessionDate: new Date(),
+    sessionDate: "",
     sessionDay: '',
     sessionTime: '',
     sessionStatusId: '691ecb36b87c5c57dead47a7',
@@ -68,12 +68,14 @@ const SessionManagement = () => {
     targetArea: ''
   };
   const [feedback, setFeedback] = useState(initialFeedbackState);
+  console.log(feedback,"feedback")
   const fileInputRef = useRef(null);
 
   const [cancelDialog, setCancelDialog] = useState({ open: false, sessionId: null });
   const [cancelledKms, setCancelledKms] = useState('');
+   const [radio, setRadio] = useState([])
 
-  const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
+  // const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
 
 
 
@@ -150,7 +152,7 @@ const SessionManagement = () => {
   
   const deleteSession = async(data)=>{
         try {
-      const response = await apiRequest("Session/deletedSession", {
+      const response = await apiRequest("Session/deleteSession", {
         method: 'POST',
         body: JSON.stringify(data)
       });
@@ -246,6 +248,35 @@ const SessionManagement = () => {
   }
 
 
+  const SessionStart = async (data) =>{
+    console.log(data,"data")
+    try {
+        const response = await apiRequest("Session/SessionStart", {
+        method: 'POST',
+        body: JSON.stringify(data)
+        })
+        getSession()
+        return response
+    } catch (error) {
+       console.log(error, "error from frontend get All Session Start")
+    }
+  }
+
+
+
+  const SessionEnd = async (data) => {
+    try {
+        const response = await apiRequest("Session/SessionEnd", {
+        method: 'POST',
+        body: JSON.stringify(data)
+        })
+        return response
+      
+    } catch (error) {
+       console.log(error, "error from frontend get All Session Start")
+    }
+  }
+
   //convert the time 
 
   const Converttime = (time) => {
@@ -259,12 +290,23 @@ const SessionManagement = () => {
     })
   }
 
+
+
 // getDayName
 const getDayName = (date) =>{
 const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
 return days[new Date(date).getDay()]
 }
 
+
+ const CovertTdyTim = () => {
+ return new Date().toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12:true
+  })
+  }
+ 
 
   // useEffect(() => {
   //   Promise.all([
@@ -311,6 +353,8 @@ return days[new Date(date).getDay()]
     } else if (action === 'canceled') {
       setCancelDialog({ open: true, sessionId: sessionId });
     } else {
+      console.log(sessionId,action,"object")
+      handleActionStart(sessionId,action)
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: action } : s));
       toast({ title: "Session Updated", description: `Session has been marked as ${action}` });
     }
@@ -342,9 +386,25 @@ return days[new Date(date).getDay()]
     setFeedback(initialFeedbackState);
     toast({ title: "Session Completed", description: "Session feedback has been recorded." });
   };
+   
+
+  const handleActionStart = (session,action) =>{
+     SessionStart({
+      _id:session,sessionFromTime:CovertTdyTim(),action:action})
+    
+  }
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+
+    if(!sessionForm.patientId){
+     alert("select the patient")
+    }
+    
+    if(!sessionForm.physioId){
+     alert("select the physio")
+    }
+
     const formData = {
       ...sessionForm,
       patientId: parseInt(sessionForm.patientId),
@@ -385,7 +445,7 @@ return days[new Date(date).getDay()]
     sessionTime: session.sessionTime? session.sessionTime:'',
     sessionFromTime:session.sessionFromTime?session.sessionFromTime:'',
     sessionToTime: session.sessionToTime?session.sessionToTime:'',
-    machineId: session.machineId?session.machineId._id:'',
+    // machineId: session.machineId?session.machineId._id:'',
     sessionStatusId: session.sessionStatusId?session.sessionStatusId._id:'',
  
     });
@@ -394,7 +454,7 @@ return days[new Date(date).getDay()]
 
   const handleDeleteSession = (id) => {
     // setSessions(prev => prev.filter(s => s.id !== sessionId));
-    deleteSession(id)
+    deleteSession({_id:id})
     toast({ title: "Deleted", description: "Session has been removed.", variant: "destructive" });
   };
 
@@ -403,6 +463,13 @@ return days[new Date(date).getDay()]
     setSessionForm(initialFormState);
     setIsFormOpen(true);
   };
+
+  const hanlderadio = () => {
+    setRadio(prev =>[...prev, { redFlagIdID: RedflagIDPK, isOccurred: value }] )
+    setFeedback(prev => ({ ...prev, [name]: value }))
+
+
+  }
 
   return (
     <div className="space-y-6">
@@ -420,7 +487,7 @@ return days[new Date(date).getDay()]
           <div className="flex space-x-4">
             <div className="flex-1 relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by patient name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div>
             <div className="w-48"><Select value={dateFilter} onValueChange={setDateFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Date">Date</SelectItem><Input type='Date' value={sessionForm.sessionDate} /></SelectContent></Select></div>
-            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="attended">Attended</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="canceled">Canceled</SelectItem></SelectContent></Select></div>
+            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="Attended">Attended</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="canceled">Canceled</SelectItem></SelectContent></Select></div>
           </div>
         </CardContent>
       </Card>
@@ -450,10 +517,10 @@ return days[new Date(date).getDay()]
                       <td className="p-2">{session.feedback ? <div className="text-xs">{session.feedback.sessionFeedbackPros && <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>}{session.feedback.redFlags?.length > 0 && <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>}{session.feedback.media?.length > 0 && <p className="text-blue-600"><Paperclip size={12} className="inline-block mr-1" />{session.feedback.media.join(', ')}</p>}</div> : <span className="text-gray-400 text-xs">No feedback</span>}</td>
                       <td className="p-2">
                         <div className="flex space-x-1">
-                          {session.sessionStatusId?.sessionStatusName.toLowerCase() === 'scheduled' && <Button size="sm" onClick={() => handleSessionAction(session.id, 'attended')}><Play size={12} /></Button>}
-                          {session.sessionStatusId?.sessionStatusName.toLowerCase() === 'attended' && <Button size="sm" variant="outline" onClick={() => handleSessionAction(session.id, 'completed')}><Square size={12} /></Button>}
-                          {session.sessionStatusId?.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && <Button size="sm" variant="outline" onClick={() => setFeedbackDialog({ open: true, sessionId: session.sessionId })}><MessageSquare size={12} /></Button>}
-                          {(session.sessionStatusId?.sessionStatusName.toLowerCase() === 'scheduled' || session.status === 'attended') && <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'canceled')}><XCircle size={12} /></Button>}
+                          {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}><Play size={12} /></Button>}
+                          {session.sessionStatusId.sessionStatusName.toLowerCase() === 'attended' && <Button size="sm" variant="outline" onClick={() => handleSessionAction(session.id, 'completed')}><Square size={12} /></Button>}
+                          {session.sessionStatusId.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && <Button size="sm" variant="outline" onClick={() => setFeedbackDialog({ open: true, sessionId: session.sessionId })}><MessageSquare size={12} /></Button>}
+                          {(session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' || session.sessionStatusId.sessionStatusName === 'Attended') && <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'canceled')}><XCircle size={12} /></Button>}
                           {user?.role !== 'physio' && <>
                             <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}><Edit size={12} /></Button>
                             <AlertDialog><AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={12} /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the session.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSession(session._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
@@ -474,19 +541,19 @@ return days[new Date(date).getDay()]
           <DialogHeader><DialogTitle>Add Session Feedback</DialogTitle><DialogDescription>Provide feedback for the completed session.</DialogDescription></DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6">
             <div className="space-y-6 pt-4">
-              <div className="space-y-2"><Label htmlFor="pros">Positive Feedback (Pros)</Label><textarea id="pros" className="w-full p-2 border rounded-md" rows={2} value={feedback.sessionFeedbackPros} onChange={(e) => setFeedback({ ...sessionFeedbackPros, pros: e.target.value })} placeholder="What went well..." /></div>
+              <div className="space-y-2"><Label htmlFor="sessionFeedbackPros ">Positive Feedback (Pros)</Label><textarea id="sessionFeedbackPros " className="w-full p-2 border rounded-md" rows={2} value={feedback.sessionFeedbackPros} onChange={(e) => setFeedback({ ...sessionFeedbackPros, pros: e.target.value })} placeholder="What went well..." /></div>
 
               <div className="space-y-2"><Label>Mode of Exercise</Label><RadioGroup defaultValue="passive" value={feedback.exerciseMode} onValueChange={(v) => setFeedback({ ...feedback, exerciseMode: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ex-active" /><Label htmlFor="ex-active">Active</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="passive" id="ex-passive" /><Label htmlFor="ex-passive">Passive</Label></div></RadioGroup></div>
 
-              <div className="space-y-2"><Label>Red Flags</Label><div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">{redFlags.map(flag => (<div key={flag.id} className="flex items-center space-x-2"><Checkbox id={`rf-${flag.id}`} onCheckedChange={(checked) => { setFeedback(prev => ({ ...prev, redFlags: checked ? [...prev.redFlags, flag.name] : prev.redFlags.filter(f => f !== flag.name) })) }} /><Label htmlFor={`rf-${flag.id}`} className="text-sm font-normal">{flag.name}</Label></div>))}</div></div>
+              <div className="space-y-2"><Label>Red Flags</Label><div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">{redFlags.map(flag => (<div key={flag._id} className="flex items-center space-x-2"><Checkbox id={`rf-${flag._id}`} onCheckedChange={(checked) => { setFeedback(prev => ({ ...prev, redFlags: checked ?(prev =>[...prev, { redFlagId: RedflagIDPK, isOccurred: value }] ) : prev.redFlags.filter(f => f !== flag.RedflagIDPK) })) }} /><Label htmlFor={`rf-${flag.RedflagIDPK}`} className="text-sm font-normal">{flag.redflagName}</Label></div>))}</div></div>
 
-              <div className="space-y-2"><Label>Home Exercise Program Assigned</Label><RadioGroup value={feedback.homeExercise} onValueChange={(v) => setFeedback({ ...feedback, homeExercise: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="he-yes" /><Label htmlFor="he-yes">Yes</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="no" id="he-no" /><Label htmlFor="he-no">No</Label></div></RadioGroup></div>
+              <div className="space-y-2"><Label>Home Exercise Program Assigned</Label><RadioGroup value={feedback.homeExerciseAssigned} onValueChange={(v) => setFeedback({ ...feedback, homeExerciseAssigned: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="he-yes" /><Label htmlFor="he-yes">Yes</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="no" id="he-no" /><Label htmlFor="he-no">No</Label></div></RadioGroup></div>
 
               <div className="space-y-2"><Label>Modalities</Label><RadioGroup value={feedback.modalities} onValueChange={(v) => setFeedback({ ...feedback, modalities: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="mod-yes" /><Label htmlFor="mod-yes">Yes</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="no" id="mod-no" /><Label htmlFor="mod-no">No</Label></div></RadioGroup></div>
 
-              {feedback.modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalitiesOptions.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} onCheckedChange={(checked) => { setFeedback(prev => ({ ...prev, modalityList: checked ? [...prev.modalityList, mod] : prev.modalityList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
+              {feedback.modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalities.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} onCheckedChange={(checked) => { setFeedback(prev => ({ ...prev, modalitiesList: checked ? [...prev.modalitiesList, mod] : prev.modalitiesList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
 
-              <div className="space-y-2"><Label htmlFor="targetedArea">Targeted Area</Label><Input id="targetedArea" value={feedback.targetedArea} onChange={(e) => setFeedback({ ...feedback, targetedArea: e.target.value })} placeholder="e.g., Lower back, right shoulder" /></div>
+              <div className="space-y-2"><Label htmlFor="targetArea">Targeted Area</Label><Input id="targetArea" value={feedback.targetArea} onChange={(e) => setFeedback({ ...feedback, targetArea: e.target.value })} placeholder="e.g., Lower back, right shoulder" /></div>
 
               {user?.role === 'physio' && (
                 <div className="space-y-2">
@@ -528,7 +595,7 @@ return days[new Date(date).getDay()]
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide"><DialogHeader><DialogTitle>{editingSession ? 'Edit Session' : 'Schedule New Session'}</DialogTitle></DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
             <div className="space-y-2"><Label>Patient</Label>
-            <Select onValueChange={(v) => setSessionForm(p => ({ ...p, patientId: v }))} value={sessionForm.patientId}>
+            <Select onValueChange={(v) => setSessionForm(p => ({ ...p, patientId: v }))} value={sessionForm.patientId} required>
               <SelectTrigger>
               <SelectValue placeholder="Select a patient" />
               </SelectTrigger>
@@ -543,7 +610,7 @@ return days[new Date(date).getDay()]
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d , }))} initialFocus /></PopoverContent></Popover></div> */}
               <div className="space-y-2"><Label>Session Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{sessionForm.sessionDate ? format(sessionForm.sessionDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d , sessionDay:getDayName(d)}))} initialFocus /></PopoverContent></Popover></div>
-            <div className="space-y-2"><Label htmlFor="sessionDay">Session Day</Label><Input id="sessionDay" disabled type="text" value={sessionForm.sessionDay} onChange={(e) => setSessionForm(p => ({ ...p, sessionDay: e.target.value }))} /></div>
+            <div className="space-y-2"><Label htmlFor="sessionDay">Session Day</Label><Input id="sessionDay" disabled type="text" value={ sessionForm.sessionDay} onChange={(e) => setSessionForm(p => ({ ...p, sessionDay: e.target.value }))} /></div>
             <div className="space-y-2"><Label htmlFor="sessionTime">Session Time</Label><Input id="sessionTime" type="time" value={sessionForm.sessionTime} onChange={(e) => setSessionForm(p => ({ ...p, sessionTime: e.target.value }))} /></div>
             <div className="space-y-2"><Label>Machine Used (Optional)</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, machineId: v }))} value={sessionForm.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingSession ? 'Save Changes' : 'Schedule Session'}</Button></DialogFooter>

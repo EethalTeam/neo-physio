@@ -228,11 +228,11 @@ const LeadSource = () => {
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
               <Label htmlFor="leadSourceCode"> Lead Code</Label>
-              <Input id="leadSourceCode" name="leadSourceCode" value={leadForm.leadSourceCode} onChange={(e)=>{handleChangeLead(e)}} required placeholder="e.g., PH001" />
+              <Input id="leadSourceCode" name="leadSourceCode" value={leadForm.leadSourceCode} onChange={(e)=>{handleChangeLead(e)}} required placeholder="e.g., LD001" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="leadSourceName"> Lead Source Name</Label>
-              <Input id="leadSourceName" name="leadSourceName" value={leadForm.leadSourceName} onChange={handleChangeLead} required placeholder="e.g., India" />
+              <Input id="leadSourceName" name="leadSourceName" value={leadForm.leadSourceName} onChange={handleChangeLead} required placeholder="e.g., Reference" />
             </div>
             
             {/* <div className="space-y-3">

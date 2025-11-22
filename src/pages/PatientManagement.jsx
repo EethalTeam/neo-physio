@@ -338,7 +338,7 @@ const PatientManagement = () => {
 
   const handleRadio = (name, value, id) => {
     // setRadio(prev => ({ ...prev, [name]: value }));
-    setRadio(prev => [...prev, { RiskFactorID: id, isExist: value }])
+    setRadio(prev =>[...prev, { RiskFactorID: id, isExist: value }] )
     setPatientForm(prev => ({ ...prev, [name]: value }));
 
 
