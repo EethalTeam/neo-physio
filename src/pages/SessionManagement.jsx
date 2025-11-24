@@ -26,7 +26,8 @@ const SessionManagement = () => {
   const [physios, setPhysios] = useState([]);
   const [machines, setMachines] = useState([]);
   const [redFlags, setRedFlags] = useState([]);
-  const [modalities, setModalities] = useState([])
+  const [Modalities, setModalities] = useState([])
+  // console.log(Modalities,"Modalities")
   const [sessionStatus, setSessionStatus] = useState([])
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,21 +52,22 @@ const SessionManagement = () => {
     sessionDay: '',
     sessionTime: '',
     sessionStatusId: '691ecb36b87c5c57dead47a7',
-    machineId:''
+    // machineId:''
     
   };
   const [sessionForm, setSessionForm] = useState(initialFormState);
- console.log(sessionForm,"sessionForm")
+//  console.log(sessionForm,"sessionForm")
   const [feedbackDialog, setFeedbackDialog] = useState({ open: false, sessionId: null });
   const initialFeedbackState = {
     sessionFeedbackPros: '',
     redFlags: [],
     media: [],
-    modeOfExercise: 'passive',
-    homeExerciseAssigned: 'no',
-    modalities: 'no',
+    modeOfExercise: '',
+    homeExerciseAssigned: '',
+    modalities: "",
     modalitiesList: [],
-    targetArea: ''
+    targetArea: '',
+    machineId:""
   };
   const [feedback, setFeedback] = useState(initialFeedbackState);
   console.log(feedback,"feedback")
@@ -235,6 +237,7 @@ const SessionManagement = () => {
 
 
   const getModalities = async (data) => {
+    console.log(data,"Modalities Data")
     try {
       const response = await apiRequest("Modalities/getAllModalities", {
         method: 'POST',
@@ -265,13 +268,22 @@ const SessionManagement = () => {
 
 
   const SessionEnd = async (data) => {
+    console.log("SessionEnd")
     try {
         const response = await apiRequest("Session/SessionEnd", {
         method: 'POST',
         body: JSON.stringify(data)
         })
-        return response
-      
+
+        if(response.ok){
+           if (feedback.redFlags.length > 0) {
+      toast({ title: "HOD Notification", description: "Red flags have been reported to HOD for review." });
+    }
+    setFeedbackDialog({ open: false, sessionId: null });
+    setFeedback(initialFeedbackState);
+    toast({ title: "Session Completed", description: "Session feedback has been recorded." });
+            getSession()
+        }
     } catch (error) {
        console.log(error, "error from frontend get All Session Start")
     }
@@ -348,13 +360,15 @@ return days[new Date(date).getDay()]
   const getMachineName = (id) => machines.find(m => m.id === id)?.name || 'No machine';
 
   const handleSessionAction = (sessionId, action) => {
-    if (action === 'completed') {
+    if (action === 'Completed') {
       setFeedbackDialog({ open: true, sessionId: sessionId });
+      // handleActionEnd(sessionId, action)
     } else if (action === 'canceled') {
       setCancelDialog({ open: true, sessionId: sessionId });
     } else {
       console.log(sessionId,action,"object")
       handleActionStart(sessionId,action)
+    
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: action } : s));
       toast({ title: "Session Updated", description: `Session has been marked as ${action}` });
     }
@@ -378,13 +392,9 @@ return days[new Date(date).getDay()]
 
   const handleFeedbackSubmit = () => {
     const { sessionId } = feedbackDialog;
-    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'completed', feedback } : s));
-    if (feedback.redFlags.length > 0) {
-      toast({ title: "HOD Notification", description: "Red flags have been reported to HOD for review." });
-    }
-    setFeedbackDialog({ open: false, sessionId: null });
-    setFeedback(initialFeedbackState);
-    toast({ title: "Session Completed", description: "Session feedback has been recorded." });
+      handleActionEnd(feedback, 'Completed',sessionId)
+    // setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'Completed', feedback } : s));
+   
   };
    
 
@@ -393,6 +403,26 @@ return days[new Date(date).getDay()]
       _id:session,sessionFromTime:CovertTdyTim(),action:action})
     
   }
+
+
+   const handleActionEnd = (session,action,id) =>{
+
+     SessionEnd({
+      _id:id,
+      sessionToTime:CovertTdyTim(), 
+      action:action,
+      machineId:session.machineId,
+      sessionFeedbackPros:session.sessionFeedbackPros,
+      redFlags:session.redFlags,
+      targetArea:session.targetArea,
+      modalitiesList:session.modalitiesList,
+      modalities:feedback.modalities==='yes'?true :false
+       
+    })
+    
+  }
+   
+
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -415,12 +445,12 @@ return days[new Date(date).getDay()]
 
     if (editingSession) {
       // setSessions(prev => prev.map(s => s.id === editingSession.id ? { ...s, ...formData } : s));
-      updateSession(sessionForm)
+      updateSession({ ...sessionForm,  redFlags:radio})
       toast({ title: "Success", description: "Session updated." });
     } else {
       const newSession = { id: Date.now(), ...formData, status: 'scheduled', feedback: null };
       setSessions(prev => [newSession, ...prev]);
-      getCreateSession(sessionForm)
+      getCreateSession({ ...sessionForm,  redFlags:radio})
       toast({ title: "Success", description: "New session scheduled." });
     }
     setIsFormOpen(false);
@@ -464,12 +494,27 @@ return days[new Date(date).getDay()]
     setIsFormOpen(true);
   };
 
-  const hanlderadio = () => {
-    setRadio(prev =>[...prev, { redFlagIdID: RedflagIDPK, isOccurred: value }] )
-    setFeedback(prev => ({ ...prev, [name]: value }))
+  // const handleRadio = (name,value) => {
+  //   setRadio(prev =>[...prev, { redFlagIdID: RedflagIDPK, isOccurred: value }] )
+  //   setFeedback(prev => ({ ...prev, [name]: value }))
+
+  // }
+  // const handleRadioChange = (name, value) => {
+  //   setFeedback(prev => ({ ...prev, [name]: value }));
+  // };
 
 
-  }
+  
+
+//  const renderRadioGroup = (label, name, value, id, group, dynamic) => (
+//     <div className="flex items-center space-x-4">
+//       <Label className="w-24">{label}</Label>
+//       <RadioGroup value={feedback[name] || (group ? false : 'no')} onValueChange={(v) => { dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v) }} className="flex gap-4">
+//         <div className="flex items-center space-x-2"><RadioGroupItem value={group ? true : 'yes'} id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
+//         <div className="flex items-center space-x-2"><RadioGroupItem value={group ? false : 'no'} id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
+//       </RadioGroup>
+//     </div>  )
+
 
   return (
     <div className="space-y-6">
@@ -487,7 +532,7 @@ return days[new Date(date).getDay()]
           <div className="flex space-x-4">
             <div className="flex-1 relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by patient name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div>
             <div className="w-48"><Select value={dateFilter} onValueChange={setDateFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Date">Date</SelectItem><Input type='Date' value={sessionForm.sessionDate} /></SelectContent></Select></div>
-            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="Attended">Attended</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="canceled">Canceled</SelectItem></SelectContent></Select></div>
+            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="Attended">Attended</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="canceled">Canceled</SelectItem></SelectContent></Select></div>
           </div>
         </CardContent>
       </Card>
@@ -518,7 +563,7 @@ return days[new Date(date).getDay()]
                       <td className="p-2">
                         <div className="flex space-x-1">
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}><Play size={12} /></Button>}
-                          {session.sessionStatusId.sessionStatusName.toLowerCase() === 'attended' && <Button size="sm" variant="outline" onClick={() => handleSessionAction(session.id, 'completed')}><Square size={12} /></Button>}
+                          {session.sessionStatusId.sessionStatusName.toLowerCase() === 'attended' && <Button size="sm" variant="outline" onClick={() => handleSessionAction(session._id, 'Completed')}><Square size={12} /></Button>}
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && <Button size="sm" variant="outline" onClick={() => setFeedbackDialog({ open: true, sessionId: session.sessionId })}><MessageSquare size={12} /></Button>}
                           {(session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' || session.sessionStatusId.sessionStatusName === 'Attended') && <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'canceled')}><XCircle size={12} /></Button>}
                           {user?.role !== 'physio' && <>
@@ -541,19 +586,41 @@ return days[new Date(date).getDay()]
           <DialogHeader><DialogTitle>Add Session Feedback</DialogTitle><DialogDescription>Provide feedback for the completed session.</DialogDescription></DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6">
             <div className="space-y-6 pt-4">
-              <div className="space-y-2"><Label htmlFor="sessionFeedbackPros ">Positive Feedback (Pros)</Label><textarea id="sessionFeedbackPros " className="w-full p-2 border rounded-md" rows={2} value={feedback.sessionFeedbackPros} onChange={(e) => setFeedback({ ...sessionFeedbackPros, pros: e.target.value })} placeholder="What went well..." /></div>
+              <div className="space-y-2"><Label htmlFor="sessionFeedbackPros ">Positive Feedback (Pros)</Label><textarea id="sessionFeedbackPros " className="w-full p-2 border rounded-md" rows={2} value={feedback.sessionFeedbackPros} onChange={(e) => setFeedback({ ...feedback, sessionFeedbackPros: e.target.value })} placeholder="What went well..." /></div>
 
               <div className="space-y-2"><Label>Mode of Exercise</Label><RadioGroup defaultValue="passive" value={feedback.exerciseMode} onValueChange={(v) => setFeedback({ ...feedback, exerciseMode: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ex-active" /><Label htmlFor="ex-active">Active</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="passive" id="ex-passive" /><Label htmlFor="ex-passive">Passive</Label></div></RadioGroup></div>
 
-              <div className="space-y-2"><Label>Red Flags</Label><div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">{redFlags.map(flag => (<div key={flag._id} className="flex items-center space-x-2"><Checkbox id={`rf-${flag._id}`} onCheckedChange={(checked) => { setFeedback(prev => ({ ...prev, redFlags: checked ?(prev =>[...prev, { redFlagId: RedflagIDPK, isOccurred: value }] ) : prev.redFlags.filter(f => f !== flag.RedflagIDPK) })) }} /><Label htmlFor={`rf-${flag.RedflagIDPK}`} className="text-sm font-normal">{flag.redflagName}</Label></div>))}</div></div>
+             
+              <div className="space-y-2"><Label>Red Flags</Label><div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">{redFlags.map(flag => (<div key={flag._id} className="flex items-center space-x-2"><Checkbox id={`rf-${flag._id}`} onCheckedChange={(checked) => { setFeedback(prev =>   (checked ? {...prev,  redFlags: [...prev.redFlags,{redFlagId:flag.RedflagIDPK, isOccurred: true }]} : {...prev,  redFlags: prev.redFlags.filter(f => f.redFlagId !== flag.RedflagIDPK)} )
+              )
+                 }} /><Label htmlFor={`rf-${flag.RedflagIDPK}`} className="text-sm font-normal">{flag.redflagName}</Label></div>))}</div></div>
+              {/* <div className="space-y-2"><Label>Red Flags</Label>
+              <div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                {  
+                redFlags.map((red)=>{
+                      <div key={red.RedflagIDPK}>
+                          {renderRadioGroup(red.redflagName, red.redflagName.toLowerCase(), feedback[red.redflagName.toLowerCase()], red.RedflagIDPK, true, true)}
+                        </div>
+                  })
+                }
+                </div>
+                </div> */}
 
               <div className="space-y-2"><Label>Home Exercise Program Assigned</Label><RadioGroup value={feedback.homeExerciseAssigned} onValueChange={(v) => setFeedback({ ...feedback, homeExerciseAssigned: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="he-yes" /><Label htmlFor="he-yes">Yes</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="no" id="he-no" /><Label htmlFor="he-no">No</Label></div></RadioGroup></div>
 
               <div className="space-y-2"><Label>Modalities</Label><RadioGroup value={feedback.modalities} onValueChange={(v) => setFeedback({ ...feedback, modalities: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="mod-yes" /><Label htmlFor="mod-yes">Yes</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="no" id="mod-no" /><Label htmlFor="mod-no">No</Label></div></RadioGroup></div>
 
-              {feedback.modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalities.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} onCheckedChange={(checked) => { setFeedback(prev => ({ ...prev, modalitiesList: checked ? [...prev.modalitiesList, mod] : prev.modalitiesList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
-
+              {feedback.modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label>
+              <div className="p-3 border rounded-md grid grid-cols-3 gap-2">{Modalities.map(mod => (<div key={mod._id} className="flex items-center space-x-2"><Checkbox id={`mod-${mod._id}`} onCheckedChange={(checked) => { 
+                setFeedback(prev => (checked ? {...prev,  modalitiesList: [...prev.modalitiesList,{modalityId:mod._id, isOccurred: true }]} :{ ...prev, modalitiesList:  prev.modalitiesList.filter(m => m.modalityId !== mod._id)} )) 
+                }} /><Label htmlFor={`rf-${mod._id}`}  className="text-sm font-normal">{mod.modalitiesName}</Label></div>))}</div></motion.div>}
+            <div className="space-y-2"><Label>Machine Used</Label><Select onValueChange={(v) => setFeedback(p => ({ ...p, machineId: v }))} value={feedback.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div>
+               
               <div className="space-y-2"><Label htmlFor="targetArea">Targeted Area</Label><Input id="targetArea" value={feedback.targetArea} onChange={(e) => setFeedback({ ...feedback, targetArea: e.target.value })} placeholder="e.g., Lower back, right shoulder" /></div>
+              
+
+
+
 
               {user?.role === 'physio' && (
                 <div className="space-y-2">
@@ -612,7 +679,7 @@ return days[new Date(date).getDay()]
               <div className="space-y-2"><Label>Session Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{sessionForm.sessionDate ? format(sessionForm.sessionDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d , sessionDay:getDayName(d)}))} initialFocus /></PopoverContent></Popover></div>
             <div className="space-y-2"><Label htmlFor="sessionDay">Session Day</Label><Input id="sessionDay" disabled type="text" value={ sessionForm.sessionDay} onChange={(e) => setSessionForm(p => ({ ...p, sessionDay: e.target.value }))} /></div>
             <div className="space-y-2"><Label htmlFor="sessionTime">Session Time</Label><Input id="sessionTime" type="time" value={sessionForm.sessionTime} onChange={(e) => setSessionForm(p => ({ ...p, sessionTime: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Machine Used (Optional)</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, machineId: v }))} value={sessionForm.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div>
+            {/* <div className="space-y-2"><Label>Machine Used (Optional)</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, machineId: v }))} value={sessionForm.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div> */}
             <DialogFooter><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingSession ? 'Save Changes' : 'Schedule Session'}</Button></DialogFooter>
           </form>
         </DialogContent>
