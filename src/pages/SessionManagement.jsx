@@ -56,7 +56,7 @@ const SessionManagement = () => {
     
   };
   const [sessionForm, setSessionForm] = useState(initialFormState);
-//  console.log(sessionForm,"sessionForm")
+ console.log(sessionForm.patientId,"patientId")
   const [feedbackDialog, setFeedbackDialog] = useState({ open: false, sessionId: null });
   const initialFeedbackState = {
     sessionFeedbackPros: '',
@@ -265,6 +265,20 @@ const SessionManagement = () => {
     }
   }
 
+  const SessionCancel = async (data) => {
+    try {
+       const response = await apiRequest("Session/SessionCancel", {
+        method: 'POST',
+        body: JSON.stringify(data)
+        })
+        getSession()
+        return response
+      
+    } catch (error) {
+       console.log(error, "error from frontend get All Session Cancel")
+    }
+  }
+
 
 
   const SessionEnd = async (data) => {
@@ -275,7 +289,7 @@ const SessionManagement = () => {
         body: JSON.stringify(data)
         })
 
-        if(response.ok){
+        if(response){
            if (feedback.redFlags.length > 0) {
       toast({ title: "HOD Notification", description: "Red flags have been reported to HOD for review." });
     }
@@ -363,7 +377,7 @@ return days[new Date(date).getDay()]
     if (action === 'Completed') {
       setFeedbackDialog({ open: true, sessionId: sessionId });
       // handleActionEnd(sessionId, action)
-    } else if (action === 'canceled') {
+    } else if (action === 'Canceled') {
       setCancelDialog({ open: true, sessionId: sessionId });
     } else {
       console.log(sessionId,action,"object")
@@ -376,8 +390,9 @@ return days[new Date(date).getDay()]
 
   const handleCancelSubmit = () => {
     const { sessionId } = cancelDialog;
-    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'canceled', cancelledKms: parseFloat(cancelledKms) || 0 } : s));
-    toast({ title: "Session Canceled", description: "Session has been marked as canceled." });
+     handleActionCancel(sessionId ,'Canceled',cancelledKms)
+    setSessions(prev => prev.map(s => s._id === sessionId ? { ...s, status: 'Canceled', cancelledKms: parseFloat(cancelledKms) || 0 } : s));
+    toast({ title: "Session Canceled", description: "Session has been marked as Canceled." });
     setCancelDialog({ open: false, sessionId: null });
     setCancelledKms('');
   };
@@ -402,6 +417,14 @@ return days[new Date(date).getDay()]
      SessionStart({
       _id:session,sessionFromTime:CovertTdyTim(),action:action})
     
+  }
+
+  const handleActionCancel = (session,action,cancelledKms) => {
+   SessionCancel({
+    _id:session,
+     action:action,
+     cancelledKms:cancelledKms
+   })
   }
 
 
@@ -532,7 +555,7 @@ return days[new Date(date).getDay()]
           <div className="flex space-x-4">
             <div className="flex-1 relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by patient name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div>
             <div className="w-48"><Select value={dateFilter} onValueChange={setDateFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Date">Date</SelectItem><Input type='Date' value={sessionForm.sessionDate} /></SelectContent></Select></div>
-            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="Attended">Attended</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="canceled">Canceled</SelectItem></SelectContent></Select></div>
+            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="Attended">Attended</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Canceled">Canceled</SelectItem></SelectContent></Select></div>
           </div>
         </CardContent>
       </Card>
@@ -546,7 +569,7 @@ return days[new Date(date).getDay()]
                 <thead><tr className="border-b"><th className="text-left p-2">Patient</th>{user?.role !== 'physio' && <th className="text-left p-2">Physiotherapist</th>}<th className="text-left p-2">Date & Time</th><th className="text-left p-2">Machine</th><th className="text-left p-2">Status</th><th className="text-left p-2">Feedback</th><th className="text-left p-2">Actions</th></tr></thead>
                 <tbody>
                   {filteredSessions.map((session) => (
-                    <tr key={session.id} className="border-b hover:bg-gray-50">
+                    <tr key={session._id} className="border-b hover:bg-gray-50">
                       <td className="p-2">{session.patientId.patientName}</td>
                       {/* <td className='p-2'>
                         {
@@ -565,7 +588,7 @@ return days[new Date(date).getDay()]
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}><Play size={12} /></Button>}
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'attended' && <Button size="sm" variant="outline" onClick={() => handleSessionAction(session._id, 'Completed')}><Square size={12} /></Button>}
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && <Button size="sm" variant="outline" onClick={() => setFeedbackDialog({ open: true, sessionId: session.sessionId })}><MessageSquare size={12} /></Button>}
-                          {(session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' || session.sessionStatusId.sessionStatusName === 'Attended') && <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'canceled')}><XCircle size={12} /></Button>}
+                          {(session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' || session.sessionStatusId.sessionStatusName === 'Attended') && <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'Canceled')}><XCircle size={12} /></Button>}
                           {user?.role !== 'physio' && <>
                             <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}><Edit size={12} /></Button>
                             <AlertDialog><AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={12} /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the session.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSession(session._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>

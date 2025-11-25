@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const getMenuItems = () => {
     const baseItems = [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+      
     ];
 
     const mastersSubmenu = {
@@ -35,16 +36,27 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
              { icon: Layers, label : 'Fees Type', path : '/feesType' },
              { icon: Layers, label : 'Lead Status', path : '/leadStatus' },
              { icon: Layers, label : 'Session Status', path : '/sessionStatus' },
-             { icon: Layers, label : 'Modalities', path : '/modalities' },
-
-           
-             
+             { icon: Layers, label : 'Modalities', path : '/modalities' }
 
             ]
     };
+
+
+    const Adminpannel = {
+      icon:Settings,
+      label:'Admin',
+      isMenu:true,
+      submenu:[
+           { icon: Layers, label : 'Role', path : '/role' },
+           { icon: Layers, label : 'Menu Registry', path : '/menuRegistry' },
+
+      ]
+      
+    }
     
     const roleBasedItems = {
       super_admin: [
+        
         { icon: UserPlus, label: 'Leads', path: '/leads' },
         { icon: Users, label: 'Patients', path: '/patients' },
         { icon: Calendar, label: 'Sessions', path: '/sessions' },
@@ -52,10 +64,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Share2, label: 'References', path: '/references' },
         mastersSubmenu,
+        Adminpannel,
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
         { icon: Wallet, label: 'Petrol Allowance', path: '/petrol-allowance' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
-        { icon: BarChart3, label: 'Reports', path: '/reports' }        
+        { icon: BarChart3, label: 'Reports', path: '/reports' }
+        
       ],
       admin: [
         { icon: UserPlus, label: 'Leads', path: '/leads' },

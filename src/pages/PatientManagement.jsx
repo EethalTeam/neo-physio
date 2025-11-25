@@ -862,7 +862,7 @@ const PatientManagement = () => {
                       </Select>
                     </div>
                     <div className="space-y-2"><Label>Fees Amount ({patientForm.FeesTypeName == 'PerSession' ? 'PerSession' : 'PerMonth'})</Label>
-                      <Input name="feeAmount" value={patientForm.feeAmount} onChange={handleFormChange} placeholder={patientForm.FeesTypeName == 'PerSession' ? 'PerSession' : 'PerMonth'} />:
+                      <Input name="feeAmount" value={patientForm.feeAmount} onChange={handleFormChange} placeholder={patientForm.FeesTypeName == 'PerSession' ? 'PerSession' : 'PerMonth'} />
 
                     </div>
                   </div>

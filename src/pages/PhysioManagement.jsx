@@ -31,6 +31,7 @@ const PhysioManagement = () => {
 
   const initialFormState = {
     _id: '',
+    physioCode:'',
     physioName: '',
     physioGenderId: '',
     genderName: '',
@@ -159,7 +160,8 @@ const PhysioManagement = () => {
   const handleEdit = (physio) => {
     setEditingPhysio(true);
     setPhysioForm({
-      _id : physio._id,
+      _id : physio._id ,
+      physioCode:physio.physioCode,
       physioName: physio.physioName,
       physioGenderId: physio.physioGenderId._id,
       genderName: physio.physioGenderId.genderName,
@@ -268,6 +270,7 @@ const PhysioManagement = () => {
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center ${physio.isActive ? 'bg-green-100' : 'bg-gray-100'}`}><Stethoscope className={`${physio.isActive ? 'text-green-600' : 'text-gray-400'}`} size={20} /></div>
                       <div>
                         <h3 className="font-semibold text-gray-800">{physio.physioName}</h3>
+                        <p className="text-xs text-gray-400">{physio.physioCode}</p>
                         <p className="text-sm text-gray-600">{physio.physioSpcl}</p>
                         <span className={`inline-block px-2 py-1 text-xs rounded-full ${physio.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{physio.isActive ? 'Active' : 'Inactive'}</span>
                       </div>
@@ -303,12 +306,23 @@ const PhysioManagement = () => {
         </Card>
       </motion.div>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={(e)=>{setIsFormOpen(e);
+        if(!e){
+          setEditingPhysio(false);
+          setPhysioForm(initialFormState)
+        }
+      }}>
         <DialogContent className="max-w-3xl max-h-[95vh] flex flex-col">
           <DialogHeader><DialogTitle>{editingPhysio ? 'Edit Physiotherapist' : 'Add New Physiotherapist'}</DialogTitle><DialogDescription>{editingPhysio ? 'Update the details below.' : 'Fill in the details to add a new physio.'}</DialogDescription></DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <form onSubmit={handleFormSubmit} className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {
+                   editingPhysio == true ? 
+                <div className="space-y-2"><Label>Physio Code</Label><Input name="physioCode" value={physioForm.physioCode} onChange={handleFormChange} required disabled/></div>
+                 :null
+                }
+                 {/* <div className="space-y-2"><Label>Physio Code</Label><Input name="physioCode" value={physioForm.physioCode} onChange={handleFormChange} required disabled/></div> */}
                 <div className="space-y-2"><Label>Name</Label><Input name="physioName" value={physioForm.physioName} onChange={handleFormChange} required /></div>
                 <div className="space-y-2"><Label>Age</Label><Input name="physioAge" type="number" value={physioForm.physioAge} onChange={handleFormChange} required /></div>
                 <div>

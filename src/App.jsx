@@ -36,6 +36,8 @@ import FeesType from '@/pages/FeesType'
 import LeadStatus from '@/pages/LeadStatus';
 import SessionStatus from '@/pages/SessionStatus';
 import Modalities from '@/pages/Modalities';
+import Role from '@/pages/Role';
+import MenuRegistry from '@/pages/MenuRegistry';
 
 function App() {
   return (
@@ -258,6 +260,24 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             } />
+
+               <Route path="/role" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <Role />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+               <Route path="/menuregistry" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+                <Layout>
+                  <MenuRegistry />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+
           </Routes>
         </Router>
         <Toaster />

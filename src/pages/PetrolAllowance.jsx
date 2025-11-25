@@ -12,36 +12,73 @@ import { Calendar as CalendarIcon, Download, Filter, Fuel, User, PlusCircle, Min
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
+import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 const PetrolAllowance = () => {
   const [physios, setPhysios] = useState([]);
   const [patients, setPatients] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [dailyData, setDailyData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+
+  const initialState = {
+    physioId: '',
+    date: '',
+    completedKms: '',
+    canceledKms: '',
+    manualKms: '',
+    finalDailyKms: '',
+    amountPerKm: '',
+    totalAmount: '',
+    status: '',
+    notes: ''
+  }
+  const [filteredData, setFilteredData] = useState(initialState);
+  console.log(filteredData,"filteredData")
+
 
   const [dateRange, setDateRange] = useState({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
   const [physioFilter, setPhysioFilter] = useState('all');
-  
+
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [ratePerKm, setRatePerKm] = useState(10);
   const [monthlyReport, setMonthlyReport] = useState(null);
   const [auditLog, setAuditLog] = useState([]);
 
+  // useEffect(() => {
+  //   Promise.all([
+  //     fetch('/mockdata/physios.json').then(res => res.json()),
+  //     fetch('/mockdata/patients.json').then(res => res.json()),
+  //     fetch('/mockdata/sessions.json').then(res => res.json())
+  //   ]).then(([physiosData, patientsData, sessionsData]) => {
+  //     setPhysios(physiosData.filter(p => p.role === 'physio'));
+  //     setPatients(patientsData);
+  //     setSessions(sessionsData);
+  //     // Initialize audit log from a mock source or keep it in state
+  //     const initialLog = JSON.parse(localStorage.getItem('petrolAuditLog')) || [];
+  //     setAuditLog(initialLog);
+  //   }).catch(err => console.error('Error loading data:', err));
+  // }, []);
+
+
+
+  //Api for get Physio
   useEffect(() => {
-    Promise.all([
-      fetch('/mockdata/physios.json').then(res => res.json()),
-      fetch('/mockdata/patients.json').then(res => res.json()),
-      fetch('/mockdata/sessions.json').then(res => res.json())
-    ]).then(([physiosData, patientsData, sessionsData]) => {
-      setPhysios(physiosData.filter(p => p.role === 'physio'));
-      setPatients(patientsData);
-      setSessions(sessionsData);
-      // Initialize audit log from a mock source or keep it in state
-      const initialLog = JSON.parse(localStorage.getItem('petrolAuditLog')) || [];
-      setAuditLog(initialLog);
-    }).catch(err => console.error('Error loading data:', err));
-  }, []);
+    getPhysio()
+    getPetrol()
+  }, [])
+
+  const getPhysio = async (data) => {
+    try {
+      const response = await apiRequest("Physio/getAllPhysio", {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      setPhysios(response.physios)
+
+    } catch (error) {
+      console.log(error, "error from frontend get All Physio")
+    }
+  }
 
   const logAuditEvent = (message) => {
     const newLogEntry = { timestamp: new Date().toISOString(), message };
@@ -62,7 +99,7 @@ const PetrolAllowance = () => {
     dateArray.forEach(date => {
       const dateKey = format(date, 'yyyy-MM-dd');
       physios.forEach(physio => {
-        const physioId = physio.id.toString();
+        const physioId = physio._id.toString();
         if (!dailyTravel[dateKey]) dailyTravel[dateKey] = {};
         if (!dailyTravel[dateKey][physioId]) {
           dailyTravel[dateKey][physioId] = {
@@ -98,7 +135,7 @@ const PetrolAllowance = () => {
     Object.values(dailyTravel).forEach(physioVisitsByDate => {
       Object.values(physioVisitsByDate).forEach(dayData => {
         dayData.visits.sort((a, b) => a.travelDetails.visitOrder - b.travelDetails.visitOrder);
-        
+
         let attendedCompletedKms = 0;
 
         dayData.visits.forEach(visit => {
@@ -112,7 +149,7 @@ const PetrolAllowance = () => {
             dayData.cancelledKms += visit.cancelledKms || 0;
           }
         });
-        
+
         dayData.attendedCompletedKms = attendedCompletedKms;
         dayData.finalKms = attendedCompletedKms - dayData.cancelledKms + dayData.manualAdjustment;
       });
@@ -121,9 +158,25 @@ const PetrolAllowance = () => {
     return Object.values(dailyTravel).flatMap(Object.values);
   }, [sessions, patients, physios, dateRange]);
 
-  useEffect(() => {
-    setDailyData(processedData);
-  }, [processedData]);
+  // useEffect(() => {
+  //   setDailyData(processedData);
+  // }, [processedData]);
+
+
+
+  //APi for get Petrol
+
+  const getPetrol = async (data) => {
+    try {
+      const response = await apiRequest("PetrolAllowance/getAllPetrolAllowance", {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      setDailyData(response)
+    } catch (error) {
+      console.log(error, "Error")
+    }
+  }
 
   useEffect(() => {
     let data = dailyData;
@@ -136,25 +189,23 @@ const PetrolAllowance = () => {
   const handleAdjustment = (date, physioId, amount) => {
     setDailyData(prevData => prevData.map(d => {
       if (d.date === date && d.physioId === physioId) {
-        const newAdjustment = d.manualAdjustment + amount;
-        logAuditEvent(`Manual adjustment of ${amount}km for ${getPhysioName(physioId)} on ${date}.`);
+        const newAdjustment = d.manualKms + amount;
+        logAuditEvent(`Manual adjustment of ${amount}km for ${physioId.physioName} on ${date}.`);
         return {
           ...d,
-          manualAdjustment: newAdjustment,
-          finalKms: d.attendedCompletedKms - d.cancelledKms + newAdjustment
+          manualKms: newAdjustment,
+          finalDailyKms: d.finalDailyKms + amount
         };
       }
       return d;
     }));
   };
 
-  const getPhysioName = (id) => physios.find(p => p.id.toString() === id)?.name || 'Unknown Physio';
-
   const handleGenerateReport = () => {
     const summary = physios.map(physio => {
-      const physioId = physio.id.toString();
+      const physioId = physio._id.toString();
       const physioData = dailyData.filter(d => d.physioId === physioId);
-      
+
       const totalAttendedCompletedKms = physioData.reduce((sum, day) => sum + day.attendedCompletedKms, 0);
       const totalCancelledKms = physioData.reduce((sum, day) => sum + day.cancelledKms, 0);
       const totalManualAdjustment = physioData.reduce((sum, day) => sum + day.manualAdjustment, 0);
@@ -220,7 +271,7 @@ const PetrolAllowance = () => {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Physiotherapists</SelectItem>
-                {physios.map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+                {physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -247,25 +298,25 @@ const PetrolAllowance = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.length > 0 ? filteredData.map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50/50">
+                  {filteredData.length > 0 ? filteredData.map((item) => (
+                    <tr key={item._id} className="border-b hover:bg-gray-50/50">
                       <td className="p-3">{format(new Date(item.date), 'PPP')}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <User size={14} className="text-gray-500" />
-                          <span className="font-medium text-gray-800">{getPhysioName(item.physioId)}</span>
+                          <span className="font-medium text-gray-800">{item.physioId.physioName}</span>
                         </div>
                       </td>
-                      <td className="p-3 text-center text-green-600 font-medium">{item.attendedCompletedKms.toFixed(2)}</td>
-                      <td className="p-3 text-center text-red-600 font-medium">{item.cancelledKms.toFixed(2)}</td>
+                      <td className="p-3 text-center text-green-600 font-medium">{item.completedKms.toFixed(2)}</td>
+                      <td className="p-3 text-center text-red-600 font-medium">{item.canceledKms.toFixed(2)}</td>
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleAdjustment(item.date, item.physioId, -1)}><MinusCircle size={14} /></Button>
-                          <span className={cn("font-medium w-12 text-center", item.manualAdjustment > 0 && "text-blue-600", item.manualAdjustment < 0 && "text-orange-600")}>{item.manualAdjustment.toFixed(2)}</span>
+                          <span className={cn("font-medium w-12 text-center", item.manualKms > 0 && "text-blue-600", item.manualKms < 0 && "text-orange-600")}>{item.manualKms.toFixed(2)}</span>
                           <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleAdjustment(item.date, item.physioId, 1)}><PlusCircle size={14} /></Button>
                         </div>
                       </td>
-                      <td className="p-3 text-right font-bold text-lg">{item.finalKms.toFixed(2)} km</td>
+                      <td className="p-3 text-right font-bold text-lg">{item.finalDailyKms.toFixed(2)} km</td>
                     </tr>
                   )) : (
                     <tr>
@@ -324,7 +375,7 @@ const PetrolAllowance = () => {
         </motion.div>
       )}
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.6 }}>
+      {/* <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.6 }}>
         <Card className="medical-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><FileText size={20} /> Audit Trail</CardTitle>
@@ -342,7 +393,7 @@ const PetrolAllowance = () => {
             </ul>
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div> */}
 
       <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
         <DialogContent>
