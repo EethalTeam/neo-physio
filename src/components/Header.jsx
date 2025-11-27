@@ -11,9 +11,9 @@ const Header = ({ toggleSidebar }) => {
 
   const getRoleDisplayName = (role) => {
     const roleNames = {
-      super_admin: 'Super Admin',
-      admin: 'Admin',
-      hod: 'Head of Department',
+      SuperAdmin: 'Super Admin',
+      Admin: 'Admin',
+      HOD: 'Head of Department',
       physio: 'Physiotherapist'
     };
     return roleNames[role] || role;
@@ -38,7 +38,7 @@ const Header = ({ toggleSidebar }) => {
           </Button>
           <div className="hidden sm:block">
             <h2 className="text-lg font-semibold text-gray-800">
-              Welcome back, {user?.name || 'User'}!
+              Welcome back, {user?.physioName || 'User'}!
             </h2>
             <p className="text-xs text-gray-500">
               {getRoleDisplayName(user?.role)}
@@ -69,7 +69,7 @@ const Header = ({ toggleSidebar }) => {
               <User size={18} className="text-white" />
             </div>
             <span className="hidden md:inline text-sm font-medium text-gray-700">
-              {user?.name || 'User'}
+              {user?.physioName || 'User'}
             </span>
           </div>
 

@@ -24,7 +24,7 @@
   {
     "id": 3,
     "name": "Dr. Anita Patel",
-    "role": "hod",
+    "role": "HOD",
     "specialization": "Orthopedic Physiotherapy",
     "ratePerSession": 2000,
     "active": true,

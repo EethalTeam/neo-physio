@@ -1,14 +1,14 @@
 [
   {
     "id": 1,
-    "userRole": "hod",
+    "userRole": "HOD",
     "message": "Upcoming consultation for John Doe on 2025-10-15",
     "read": false,
     "timestamp": "2025-10-06T10:00:00Z"
   },
   {
     "id": 2,
-    "userRole": "admin",
+    "userRole": "Admin",
     "message": "New lead 'Emily Carter' has been qualified. Please review.",
     "read": true,
     "timestamp": "2025-10-05T14:30:00Z"

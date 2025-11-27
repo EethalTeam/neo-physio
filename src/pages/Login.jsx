@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,27 +9,55 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Stethoscope } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
 const Login = () => {
+  const[physio,setPhysio] = useState([])
+  console.log(physio,"physio")
   const [formData, setFormData] = useState({
-    email: '',
+    physioCode: '',
     password: '',
-    role: ''
-  });
+    // role: ''
+  }); 
   const { login } = useAuth();
+  const {getPermissionsByPath} = useAuth()
   const navigate = useNavigate();
 
-  const roles = [
-    { value: 'super_admin', label: 'Super Admin' },
-    { value: 'admin', label: 'Admin' },
-    { value: 'hod', label: 'Head of Department' },
-    { value: 'physio', label: 'Physiotherapist' }
-  ];
+  // const roles = [
+  //   { value: 'SuperAdmin', label: 'SuperAdmin' },
+  //   { value: 'Admin', label: 'Admin' },
+  //   { value: 'HOD', label: 'Head of Department' },
+  //   { value: 'physio', label: 'Physiotherapist' }
+  // ];
+
+
+  //api for physio Code
+
+  useEffect(()=>{
+getPhysio()
+  },[])
+
+  const getPhysio = async (data) => {
+    try {
+      // const getcode = {
+      //   physioCode:data.physioCode
+      // }
+      const response = await apiRequest('Physio/getAllPhysio', 
+        { 
+          method: 'POST',
+           body: JSON.stringify({}) 
+      });
+      setPhysio(response.physios || []);
+   
+    } catch (error) {
+      console.error('Error loading physios:', error);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password || !formData.role) {
+    if (!formData.physioCode || !formData.password ) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -38,19 +66,21 @@ const Login = () => {
       return;
     }
 
-    // Mock login - in real app, this would validate against backend
-    const userData = {
-      id: 1,
-      name: formData.email.split('@')[0],
-      email: formData.email
-    };
+    login(formData.physioCode,formData.password).then(res=>{
+         
+      console.log(res,"res")
+      if(res){
+        // getPermissionsByPath()
+navigate('/dashboard');
+      }
+   
 
-    login(userData, formData.role);
+    })
     toast({
       title: "Success",
       description: "Login successful!"
     });
-    navigate('/dashboard');
+    // navigate('/dashboard');
   };
 
   return (
@@ -77,13 +107,13 @@ const Login = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="physioCode">Employe Code</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  id="physioCode"
+                  type="type"
+                  placeholder="Enter your Employe Code"
+                  value={formData.physioCode}
+                  onChange={(e) => setFormData({ ...formData, physioCode: e.target.value })}
                 />
               </div>
 
@@ -98,7 +128,7 @@ const Login = () => {
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select onValueChange={(value) => setFormData({ ...formData, role: value })}>
                   <SelectTrigger>
@@ -112,7 +142,7 @@ const Login = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
 
               <Button type="submit" className="w-full">
                 Sign In

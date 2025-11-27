@@ -150,8 +150,8 @@ const Reports = () => {
       </motion.div>
 
       {/* Summary Cards */}
-      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${user?.role === 'hod' && 'md:grid-cols-4'}`}>
-        {user?.role !== 'hod' && (
+      <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${user?.role === 'HOD' && 'md:grid-cols-4'}`}>
+        {user?.role !== 'HOD' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
             <Card className="medical-card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle><DollarSign className="h-4 w-4 text-green-600" /></CardHeader>
@@ -160,7 +160,7 @@ const Reports = () => {
           </motion.div>
         )}
         
-        {user?.role !== 'hod' && (
+        {user?.role !== 'HOD' && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
             <Card className="medical-card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-gray-600">Total Sessions</CardTitle><BarChart3 className="h-4 w-4 text-blue-600" /></CardHeader>
@@ -176,7 +176,7 @@ const Reports = () => {
           </Card>
         </motion.div>
         
-        {user?.role === 'hod' && (
+        {user?.role === 'HOD' && (
           <>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
               <Card className="medical-card">
@@ -196,7 +196,7 @@ const Reports = () => {
 
       {/* Charts and Detailed Reports */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {user?.role !== 'hod' && (
+        {user?.role !== 'HOD' && (
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
             <Card className="medical-card">
               <CardHeader><CardTitle>Revenue Trends</CardTitle><CardDescription>Monthly revenue breakdown</CardDescription></CardHeader>
@@ -207,7 +207,7 @@ const Reports = () => {
           </motion.div>
         )}
 
-        {user?.role !== 'hod' && (
+        {user?.role !== 'HOD' && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
             <Card className="medical-card">
               <CardHeader><CardTitle>Session History</CardTitle><CardDescription>Completed vs. Scheduled sessions</CardDescription></CardHeader>
@@ -218,7 +218,7 @@ const Reports = () => {
           </motion.div>
         )}
         
-        {user?.role === 'hod' && (
+        {user?.role === 'HOD' && (
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
                 <Card className="medical-card">
                   <CardHeader><CardTitle>Patient History Log</CardTitle><CardDescription>Recent patient activities</CardDescription></CardHeader>
@@ -241,7 +241,7 @@ const Reports = () => {
             </motion.div>
         )}
 
-        <motion.div initial={{ opacity: 0, x: 20, x: user?.role === 'hod' ? -20 : 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
+        <motion.div initial={{ opacity: 0, x: 20, x: user?.role === 'HOD' ? -20 : 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
           <Card className="medical-card">
             <CardHeader><CardTitle>Patient Feedback Summary</CardTitle><CardDescription>Overall patient satisfaction</CardDescription></CardHeader>
             <CardContent>

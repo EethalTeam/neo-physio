@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
-
+console.log(isAuthenticated,"isAuthenticated")
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -17,9 +17,9 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
+  //   return <Navigate to="/dashboard" replace />;
+  // }
 
   return children;
 };

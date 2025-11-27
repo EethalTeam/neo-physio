@@ -1,17 +1,91 @@
 
-import React, { useState } from 'react';
+import React, { useState , useEffect} from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map , SquareCode,ShieldPlus  } from 'lucide-react';  
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-
+import { apiRequest } from '@/components/CustomComponents/apiRequest';
  
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
-  const location = useLocation();
+  // const {menuPermissions} = useAuth()
+  
+  // const {getRole}=useAuth()
 
+
+ const [MENU,SETMENU]=useState([])
+  const [roles, setRoles] = useState([])
+ const [menuPermissions, setMenuPermissions] = useState({})
+  useEffect(()=>{
+    getAllMenus()
+    getRole()
+  },[])
+    useEffect(() => {
+      let rolepath = roles.reduce((acc, curr) => {
+        if (!acc[curr.RoleName]) {
+          return { ...acc, [curr.RoleName]: curr.permissions.map(val => val.menuDetails.path) }
+        } else {
+          return acc
+        }
+      }, {})
+      console.log(rolepath,"rolepath")
+      setMenuPermissions(rolepath)
+    }, [roles])
+const getAllMenus = async () => {
+  try {
+    const response = await apiRequest("Menu/getFormattedMenu", {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    SETMENU(response.data)
+  } catch (error) {
+    console.error("Failed to fetch menus", error);
+    return {};
+  }
+};
+  const getRole = async () => {
+    try {
+      const response = await apiRequest("RoleBased/getAllRoles", {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setRoles(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch roles", error);
+      setRoles([]);
+    }
+  };
+
+  const location = useLocation();
+    const hasAccess = (path) => {
+    const userRole = user.role;
+    if (userRole === 'Super Admin') return true;
+
+    const rolePermissions = menuPermissions[userRole];
+    // const rolePermissions = ['*'];
+
+    if (!rolePermissions) return false;
+    if (rolePermissions.includes('*')) return true;
+    
+    return rolePermissions.some(p => path.startsWith(p));
+  };
+
+  const filteredMenuItems = MENU.map(item => {
+    // const filteredMenuItems = ALL_MENU_ITEMS.map(item => {
+    if (user.role === 'Super Admin') return item;
+    
+    if (item.subItems.length > 0) {
+      const accessibleSubItems = item.subItems.filter(sub => hasAccess(sub.path));
+      if (accessibleSubItems.length > 0) {
+        return { ...item, subItems: accessibleSubItems };
+      }
+      return null;
+    }
+    return hasAccess(item.path) ? item : null;
+  }).filter(Boolean);
+console.log(filteredMenuItems,"filteredMenuItems")
   const getMenuItems = () => {
     const baseItems = [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -55,7 +129,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     }
     
     const roleBasedItems = {
-      super_admin: [
+      SuperAdmin: [
         
         { icon: UserPlus, label: 'Leads', path: '/leads' },
         { icon: Users, label: 'Patients', path: '/patients' },
@@ -71,7 +145,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: BarChart3, label: 'Reports', path: '/reports' }
         
       ],
-      admin: [
+      Admin: [
         { icon: UserPlus, label: 'Leads', path: '/leads' },
         { icon: Users, label: 'Patients', path: '/patients' },
         { icon: Calendar, label: 'Sessions', path: '/sessions' },
@@ -85,21 +159,21 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           { icon: Map, label : 'Country',path :'/country'}
 
       ],
-      hod: [
+      HOD: [
         { icon: Users, label: 'Patients', path: '/patients' },
         { icon: Calendar, label: 'Sessions', path: '/sessions' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
       ],
-      physio: [
+      Physio: [
         { icon: Calendar, label: 'My Sessions', path: '/sessions' },
         { icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'}
       ],
     };
     
-    if(user?.role === 'physio' && !roleBasedItems.physio.find(item => item.path === '/monthly-summary')) {
-        roleBasedItems.physio.push({ icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'});
+    if(user?.role === 'Physio' && !roleBasedItems.Physio.find(item => item.path === '/monthly-summary')) {
+        roleBasedItems.Physio.push({ icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'});
     }
 
 
@@ -179,9 +253,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
         <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden">
         <Accordion type="single" collapsible value={openAccordion} onValueChange={setOpenAccordion} className="w-full">
-          {menuItems.map((item, index) => (
+          {filteredMenuItems.map((item, index) => (
              <div key={index} className="mx-3 my-1">
-                {item.isMenu ? (
+                {item.subItems.length ? (
                     <AccordionItem value={item.label} className="border-none">
                        <AccordionTrigger className={`flex items-center h-12 rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:no-underline ${isOpen ? 'px-4' : 'justify-center'}`}>
                            <div className="flex items-center">
@@ -199,7 +273,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                            </div>
                        </AccordionTrigger>
                         <AccordionContent className="pl-6 pr-2 py-0">
-                           {isOpen && item.submenu.map((subItem, subIndex) => (
+                           {isOpen && item.subItems.map((subItem, subIndex) => (
                                 <div key={subIndex} className="my-1">
                                     <NavItem item={subItem} />
                                 </div>

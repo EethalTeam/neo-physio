@@ -376,7 +376,7 @@ const PatientManagement = () => {
   };
 
   const handleEditPatient = (patient) => {
-    if (user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') {
+    if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
       setEditingPatient(true);
       const formData = {
         _id: patient._id ? patient._id : null,
@@ -547,7 +547,7 @@ const PatientManagement = () => {
   };
 
   const handleScheduleReview = (patient) => {
-    if (user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') {
+    if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
       setReviewingPatient(patient);
       setIsReviewOpen(true);
     } else {
@@ -557,7 +557,7 @@ const PatientManagement = () => {
 
   const openAssignPhysioDialog = (patient) => {
     console.log(patient, "patient")
-    if (user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') {
+    if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
       setAssigningPatient(patient);
       setAssignForm({
         _id: patient._id ? patient._id : null,
@@ -666,7 +666,7 @@ const PatientManagement = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Patient Management</h1>
           <p className="text-gray-600">Manage registered patients and their treatment plans.</p>
         </div>
-        {(user?.role === 'admin' || user?.role === 'super_admin') && (
+        {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
           <Button onClick={handleNewPatient}><PlusCircle className="mr-2 h-4 w-4" /> New Patient</Button>
         )}
       </motion.div>
@@ -708,7 +708,7 @@ const PatientManagement = () => {
                     )}
                   </div>
                   <div className="space-y-2">
-                    {(user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') && (
+                    {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
                       <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>
                     )}
                     <div className="flex space-x-2">
@@ -717,10 +717,10 @@ const PatientManagement = () => {
                     </div>
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span>History</span></Button>
-                      {(user?.role === 'hod' || user?.role === 'admin' || user?.role === 'super_admin') && (
+                      {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
                         <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span>Edit</span></Button>
                       )}
-                      {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                      {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} /><span>Delete</span></Button></AlertDialogTrigger>
                           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the patient and all their records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>

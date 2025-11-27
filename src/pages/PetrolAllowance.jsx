@@ -50,7 +50,7 @@ const PetrolAllowance = () => {
   //     fetch('/mockdata/patients.json').then(res => res.json()),
   //     fetch('/mockdata/sessions.json').then(res => res.json())
   //   ]).then(([physiosData, patientsData, sessionsData]) => {
-  //     setPhysios(physiosData.filter(p => p.role === 'physio'));
+  //     setPhysios(physiosData.filter(p => p.role === 'Physio'));
   //     setPatients(patientsData);
   //     setSessions(sessionsData);
   //     // Initialize audit log from a mock source or keep it in state

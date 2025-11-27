@@ -28,6 +28,8 @@ const PhysioManagement = () => {
   const [viewingPhysio, setViewingPhysio] = useState(null);
   const [editingPhysio, setEditingPhysio] = useState(null);
   const [gender, setGender] = useState([]);
+  const [Roles, setRoles] = useState([]);
+  console.log(Roles,'Roles')
 
   const initialFormState = {
     _id: '',
@@ -49,12 +51,16 @@ const PhysioManagement = () => {
     physioVehicleMTC: '',
     physioIncentive: '',
     isActive: true,
+    password:'',
+    roleId:''
   };
   const [physioForm, setPhysioForm] = useState(initialFormState);
+  console.log(physioForm,"physioForm")
   // ✅ Load Genders on Mount
   useEffect(() => {
     getGender();
     getPhysio();
+    getAllRole()
   }, []);
 
   const getGender = async () => {
@@ -69,7 +75,11 @@ const PhysioManagement = () => {
   // ✅ Fetch All Physios
   const getPhysio = async () => {
     try {
-      const response = await apiRequest('Physio/getAllPhysio', { method: 'POST', body: JSON.stringify({}) });
+      const response = await apiRequest('Physio/getAllPhysio', 
+        { 
+          method: 'POST',
+           body: JSON.stringify({}) 
+      });
       setPhysios(response.physios || []);
       setFilteredPhysios(response.physios || []);
     } catch (error) {
@@ -120,6 +130,22 @@ const PhysioManagement = () => {
       console.error('Error deleting physio:', error);
     }
   };
+
+  // get Role
+  const getAllRole = async ()=>{
+    try {
+    const response =  await apiRequest('RoleBased/getAllRoles', {
+        method: 'POST',
+        body: JSON.stringify(),
+      });
+     setRoles(response.data)
+      getPhysio();
+      setIsFormOpen(false);
+      
+    } catch (error) {
+       console.error('Error on get all role:', error);
+    }
+  }
 
   // ✅ Search filter
   useEffect(() => {
@@ -178,7 +204,9 @@ const PhysioManagement = () => {
       physioContactNo: physio.physioContactNo,
       physioVehicleMTC: physio.physioVehicleMTC,
       physioIncentive: physio.physioIncentive,
-      isActive: physio.isActive
+      isActive: physio.isActive,
+       password:physio.password,
+       roleId:physio.roleId?physio.roleId._id:null
     });
     setIsFormOpen(true);
   };
@@ -337,6 +365,19 @@ const PhysioManagement = () => {
                   </Select>
                 </div>
                 <div className="space-y-2"><Label>Contact No</Label><Input name="physioContactNo" value={physioForm.physioContactNo} onChange={handleFormChange} required /></div>
+                <div className="space-y-2"><Label>Password</Label><Input name="password" value={physioForm.password} onChange={handleFormChange} required /></div>
+                {/* <div className="space-y-2"><Label>Role</Label><Input name="roleId" value={physioForm.roleId} onChange={handleFormChange} required /></div> */}
+                 <div className='space-y-2'>
+                 <Label>Role</Label>
+                  <Select value={physioForm.roleId} onValueChange={(v) => handleSelectChange('roleId', v)}>
+                    <SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger>
+                    <SelectContent>
+                      {Roles.map((role) => (
+                        <SelectItem key={role._id} value={role._id}>{role.RoleName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2"><Label>Specialization</Label><Input name="physioSpcl" value={physioForm.physioSpcl} onChange={handleFormChange} required /></div>
@@ -347,7 +388,7 @@ const PhysioManagement = () => {
                 <div className="space-y-2"><Label>PAN</Label><Input name="physioPAN" value={physioForm.physioPAN} onChange={handleFormChange} /></div>
                 <div className="space-y-2"><Label>Aadhar</Label><Input name="physioAadhar" value={physioForm.physioAadhar} onChange={handleFormChange} /></div>
               </div>
-              <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className=" pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2"><Label>Salary (₹)</Label><Input name="physioSalary" type="number" value={physioForm.physioSalary} onChange={handleFormChange} required /></div>
                 <div className="space-y-2"><Label>Probation Period (months)</Label><Input name="physioProbation" type="number" value={physioForm.physioProbation} onChange={handleFormChange} /></div>
                 <div className="space-y-2"><Label>Next Increment Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !physioForm.physioINCRDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{physioForm.physioINCRDate ? format(physioForm.physioINCRDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={physioForm.physioINCRDate} onSelect={handleDateChange} initialFocus /></PopoverContent></Popover></div>

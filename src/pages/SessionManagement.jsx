@@ -22,6 +22,7 @@ import { apiRequest } from '@/components/CustomComponents/apiRequest'
 const SessionManagement = () => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
+  console.log(sessions,"sessions")
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
   const [machines, setMachines] = useState([]);
@@ -30,8 +31,10 @@ const SessionManagement = () => {
   // console.log(Modalities,"Modalities")
   const [sessionStatus, setSessionStatus] = useState([])
   const [filteredSessions, setFilteredSessions] = useState([]);
+  console.log(filteredSessions,"filteredSessions")
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  console.log(statusFilter,"statusFilter")
   const [dateFilter,setDateFilter] = useState('Date')
 
 
@@ -64,7 +67,7 @@ const SessionManagement = () => {
     media: [],
     modeOfExercise: '',
     homeExerciseAssigned: '',
-    modalities: "",
+    modalities: '',
     modalitiesList: [],
     targetArea: '',
     machineId:""
@@ -105,6 +108,7 @@ const SessionManagement = () => {
         method: 'POST',
         body: JSON.stringify({sessionDate:filter,nextDate:nextdate})
       });
+      setSessions(response)
       setFilteredSessions(response)
 
     } catch (error) {
@@ -343,7 +347,7 @@ return days[new Date(date).getDay()]
   //     fetch('/mockdata/redflags.json').then(res => res.json())
   //   ]).then(([sessionsData, patientsData, physiosData, machinesData, redFlagsData]) => {
   //     let userSessions = sessionsData;
-  //     if (user?.role === 'physio') {
+  //     if (user?.role === 'Physio') {
   //       userSessions = sessionsData.filter(session => session.physioId === 1); // Mock current physio ID
   //     }
   //     setSessions(userSessions);
@@ -355,19 +359,21 @@ return days[new Date(date).getDay()]
   //   }).catch(err => console.error('Error loading data:', err));
   // }, [user]);
 
-  // useEffect(() => {
-  //   let filtered = sessions;
-  //   if (searchTerm) {
-  //     filtered = filtered.filter(session => {
-  //       const patient = patients.find(p => p.id === session.patientId);
-  //       return patient?.name.toLowerCase().includes(searchTerm.toLowerCase());
-  //     });
-  //   }
-  //   if (statusFilter !== 'all') {
-  //     filtered = filtered.filter(session => session.status === statusFilter);
-  //   }
-  //   setFilteredSessions(filtered);
-  // }, [sessions, patients, searchTerm, statusFilter]);
+  useEffect(() => {
+    let filtered = sessions;
+    if (searchTerm) {
+      filtered = filtered.filter(session => {
+        const patient = patients.find(p => p.id === session.patientId);
+        return patient?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+    }
+    if (statusFilter !== 'all') {
+      console.log(filtered,"object")
+      filtered = filtered.filter(session => session.sessionStatusId.sessionStatusName === statusFilter);
+      console.log(filtered,"filtered")
+    }
+    setFilteredSessions(filtered);
+  }, [sessions, patients, searchTerm, statusFilter]);
 
   const getPatientName = (id) => patients.find(p => p.id === id)?.name || 'Unknown';
   const getPhysioName = (id) => physios.find(p => p.id === id)?.name || 'Unknown';
@@ -467,12 +473,10 @@ return days[new Date(date).getDay()]
     };
 
     if (editingSession) {
-      // setSessions(prev => prev.map(s => s.id === editingSession.id ? { ...s, ...formData } : s));
       updateSession({ ...sessionForm,  redFlags:radio})
       toast({ title: "Success", description: "Session updated." });
     } else {
       const newSession = { id: Date.now(), ...formData, status: 'scheduled', feedback: null };
-      setSessions(prev => [newSession, ...prev]);
       getCreateSession({ ...sessionForm,  redFlags:radio})
       toast({ title: "Success", description: "New session scheduled." });
     }
@@ -543,8 +547,8 @@ return days[new Date(date).getDay()]
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">{user?.role === 'physio' ? 'My Sessions' : 'Session Management'}</h1>
-          <p className="text-gray-600">{user?.role === 'physio' ? 'Manage your assigned patient sessions' : 'Manage all patient sessions and track progress'}</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{user?.role === 'Physio' ? 'My Sessions' : 'Session Management'}</h1>
+          <p className="text-gray-600">{user?.role === 'Physio' ? 'Manage your assigned patient sessions' : 'Manage all patient sessions and track progress'}</p>
         </div>
         {user?.role !== 'physio' && <Button onClick={openNewSessionDialog}><PlusCircle className="mr-2 h-4 w-4" /> Schedule Session</Button>}
       </motion.div>
@@ -555,7 +559,7 @@ return days[new Date(date).getDay()]
           <div className="flex space-x-4">
             <div className="flex-1 relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by patient name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div>
             <div className="w-48"><Select value={dateFilter} onValueChange={setDateFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Date">Date</SelectItem><Input type='Date' value={sessionForm.sessionDate} /></SelectContent></Select></div>
-            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="scheduled">Scheduled</SelectItem><SelectItem value="Attended">Attended</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Canceled">Canceled</SelectItem></SelectContent></Select></div>
+            <div className="w-48"><Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="Scheduled">Scheduled</SelectItem><SelectItem value="Attended">Attended</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Canceled">Canceled</SelectItem></SelectContent></Select></div>
           </div>
         </CardContent>
       </Card>
@@ -611,7 +615,7 @@ return days[new Date(date).getDay()]
             <div className="space-y-6 pt-4">
               <div className="space-y-2"><Label htmlFor="sessionFeedbackPros ">Positive Feedback (Pros)</Label><textarea id="sessionFeedbackPros " className="w-full p-2 border rounded-md" rows={2} value={feedback.sessionFeedbackPros} onChange={(e) => setFeedback({ ...feedback, sessionFeedbackPros: e.target.value })} placeholder="What went well..." /></div>
 
-              <div className="space-y-2"><Label>Mode of Exercise</Label><RadioGroup defaultValue="passive" value={feedback.exerciseMode} onValueChange={(v) => setFeedback({ ...feedback, exerciseMode: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ex-active" /><Label htmlFor="ex-active">Active</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="passive" id="ex-passive" /><Label htmlFor="ex-passive">Passive</Label></div></RadioGroup></div>
+              <div className="space-y-2"><Label>Mode of Exercise</Label><RadioGroup defaultValue="passive" value={feedback.modeOfExercise} onValueChange={(v) => setFeedback({ ...feedback, modeOfExercise: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ex-active" /><Label htmlFor="ex-active">Active</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="passive" id="ex-passive" /><Label htmlFor="ex-passive">Passive</Label></div></RadioGroup></div>
 
              
               <div className="space-y-2"><Label>Red Flags</Label><div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">{redFlags.map(flag => (<div key={flag._id} className="flex items-center space-x-2"><Checkbox id={`rf-${flag._id}`} onCheckedChange={(checked) => { setFeedback(prev =>   (checked ? {...prev,  redFlags: [...prev.redFlags,{redFlagId:flag.RedflagIDPK, isOccurred: true }]} : {...prev,  redFlags: prev.redFlags.filter(f => f.redFlagId !== flag.RedflagIDPK)} )
@@ -645,7 +649,7 @@ return days[new Date(date).getDay()]
 
 
 
-              {user?.role === 'physio' && (
+              {user?.role === 'Physio' && (
                 <div className="space-y-2">
                   <Label>Upload Image/Video</Label>
                   <Input type="file" accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFeedbackUpload} />

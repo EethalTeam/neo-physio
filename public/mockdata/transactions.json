@@ -22,7 +22,7 @@
     "category": "Employee Salary",
     "categoryId": 3,
     "description": "Salary for Dr. Priya Sharma",
-    "createdBy": "Super Admin",
+    "createdBy": "SuperAdmin",
     "linkedEntity": {
       "employeeName": "Dr. Priya Sharma",
       "month": "October 2025"
@@ -63,7 +63,7 @@
     "category": "Other Income",
     "categoryId": 2,
     "description": "Sale of old equipment",
-    "createdBy": "Super Admin",
+    "createdBy": "SuperAdmin",
     "linkedEntity": {
       "sourceName": "Scrap Dealer Inc."
     }
@@ -76,7 +76,7 @@
     "category": "Employee Salary",
     "categoryId": 3,
     "description": "Salary for Dr. Priya Sharma",
-    "createdBy": "Super Admin",
+    "createdBy": "SuperAdmin",
     "linkedEntity": {
       "employeeName": "Dr. Priya Sharma",
       "month": "September 2025"

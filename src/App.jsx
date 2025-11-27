@@ -61,7 +61,7 @@ function App() {
             } />
             
             <Route path="/leads" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                 <Layout>
                   <LeadManagement />
                 </Layout>
@@ -69,7 +69,7 @@ function App() {
             } />
             
                 <Route path="/country" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <Country />
                 </Layout>
@@ -77,7 +77,7 @@ function App() {
             } />
 
                <Route path="/state" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <State />
                 </Layout>
@@ -85,7 +85,7 @@ function App() {
             } />
 
                <Route path="/city" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <City />
                 </Layout>
@@ -93,7 +93,7 @@ function App() {
             } />
 
               <Route path="/physioCategory" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <PhysioCategory />
                 </Layout>
@@ -102,7 +102,7 @@ function App() {
 
 
              <Route path="/leadSource" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <LeadSource />
                 </Layout>
@@ -110,7 +110,7 @@ function App() {
             } />
                
                <Route path="/leadStatus" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <LeadStatus />
                 </Layout>
@@ -118,7 +118,7 @@ function App() {
             } />
                 
               <Route path="/sessionStatus" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <SessionStatus />
                 </Layout>
@@ -126,7 +126,7 @@ function App() {
             } />
 
               <Route path="/modalities" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <Modalities />
                 </Layout>
@@ -134,7 +134,7 @@ function App() {
             } />
 
             <Route path="/gender" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <Gender />
                 </Layout>
@@ -142,7 +142,7 @@ function App() {
             } />
 
               <Route path="/riskFactor" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <RiskFactor />
                 </Layout>
@@ -150,7 +150,7 @@ function App() {
             } />
 
             <Route path="/expenseType" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <ExpenseType />
                 </Layout>
@@ -158,7 +158,7 @@ function App() {
             } />
 
             <Route path="/patients" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'HOD']}>
                 <Layout>
                   <PatientManagement />
                 </Layout>
@@ -174,7 +174,7 @@ function App() {
             } />
             
             <Route path="/physios" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                 <Layout>
                   <PhysioManagement />
                 </Layout>
@@ -182,7 +182,7 @@ function App() {
             } />
             
             <Route path="/machinery" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'HOD']}>
                 <Layout>
                   <MachineryMaster />
                 </Layout>
@@ -190,7 +190,7 @@ function App() {
             } />
 
             <Route path="/references" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                 <Layout>
                   <ReferenceMaster />
                 </Layout>
@@ -198,7 +198,7 @@ function App() {
             } />
 
               <Route path="/feesType" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                 <Layout>
                   <FeesType />
                 </Layout>
@@ -206,7 +206,7 @@ function App() {
             } />
             
             <Route path="/reports" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'HOD']}>
                 <Layout>
                   <Reports />
                 </Layout>
@@ -214,7 +214,7 @@ function App() {
             } />
 
             <Route path="/payroll" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                 <Layout>
                   <Payroll />
                 </Layout>
@@ -222,7 +222,7 @@ function App() {
             } />
 
             <Route path="/petrol-allowance" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'HOD']}>
                 <Layout>
                   <PetrolAllowance />
                 </Layout>
@@ -238,7 +238,7 @@ function App() {
             } />
 
             <Route path="/red-flags" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'HOD']}>
                 <Layout>
                   <RedFlagsMaster />
                 </Layout>
@@ -246,7 +246,7 @@ function App() {
             } />
             
             <Route path="/expenses" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                 <Layout>
                   <ExpenseManagement />
                 </Layout>
@@ -254,7 +254,7 @@ function App() {
             } />
             
              <Route path="/categories" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
                 <Layout>
                   <CategoryMaster />
                 </Layout>
@@ -262,7 +262,7 @@ function App() {
             } />
 
                <Route path="/role" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <Role />
                 </Layout>
@@ -270,7 +270,7 @@ function App() {
             } />
 
                <Route path="/menuregistry" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin','hod']}>
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
                 <Layout>
                   <MenuRegistry />
                 </Layout>
@@ -288,15 +288,15 @@ function App() {
 
 function DashboardRouter() {
   const userRole = localStorage.getItem('userRole');
-  
+  console.log(userRole,"userRole")
   switch (userRole) {
-    case 'super_admin':
+    case 'SuperAdmin':
       return <SuperAdminDashboard />;
-    case 'admin':
+    case 'Admin':
       return <AdminDashboard />;
-    case 'hod':
+    case 'HOD':
       return <HODDashboard />;
-    case 'physio':
+    case 'Physio':
       return <PhysioDashboard />;
     default:
       return <Navigate to="/login" replace />;

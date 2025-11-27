@@ -47,7 +47,7 @@ console.log(machineCategory,"machineCategory")
   //   ]).then(([machinesData, physiosData]) => {
   //     setMachines(machinesData);
   //     setFilteredMachines(machinesData);
-  //     setPhysios(physiosData.filter(p => p.role === 'physio'));
+  //     setPhysios(physiosData.filter(p => p.role === 'Physio'));
   //   }).catch(err => console.error('Error loading data:', err));
   // }, []);
 

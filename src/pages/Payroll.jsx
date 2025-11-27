@@ -124,7 +124,7 @@ const Payroll = () => {
                         <p className="font-medium text-gray-800">{emp.name}</p>
                         <p className="text-xs text-gray-500">{emp.specialization}</p>
                       </td>
-                      <td className="p-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${emp.role === 'hod' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{emp.role}</span></td>
+                      <td className="p-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${emp.role === 'HOD' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{emp.role}</span></td>
                       <td className="p-3 text-center font-medium">{emp.totalSessions}</td>
                       <td className="p-3 text-right text-green-600 font-medium">₹{emp.grossRevenue.toLocaleString()}</td>
                       <td className="p-3 text-right text-blue-600 font-bold">₹{emp.netPay.toLocaleString()}</td>
