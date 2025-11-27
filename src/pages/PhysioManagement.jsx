@@ -78,7 +78,7 @@ const PhysioManagement = () => {
       const response = await apiRequest('Physio/getAllPhysio', 
         { 
           method: 'POST',
-           body: JSON.stringify({}) 
+           body: JSON.stringify({type:'master'}) 
       });
       setPhysios(response.physios || []);
       setFilteredPhysios(response.physios || []);

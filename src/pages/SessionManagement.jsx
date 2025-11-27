@@ -106,7 +106,7 @@ const SessionManagement = () => {
      console.log(nextdate,"nextdate")
       const response = await apiRequest("Session/getAllSession", {
         method: 'POST',
-        body: JSON.stringify({sessionDate:filter,nextDate:nextdate})
+        body: JSON.stringify({sessionDate:filter,nextDate:nextdate,physioId:user._id})
       });
       setSessions(response)
       setFilteredSessions(response)
