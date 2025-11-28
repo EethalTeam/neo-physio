@@ -33,6 +33,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       console.log(rolepath,"rolepath")
       setMenuPermissions(rolepath)
     }, [roles])
+
+    const iconMapping = {
+    LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, 
+    Stethoscope, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, 
+    Layers, Database, Map, SquareCode, ShieldPlus 
+  };
 const getAllMenus = async () => {
   try {
     const response = await apiRequest("Menu/getFormattedMenu", {
@@ -195,7 +201,9 @@ console.log(filteredMenuItems,"filteredMenuItems")
   };
 
   const NavItem = ({ item }) => {
-    const Icon = item.icon;
+  const Icon = typeof item.icon === 'string' 
+        ? iconMapping[item.icon] || LayoutDashboard 
+        : item.icon;
     const isActive = location.pathname === item.path;
     return (
         <Link
