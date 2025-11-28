@@ -276,6 +276,7 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
         return "Delete";
       default:
         return type;
+       
     }
   };
 
@@ -406,6 +407,7 @@ const RolesPage = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState(null);
   const [roleForPermissions, setRoleForPermissions] = useState(null);
+  // console.log(roleForPermissions,"roleForPermissions")
 
   useEffect(() => {
     getRole(setRoles);

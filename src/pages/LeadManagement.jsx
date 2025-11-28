@@ -11,9 +11,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { UserPlus, Search, Filter, Edit, Trash2, Upload, Paperclip } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
 const LeadManagement = () => {
+  const { navigate } = useNavigate()
   const { user } = useAuth();
   const fileInputRef = useRef(null);
 
@@ -28,10 +30,10 @@ const LeadManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [reference, setReference] = useState([])
-  const [ConsultationDate,setConsultationDate]= useState("")
-  console.log(ConsultationDate,"ConsultationDate")
+  const [ConsultationDate, setConsultationDate] = useState("")
+  console.log(ConsultationDate, "ConsultationDate")
   const [open, setOpen] = useState(false)
-  const [LeadQualify,setLeadQualify] = useState({})
+  const [LeadQualify, setLeadQualify] = useState({})
 
   const initialFormState = {
     // _id:'',
@@ -67,6 +69,28 @@ const LeadManagement = () => {
     getReference()
     getLeadStatus()
   }, []);
+
+
+  const { getPermissionsByPath } = useAuth();
+  const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+  // console.log(Permissions,"Permissions")
+  useEffect(() => {
+    getPermissionsByPath(window.location.pathname).then(res => {
+      if (res) {
+        console.log(res, "res")
+        setPermissions(res)
+      } else {
+        navigate('/dashboard')
+      }
+    })
+
+  }, [])
+
+  useEffect(() => {
+    if (Permissions.isView) {
+      getLead()
+    }
+  }, [Permissions])
 
   // api for leadStatus 
 
@@ -105,29 +129,29 @@ const LeadManagement = () => {
     }
   }
 
-const QualifyLead=async (lead)=>{
- try {
-  const payload=lead
-  payload.ConsultationDate=ConsultationDate
+  const QualifyLead = async (lead) => {
+    try {
+      const payload = lead
+      payload.ConsultationDate = ConsultationDate
 
       const res = await apiRequest('Lead/QualifyLead',
         {
           method: 'POST',
           body: JSON.stringify(payload)
         });
-        console.log(res,"res")
-if(res){
-  getLead()
-      toast({ title: 'Success', description: 'Lead qualified successfully.' });
-}else{
-  toast({ title: 'Failed', description: 'Lead qualify failed.' });
-}  
+      console.log(res, "res")
+      if (res) {
+        getLead()
+        toast({ title: 'Success', description: 'Lead qualified successfully.' });
+      } else {
+        toast({ title: 'Failed', description: 'Lead qualify failed.' });
+      }
 
     } catch (error) {
       console.error('Error loading Reference:', error);
 
     }
-}
+  }
 
   const getLeadSource = async () => {
     try {
@@ -317,9 +341,12 @@ if(res){
           <h1 className="text-3xl font-bold text-gray-900">Lead Management</h1>
           <p className="text-gray-600 mt-1">Manage and track potential patients from all sources.</p>
         </div>
-        <Button onClick={openNewLeadDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
-          <UserPlus size={18} className="mr-2" /> Add New Lead
-        </Button>
+        {
+          Permissions.isAdd && <Button onClick={openNewLeadDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
+            <UserPlus size={18} className="mr-2" /> Add New Lead
+          </Button>
+        }
+
       </motion.div>
 
       {/* Search & Filter */}
@@ -367,14 +394,15 @@ if(res){
                   <td className="p-3">{lead.leadContactNo}</td>
                   <td className="p-3"><span className='text-xs font-extralight border-2 border-blue-200 p-2 bg-blue-200 text-blue-700 rounded-2xl'>{lead?.physioCategoryId?.physioCateName}</span></td>
                   <td className="p-3">{lead?.leadSourceId?.leadSourceName}</td>
-                  <td><span style={{backgroundColor:lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' }} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td>
+                  <td><span style={{ backgroundColor: lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' }} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td>
                   {/* <td><span style={{backgroundColor:lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' ,color:lead.LeadStatusId.leadStatusTextColor}} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td> */}
                   <td className="p-3 flex gap-2">
 
                     {/* <Button onClick={openNewLeadDialog}>Qualified</Button> */}
-                 {lead.LeadStatusId.leadStatusName !== 'Qualified' &&   <Button variant="default" onClick={() => {setLeadQualify(lead);setOpen(true)}} className="bg-blue-600 hover:bg-blue-700"  >
-                      Qualify
-                    </Button>}
+                    {lead.LeadStatusId.leadStatusName !== 'Qualified' &&
+                      <>{Permissions.isEdit && <Button variant="default" onClick={() => { setLeadQualify(lead); setOpen(true) }} className="bg-blue-600 hover:bg-blue-700"  >
+                        Qualify
+                      </Button>}</>}
                     <Dialog open={open} onOpenChange={setOpen} >
                       <DialogContent className="max-w-md max-h-[90vh] backdrop-blur-lg">
                         <DialogHeader>
@@ -391,7 +419,7 @@ if(res){
                             Cancel
                           </Button>
 
-                          <Button onClick={() => {QualifyLead(LeadQualify);setOpen(false)}}  >
+                          <Button onClick={() => { QualifyLead(LeadQualify); setOpen(false) }}  >
                             Qualify & Notify HOD
                           </Button>
                         </DialogFooter>
@@ -399,10 +427,10 @@ if(res){
                     </Dialog>
 
 
-                   {lead.LeadStatusId.leadStatusName !== 'Qualified' && <Button size="sm" variant="outline" onClick={() => handleEdit(lead)}>
+                    {lead.LeadStatusId.leadStatusName !== 'Qualified' && (Permissions.isEdit && <Button size="sm" variant="outline" onClick={() => handleEdit(lead)}>
                       <Edit size={14} />
-                    </Button>}
-                    {lead.LeadStatusId.leadStatusName !== 'Qualified' &&    <AlertDialog>
+                    </Button>)}
+                    {lead.LeadStatusId.leadStatusName !== 'Qualified' && (Permissions.isDelete && <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="destructive"><Trash2 size={14} /></Button>
                       </AlertDialogTrigger>
@@ -413,7 +441,7 @@ if(res){
                           <AlertDialogAction onClick={() => deleteLead(lead._id)}>Delete</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
-                    </AlertDialog>}
+                    </AlertDialog>)}
                   </td>
                 </tr>
               ))}

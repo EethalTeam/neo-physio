@@ -17,25 +17,30 @@ import { toast } from '@/components/ui/use-toast';
 import { format, getYear, getMonth } from 'date-fns';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const ExpenseManagement = () => {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
     // const [masters, setMasters] = useState([]);
     const [masters, setMasters] = useState({ patients: [], physio: [], machines: [], references: [] });
-    console.log(masters,"masters")
+    console.log(masters, "masters")
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTx, setEditingTx] = useState(null);
 
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth()).toString()); // 0-indexed
+    const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
 
     const [filterState, setFilterState] = useState({
-        
+
         categories: '',
         linkedEntity: {},
         year: new Date().getFullYear().toString(),
@@ -51,7 +56,7 @@ const ExpenseManagement = () => {
         expenseDate: new Date(),
         expenseAmount: "",
         PhysioId: "",
-        physioName:'',
+        physioName: '',
         physioDescription: "",
         officeExpDes: "",
         ReferenceId: "",
@@ -73,21 +78,39 @@ const ExpenseManagement = () => {
     const [expense, SetExpense] = useState([])
     const [expenseType, SetExpenseType] = useState([])
     const [expenseCategory, setExpenseCategory] = useState([])
-    const [physio,setPhysio] = useState([])
+    const [physio, setPhysio] = useState([])
 
 
     useEffect(() => {
-        getExpense(),
-            getAllPhysio(),
+
+        getAllPhysio(),
             getExpenseType(),
             getAllExpenseCategory(),
             getAllReference(),
             getAllPatient(),
             getAllMachie()
-
-
-
     }, [])
+
+
+    useEffect(() => {
+        getPermissionsByPath(window.location.pathname).then(res => {
+            if (res) {
+                console.log(res, "res")
+                setPermissions(res)
+            } else {
+                navigate('/dashboard')
+            }
+        })
+      
+    }, [])
+
+     useEffect(()=>{
+          if (Permissions.isView) {
+          getExpense()
+          }
+      },[Permissions])
+
+
     const getExpense = async (data) => {
         try {
             const response = await apiRequest("Expense/getAllExpense", {
@@ -367,7 +390,7 @@ const ExpenseManagement = () => {
             </div>
         ) : null;
 
-        const onValueChange = (val,name) => handler(name, val);
+        const onValueChange = (val, name) => handler(name, val);
 
         switch (category) {
             case 'Revenue from Patient':
@@ -395,11 +418,11 @@ const ExpenseManagement = () => {
                         <Label>Physio Name</Label>
                         <Select value={state.linkedEntity?.physioName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.physioName')}>
                             <SelectTrigger><SelectValue placeholder={isFilter ? "All Physio" : "Select Physio"} /></SelectTrigger>
-                            <SelectContent>{(masters.physio||[]).map(p => <SelectItem key={p.id} value={p.id}>{p.physioName}</SelectItem>)}</SelectContent>
+                            <SelectContent>{(masters.physio || []).map(p => <SelectItem key={p.id} value={p.id}>{p.physioName}</SelectItem>)}</SelectContent>
                         </Select>
 
-                       
-                    
+
+
                     </div>
                     {commonFields}
                 </>;
@@ -412,7 +435,7 @@ const ExpenseManagement = () => {
                             <SelectContent>{(masters.machines || []).map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div> */}
-                       <div className="space-y-2">
+                    <div className="space-y-2">
                         <Label>Machine</Label>
                         <Select value={state.linkedEntity?.machineName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.machineName')}>
                             <SelectTrigger><SelectValue placeholder={isFilter ? "All Machines" : "Select Machine"} /></SelectTrigger>
@@ -507,9 +530,14 @@ const ExpenseManagement = () => {
                     <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Wallet size={30} /> Expense Management</h1>
                     <p className="text-gray-600 mt-1">Track all income and expenses in one place.</p>
                 </div>
-                <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl transition-shadow">
+                {
+                    Permissions.isAdd && <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl transition-shadow">
                     <PlusCircle size={18} className="mr-2" /> Add Transaction
                 </Button>
+                }
+                {/* <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl transition-shadow">
+                    <PlusCircle size={18} className="mr-2" /> Add Transaction
+                </Button> */}
             </motion.div>
 
             <Tabs defaultValue="monthly_report">

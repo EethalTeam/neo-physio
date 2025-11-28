@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Stethoscope } from 'lucide-react';
+import { Stethoscope ,Eye, EyeOff  } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
 const Login = () => {
   const[physio,setPhysio] = useState([])
   console.log(physio,"physio")
+   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     physioCode: '',
     password: '',
@@ -121,11 +122,18 @@ navigate('/dashboard');
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
+                  <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="relative left-60 bottom-9  transform translate-y text-gray-400 hover:text-white"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
               </div>
 
               {/* <div className="space-y-2">

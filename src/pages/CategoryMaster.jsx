@@ -10,9 +10,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 const CategoryMaster = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -24,13 +27,28 @@ const CategoryMaster = () => {
   };
   const [categoryForm, setCategoryForm] = useState(initialFormState);
 
+
+
+  const { getPermissionsByPath } = useAuth();
+  const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+  // console.log(Permissions,"Permissions")
   useEffect(() => {
-    // fetch('/mockdata/categories.json')
-    //   .then(res => res.json())
-    //   .then(data => setCategories(data))
-    //   .catch(err => console.error('Error loading categories:', err));
-    getExpenseCategory()
-  }, []);
+    getPermissionsByPath(window.location.pathname).then(res => {
+      if (res) {
+        console.log(res, "res")
+        setPermissions(res)
+      } else {
+        navigate('/dashboard')
+      }
+    })
+
+  }, [])
+
+useEffect(()=>{
+    if (Permissions.isView) {
+      getExpenseCategory()
+    }
+},[Permissions])
 
   const getExpenseCategory = async () => {
     try {
@@ -149,9 +167,14 @@ const CategoryMaster = () => {
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Category Master</h1>
           <p className="text-gray-600 mt-1">Manage income and expense categories.</p>
         </div>
-        <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
+        {
+          Permissions.isAdd && <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
+            <PlusCircle size={18} className="mr-2" /> Add New Category
+          </Button>
+        }
+        {/* <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
           <PlusCircle size={18} className="mr-2" /> Add New Category
-        </Button>
+        </Button> */}
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
@@ -187,20 +210,30 @@ const CategoryMaster = () => {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(cat)}><Edit size={14} /></Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will permanently delete the category.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(cat._id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          {
+                            Permissions.isEdit &&
+                            <Button size="sm" variant="outline" onClick={() => handleEdit(cat)}><Edit size={14} /></Button>
+
+                          }
+                          {/* <Button size="sm" variant="outline" onClick={() => handleEdit(cat)}><Edit size={14} /></Button> */}
+                          {
+
+                            Permissions.isDelete && <AlertDialog>
+                              <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will permanently delete the category.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  {/* <AlertDialogAction onClick={() => handleDelete(cat._id)}>Delete</AlertDialogAction> */}
+
+
+                                  {/* <AlertDialogAction onClick={() => handleDelete(cat._id)}>Delete</AlertDialogAction> */}
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>}
                         </div>
                       </td>
                     </tr>

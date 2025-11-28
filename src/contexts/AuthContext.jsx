@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { config } from '@/components/CustomComponents/config';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
+import { toast } from '@/components/ui/use-toast';
 
 const AuthContext = createContext();
 
@@ -78,19 +79,19 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
       // Handle mobile restriction (403)
       if (response.status == 403) {
-        // toast({
-        //   title: "Login failed",
-        //   description: data.message || "Login not allowed",
-        // });
+        toast({
+          title: "Login failed",
+          description: data.message || "Login not allowed",
+        });
         return { success: false };
       }
 
       // Handle other errors
       if (!response.ok) {
-        // toast({
-        //   title: "Login failed",
-        //   description: data.message || "Login failed",
-        // });
+        toast({
+          title: "Login failed",
+          description: data.message || "Login failed",
+        });
         throw new Error(data.message || "Login failed");
       } else {
         //  socket.connect();
@@ -99,10 +100,10 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         localStorage.setItem('user', JSON.stringify(data.physio));
         localStorage.setItem('userRole', data.physio.role);
-        //  toast({
-        //           title: "Login Successful",
-        //           description: `Welcome back, ${data.employee.name}!`,
-        //         });
+         toast({
+                  title: "Login Successful",
+                  description: `Welcome back, ${data.physio.physioName}!`,
+                });
       }
 
 
