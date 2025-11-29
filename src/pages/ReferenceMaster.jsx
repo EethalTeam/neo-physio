@@ -10,9 +10,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Share2, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
 const ReferenceMaster = () => {
+  const navigate = useNavigate()
   const [references, setReferences] = useState([]);
   console.log(references)
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,6 +31,8 @@ const ReferenceMaster = () => {
     commissionAmount: ''
   };
   const [referenceForm, setReferenceForm] = useState(initialFormState);
+   const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
   // console.log(referenceForm)
 
   // useEffect(() => {
@@ -53,10 +58,27 @@ const ReferenceMaster = () => {
 
 
   //api for getAllReference
+ 
 
-  useEffect(() => {
-    getAllReference()
-  }, [])
+   useEffect(() => {
+      getPermissionsByPath(window.location.pathname).then(res => {
+        if (res) {
+          console.log(res, "res")
+          setPermissions(res)
+        } else {
+          navigate('/dashboard')
+        }
+      })
+  
+    }, [])
+  
+  useEffect(()=>{
+      if (Permissions.isView) {
+        getAllReference()
+      }
+  },[Permissions])
+
+
   const getAllReference = async (data) => {
     try {
       const res = await apiRequest("References/getALLReferences",
@@ -201,9 +223,13 @@ const ReferenceMaster = () => {
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Share2 size={30} /> Reference Master</h1>
           <p className="text-gray-600 mt-1">Manage all referral sources and their commission rates.</p>
         </div>
-        <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
+        {
+          Permissions.isAdd && 
+            <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
           <PlusCircle size={18} className="mr-2" /> Add New Reference
         </Button>
+        }
+      
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
@@ -229,8 +255,13 @@ const ReferenceMaster = () => {
                       <td className="p-3 text-gray-600">{getCommissionDisplay(ref)}</td>
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
+                          {
+                            Permissions.isEdit && 
                           <Button size="sm" variant="outline" onClick={() => handleEdit(ref)}><Edit size={14} /></Button>
-                          <AlertDialog>
+
+                          }
+                          {
+                          Permissions.isDelete && <AlertDialog>
                             <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
@@ -243,6 +274,8 @@ const ReferenceMaster = () => {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          }
+                          
                         </div>
                       </td>
                     </tr>

@@ -18,10 +18,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import PatientDetailsDialog from '@/components/PatientDetailsDialog';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 
 const PatientManagement = () => {
+  const navigate = useNavigate()
   const { user } = useAuth();
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
@@ -94,6 +96,8 @@ const PatientManagement = () => {
   const [feesType, setFeesType] = useState([])
   const [reference,setReference]= useState([])
   // console.log(radio,"radio")
+  const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
 
 
 
@@ -103,10 +107,30 @@ const PatientManagement = () => {
     getAllRisk()
     getAllpshyio()
     getAllGender()
-    getAllPatient()
+   
     getFeesType()
     getReference()
   }, [])
+
+    
+    // console.log(Permissions,"Permissions")
+    useEffect(() => {
+      getPermissionsByPath(window.location.pathname).then(res => {
+        if (res) {
+          console.log(res, "res")
+          setPermissions(res)
+        } else {
+          navigate('/dashboard')
+        }
+      })
+  
+    }, [])
+  
+  useEffect(()=>{
+      if (Permissions.isView) {
+         getAllPatient()
+      }
+  },[Permissions])
 
 
 
@@ -667,7 +691,12 @@ const PatientManagement = () => {
           <p className="text-gray-600">Manage registered patients and their treatment plans.</p>
         </div>
         {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-          <Button onClick={handleNewPatient}><PlusCircle className="mr-2 h-4 w-4" /> New Patient</Button>
+          <>{
+            Permissions.isAdd &&
+              <Button onClick={handleNewPatient}><PlusCircle className="mr-2 h-4 w-4" /> New Patient</Button>
+          }
+        
+          </>
         )}
       </motion.div>
 
@@ -718,13 +747,25 @@ const PatientManagement = () => {
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span>History</span></Button>
                       {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-                        <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span>Edit</span></Button>
+                        <>
+                       {
+                        Permissions.isEdit && 
+                         <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span>Edit</span></Button>
+                       }
+                       
+                         </>
                       )}
                       {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-                        <AlertDialog>
+                        <>
+                        {
+                          Permissions.isDelete && 
+                          <AlertDialog>
                           <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} /><span>Delete</span></Button></AlertDialogTrigger>
                           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the patient and all their records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
+                        }
+                        
+                        </>
                       )}
                     </div>
                   </div>

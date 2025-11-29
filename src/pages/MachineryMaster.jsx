@@ -10,9 +10,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Settings, Search, Wrench, CheckCircle, XCircle, PlusCircle, Trash2, Edit, Package, PackageCheck, PackageSearch, Users, Wrench as Tool } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
 const MachineryMaster = () => {
+  const navigate = useNavigate()
   const [machines, setMachines] = useState([]);
   // const [physios, setPhysios] = useState([]);
   const [filteredMachines, setFilteredMachines] = useState([]);
@@ -40,21 +43,33 @@ const MachineryMaster = () => {
   const [assignCount, setAssignCount] = useState(1);
   const [machineCategory, setMachineCategory] = useState([])
 console.log(machineCategory,"machineCategory")
-  // useEffect(() => {
-  //   Promise.all([
-  //     fetch('/mockdata/machines.json').then(res => res.json()),
-  //     fetch('/mockdata/physios.json').then(res => res.json())
-  //   ]).then(([machinesData, physiosData]) => {
-  //     setMachines(machinesData);
-  //     setFilteredMachines(machinesData);
-  //     setPhysios(physiosData.filter(p => p.role === 'Physio'));
-  //   }).catch(err => console.error('Error loading data:', err));
-  // }, []);
+
+ const { getPermissionsByPath } = useAuth();
+  const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+  // console.log(Permissions,"Permissions")
+  useEffect(() => {
+    getPermissionsByPath(window.location.pathname).then(res => {
+      if (res) {
+        console.log(res, "res")
+        setPermissions(res)
+      } else {
+        navigate('/dashboard')
+      }
+    })
+
+  }, [])
+
+useEffect(()=>{
+    if (Permissions.isView) {
+      
+      getAllMachine()
+    }
+},[Permissions])
 
 
 
   useEffect(() => {
-    getAllMachine(),
+    
       MachineCategory()
      
   }, [])
@@ -389,7 +404,11 @@ console.log(machineCategory,"machineCategory")
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Equipment Inventory</h1>
           <p className="text-gray-600">Manage and track all physiotherapy equipment.</p>
         </div>
+        {
+          Permissions.isAdd &&
         <Button onClick={openNewMachineDialog}><PlusCircle className="mr-2 h-4 w-4" /> Add New Equipment</Button>
+
+        }
       </motion.div>
 
       <Card className="medical-card">
@@ -430,11 +449,19 @@ console.log(machineCategory,"machineCategory")
                     <div className="space-y-2">
                       <Button onClick={() => openInventoryDialog(machine)} className="w-full"><Package className="mr-2 h-4 w-4" /> Manage Inventory</Button>
                       <div className="flex space-x-2">
+                       {
+                        Permissions.isEdit && 
                         <Button size="sm" variant="outline" onClick={() => handleEditMachine(machine)} className="flex-1"><Edit size={14} className="mr-1" /> Edit</Button>
-                        <AlertDialog>
+
+                       }
+                       {
+                        Permissions.isDelete && 
+                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} className="mr-1" /> Delete</Button></AlertDialogTrigger>
                           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the equipment and its inventory records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteMachine(machine._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
+                       }
+                       
                       </div>
                     </div>
                   </motion.div>

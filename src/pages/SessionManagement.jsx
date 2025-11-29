@@ -9,17 +9,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Calendar as CalendarIcon, Play, Square, MessageSquare, Search, PlusCircle, Edit, Trash2, Upload, Paperclip, XCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, isMonday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+ import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 
 const SessionManagement = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   console.log(sessions,"sessions")
@@ -79,6 +81,8 @@ const SessionManagement = () => {
   const [cancelDialog, setCancelDialog] = useState({ open: false, sessionId: null });
   const [cancelledKms, setCancelledKms] = useState('');
    const [radio, setRadio] = useState([])
+   const { getPermissionsByPath } = useAuth();
+     const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
 
   // const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
 
@@ -86,7 +90,7 @@ const SessionManagement = () => {
 
 
   useEffect(() => {
-    getSession()
+  
     getPhysio()
     getPatient()
     getSessionStatus()
@@ -94,6 +98,26 @@ const SessionManagement = () => {
     getRedFlag()
     getModalities()
   }, [])
+
+
+
+  useEffect(() => {
+      getPermissionsByPath(window.location.pathname).then(res => {
+        if (res) {
+          console.log(res, "res")
+          setPermissions(res)
+        } else {
+          navigate('/dashboard')
+        }
+      })
+  
+    }, [])
+  
+  useEffect(()=>{
+      if (Permissions.isView) {
+       getSession()
+      }
+  },[Permissions])
 
 
   const getSession = async (data) => {
@@ -550,7 +574,7 @@ return days[new Date(date).getDay()]
           <h1 className="text-3xl font-bold text-gray-800 mb-2">{user?.role === 'Physio' ? 'My Sessions' : 'Session Management'}</h1>
           <p className="text-gray-600">{user?.role === 'Physio' ? 'Manage your assigned patient sessions' : 'Manage all patient sessions and track progress'}</p>
         </div>
-        {user?.role !== 'physio' && <Button onClick={openNewSessionDialog}><PlusCircle className="mr-2 h-4 w-4" /> Schedule Session</Button>}
+        {user?.role !== 'physio'  && (Permissions.isAdd && <Button onClick={openNewSessionDialog}><PlusCircle className="mr-2 h-4 w-4" /> Schedule Session</Button>)}
       </motion.div>
 
       <Card className="medical-card">

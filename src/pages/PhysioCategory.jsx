@@ -10,9 +10,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 const PhysioCategory = () => {
+  const navigate = useNavigate()
   const [physio, setPhysio] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPhysio, setEditingPhysio] = useState(null);
@@ -22,14 +25,26 @@ const PhysioCategory = () => {
     isActive: true,
   };
   const [physioForm, setPhysioForm] = useState(initialFormPhysio);
+   const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
 
-  useEffect(() => {
-    // fetch('/mockdata/categories.json')
-    //   .then(res => res.json())
-    //   .then(data => setCategories(data))
-    //   .catch(err => console.error('Error loading categories:', err));
-    getPhysio()
-  }, []);
+ useEffect(() => {
+     getPermissionsByPath(window.location.pathname).then(res => {
+       if (res) {
+         console.log(res, "res")
+         setPermissions(res)
+       } else {
+         navigate('/dashboard')
+       }
+     })
+ 
+   }, [])
+ 
+ useEffect(()=>{
+     if (Permissions.isView) {
+       getPhysio()
+     }
+ },[Permissions])
 
     const getPhysio = async () => {
     try {
@@ -156,9 +171,13 @@ const PhysioCategory = () => {
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Physio Category </h1>
           {/* <p className="text-gray-600 mt-1">Manage income and expense categories.</p> */}
         </div>
-        <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
+        {
+          Permissions.isAdd && 
+           <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
           <PlusCircle size={18} className="mr-2" /> Add New Physio Category
         </Button>
+        }
+       
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
@@ -194,8 +213,14 @@ const PhysioCategory = () => {
                       </td> */}
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
+                          {
+                            Permissions.isEdit && 
                           <Button size="sm" variant="outline" onClick={() => handleEdit(physiocate)}><Edit size={14} /></Button>
-                          <AlertDialog>
+
+                          }
+                          {
+                             Permissions.isDelete && 
+                                <AlertDialog>
                             <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
@@ -208,6 +233,8 @@ const PhysioCategory = () => {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          }
+                       
                         </div>
                       </td>
                     </tr>

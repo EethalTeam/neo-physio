@@ -12,9 +12,12 @@ import { Calendar as CalendarIcon, Download, Filter, Fuel, User, PlusCircle, Min
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 const PetrolAllowance = () => {
+  const navigate = useNavigate()
   const [physios, setPhysios] = useState([]);
   const [patients, setPatients] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -43,6 +46,8 @@ const PetrolAllowance = () => {
   const [ratePerKm, setRatePerKm] = useState(10);
   const [monthlyReport, setMonthlyReport] = useState(null);
   const [auditLog, setAuditLog] = useState([]);
+   const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
 
   // useEffect(() => {
   //   Promise.all([
@@ -64,8 +69,30 @@ const PetrolAllowance = () => {
   //Api for get Physio
   useEffect(() => {
     getPhysio()
-    getPetrol()
+   
   }, [])
+
+
+  useEffect(() => {
+      getPermissionsByPath(window.location.pathname).then(res => {
+        if (res) {
+          console.log(res, "res")
+          setPermissions(res)
+        } else {
+          navigate('/dashboard')
+        }
+      })
+  
+    }, [])
+  
+  useEffect(()=>{
+      if (Permissions.isView) {
+         getPetrol()
+      }
+  },[Permissions])
+
+    
+   
 
   const getPhysio = async (data) => {
     try {

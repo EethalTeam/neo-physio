@@ -12,10 +12,36 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 import { cn } from '@/lib/utils';
 
 // ------------------ API FUNCTIONS ------------------
+// const navigate = useNavigate()
+
+// const { getPermissionsByPath } = useAuth();
+//   const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+//   // console.log(Permissions,"Permissions")
+//   useEffect(() => {
+//     getPermissionsByPath(window.location.pathname).then(res => {
+//       if (res) {
+//         console.log(res, "res")
+//         setPermissions(res)
+//       } else {
+//         navigate('/dashboard')
+//       }
+//     })
+
+//   }, [])
+
+// useEffect(()=>{
+//     if (Permissions.isView) {
+//       getRole()
+//     }
+// },[Permissions])
+
+
 const getRole = async (setRoles) => {
   try {
     const response = await apiRequest("RoleBased/getAllRoles", {
@@ -545,9 +571,13 @@ const RolesPage = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Roles & Permissions</h1>
           <p className="text-gray-600">Define roles and control access to different modules</p>
         </div>
-        <Button onClick={handleAddNewRole} className="bg-primary">
+        {
+          Permissions.isAdd && 
+          <Button onClick={handleAddNewRole} className="bg-primary">
           <Plus className="w-4 h-4 mr-2" /> Add Role
         </Button>
+        }
+        
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
@@ -608,8 +638,9 @@ const RolesPage = () => {
                       </Button>
 
                       {!isSuperAdmin && (
-                        <>
-                          <Button
+                        <>{
+                          Permissions.isEdit && 
+                            <Button
                             variant="ghost"
                             size="sm"
                             className="px-2 text-gray-500 hover:text-gray-900"
@@ -617,7 +648,10 @@ const RolesPage = () => {
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button
+                        }
+                        {
+                          Permissions.isDelete && 
+                           <Button
                             variant="ghost"
                             size="sm"
                             className="px-2 text-gray-500 hover:text-red-600 hover:bg-red-50"
@@ -625,6 +659,8 @@ const RolesPage = () => {
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
+                        }
+                         
                         </>
                       )}
                     </CardFooter>

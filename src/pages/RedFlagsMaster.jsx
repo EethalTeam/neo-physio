@@ -7,10 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { PlusCircle, Edit, Trash2, Flag } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 // import { json } from 'stream/consumers';
 
 const RedFlagsMaster = () => {
+  const navigate = useNavigate()
   const [redFlags, setRedFlags] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingFlag, setEditingFlag] = useState(null);
@@ -20,17 +23,33 @@ const RedFlagsMaster = () => {
     isActive: true
   }
 
-
   const [flagName, setFlagName] = useState(initialRedflag);
-  console.log(flagName, "flagName")
+   const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+ 
+
+      useEffect(() => {
+        getPermissionsByPath(window.location.pathname).then(res => {
+          if (res) {
+            console.log(res, "res")
+            setPermissions(res)
+          } else {
+            navigate('/dashboard')
+          }
+        })
+    
+      }, [])
+    
+    useEffect(()=>{
+        if (Permissions.isView) {
+         handleget()
+        }
+    },[Permissions])
 
 
-  // useEffect(() => {
-  //   fetch('/mockdata/redflags.json')
-  //     .then(res => res.json())
-  //     .then(data => setRedFlags(data))
-  //     .catch(err => console.error('Error loading red flags:', err));
-  // }, []);
+  
+
+
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -123,9 +142,9 @@ const RedFlagsMaster = () => {
     }
 
   }
-  useEffect(() => {
-    handleget()
-  }, [])
+  // useEffect(() => {
+  //   handleget()
+  // }, [])
 
 
   const updateRedflag = async () => {
@@ -156,7 +175,11 @@ const RedFlagsMaster = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Red Flags Master</h1>
           <p className="text-gray-600">Manage the list of red flags for session feedback.</p>
         </div>
-        <Button onClick={handleNew}><PlusCircle className="mr-2 h-4 w-4" /> Add Red Flag</Button>
+        {
+          Permissions.isAdd && 
+            <Button onClick={handleNew}><PlusCircle className="mr-2 h-4 w-4" /> Add Red Flag</Button>
+        }
+      
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
@@ -174,8 +197,14 @@ const RedFlagsMaster = () => {
                     <span className="text-gray-800">{flag.redflagName}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(flag)}><Edit size={14} /></Button>
-                    <AlertDialog>
+                    {
+                      Permissions.isEdit && 
+                       <Button size="sm" variant="outline" onClick={() => handleEdit(flag)}><Edit size={14} /></Button>
+                    }
+
+                    {
+                      Permissions.isDelete && 
+                       <AlertDialog>
                       <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
@@ -188,6 +217,9 @@ const RedFlagsMaster = () => {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    }
+                   
+                   
                   </div>
                 </div>
               ))}

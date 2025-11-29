@@ -14,12 +14,15 @@ import { Stethoscope, Search, DollarSign, Calendar as CalendarIcon, CheckCircle,
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
 
 
 
 const PhysioManagement = () => {
+  const navigate = useNavigate()
   const [physios, setPhysios] = useState([]);
   const [filteredPhysios, setFilteredPhysios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,12 +59,33 @@ const PhysioManagement = () => {
   };
   const [physioForm, setPhysioForm] = useState(initialFormState);
   console.log(physioForm,"physioForm")
-  // ✅ Load Genders on Mount
+   const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+
+
   useEffect(() => {
     getGender();
-    getPhysio();
+    
     getAllRole()
   }, []);
+
+  useEffect(() => {
+      getPermissionsByPath(window.location.pathname).then(res => {
+        if (res) {
+          console.log(res, "res")
+          setPermissions(res)
+        } else {
+          navigate('/dashboard')
+        }
+      })
+  
+    }, [])
+  
+  useEffect(()=>{
+      if (Permissions.isView) {
+       getPhysio();
+      }
+  },[Permissions])
 
   const getGender = async () => {
     try {
@@ -277,7 +301,11 @@ const PhysioManagement = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Physiotherapist Management</h1>
           <p className="text-gray-600">Manage physiotherapists and track their performance</p>
         </div>
+        {
+          Permissions.isAdd && 
         <Button onClick={() => setIsFormOpen(true)}><UserPlus className="mr-2 h-4 w-4" /> Add New Physio</Button>
+
+        }
       </motion.div>
 
       <Card className="medical-card">
@@ -317,14 +345,22 @@ const PhysioManagement = () => {
                     </div>
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleViewDetails(physio)} className="flex-1"><Info size={14} className="mr-1" /> Details</Button>
+                      {
+                        Permissions.isEdit && 
                       <Button size="sm" variant="outline" onClick={() => handleEdit(physio)} className="flex-1"><Edit size={14} className="mr-1" /> Edit</Button>
+
+                      }
                     </div>
                     <div className="flex space-x-2 mt-2">
                       <Button size="sm" variant={physio.isActive ? "secondary" : "default"} onClick={() => handleToggleStatus(physio)} className="flex-1">{physio.isActive ? 'Deactivate' : 'Activate'}</Button>
-                      <AlertDialog>
+                      {
+                        Permissions.isDelete && 
+                         <AlertDialog>
                         <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} className="mr-1" /> Delete</Button></AlertDialogTrigger>
                         <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the physiotherapist.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deletePhysio(physio._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                       </AlertDialog>
+                      }
+                     
                     </div>
                   </motion.div>
                 );
