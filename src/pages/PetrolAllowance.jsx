@@ -264,8 +264,8 @@ const PetrolAllowance = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+    <div className="space-y-6 ms-20 md:ms-0 lg:ms-0">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-4 ">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Petrol Allowance</h1>
           <p className="text-gray-600">Calculate and track daily travel expenses for physiotherapists.</p>

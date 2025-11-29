@@ -335,7 +335,7 @@ const LeadManagement = () => {
   // }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-10 ms-10 md:p-0 lg:p-0 md:ms-0 lg:ms-0">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Lead Management</h1>

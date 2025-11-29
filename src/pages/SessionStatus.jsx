@@ -161,10 +161,10 @@ const SessionStatus = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Session Status</h1>
+          <h1 className="md:text-3xl text-2xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Session Status</h1>
           <p className="text-gray-600 mt-1">Manage  Session Status.</p>
         </div>
         {
@@ -176,7 +176,7 @@ const SessionStatus = () => {
       
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className='p-10 ms-5 md:ms-0'>
         <Card className="medical-card">
           <CardHeader>
             <CardTitle>All  Session Status ({sessionStatus.length})</CardTitle>

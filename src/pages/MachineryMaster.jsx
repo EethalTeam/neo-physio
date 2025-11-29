@@ -398,10 +398,10 @@ useEffect(()=>{
   };
 
   return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+    <div className="space-y-6 ms-20 md:ms-0 lg:ms-0">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Equipment Inventory</h1>
+          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Equipment Inventory</h1>
           <p className="text-gray-600">Manage and track all physiotherapy equipment.</p>
         </div>
         {
@@ -425,7 +425,7 @@ useEffect(()=>{
                 // const inUseCount = machine.inventory.inUse.reduce((sum, item) => sum + item.count, 0);
                 return (
                   <motion.div key={machine._id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-6 hover:shadow-lg transition-shadow flex flex-col bg-white">
-                    <div className="flex items-start space-x-4 mb-4">
+                    <div className="md:flex items-start md:space-x-4 md:mb-4">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${machine.active ? 'bg-blue-100' : 'bg-gray-100'}`}>{getCategoryIcon(machine.category)}</div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg text-gray-800">{machine.machineName}</h3>

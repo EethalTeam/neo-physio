@@ -169,10 +169,10 @@ const RedFlagsMaster = () => {
     setFlagName(prev => ({ ...prev, [name]: value }));
     }
   return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+    <div className="space-y-6 p-10 md:p-0">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center ms-10 space-y-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Red Flags Master</h1>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">Red Flags Master</h1>
           <p className="text-gray-600">Manage the list of red flags for session feedback.</p>
         </div>
         {
@@ -182,11 +182,11 @@ const RedFlagsMaster = () => {
       
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className='ms-10 md:ms-0 lg:ms-0'>
         <Card className="medical-card">
           <CardHeader>
             <CardTitle>Red Flags List</CardTitle>
-            <CardDescription>These flags will appear in the session feedback form.</CardDescription>
+            <CardDescription className=''>These flags will appear in the session feedback form.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">

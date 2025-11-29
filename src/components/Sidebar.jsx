@@ -247,8 +247,8 @@ console.log(filteredMenuItems,"filteredMenuItems")
               variants={textVariants}
               className="flex items-center gap-2"
             >
-              <HeartPulse className="text-blue-600" size={28} />
-              <span className="text-xl font-bold text-blue-600">NEO Physio</span>
+              <HeartPulse    className="text-blue-600" size={28} />
+              <span className="text-xl font-bold text-blue-600 hidden md:block">NEO Physio</span>
             </motion.div>
           ): <HeartPulse className="text-blue-600" size={28} />}
           <button

@@ -684,11 +684,11 @@ const PatientManagement = () => {
   // );
 
   return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+    <div className="space-y-6 ms-20 md:ms-0 lg:ms-0">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Patient Management</h1>
-          <p className="text-gray-600">Manage registered patients and their treatment plans.</p>
+          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Patient Management</h1>
+          <p className="text-gray-600 text-sm md:text-xs">Manage registered patients and their treatment plans.</p>
         </div>
         {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
           <>{
@@ -728,8 +728,8 @@ const PatientManagement = () => {
                   <div className="space-y-2 mb-4 flex-grow">
                     <p className="text-sm"><strong>Contact:</strong> {patient.patientNumber}</p>
                     {/* <p className="text-sm"><strong>Category:</strong><span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{patient.category}</span></p> */}
-                    <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PPP") : 'Not set'}</p>
-                    <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PPP") : 'N/A'}</p>
+                    <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PP") : 'Not set'}</p>
+                    <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PP") : 'N/A'}</p>
                     {patient.shortTermGoals && (
                       <div className="text-sm mt-2 p-2 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
                         <p><strong>Goal:</strong> {patient.InitialShorttermGoal} ({patient.goalDuration} days)</p>
@@ -742,15 +742,15 @@ const PatientManagement = () => {
                     )}
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleViewConsultation(patient)} className="flex-1"><FileText size={14} /><span>Consultation</span></Button>
-                      <Button size="sm" onClick={() => handleScheduleReview(patient)} className="flex-1"><CalendarIcon size={14} /><span>Review</span></Button>
+                      <Button size="sm" onClick={() => handleScheduleReview(patient)} className="flex-1"><CalendarIcon size={14} /><span className='hidden md:inline lg:inline'>Review</span></Button>
                     </div>
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span>History</span></Button>
+                      <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button>
                       {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
                         <>
                        {
                         Permissions.isEdit && 
-                         <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span>Edit</span></Button>
+                         <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span className="hidden md:inline lg:inline">Edit</span></Button>
                        }
                        
                          </>
@@ -760,7 +760,7 @@ const PatientManagement = () => {
                         {
                           Permissions.isDelete && 
                           <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} /><span>Delete</span></Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} /><span className="hidden md:inline lg:inline">Delete</span></Button></AlertDialogTrigger>
                           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the patient and all their records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
                         }

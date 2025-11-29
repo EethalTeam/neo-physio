@@ -32,7 +32,7 @@ const Header = ({ toggleSidebar }) => {
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="lg:hidden"
+            className="lg:hidden "
           >
             <Menu size={22} />
           </Button>

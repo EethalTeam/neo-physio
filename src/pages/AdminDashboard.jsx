@@ -2,71 +2,94 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserPlus, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { apiRequest } from '@/components/CustomComponents/apiRequest'
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
-    totalLeads: 0,
-    totalPatients: 0,
-    totalSessions: 0,
+    lead: 0,
+    patient: 0,
+    session: 0,
     monthlyRevenue: 0,
-    completedSessions: 0
+    // physio: 0,
+    sessionCompleted: 0
   });
 
-  useEffect(() => {
-    Promise.all([
-      fetch('/mockdata/leads.json').then(res => res.json()),
-      fetch('/mockdata/patients.json').then(res => res.json()),
-      fetch('/mockdata/sessions.json').then(res => res.json()),
-      fetch('/mockdata/physios.json').then(res => res.json())
-    ]).then(([leads, patients, sessions, physios]) => {
-      const completedSessions = sessions.filter(s => s.status === 'completed');
-      const monthlyRevenue = completedSessions.reduce((sum, session) => {
-        const physio = physios.find(p => p.id === session.physioId);
-        return sum + (physio?.ratePerSession || 0);
-      }, 0);
+  // useEffect(() => {
+  //   Promise.all([
+  //     fetch('/mockdata/leads.json').then(res => res.json()),
+  //     fetch('/mockdata/patients.json').then(res => res.json()),
+  //     fetch('/mockdata/sessions.json').then(res => res.json()),
+  //     fetch('/mockdata/physios.json').then(res => res.json())
+  //   ]).then(([leads, patients, sessions, physios]) => {
+  //     const completedSessions = sessions.filter(s => s.status === 'completed');
+  //     const monthlyRevenue = completedSessions.reduce((sum, session) => {
+  //       const physio = physios.find(p => p.id === session.physioId);
+  //       return sum + (physio?.ratePerSession || 0);
+  //     }, 0);
 
-      setStats({
-        totalLeads: leads.length,
-        totalPatients: patients.length,
-        totalSessions: sessions.length,
-        monthlyRevenue,
-        completedSessions: completedSessions.length
-      });
-    }).catch(err => console.error('Error loading dashboard data:', err));
-  }, []);
+  //     setStats({
+  //       totalLeads: leads.length,
+  //       totalPatients: patients.length,
+  //       totalSessions: sessions.length,
+  //       monthlyRevenue,
+  //       completedSessions: completedSessions.length
+  //     });
+  //   }).catch(err => console.error('Error loading dashboard data:', err));
+  // }, []);
+
+
+  useEffect(()=>{
+  getAllDashBoard()
+  },[])
+  
+    const getAllDashBoard = async(data) => {
+      try {
+        const response = await apiRequest("DashBoard/getAllDashBoard", {
+               method: 'POST',
+               body: JSON.stringify(data),
+              
+             });
+             setStats(response)
+              console.log(response,"response")
+     } catch (error) {
+        console.error('Error:', error);
+        throw error;
+      }
+    }
 
   const statCards = [
     {
       title: 'Total Leads',
-      value: stats.totalLeads,
+      value: stats.lead,
       icon: UserPlus,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100'
     },
     {
       title: 'Total Patients',
-      value: stats.totalPatients,
+      value: stats.patient,
       icon: Users,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },
     {
       title: 'Total Sessions',
-      value: stats.totalSessions,
+      value: stats.session,
       icon: Calendar,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
     },
     {
       title: 'Monthly Revenue',
-      value: `₹${stats.monthlyRevenue.toLocaleString()}`,
+      value: `₹${stats.monthlyRevenue}`,
       icon: DollarSign,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-100'
     },
     {
       title: 'Completed Sessions',
-      value: stats.completedSessions,
+      value: stats.sessionCompleted,
       icon: TrendingUp,
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-100'
@@ -130,20 +153,20 @@ const AdminDashboard = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Physiotherapy Sessions</span>
-                  <span className="font-medium">₹{(stats.monthlyRevenue * 0.8).toLocaleString()}</span>
+                  <span className="font-medium">₹{(stats.monthlyRevenue * 0.8) }</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Consultation Fees</span>
-                  <span className="font-medium">₹{(stats.monthlyRevenue * 0.15).toLocaleString()}</span>
+                  <span className="font-medium">₹{(stats.monthlyRevenue * 0.15)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Equipment Usage</span>
-                  <span className="font-medium">₹{(stats.monthlyRevenue * 0.05).toLocaleString()}</span>
+                  <span className="font-medium">₹{(stats.monthlyRevenue * 0.05)}</span>
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex justify-between items-center font-semibold">
                     <span>Total Revenue</span>
-                    <span>₹{stats.monthlyRevenue.toLocaleString()}</span>
+                    <span>₹{stats.monthlyRevenue}</span>
                   </div>
                 </div>
               </div>

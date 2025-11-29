@@ -295,29 +295,29 @@ const PhysioManagement = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+    <div className="space-y-6 ms-20 md:ms-0 lg:ms-0">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex md:justify-between md:items-center  space-y-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Physiotherapist Management</h1>
+          <h1 className="md:text-3xl text-2xl font-bold md:font-bold text-gray-800 mb-2 ">Physiotherapist Management</h1>
           <p className="text-gray-600">Manage physiotherapists and track their performance</p>
         </div>
         {
           Permissions.isAdd && 
-        <Button onClick={() => setIsFormOpen(true)}><UserPlus className="mr-2 h-4 w-4" /> Add New Physio</Button>
+        <Button onClick={() => setIsFormOpen(true)}><UserPlus className="md:mr-2 md:h-4 md:w-4  max-w-fit "  /> Add New Physio</Button>
 
         }
       </motion.div>
 
       <Card className="medical-card">
-        <CardHeader><CardTitle>Search Physiotherapists</CardTitle><CardDescription>Find physiotherapists by name or specialization</CardDescription></CardHeader>
+        <CardHeader><CardTitle className='font-bold text-xl '>Search Physiotherapists</CardTitle><CardDescription>Find physiotherapists by name or specialization</CardDescription></CardHeader>
         <CardContent><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by name or specialization..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div></CardContent>
       </Card>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
-        <Card className="medical-card">
-          <CardHeader><CardTitle>Physiotherapists ({filteredPhysios.length})</CardTitle><CardDescription>All physiotherapists in the system</CardDescription></CardHeader>
+        <Card className="medical-card ">
+          <CardHeader><CardTitle className='text-lg md:text-2xl'>Physiotherapists ({filteredPhysios.length})</CardTitle><CardDescription>All physiotherapists in the system</CardDescription></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2  lg:grid-cols-3 gap-6">
               {filteredPhysios.map((physio) => {
                 // const stats = getPhysioStats(physio._id);
                 return (
