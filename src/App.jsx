@@ -38,6 +38,7 @@ import SessionStatus from '@/pages/SessionStatus';
 import Modalities from '@/pages/Modalities';
 import Role from '@/pages/Role';
 import MenuRegistry from '@/pages/MenuRegistry';
+import Consulation from '@/pages/Consulation'
 
 function App() {
   return (
@@ -161,6 +162,14 @@ function App() {
               <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'HOD']}>
                 <Layout>
                   <PatientManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+             <Route path="/consulation" element={
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin', 'HOD']}>
+                <Layout>
+                  <Consulation />
                 </Layout>
               </ProtectedRoute>
             } />

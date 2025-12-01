@@ -112,7 +112,7 @@ getAllDashBoard()
   ];
 
   return (
-    <div className="space-y-6 ms-20 md:ms-0 lg:ms-0 ">
+    <div className="space-y-6  ">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

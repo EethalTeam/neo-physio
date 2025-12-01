@@ -524,7 +524,7 @@ const ExpenseManagement = () => {
     const reportMonthOptions = monthOptions.filter(m => m.value !== 'all');
 
     return (
-        <div className="space-y-6 ms-20 md:ms-0 lg:ms-0">
+        <div className="space-y-6">
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Wallet size={30} /> Expense Management</h1>

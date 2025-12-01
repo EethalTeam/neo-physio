@@ -24,7 +24,7 @@ const Header = ({ toggleSidebar }) => {
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-      className="bg-white/80 backdrop-blur-lg sticky top-0 z-40 shadow-sm border-b px-4 sm:px-6 py-3"
+      className="bg-white/80 backdrop-blur-lg sticky top-0 z-40 shadow-sm border-b px-4 sm:px-6 py-3  "
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 sm:space-x-4">

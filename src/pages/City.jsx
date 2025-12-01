@@ -204,13 +204,13 @@ const getState = async () => {
   return (
     <div className="md:space-y-6 lg:space-y-6 space-y-10">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-10">
-        <div className='ms-20 md:ms-0 lg:ms-0'>
+        <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> City </h1>
           {/* <p className="text-gray-600 mt-1">Manage income and expense categories.</p> */}
         </div>
         {
          Permissions.isAdd &&
-           <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow max-w-fit ms-20 md:ms-0 lg:ms-0">
+           <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow max-w-fit ">
           <PlusCircle size={18} className="mr-2" /> Add New City
         </Button>
         }
@@ -220,7 +220,7 @@ const getState = async () => {
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
-        <Card className="medical-card md:max-w-full lg:max-w-full max-w-full ms-20 md:ms-0 lg:ms-0">
+        <Card className="medical-card md:max-w-full lg:max-w-full max-w-full ">
           <CardHeader>
             <CardTitle>All City ({city.length})</CardTitle>
             <CardDescription>List of all defined transaction City.</CardDescription>

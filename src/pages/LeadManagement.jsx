@@ -335,25 +335,26 @@ const LeadManagement = () => {
   // }
 
   return (
-    <div className="space-y-6 p-10 ms-10 md:p-0 lg:p-0 md:ms-0 lg:ms-0">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+    <div className="space-y-6">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 w-full "
+>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Lead Management</h1>
-          <p className="text-gray-600 mt-1">Manage and track potential patients from all sources.</p>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-900">Lead Management</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-xs">Manage and track potential patients from all sources.</p>
         </div>
         {
           Permissions.isAdd && <Button onClick={openNewLeadDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
-            <UserPlus size={18} className="mr-2" /> Add New Lead
+            <UserPlus size={18} className="mr-2 " /> Add New Lead
           </Button>
         }
 
       </motion.div>
 
       {/* Search & Filter */}
-      <Card>
-        <CardHeader><CardTitle>Search & Filter</CardTitle></CardHeader>
+      <Card className='max-w-xs md:max-w-none'>
+        <CardHeader><CardTitle className='text-md font-bold md:text-2xl'>Search & Filter</CardTitle></CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 ">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input placeholder="Search by name or contact..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />

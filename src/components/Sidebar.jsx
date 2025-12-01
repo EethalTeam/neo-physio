@@ -1,56 +1,56 @@
 
-import React, { useState , useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map , SquareCode,ShieldPlus  } from 'lucide-react';  
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map, SquareCode, ShieldPlus, Menu } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
- 
+
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();
   // const {menuPermissions} = useAuth()
-  
+
   // const {getRole}=useAuth()
 
 
- const [MENU,SETMENU]=useState([])
+  const [MENU, SETMENU] = useState([])
   const [roles, setRoles] = useState([])
- const [menuPermissions, setMenuPermissions] = useState({})
-  useEffect(()=>{
+  const [menuPermissions, setMenuPermissions] = useState({})
+  useEffect(() => {
     getAllMenus()
     getRole()
-  },[])
-    useEffect(() => {
-      let rolepath = roles.reduce((acc, curr) => {
-        if (!acc[curr.RoleName]) {
-          return { ...acc, [curr.RoleName]: curr.permissions.map(val => val.menuDetails.path) }
-        } else {
-          return acc
-        }
-      }, {})
-      console.log(rolepath,"rolepath")
-      setMenuPermissions(rolepath)
-    }, [roles])
+  }, [])
+  useEffect(() => {
+    let rolepath = roles.reduce((acc, curr) => {
+      if (!acc[curr.RoleName]) {
+        return { ...acc, [curr.RoleName]: curr.permissions.map(val => val.menuDetails.path) }
+      } else {
+        return acc
+      }
+    }, {})
+    console.log(rolepath, "rolepath")
+    setMenuPermissions(rolepath)
+  }, [roles])
 
-    const iconMapping = {
-    LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, 
-    Stethoscope, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, 
-    Layers, Database, Map, SquareCode, ShieldPlus 
+  const iconMapping = {
+    LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3,
+    Stethoscope, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet,
+    Layers, Database, Map, SquareCode, ShieldPlus
   };
-const getAllMenus = async () => {
-  try {
-    const response = await apiRequest("Menu/getFormattedMenu", {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-    SETMENU(response.data)
-  } catch (error) {
-    console.error("Failed to fetch menus", error);
-    return {};
-  }
-};
+  const getAllMenus = async () => {
+    try {
+      const response = await apiRequest("Menu/getFormattedMenu", {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      SETMENU(response.data)
+    } catch (error) {
+      console.error("Failed to fetch menus", error);
+      return {};
+    }
+  };
   const getRole = async () => {
     try {
       const response = await apiRequest("RoleBased/getAllRoles", {
@@ -65,7 +65,7 @@ const getAllMenus = async () => {
   };
 
   const location = useLocation();
-    const hasAccess = (path) => {
+  const hasAccess = (path) => {
     const userRole = user.role;
     if (userRole === 'Super Admin') return true;
 
@@ -74,14 +74,14 @@ const getAllMenus = async () => {
 
     if (!rolePermissions) return false;
     if (rolePermissions.includes('*')) return true;
-    
+
     return rolePermissions.some(p => path.startsWith(p));
   };
 
   const filteredMenuItems = MENU.map(item => {
     // const filteredMenuItems = ALL_MENU_ITEMS.map(item => {
     if (user.role === 'Super Admin') return item;
-    
+
     if (item.subItems.length > 0) {
       const accessibleSubItems = item.subItems.filter(sub => hasAccess(sub.path));
       if (accessibleSubItems.length > 0) {
@@ -91,52 +91,52 @@ const getAllMenus = async () => {
     }
     return hasAccess(item.path) ? item : null;
   }).filter(Boolean);
-console.log(filteredMenuItems,"filteredMenuItems")
+  console.log(filteredMenuItems, "filteredMenuItems")
   const getMenuItems = () => {
     const baseItems = [
       { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-      
+
     ];
 
     const mastersSubmenu = {
-        icon: Database,
-        label: 'Masters',
-        isMenu: true,
-        submenu: [
-             { icon: Layers, label: 'Categories', path: '/categories' },
-             { icon: Flag, label: 'Red Flags', path: '/red-flags' },
-             { icon: Map, label : 'Country',path :'/country'},
-             { icon: Map, label : 'State',path :'/state'},
-             { icon: Map, label : 'City',path :'/city'},
-             { icon: Layers , label : 'Physio Category',path :'/physioCategory'},
-             { icon: SquareCode, label : 'Lead Source', path : '/leadSource' },
-             { icon: SquareCode, label : 'Gender', path : '/gender' },
-             { icon: ShieldPlus, label : 'Risk Factor', path : '/riskFactor' },
-             { icon: Layers, label : 'Expense Type', path : '/expenseType' },
-             { icon: Layers, label : 'Fees Type', path : '/feesType' },
-             { icon: Layers, label : 'Lead Status', path : '/leadStatus' },
-             { icon: Layers, label : 'Session Status', path : '/sessionStatus' },
-             { icon: Layers, label : 'Modalities', path : '/modalities' }
+      icon: Database,
+      label: 'Masters',
+      isMenu: true,
+      submenu: [
+        { icon: Layers, label: 'Categories', path: '/categories' },
+        { icon: Flag, label: 'Red Flags', path: '/red-flags' },
+        { icon: Map, label: 'Country', path: '/country' },
+        { icon: Map, label: 'State', path: '/state' },
+        { icon: Map, label: 'City', path: '/city' },
+        { icon: Layers, label: 'Physio Category', path: '/physioCategory' },
+        { icon: SquareCode, label: 'Lead Source', path: '/leadSource' },
+        { icon: SquareCode, label: 'Gender', path: '/gender' },
+        { icon: ShieldPlus, label: 'Risk Factor', path: '/riskFactor' },
+        { icon: Layers, label: 'Expense Type', path: '/expenseType' },
+        { icon: Layers, label: 'Fees Type', path: '/feesType' },
+        { icon: Layers, label: 'Lead Status', path: '/leadStatus' },
+        { icon: Layers, label: 'Session Status', path: '/sessionStatus' },
+        { icon: Layers, label: 'Modalities', path: '/modalities' }
 
-            ]
+      ]
     };
 
 
     const Adminpannel = {
-      icon:Settings,
-      label:'Admin',
-      isMenu:true,
-      submenu:[
-           { icon: Layers, label : 'Role', path : '/role' },
-           { icon: Layers, label : 'Menu Registry', path : '/menuRegistry' },
+      icon: Settings,
+      label: 'Admin',
+      isMenu: true,
+      submenu: [
+        { icon: Layers, label: 'Role', path: '/role' },
+        { icon: Layers, label: 'Menu Registry', path: '/menuRegistry' },
 
       ]
-      
+
     }
-    
+
     const roleBasedItems = {
       SuperAdmin: [
-        
+
         { icon: UserPlus, label: 'Leads', path: '/leads' },
         { icon: Users, label: 'Patients', path: '/patients' },
         { icon: Calendar, label: 'Sessions', path: '/sessions' },
@@ -148,8 +148,9 @@ console.log(filteredMenuItems,"filteredMenuItems")
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
         { icon: Wallet, label: 'Petrol Allowance', path: '/petrol-allowance' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
-        { icon: BarChart3, label: 'Reports', path: '/reports' }
-        
+        { icon: BarChart3, label: 'Reports', path: '/reports' },
+        { icon: Calendar, label: 'Consulation', path: '/consulation' }
+
       ],
       Admin: [
         { icon: UserPlus, label: 'Leads', path: '/leads' },
@@ -162,7 +163,9 @@ console.log(filteredMenuItems,"filteredMenuItems")
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
-          { icon: Map, label : 'Country',path :'/country'}
+        { icon: Map, label: 'Country', path: '/country' },
+        { icon: Calendar, label: 'Consulation', path: '/consulation' }
+
 
       ],
       HOD: [
@@ -171,21 +174,23 @@ console.log(filteredMenuItems,"filteredMenuItems")
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
+        { icon: Calendar, label: 'Consulation', path: '/consulation' }
+
       ],
       Physio: [
         { icon: Calendar, label: 'My Sessions', path: '/sessions' },
-        { icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'}
+        { icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary' }
       ],
     };
-    
-    if(user?.role === 'Physio' && !roleBasedItems.Physio.find(item => item.path === '/monthly-summary')) {
-        roleBasedItems.Physio.push({ icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary'});
+
+    if (user?.role === 'Physio' && !roleBasedItems.Physio.find(item => item.path === '/monthly-summary')) {
+      roleBasedItems.Physio.push({ icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary' });
     }
 
 
     return [...baseItems, ...(roleBasedItems[user?.role] || [])];
   };
-  
+
   const [openAccordion, setOpenAccordion] = useState('');
 
   const menuItems = getMenuItems();
@@ -201,35 +206,35 @@ console.log(filteredMenuItems,"filteredMenuItems")
   };
 
   const NavItem = ({ item }) => {
-  const Icon = typeof item.icon === 'string' 
-        ? iconMapping[item.icon] || LayoutDashboard 
-        : item.icon;
+    const Icon = typeof item.icon === 'string'
+      ? iconMapping[item.icon] || LayoutDashboard
+      : item.icon;
     const isActive = location.pathname === item.path;
     return (
-        <Link
-          to={item.path}
-          title={item.label}
-          className={`flex items-center h-12 rounded-lg transition-all duration-200 ${
-            isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
+      <Link
+        to={item.path}
+        title={item.label}
+        className={`flex items-center h-12 rounded-lg transition-all duration-200 ${isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'
           } ${isOpen ? 'px-4' : 'justify-center'}`}
-        >
-          <Icon size={20} className="shrink-0" />
-          {isOpen && (
-            <motion.span
-              initial={false}
-              animate={isOpen ? 'open' : 'closed'}
-              variants={textVariants}
-              className="ml-3 font-medium whitespace-nowrap"
-            >
-              {item.label}
-            </motion.span>
-          )}
-        </Link>
+      >
+        <Icon size={20} className="shrink-0" />
+        {isOpen && (
+          <motion.span
+            initial={false}
+            animate={isOpen ? 'open' : 'closed'}
+            variants={textVariants}
+            className="ml-3 font-medium whitespace-nowrap"
+          >
+            {item.label}
+          </motion.span>
+        )}
+      </Link>
     );
   };
-  
+
   return (
     <>
+
       <div
         className={`fixed inset-0 bg-black/30 z-40 lg:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsOpen(false)}
@@ -237,7 +242,7 @@ console.log(filteredMenuItems,"filteredMenuItems")
       <motion.div
         variants={sidebarVariants}
         animate={isOpen ? 'open' : 'closed'}
-        className="fixed left-0 top-0 h-full bg-white shadow-lg z-50 flex flex-col"
+        className="fixed left-0 top-0 h-full bg-white shadow-lg z-50  flex-col flex"
       >
         <div className={`flex items-center border-b h-16 shrink-0 ${isOpen ? 'justify-between px-4' : 'justify-center'}`}>
           {isOpen ? (
@@ -247,53 +252,62 @@ console.log(filteredMenuItems,"filteredMenuItems")
               variants={textVariants}
               className="flex items-center gap-2"
             >
-              <HeartPulse    className="text-blue-600" size={28} />
+              <HeartPulse className="text-blue-600" size={28} />
               <span className="text-xl font-bold text-blue-600 hidden md:block">NEO Physio</span>
+
             </motion.div>
-          ): <HeartPulse className="text-blue-600" size={28} />}
+          ) : <HeartPulse className="text-blue-600" size={28} />}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors absolute -right-4 top-5 bg-white border shadow-sm hidden lg:block"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors absolute -right-4 top-5 bg-white border shadow-sm hidden md:block lg:block"
           >
             <ChevronLeft size={16} className={`transition-transform ${isOpen ? '' : 'rotate-180'}`} />
           </button>
+          {/* <button
+            variant="ghost"
+            size="icon"
+               onClick={() => setIsOpen(!isOpen)}
+            className="lg:hidden md:hidden absolute -right-3 top-5  hover:bg-gray-100 transition-colors  bg-white border shadow-sm "
+          >
+            <Menu size={22}  className={`transition-transform ${isOpen}`} />
+          </button> */}
         </div>
 
-        <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden">
-        <Accordion type="single" collapsible value={openAccordion} onValueChange={setOpenAccordion} className="w-full">
-          {filteredMenuItems.map((item, index) => (
-             <div key={index} className="mx-3 my-1">
+        <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden ">
+          <Accordion type="single" collapsible value={openAccordion} onValueChange={setOpenAccordion} className="w-full">
+            {filteredMenuItems.map((item, index) => (
+              <div key={index} className="mx-3 my-1">
                 {item.subItems.length ? (
-                    <AccordionItem value={item.label} className="border-none">
-                       <AccordionTrigger className={`flex items-center h-12 rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:no-underline ${isOpen ? 'px-4' : 'justify-center'}`}>
-                           <div className="flex items-center">
-                            <item.icon size={20} className="shrink-0" />
-                            {isOpen && (
-                                <motion.span
-                                initial={false}
-                                animate={isOpen ? 'open' : 'closed'}
-                                variants={textVariants}
-                                className="ml-3 font-medium whitespace-nowrap"
-                                >
-                                {item.label}
-                                </motion.span>
-                            )}
-                           </div>
-                       </AccordionTrigger>
-                        <AccordionContent className="pl-6 pr-2 py-0">
-                           {isOpen && item.subItems.map((subItem, subIndex) => (
-                                <div key={subIndex} className="my-1">
-                                    <NavItem item={subItem} />
-                                </div>
-                           ))}
-                        </AccordionContent>
-                    </AccordionItem>
+                  <AccordionItem value={item.label} className="border-none">
+                    <AccordionTrigger className={`flex items-center h-12 rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:no-underline ${isOpen ? 'px-4' : 'justify-center'}`}>
+                      <div className="flex items-center">
+                        <item.icon size={20} className="shrink-0" />
+                        {isOpen && (
+                          <motion.span
+                            initial={false}
+                            animate={isOpen ? 'open' : 'closed'}
+                            variants={textVariants}
+                            className="ml-3 font-medium whitespace-nowrap"
+                          >
+                            {item.label}
+                          </motion.span>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pl-6 pr-2 py-0">
+                      {isOpen && item.subItems.map((subItem, subIndex) => (
+                        <div key={subIndex} className="my-1">
+                          <NavItem item={subItem} />
+                        </div>
+                      ))}
+                    </AccordionContent>
+                  </AccordionItem>
                 ) : (
-                    <NavItem item={item} />
+                  <NavItem item={item} />
                 )}
-            </div>
-          ))}
-        </Accordion>
+              </div>
+            ))}
+          </Accordion>
         </nav>
       </motion.div>
     </>

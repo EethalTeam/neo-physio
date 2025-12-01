@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 
 
-const PatientManagement = () => {
+const Consulation = () => {
   const navigate = useNavigate()
   const { user } = useAuth();
   const [patients, setPatients] = useState([]);
@@ -211,7 +211,7 @@ const PatientManagement = () => {
 
   const getAllPatient = async () => {
     try {
-      const res = await apiRequest("Patient/getAllPatient", {
+      const res = await apiRequest("Consulation/getAllConsulation", {
         method: 'POST',
         body: JSON.stringify({}),
       })
@@ -228,7 +228,7 @@ const PatientManagement = () => {
   //api call and delete Patients
   const deletePatient = async (id) => {
     try {
-      const response = await apiRequest("Patient/deletePatient", {
+      const response = await apiRequest("Consulation/deleteConsulation", {
         method: 'POST',
         body: JSON.stringify({ _id: id }),
 
@@ -254,7 +254,7 @@ const PatientManagement = () => {
 
   const updatePatient = async (data) => {
     try {
-      const response = await apiRequest("Patient/updatePatient", {
+      const response = await apiRequest("Consulation/updateConsulation", {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -277,7 +277,7 @@ const PatientManagement = () => {
   const createPatient = async (data) => {
     console.log(data, "data")
     try {
-      const response = await apiRequest("Patient/createPatient", {
+      const response = await apiRequest("Consulation/createConsulation", {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -684,7 +684,7 @@ const PatientManagement = () => {
   // );
 
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
         <div>
           <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Patient Management</h1>
@@ -820,7 +820,7 @@ const PatientManagement = () => {
       </Dialog>
 
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="md:max-w-2xl max-h-[90vh] flex flex-col max-w-sm">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Patient History: {historyPatient?.name}</DialogTitle>
             <DialogDescription>Chronological log of all sessions and reviews.</DialogDescription>
@@ -845,7 +845,7 @@ const PatientManagement = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen} className=''>
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
           <DialogHeader><DialogTitle>{editingPatient ? 'Edit Patient' : 'Create New Patient'}</DialogTitle></DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
@@ -1107,4 +1107,4 @@ const PatientManagement = () => {
   );
 };
 
-export default PatientManagement;
+export default Consulation;
