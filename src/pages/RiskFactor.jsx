@@ -175,11 +175,11 @@ const RiskFactor = () => {
   };
 
   return (
-    <div className="space-y-6 ms-10 p-10 md:ms-0 md:p-0 lg:ms-0 lg:p-0">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+    <div className="space-y-6  ">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Risk Factor </h1>
-          {/* <p className="text-gray-600 mt-1">Manage income and expense categories.</p> */}
+          <p className="text-gray-600 mt-1">Manage Risk Factor Category.</p>
         </div>
         {
           Permissions.isAdd && 

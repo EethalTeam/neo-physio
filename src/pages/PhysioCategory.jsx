@@ -166,10 +166,10 @@ const PhysioCategory = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Physio Category </h1>
-          {/* <p className="text-gray-600 mt-1">Manage income and expense categories.</p> */}
+          <h1 className="md:text-3xl text-2xl font-bold text-gray-900 flex items-center gap-3"><Layers className="w-4 h-4 md:w-8 md:h-8" />Physio Category </h1>
+          <p className="text-gray-600 mt-1">Manage the list of Physio Category for session feedback.</p>
         </div>
         {
           Permissions.isAdd && 
@@ -183,7 +183,7 @@ const PhysioCategory = () => {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
         <Card className="medical-card">
           <CardHeader>
-            <CardTitle>All Physio Category ({physio.length})</CardTitle>
+            <CardTitle className='md:text-2xl text-lg'>All Physio Category ({physio.length})</CardTitle>
             <CardDescription>List of all defined transaction Physio Category.</CardDescription>
           </CardHeader>
           <CardContent>

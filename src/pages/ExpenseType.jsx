@@ -167,8 +167,8 @@ const ExpenseType = () => {
   };
 
   return (
-    <div className="space-y-6 p-10 ms-10 md:p-0 md:ms-0 lg:p-0 lg:ms-0">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+    <div className="space-y-6  ">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Expense Type</h1>
           <p className="text-gray-600 mt-1">Manage expense Type.</p>
@@ -181,7 +181,7 @@ const ExpenseType = () => {
        
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }} >
         <Card className="medical-card">
           <CardHeader>
             <CardTitle>All Expense Type ({expenseType.length})</CardTitle>

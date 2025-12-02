@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UserPlus, Search, Filter, Edit, Trash2, Upload, Paperclip } from 'lucide-react';
+import { UserPlus, Search, Filter, Edit, Trash2, Upload, Paperclip, Check,User } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -337,7 +337,7 @@ const LeadManagement = () => {
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 w-full "
->
+      >
         <div>
           <h1 className="md:text-3xl text-xl font-bold text-gray-900">Lead Management</h1>
           <p className="text-gray-600 mt-1 text-sm md:text-xs">Manage and track potential patients from all sources.</p>
@@ -374,7 +374,7 @@ const LeadManagement = () => {
       </Card>
 
       {/* Lead Table */}
-      <Card>
+      <Card className='hidden md:block'>
         <CardHeader><CardTitle>Leads ({filteredLeads.length})</CardTitle></CardHeader>
         <CardContent>
           <table className="w-full text-sm border">
@@ -450,6 +450,114 @@ const LeadManagement = () => {
           </table>
         </CardContent>
       </Card>
+
+      {/* //Lead Card for Mobile view  */}
+      <Card className="md:hidden max-w-md mx-auto">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-semibold">
+            Leads ({filteredLeads.length})
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="pt-0">
+          <div className="grid gap-3 max-w-md">
+            {filteredLeads.map((lead) => (
+              <div
+                key={lead._id}
+                className="border rounded-lg p-3 shadow-sm bg-white flex flex-col gap-3"
+              >
+                {/* Left Section */}
+                <div className="space-y-1.5">
+                  <div className='flex space-x-4 mb-3'>
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><User className="text-blue-600" size={25} /></div>
+                   <div className='space-y-1'>
+                    <p className="text-xs text-gray-600">
+                    <span className="font-normal text-gray-500 text-sm">{lead.leadName}</span>
+                  </p>
+
+                  <p className="text-xs text-gray-600">
+                    <span className="font-normal text-gray-500 text-sm">   {lead.leadContactNo}</span>
+                  </p>
+                   </div>
+
+                  </div>
+
+                  
+
+                  <p className="text-xs text-gray-600 flex items-center gap-2">
+                    <span className="font-semibold text-gray-900 text-sm">Status:</span>
+                    <span
+                      className="text-[10px] px-2 py-[2px] rounded-md inline-block"
+                      style={{
+                        backgroundColor: lead.LeadStatusId.leadStatusColor || "#e5e7eb",
+                      }}
+                    >
+                      {lead.LeadStatusId.leadStatusName}
+                    </span>
+                  </p>
+                </div>
+
+                {/* Right Section – Buttons */}
+                <div className="flex items-center gap-2 justify-start">
+                  {/* Qualify */}
+                  {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                    Permissions.isEdit && (
+                      <Button
+                        size="icon"
+                        variant="default"
+                        onClick={() => {
+                          setLeadQualify(lead);
+                          setOpen(true);
+                        }}
+                        className="h-8 w-8 bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Check size={14} />
+                      </Button>
+                    )}
+
+                  {/* Edit */}
+                  {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                    Permissions.isEdit && (
+                      <Button size="icon" variant="outline" className="h-8 w-8">
+                        <Edit size={14} onClick={() => handleEdit(lead)} />
+                      </Button>
+                    )}
+
+                  {/* Delete */}
+                  {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                    Permissions.isDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="icon" variant="destructive" className="h-8 w-8">
+                            <Trash2 size={14} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the lead.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteLead(lead._id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+
+
+
 
       {/* Create / Edit Lead Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

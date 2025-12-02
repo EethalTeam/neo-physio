@@ -26,29 +26,29 @@ const FeesType = () => {
         isActive: true
     };
     const [modalitiesForm, setModalitiesForm] = useState(initialFormState);
-   
-     const { getPermissionsByPath } = useAuth();
-      const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
-      // console.log(Permissions,"Permissions")
-      useEffect(() => {
-        getPermissionsByPath(window.location.pathname).then(res => {
-          if (res) {
-            console.log(res, "res")
-            setPermissions(res)
-          } else {
-            navigate('/dashboard')
-          }
-        })
-    
-      }, [])
-    
-    useEffect(()=>{
-        if (Permissions.isView) {
-           getModalities()
-        }
-    },[Permissions]) 
 
-     
+    const { getPermissionsByPath } = useAuth();
+    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+    // console.log(Permissions,"Permissions")
+    useEffect(() => {
+        getPermissionsByPath(window.location.pathname).then(res => {
+            if (res) {
+                console.log(res, "res")
+                setPermissions(res)
+            } else {
+                navigate('/dashboard')
+            }
+        })
+
+    }, [])
+
+    useEffect(() => {
+        if (Permissions.isView) {
+            getModalities()
+        }
+    }, [Permissions])
+
+
 
 
 
@@ -144,7 +144,7 @@ const FeesType = () => {
             throw error;
         }
     }
-    const handleEdit = ( modalities) => {
+    const handleEdit = (modalities) => {
         setEditingModalities(modalities);
         setModalitiesForm(modalities);
         setIsFormOpen(true);
@@ -164,24 +164,24 @@ const FeesType = () => {
 
     return (
         <div className="space-y-6">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Fees Type</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Modalities </h1>
                     <p className="text-gray-600 mt-1">Manage Modalities.</p>
                 </div>
                 {
-                    Permissions.isAdd && 
-                      <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
-                    <PlusCircle size={18} className="mr-2" /> Add New Modalities
-                </Button>
+                    Permissions.isAdd &&
+                    <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
+                        <PlusCircle size={18} className="mr-2" /> Add New Modalities
+                    </Button>
                 }
-              
+
             </motion.div>
 
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
-                <Card className="medical-card">
+                <Card className="medical-card hidden md:block">
                     <CardHeader>
-                        <CardTitle>All Modalities ({modalities.length})</CardTitle>
+                        <CardTitle className='text-lg md:text-2xl'>All Modalities ({modalities.length})</CardTitle>
                         <CardDescription>List of all defined transaction Modalities.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -212,28 +212,28 @@ const FeesType = () => {
                                             <td className="p-3">
                                                 <div className="flex items-center justify-end gap-2">
                                                     {
-                                                        Permissions.isEdit && 
-                                                         <Button size="sm" variant="outline" onClick={() => handleEdit(mod)}><Edit size={14} /></Button>
+                                                        Permissions.isEdit &&
+                                                        <Button size="sm" variant="outline" onClick={() => handleEdit(mod)}><Edit size={14} /></Button>
                                                     }
 
                                                     {
-                                                     Permissions.isDelete && 
+                                                        Permissions.isDelete &&
                                                         <AlertDialog>
-                                                        <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                                <AlertDialogDescription>This will permanently delete the Modalities.</AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDelete(mod._id)}>Delete</AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
+                                                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>This will permanently delete the Modalities.</AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDelete(mod._id)}>Delete</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
                                                     }
-                                                   
-                                                 
+
+
                                                 </div>
                                             </td>
                                         </tr>
@@ -243,6 +243,84 @@ const FeesType = () => {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* //card for mobile view */}
+                <Card className="medical-card md:hidden">
+                    <CardHeader>
+                        <CardTitle className='text-lg md:text-2xl'>All Modalities ({modalities.length})</CardTitle>
+                        <CardDescription>List of all defined transaction Modalities.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {modalities.map((mod) => (
+                                <div
+                                    key={mod._id}
+                                    className="border rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition"
+                                >
+                                    {/* Title */}
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        {mod.modalitiesName}
+                                    </h3>
+
+                                    {/* Status */}
+                                    <p className="mt-2">
+                                        <span
+                                            className={`px-2 py-1 text-xs font-medium rounded-full ${mod.isActive
+                                                    ? "bg-blue-100 text-blue-800"
+                                                    : "bg-gray-100 text-gray-800"
+                                                }`}
+                                        >
+                                            {mod.isActive ? "Active" : "Inactive"}
+                                        </span>
+                                    </p>
+
+                                    {/* Actions */}
+                                    <div className="flex items-center justify-start gap-2 mt-4">
+                                        {Permissions.isEdit && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleEdit(mod)}
+                                                className="flex items-center gap-1"
+                                            >
+                                                <Edit size={14} />
+                                            </Button>
+                                        )}
+
+                                        {Permissions.isDelete && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button size="sm" variant="destructive">
+                                                        <Trash2 size={14} />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This will permanently delete the modality.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            onClick={() => handleDelete(mod._id)}
+                                                        >
+                                                            Delete
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+
+                    </CardContent>
+                </Card>
+
             </motion.div>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

@@ -162,9 +162,9 @@ useEffect(()=>{
 
   return (
     <div className="space-y-6 ">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Category Master</h1>
+          <h1 className="md:text-3xl text-2xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Category Master</h1>
           <p className="text-gray-600 mt-1">Manage income and expense categories.</p>
         </div>
         {
@@ -178,7 +178,7 @@ useEffect(()=>{
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className=''>
-        <Card className="medical-card">
+        <Card className="medical-card hidden md:block">
           <CardHeader>
             <CardTitle>All Categories ({categories.length})</CardTitle>
             <CardDescription>List of all defined transaction categories.</CardDescription>
@@ -243,7 +243,89 @@ useEffect(()=>{
             </div>
           </CardContent>
         </Card>
+{/* //Card for mobile view */}
+        <Card className="medical-card  md:hidden">
+          <CardHeader>
+            <CardTitle>All Categories ({categories.length})</CardTitle>
+            <CardDescription>List of all defined transaction categories.</CardDescription>
+          </CardHeader>
+          <CardContent>
+               {/* Grid Layout */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {categories.map((cat) => (
+        <div
+          key={cat.id}
+          className="border rounded-xl p-4 shadow-sm bg-white hover:shadow-md transition-all"
+        >
+          {/* Category Name */}
+          <h3 className="text-md font-semibold text-gray-800">
+            {cat.ExpenseCategoryName}
+          </h3>
+
+          {/* Type & Status */}
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <span
+              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                cat.ExpenseCategoryType === "Income"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {cat.ExpenseCategoryType}
+            </span>
+
+            <span
+              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                cat.isActive
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {cat.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-4 flex items-center justify-start gap-2">
+            {Permissions.isEdit && (
+              <Button size="sm" variant="outline" onClick={() => handleEdit(cat)}>
+                <Edit size={14} />
+              </Button>
+            )}
+
+            {Permissions.isDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive">
+                    <Trash2 size={14} />
+                  </Button>
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the category.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    {/* <AlertDialogAction onClick={() => handleDelete(cat._id)}>Delete</AlertDialogAction> */}
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+          </CardContent>
+          </Card>
       </motion.div>
+
+      
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-md">

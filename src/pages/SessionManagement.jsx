@@ -152,8 +152,6 @@ const SessionManagement = () => {
         sessionDate:new Date(date1).toISOString(),
         sessionTime:data.sessionTime,
         sessionDay:data.sessionDay
-
-
       }
       const response = await apiRequest("Session/createSession", {
         method: 'POST',
