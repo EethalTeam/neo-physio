@@ -525,9 +525,9 @@ const ExpenseManagement = () => {
 
     return (
         <div className="space-y-6">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex md:flex-row flex-col md:justify-between items-start space-y-5">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Wallet size={30} /> Expense Management</h1>
+                    <h1 className="md:text-3xl text-lg font-bold text-gray-900 flex items-center gap-3"><Wallet size={30} /> Expense Management</h1>
                     <p className="text-gray-600 md:mt-1 mt-3">Track all income and expenses in one place.</p>
                 </div>
                 {
@@ -541,12 +541,12 @@ const ExpenseManagement = () => {
             </motion.div>
 
             <Tabs defaultValue="monthly_report">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full md:grid-cols-5  grid-cols-2 gap-2 mb-20 md:mb-0">
                     <TabsTrigger value="monthly_report">Monthly Report</TabsTrigger>
                     <TabsTrigger value="expenses">Expenses</TabsTrigger>
                     <TabsTrigger value="income">Income</TabsTrigger>
                     <TabsTrigger value="expense_chart">Expense Chart</TabsTrigger>
-                    <TabsTrigger value="advanced_filter">Advanced Filter</TabsTrigger>
+                    <TabsTrigger value="advanced_filter"  >Advanced Filter</TabsTrigger>
                 </TabsList>
                 <TabsContent value="monthly_report">
                     <Card>
@@ -583,7 +583,7 @@ const ExpenseManagement = () => {
                 <TabsContent value="income"><Card><CardHeader><CardTitle>Income Records</CardTitle><CardDescription>Showing transactions for {reportMonthOptions.find(m => m.value === selectedMonth)?.label} {selectedYear}</CardDescription></CardHeader><CardContent><TransactionTable data={incomeTransactions} type="Income" /></CardContent></Card></TabsContent>
                 <TabsContent value="expense_chart">
                     <Card>
-                        <CardHeader><CardTitle>Expense Breakdown</CardTitle><CardDescription>Expenses by category for {reportMonthOptions.find(m => m.value === selectedMonth)?.label} {selectedYear}</CardDescription></CardHeader>
+                        <CardHeader><CardTitle className='text-lg md:text-2xl'>Expense Breakdown</CardTitle><CardDescription>Expenses by category for {reportMonthOptions.find(m => m.value === selectedMonth)?.label} {selectedYear}</CardDescription></CardHeader>
                         <CardContent className="flex justify-center items-center" style={{ height: '300px' }}>
                             {expenseTransactions.length > 0 ? <Pie data={expenseByCategory} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }} /> : <p className="text-gray-500">No expense data for the selected period.</p>}
                         </CardContent>
@@ -592,7 +592,7 @@ const ExpenseManagement = () => {
                 <TabsContent value="advanced_filter">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Search /> Advanced Expense Filter</CardTitle>
+                            <CardTitle className="flex items-center gap-2 text-lg md:text-2xl"><Search /> Advanced Expense Filter</CardTitle>
                             <CardDescription>Drill down into your expenses with specific criteria.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">

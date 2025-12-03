@@ -298,7 +298,7 @@ const PhysioManagement = () => {
     <div className="space-y-6 ">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex md:justify-between md:items-center  space-y-5">
         <div>
-          <h1 className="md:text-3xl text-2xl font-bold md:font-bold text-gray-800 mb-2 ">Physiotherapist Management</h1>
+          <h1 className="md:text-3xl text-xl font-bold md:font-bold text-gray-800 mb-2 ">Physiotherapist Management</h1>
           <p className="text-gray-600">Manage physiotherapists and track their performance</p>
         </div>
         {

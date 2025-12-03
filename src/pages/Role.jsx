@@ -568,7 +568,7 @@ const RolesPage = () => {
         className="flex justify-between items-center"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Roles & Permissions</h1>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">Roles & Permissions</h1>
           <p className="text-gray-600">Define roles and control access to different modules</p>
         </div>
         {

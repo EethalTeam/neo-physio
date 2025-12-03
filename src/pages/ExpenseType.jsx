@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Layers, PlusCircle, Edit, Trash2 ,FolderKanban } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -170,7 +170,7 @@ const ExpenseType = () => {
     <div className="space-y-6  ">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Expense Type</h1>
+          <h1 className="md:text-3xl text-2xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Expense Type</h1>
           <p className="text-gray-600 mt-1">Manage expense Type.</p>
         </div>
         {
@@ -182,14 +182,14 @@ const ExpenseType = () => {
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }} >
-        <Card className="medical-card">
+        <Card className="medical-card hidden md:block">
           <CardHeader>
             <CardTitle>All Expense Type ({expenseType.length})</CardTitle>
             <CardDescription>List of all defined transaction Expense Type.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="table-responsive-wrapper">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm space-y-4">
                 <thead>
                   <tr className="border-b">
                     <th className="text-left p-3 font-semibold text-gray-600">Expense Type Name</th>
@@ -242,6 +242,78 @@ const ExpenseType = () => {
             </div>
           </CardContent>
         </Card>
+       {/* card for mobile view */}
+        <Card className="medical-card md:hidden">
+          <CardHeader>
+            <CardTitle>All Expense Type ({expenseType.length})</CardTitle>
+            <CardDescription>List of all defined transaction Expense Type.</CardDescription>
+          </CardHeader>
+          <CardContent>
+             <div className="grid gap-6">
+      {expenseType.map((expenses) => (
+        <div
+          key={expenses._id}
+          className="border rounded-xl p-4 shadow-sm hover:shadow-md transition-all bg-white"
+        >
+          <div className="flex flex-col items-start justify-between gap-3">
+            {/* Left section */}
+            <div className='flex gap-4'>
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                <FolderKanban size={18} className="text-indigo-600" />
+                {expenses.ExpenseTypeName}
+              </h2>
+
+              <span
+                className={`mt-2 inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                  expenses.isActive
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {expenses.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-4">
+              {Permissions.isEdit && (
+                <Button size="icon" variant="outline" onClick={() => handleEdit(expenses)}>
+                  <Edit size={16} />
+                </Button>
+              )}
+
+              {Permissions.isDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="icon" variant="destructive">
+                      <Trash2 size={16} />
+                    </Button>
+                  </AlertDialogTrigger>
+
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the Expense Type.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(expenses._id)}>
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+          </CardContent>
+          </Card>
       </motion.div>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

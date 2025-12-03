@@ -399,7 +399,7 @@ useEffect(()=>{
 
   return (
     <div className="space-y-6 ">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row  md:justify-between items-start space-y-5">
         <div>
           <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Equipment Inventory</h1>
           <p className="text-gray-600">Manage and track all physiotherapy equipment.</p>
@@ -412,26 +412,27 @@ useEffect(()=>{
       </motion.div>
 
       <Card className="medical-card">
-        <CardHeader><CardTitle>Search Equipment</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-xl md:text-2xl">Search Equipment</CardTitle></CardHeader>
         <CardContent><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by name or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div></CardContent>
       </Card>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
         <Card className="medical-card">
-          <CardHeader><CardTitle>Equipment ({filteredMachines.length})</CardTitle><CardDescription>Overview of all equipment inventory.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="text-xl md:text-2xl">Equipment ({filteredMachines.length})</CardTitle><CardDescription>Overview of all equipment inventory.</CardDescription></CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredMachines.map((machine) => {
                 // const inUseCount = machine.inventory.inUse.reduce((sum, item) => sum + item.count, 0);
                 return (
                   <motion.div key={machine._id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-6 hover:shadow-lg transition-shadow flex flex-col bg-white">
-                    <div className="md:flex items-start md:space-x-4 md:mb-4">
+                    <div className="md:flex  items-start md:space-x-4 mb-2  md:mb-4">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${machine.active ? 'bg-blue-100' : 'bg-gray-100'}`}>{getCategoryIcon(machine.category)}</div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-gray-800">{machine.machineName}</h3>
+                      <div className="flex-1 space-y-3 ">
+                        <h3 className="font-bold md:text-lg text-sm mt-5 md:mt-0 text-gray-800">{machine.machineName}</h3>
                         <p className="text-sm text-gray-500">{machine.Manufacturer} {machine.machineModel}</p>
-                      </div>
                       <span className={`px-2 py-1 text-xs rounded-full font-semibold ${machine.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{machine.active ? 'Active' : 'Inactive'}</span>
+
+                      </div>
                     </div>
 
                     <div className="space-y-4 mb-6 flex-grow">

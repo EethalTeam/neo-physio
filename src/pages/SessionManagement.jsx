@@ -142,16 +142,20 @@ const SessionManagement = () => {
 
 
     const getCreateSession = async (data) => {
-    try {
-      let [month,date,year]=data.sessionDate.toLocaleDateString().split('/')
-      let date1=`${year}-${month}-${date}`
-      const create={
-        sessionStatusId:data.sessionStatusId,
-        patientId:data.patientId,
-        physioId:data.physioId,
-        sessionDate:new Date(date1).toISOString(),
-        sessionTime:data.sessionTime,
-        sessionDay:data.sessionDay
+    try {    
+      if(!data.sessionDate){    
+        console.log(!data.sessionDate,"!data.sessionDate")    
+        return    
+      }    
+      let [month,date,year]=data.sessionDate.toLocaleDateString().split('/')    
+      let date1=`${year}-${month}-${date}`    
+      const create={    
+        sessionStatusId:data.sessionStatusId,    
+        patientId:data.patientId,    
+        physioId:data.physioId,    
+        sessionDate:new Date(date1).toISOString(),    
+        sessionTime:data.sessionTime,    
+        sessionDay:data.sessionDay    
       }
       const response = await apiRequest("Session/createSession", {
         method: 'POST',
@@ -569,7 +573,7 @@ return days[new Date(date).getDay()]
     <div className="md:space-y-6  space-y-10">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex md:justify-between md:items-center lg:flex lg:justify-between lg:items-center space-y-5">
         <div> 
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">{user?.role === 'Physio' ? 'My Sessions' : 'Session Management'}</h1>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">{user?.role === 'Physio' ? 'My Sessions' : 'Session Management'}</h1>
           <p className="text-gray-600">{user?.role === 'Physio' ? 'Manage your assigned patient sessions' : 'Manage all patient sessions and track progress'}</p>
         </div>
         {user?.role !== 'physio'  && (Permissions.isAdd && <Button onClick={openNewSessionDialog}><PlusCircle className="mr-2 h-4 w-4" /> Schedule Session</Button>)}

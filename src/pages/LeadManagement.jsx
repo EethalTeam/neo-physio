@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UserPlus, Search, Filter, Edit, Trash2, Upload, Paperclip, Check,User } from 'lucide-react';
+import { UserPlus, Search, Filter, Edit, Trash2, Upload, Paperclip, Check,User ,CheckCircle} from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -452,7 +452,7 @@ const LeadManagement = () => {
       </Card>
 
       {/* //Lead Card for Mobile view  */}
-      <Card className="md:hidden max-w-md mx-auto">
+      <Card className="md:hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold">
             Leads ({filteredLeads.length})
@@ -460,7 +460,7 @@ const LeadManagement = () => {
         </CardHeader>
 
         <CardContent className="pt-0">
-          <div className="grid gap-3 max-w-md">
+          <div className="grid gap-3 ">
             {filteredLeads.map((lead) => (
               <div
                 key={lead._id}
@@ -468,7 +468,7 @@ const LeadManagement = () => {
               >
                 {/* Left Section */}
                 <div className="space-y-1.5">
-                  <div className='flex space-x-4 mb-3'>
+                  <div className='flex space-x-4 mb-3  justify-center'>
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><User className="text-blue-600" size={25} /></div>
                    <div className='space-y-1'>
                     <p className="text-xs text-gray-600">
@@ -482,9 +482,7 @@ const LeadManagement = () => {
 
                   </div>
 
-                  
-
-                  <p className="text-xs text-gray-600 flex items-center gap-2">
+                  <p className="text-xs text-gray-600 flex justify-center items-center me-4 gap-2">
                     <span className="font-semibold text-gray-900 text-sm">Status:</span>
                     <span
                       className="text-[10px] px-2 py-[2px] rounded-md inline-block"
@@ -498,7 +496,7 @@ const LeadManagement = () => {
                 </div>
 
                 {/* Right Section – Buttons */}
-                <div className="flex items-center gap-2 justify-start">
+                <div className="flex items-center gap-2 me-4 justify-center">
                   {/* Qualify */}
                   {lead.LeadStatusId.leadStatusName !== "Qualified" &&
                     Permissions.isEdit && (
@@ -511,7 +509,7 @@ const LeadManagement = () => {
                         }}
                         className="h-8 w-8 bg-blue-600 hover:bg-blue-700"
                       >
-                        <Check size={14} />
+                        <CheckCircle size={14} />
                       </Button>
                     )}
 

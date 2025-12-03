@@ -3,71 +3,97 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Calendar, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { apiRequest } from '@/components/CustomComponents/apiRequest'
 import { toast } from '@/components/ui/use-toast';
 
 const HODDashboard = () => {
   const [stats, setStats] = useState({
-    totalPatients: 0,
-    totalSessions: 0,
+
+    patient: 0,
+    session: 0,
+    alertsCount: 0,
     pendingReviews: 0,
-    completedSessions: 0,
-    alertsCount: 0
+    sessionCompleted: 0
   });
+
 
   const [reviews, setReviews] = useState([]);
 
+  // useEffect(() => {
+  //   Promise.all([
+  //     fetch('/mockdata/patients.json').then(res => res.json()),
+  //     fetch('/mockdata/sessions.json').then(res => res.json())
+  //   ]).then(([patients, sessions]) => {
+  //     const completedSessions = sessions.filter(s => s.status === 'completed');
+  //     const alertSessions = sessions.filter(s => s.feedback && s.feedback.cons);
+
+  //     // Mock pending reviews
+  //     const mockReviews = patients.slice(0, 3).map(patient => ({
+  //       id: patient.id,
+  //       patientName: patient.name,
+  //       reviewDate: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  //       status: 'pending'
+  //     }));
+
+  //     setStats({
+  //       totalPatients: patients.length,
+  //       totalSessions: sessions.length,
+  //       pendingReviews: mockReviews.length,
+  //       completedSessions: completedSessions.length,
+  //       alertsCount: alertSessions.length
+  //     });
+
+  //     setReviews(mockReviews);
+  //   }).catch(err => console.error('Error loading dashboard data:', err));
+  // }, []);
+
+  // const handleReviewAction = (reviewId, action) => {
+  //   setReviews(prev => prev.map(review => 
+  //     review.id === reviewId 
+  //       ? { ...review, status: action }
+  //       : review
+  //   ));
+
+  //   toast({
+  //     title: "Review Updated",
+  //     description: `Review has been marked as ${action}`
+  //   });
+  // };
+
+
   useEffect(() => {
-    Promise.all([
-      fetch('/mockdata/patients.json').then(res => res.json()),
-      fetch('/mockdata/sessions.json').then(res => res.json())
-    ]).then(([patients, sessions]) => {
-      const completedSessions = sessions.filter(s => s.status === 'completed');
-      const alertSessions = sessions.filter(s => s.feedback && s.feedback.cons);
-      
-      // Mock pending reviews
-      const mockReviews = patients.slice(0, 3).map(patient => ({
-        id: patient.id,
-        patientName: patient.name,
-        reviewDate: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: 'pending'
-      }));
+    getAllDashBoard()
+  }, [])
 
-      setStats({
-        totalPatients: patients.length,
-        totalSessions: sessions.length,
-        pendingReviews: mockReviews.length,
-        completedSessions: completedSessions.length,
-        alertsCount: alertSessions.length
+  const getAllDashBoard = async (data) => {
+    try {
+      const response = await apiRequest("DashBoard/getAllDashBoard", {
+        method: 'POST',
+        body: JSON.stringify(data),
+
       });
+      setStats(response)
+      console.log(response, "response")
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
 
-      setReviews(mockReviews);
-    }).catch(err => console.error('Error loading dashboard data:', err));
-  }, []);
 
-  const handleReviewAction = (reviewId, action) => {
-    setReviews(prev => prev.map(review => 
-      review.id === reviewId 
-        ? { ...review, status: action }
-        : review
-    ));
-    
-    toast({
-      title: "Review Updated",
-      description: `Review has been marked as ${action}`
-    });
-  };
+
 
   const statCards = [
     {
       title: 'Total Patients',
-      value: stats.totalPatients,
+      value: stats.patient,
       icon: Users,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },
     {
       title: 'Total Sessions',
-      value: stats.totalSessions,
+      value: stats.session,
       icon: Calendar,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
@@ -81,7 +107,7 @@ const HODDashboard = () => {
     },
     {
       title: 'Completed Sessions',
-      value: stats.completedSessions,
+      value: stats.sessionCompleted,
       icon: CheckCircle,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100'

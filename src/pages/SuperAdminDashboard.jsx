@@ -118,7 +118,7 @@ getAllDashBoard()
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">SuperAdmin Dashboard</h1>
+        <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">SuperAdmin Dashboard</h1>
         <p className="text-gray-600">Complete overview of your physiotherapy service management</p>
       </motion.div>
 

@@ -381,9 +381,9 @@ const MenusPage = () => {
       </AlertDialog>
 
       {/* Header Section */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex justify-between items-center">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex md:flex-row flex-col md:justify-between items-start space-y-5">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Menu Management</h1>
+          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Menu Management</h1>
           <p className="text-gray-600">Manage navigation menus and hierarchy structure.</p>
         </div>
         <Button onClick={handleAddMenu}>

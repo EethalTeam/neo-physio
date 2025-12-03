@@ -687,7 +687,7 @@ const PatientManagement = () => {
     <div className="space-y-6 ">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
         <div>
-          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Patient Management</h1>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">Patient Management</h1>
           <p className="text-gray-600 text-sm md:text-xs">Manage registered patients and their treatment plans.</p>
         </div>
         {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (

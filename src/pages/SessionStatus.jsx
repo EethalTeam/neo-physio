@@ -241,7 +241,7 @@ const SessionStatus = () => {
         </Card>
 
         {/* //card for mobile view  */}
-         <Card className="medical-card">
+         <Card className="medical-card md:hidden">
           <CardHeader>
             <CardTitle className='text-lg md:text-2xl'>All  Session Status ({sessionStatus.length})</CardTitle>
             <CardDescription>List of all defined transaction  Session status.</CardDescription>
