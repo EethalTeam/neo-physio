@@ -149,7 +149,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Wallet, label: 'Petrol Allowance', path: '/petrol-allowance' },
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
-        { icon: Calendar, label: 'Consulation', path: '/consulation' }
+        { icon: Calendar, label: 'Consultation', path: '/consultation' }
 
       ],
       Admin: [
@@ -164,7 +164,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
         { icon: Map, label: 'Country', path: '/country' },
-        { icon: Calendar, label: 'Consulation', path: '/consulation' }
+        { icon: Calendar, label: 'Consultation', path: '/consultation' }
 
 
       ],
@@ -174,7 +174,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
-        { icon: Calendar, label: 'Consulation', path: '/consulation' }
+        { icon: Calendar, label: 'Consultation', path: '/consultation' }
 
       ],
       Physio: [

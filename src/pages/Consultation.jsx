@@ -211,7 +211,7 @@ const Consulation = () => {
 
   const getAllPatient = async () => {
     try {
-      const res = await apiRequest("Consulation/getAllConsulation", {
+      const res = await apiRequest("Consultation/getAllConsultation", {
         method: 'POST',
         body: JSON.stringify({}),
       })
@@ -228,7 +228,7 @@ const Consulation = () => {
   //api call and delete Patients
   const deletePatient = async (id) => {
     try {
-      const response = await apiRequest("Consulation/deleteConsulation", {
+      const response = await apiRequest("Consultation/deleteConsultation", {
         method: 'POST',
         body: JSON.stringify({ _id: id }),
 
@@ -254,7 +254,7 @@ const Consulation = () => {
 
   const updatePatient = async (data) => {
     try {
-      const response = await apiRequest("Consulation/updateConsulation", {
+      const response = await apiRequest("Consultation/updateConsultation", {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -277,7 +277,7 @@ const Consulation = () => {
   const createPatient = async (data) => {
     console.log(data, "data")
     try {
-      const response = await apiRequest("Consulation/createConsulation", {
+      const response = await apiRequest("Consultation/createConsultation", {
         method: 'POST',
         body: JSON.stringify(data),
       });
