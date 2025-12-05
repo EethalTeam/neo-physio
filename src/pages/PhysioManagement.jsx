@@ -334,6 +334,7 @@ const PhysioManagement = () => {
                     <div className="space-y-3 mb-4 flex-grow">
                       <div className="flex items-center justify-between"><span className="text-sm text-gray-600">Experience:</span><span className="text-sm font-medium">{physio.physioExp}</span></div>
                       <div className="flex items-center justify-between"><span className="text-sm text-gray-600">Contact:</span><span className="text-sm font-medium">{physio.physioContactNo}</span></div>
+                      <div className="flex items-center justify-between"><span className="text-sm text-gray-600">Role</span><span className="text-sm font-medium">{physio.roleId?.RoleName || 'No Role'}</span></div>
                     </div>
                     <div className="border-t pt-4 mb-4">
                       <h4 className="font-medium text-gray-800 mb-2">Performance Stats</h4>

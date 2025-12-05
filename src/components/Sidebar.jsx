@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database, Map, SquareCode, ShieldPlus, Menu } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database,Fuel, Map, SquareCode, ShieldPlus, Menu } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
@@ -146,7 +146,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         mastersSubmenu,
         Adminpannel,
         { icon: Wallet, label: 'Expenses', path: '/expenses' },
-        { icon: Wallet, label: 'Petrol Allowance', path: '/petrol-allowance' },
+        { icon: Fuel, label: 'Petrol Allowance', path: '/petrol-allowance' }, 
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
         { icon: Calendar, label: 'Consultation', path: '/consultation' }

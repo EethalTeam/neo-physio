@@ -36,7 +36,7 @@ const PetrolAllowance = () => {
     notes: ''
   }
   const [filteredData, setFilteredData] = useState(initialState);
-  console.log(filteredData,"filteredData")
+  console.log(filteredData, "filteredData")
 
 
   const [dateRange, setDateRange] = useState({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
@@ -46,8 +46,8 @@ const PetrolAllowance = () => {
   const [ratePerKm, setRatePerKm] = useState(10);
   const [monthlyReport, setMonthlyReport] = useState(null);
   const [auditLog, setAuditLog] = useState([]);
-   const { getPermissionsByPath } = useAuth();
-    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+  const { getPermissionsByPath } = useAuth();
+  const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
 
   // useEffect(() => {
   //   Promise.all([
@@ -69,30 +69,30 @@ const PetrolAllowance = () => {
   //Api for get Physio
   useEffect(() => {
     getPhysio()
-   
+
   }, [])
 
 
   useEffect(() => {
-      getPermissionsByPath(window.location.pathname).then(res => {
-        if (res) {
-          console.log(res, "res")
-          setPermissions(res)
-        } else {
-          navigate('/dashboard')
-        }
-      })
-  
-    }, [])
-  
-  useEffect(()=>{
-      if (Permissions.isView) {
-         getPetrol()
+    getPermissionsByPath(window.location.pathname).then(res => {
+      if (res) {
+        console.log(res, "res")
+        setPermissions(res)
+      } else {
+        navigate('/dashboard')
       }
-  },[Permissions])
+    })
 
-    
-   
+  }, [])
+
+  useEffect(() => {
+    if (Permissions.isView) {
+      getPetrol()
+    }
+  }, [Permissions])
+
+
+
 
   const getPhysio = async (data) => {
     try {
@@ -265,20 +265,20 @@ const PetrolAllowance = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-4 ">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex md:flex-row flex-col md:justify-between items-start space-y-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Petrol Allowance</h1>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">Petrol Allowance</h1>
           <p className="text-gray-600">Calculate and track daily travel expenses for physiotherapists.</p>
         </div>
         <Button onClick={() => setIsGenerateOpen(true)}><Fuel className="mr-2 h-4 w-4" /> Generate Monthly Allowance</Button>
       </motion.div>
 
-      <Card className="medical-card">
+      <Card className="medical-card ">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Filter size={20} /> Filters</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-          <div className="space-y-2">
+          <div className="space-y-2 ">
             <Label>Date Range</Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -306,7 +306,7 @@ const PetrolAllowance = () => {
       </Card>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
-        <Card className="medical-card">
+        <Card className="medical-card hidden md:block">
           <CardHeader>
             <CardTitle>Daily Kms Summary</CardTitle>
             <CardDescription>Editable summary of daily travel for each physiotherapist.</CardDescription>
@@ -353,6 +353,85 @@ const PetrolAllowance = () => {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* //Card Mobile view */}
+        <Card className="medical-card md:hidden">
+          <CardHeader>
+            <CardTitle className='text-xl'>Daily Kms Summary</CardTitle>
+            <CardDescription>Editable summary of daily travel for each physiotherapist.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className=" space-y-4 mt-4">
+              {filteredData.length > 0 ? filteredData.map((item) => (
+                <Card key={item._id} className="p-4 rounded-2xl shadow border">
+
+                  {/* DATE */}
+                  <div className="mb-2">
+                    <p className="text-xs text-gray-500">Date</p>
+                    <p className="text-base font-bold">{format(new Date(item.date), 'PP')}</p>
+                  </div>
+
+                  {/* PHYSIO */}
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-500">Physiotherapist</p>
+                    <div className="flex items-center gap-2">
+                      <User size={14} className="text-gray-500" />
+                      <span className="font-medium text-gray-800">{item.physioId.physioName}</span>
+                    </div>
+                  </div>
+
+                  {/* KM SUMMARY */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+
+                    <div className="p-2 bg-green-50 rounded-lg">
+                      <p className="text-xs text-green-700 font-semibold">Completed</p>
+                      <p className="text-lg font-normal text-green-600">{item.completedKms.toFixed(2)} km</p>
+                    </div>
+
+                    <div className="p-2 bg-red-50 rounded-lg">
+                      <p className="text-xs text-red-700 font-semibold">Canceled</p>
+                      <p className="text-lg font-bold text-red-600">{item.canceledKms.toFixed(2)} km</p>
+                    </div>
+
+                    <div className="p-2 bg-blue-50 rounded-lg col-span-2">
+                      <p className="text-xs text-blue-700 font-semibold">Manual Adjustment</p>
+
+                      <div className="flex items-center justify-between mt-1">
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleAdjustment(item.date, item.physioId, -1)}>
+                          <MinusCircle size={14} />
+                        </Button>
+
+                        <span className={cn(
+                          "font-medium text-lg",
+                          item.manualKms > 0 && "text-blue-600",
+                          item.manualKms < 0 && "text-orange-600"
+                        )}>
+                          {item.manualKms.toFixed(2)} km
+                        </span>
+
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleAdjustment(item.date, item.physioId, 1)}>
+                          <PlusCircle size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FINAL DAILY KM */}
+                  <div className="mt-3 text-right">
+                    <p className="text-xs text-gray-500">Final Daily Kms</p>
+                    <p className="text-xl font-extrabold">{item.finalDailyKms.toFixed(2)} km</p>
+                  </div>
+
+                </Card>
+              )) : (
+                <Card className="p-6 text-center text-gray-500">
+                  No travel data found for the selected criteria.
+                </Card>
+              )}
+            </div>
+
           </CardContent>
         </Card>
       </motion.div>
