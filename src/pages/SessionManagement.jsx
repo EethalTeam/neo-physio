@@ -147,7 +147,7 @@ const SessionManagement = () => {
 
   const getSession = async (data) => {
     try {
-
+         const storedRole = localStorage.getItem('userRole');
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(today.getDate() + 1);
@@ -160,12 +160,15 @@ const SessionManagement = () => {
       console.log(filter, "filter")
       console.log(nextdate, "nextdate")
 
+
       const response = await apiRequest("Session/getAllSession", {
         method: 'POST',
         body: JSON.stringify({
           sessionDate: filter,
           nextDate: nextdate,
-          physioId: user._id
+          physioId: user._id,
+          storedRole:storedRole
+
         })
       });
 
