@@ -81,6 +81,7 @@ useEffect(()=>{
           method: 'POST',
           body: JSON.stringify(data)
         });
+        setMachines(res)
       setFilteredMachines(res);
 
 
@@ -179,10 +180,11 @@ useEffect(()=>{
 
 
   useEffect(() => {
+    let filtered = machines
     if (searchTerm) {
-      const filtered = machines.filter(machine =>
-        machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        machine.category.toLowerCase().includes(searchTerm.toLowerCase())
+       filtered = filtered.filter(machine =>
+        machine.machineName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        machine.machineCategoryID?.categoryName?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredMachines(filtered);
     } else {
@@ -413,7 +415,7 @@ useEffect(()=>{
 
       <Card className="medical-card">
         <CardHeader><CardTitle className="text-xl md:text-2xl">Search Equipment</CardTitle></CardHeader>
-        <CardContent><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by name or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div></CardContent>
+        <CardContent><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div></CardContent>
       </Card>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>

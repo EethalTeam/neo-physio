@@ -261,7 +261,7 @@ const LeadManagement = () => {
       );
     }
     if (statusFilter !== 'all') {
-      filtered = filtered.filter((lead) => lead.isQualified?.toString() === (statusFilter === 'qualified').toString());
+      filtered = filtered.filter((lead) => lead.isQualified?.toString() === (statusFilter === 'Qualified').toString());
     }
     setFilteredLeads(filtered);
   }, [searchTerm, statusFilter, leads]);

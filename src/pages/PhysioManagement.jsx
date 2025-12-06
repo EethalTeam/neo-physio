@@ -310,7 +310,12 @@ const PhysioManagement = () => {
 
       <Card className="medical-card">
         <CardHeader><CardTitle className='font-bold text-xl '>Search Physiotherapists</CardTitle><CardDescription>Find physiotherapists by name or specialization</CardDescription></CardHeader>
-        <CardContent><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" /><Input placeholder="Search by name or specialization..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" /></div></CardContent>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input placeholder="Search by name or specialization..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+            </div>
+            </CardContent>
       </Card>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>

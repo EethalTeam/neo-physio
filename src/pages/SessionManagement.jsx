@@ -147,7 +147,7 @@ const SessionManagement = () => {
 
   const getSession = async (data) => {
     try {
-         const storedRole = localStorage.getItem('userRole');
+      const storedRole = localStorage.getItem('userRole');
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(today.getDate() + 1);
@@ -167,7 +167,7 @@ const SessionManagement = () => {
           sessionDate: filter,
           nextDate: nextdate,
           physioId: user._id,
-          storedRole:storedRole
+          storedRole: storedRole
 
         })
       });
@@ -426,21 +426,42 @@ const SessionManagement = () => {
   //   }).catch(err => console.error('Error loading data:', err));
   // }, [user]);
 
+  // useEffect(() => {
+  //   let filtered = sessions;
+  //   if (searchTerm) {
+  //     filtered = filtered.filter(session => {  session.patientId?.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
+  //       const patient = patients.find(p => p.id === session.patientId);
+  //       return patient?.name.toLowerCase().includes(searchTerm.toLowerCase());
+  //     });
+  //   }
+  //   if (statusFilter !== 'all') {
+  //     console.log(filtered, "object")
+  //     filtered = filtered.filter(session => session.sessionStatusId.sessionStatusName === statusFilter);
+  //     console.log(filtered, "filtered")
+  //   }
+  //   setFilteredSessions(filtered);
+  // }, [sessions, patients, searchTerm, statusFilter]);
+
+
   useEffect(() => {
-    let filtered = sessions;
-    if (searchTerm) {
-      filtered = filtered.filter(session => {
-        const patient = patients.find(p => p.id === session.patientId);
-        return patient?.name.toLowerCase().includes(searchTerm.toLowerCase());
-      });
+  let filtered = sessions;
+
+  // Search by patient name
+  if (searchTerm)
+     { 
+    filtered = filtered.filter(session => session.patientId?.patientName?.toLowerCase().includes(searchTerm.toLowerCase()));
     }
-    if (statusFilter !== 'all') {
-      console.log(filtered, "object")
-      filtered = filtered.filter(session => session.sessionStatusId.sessionStatusName === statusFilter);
-      console.log(filtered, "filtered")
-    }
-    setFilteredSessions(filtered);
-  }, [sessions, patients, searchTerm, statusFilter]);
+
+  // Filter by status
+  if (statusFilter !== 'all') {
+    filtered = filtered.filter(
+      session => session.sessionStatusId?.sessionStatusName === statusFilter
+    );
+  }
+
+  setFilteredSessions(filtered);
+}, [sessions, searchTerm, statusFilter]);
+
 
   const getPatientName = (id) => patients.find(p => p.id === id)?.name || 'Unknown';
   const getPhysioName = (id) => physios.find(p => p.id === id)?.name || 'Unknown';

@@ -332,7 +332,7 @@ const Consulation = () => {
     if (searchTerm) {
       const filtered = patients.filter(patient =>
         patient.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.patientNumber.includes(searchTerm) ||
+        // patient.patientNumber.includes(searchTerm) ||
         patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredPatients(filtered);
