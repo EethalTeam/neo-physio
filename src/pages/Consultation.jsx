@@ -68,9 +68,9 @@ const Consulation = () => {
   const initialNewGoalState = { newShortTermGoal: '', newGoalDuration: '', nextReviewDate: null };
   const [newGoalForm, setNewGoalForm] = useState(initialNewGoalState);
 
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [historyPatient, setHistoryPatient] = useState(null);
-  const [patientHistory, setPatientHistory] = useState([]);
+  // const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  // const [historyPatient, setHistoryPatient] = useState(null);
+  // const [patientHistory, setPatientHistory] = useState([]);
 
   const initialFormState = {
     _id: '', patientCode: '', patientName: '', patientAge: '', patientGenderId: '', patientNumber: '', patientAddress: '', category: '', MedicalHistoryAndRiskFactor: '', documents: [],
@@ -340,12 +340,16 @@ const Consulation = () => {
       setFilteredPatients(patients);
     }
   }, [patients, searchTerm]);
+const generatePatientId = () => {
+  const ids = patients
+    .map(p => parseInt(p.patientCode?.replace('CON', ''), 10))
+    .filter(num => !isNaN(num));
 
-  const generatePatientId = () => {
-    const lastId = patients.length > 0 ? Math.max(...patients.map(p => parseInt(p.patientCode.replace('PAT', '')))) : 0;
-    const newId = lastId + 1;
-    return `PAT${String(newId).padStart(6, '0')}`;
-  };
+  const lastId = ids.length > 0 ? Math.max(...ids) : 0;
+  const newId = lastId + 1;
+
+  return `CON${String(newId).padStart(6, '0')}`;
+};
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -368,7 +372,7 @@ const Consulation = () => {
 
   };
 
-
+  
 
   const handleDateChange = (name, date) => {
     setPatientForm(prev => ({ ...prev, [name]: date }));
@@ -579,6 +583,57 @@ const Consulation = () => {
     }
   };
 
+  const openLead = async (patient) => {
+  if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
+    try {
+      // Call backend to revert consultant to lead
+      const response = await fetch(`/api/revert-consultant/${patient._id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+
+      if (response.ok) {
+        // Remove from current list
+        setPatients(prev => prev.filter(p => p._id !== patient._id));
+
+        // Show success toast
+        toast({
+          title: "Success",
+          description: `${patient.name} has been reverted to lead.`,
+          variant: "success"
+        });
+
+        // Navigate to lead details page
+        navigate('/leads', { state: { patient: data.leadDetails } });
+      } else {
+        // Show error from backend
+        toast({
+          title: "Error",
+          description: data.message || "Something went wrong",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to revert consultant.",
+        variant: "destructive"
+      });
+    }
+  } else {
+    toast({
+      title: "Access Denied",
+      description: "You do not have permission to revert to lead.",
+      variant: "destructive"
+    });
+  }
+};
+
   const openAssignPhysioDialog = (patient) => {
     console.log(patient, "patient")
     if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
@@ -641,26 +696,26 @@ const Consulation = () => {
     // setAssignForm(initialAssignState);
   };
 
-  const handleViewHistory = (patient) => {
-    setHistoryPatient(patient);
-    const patientSessions = sessions.filter(s => s.patientCode === patient.id).map(s => ({
-      type: 'session',
-      date: s.sessionDate,
-      title: `Session ${s.status}`,
-      details: s.feedback ? `Feedback: ${s.feedback.pros}` : `Status: ${s.status}`,
-    }));
+  // const handleViewHistory = (patient) => {
+  //   setHistoryPatient(patient);
+  //   const patientSessions = sessions.filter(s => s.patientCode === patient.id).map(s => ({
+  //     type: 'session',
+  //     date: s.sessionDate,
+  //     title: `Session ${s.status}`,
+  //     details: s.feedback ? `Feedback: ${s.feedback.pros}` : `Status: ${s.status}`,
+  //   }));
 
-    const patientGoalLog = (patient.goalLog || []).map(log => ({
-      type: 'review',
-      date: log.date,
-      title: `HOD Review: ${log.status}`,
-      details: `Goal: ${log.goal}. Feedback: ${log.feedback || 'N/A'}. Satisfaction: ${log.satisfaction || 'N/A'}%`,
-    }));
+  //   const patientGoalLog = (patient.goalLog || []).map(log => ({
+  //     type: 'review',
+  //     date: log.date,
+  //     title: `HOD Review: ${log.status}`,
+  //     details: `Goal: ${log.goal}. Feedback: ${log.feedback || 'N/A'}. Satisfaction: ${log.satisfaction || 'N/A'}%`,
+  //   }));
 
-    const combinedHistory = [...patientSessions, ...patientGoalLog].sort((a, b) => new Date(b.date) - new Date(a.date));
-    setPatientHistory(combinedHistory);
-    setIsHistoryOpen(true);
-  };
+  //   const combinedHistory = [...patientSessions, ...patientGoalLog].sort((a, b) => new Date(b.date) - new Date(a.date));
+  //   setPatientHistory(combinedHistory);
+  //   setIsHistoryOpen(true);
+  // };
 
   const renderRadioGroup = (label, name, value, id, group, dynamic) => (
     <div className="flex items-center space-x-4">
@@ -687,13 +742,13 @@ const Consulation = () => {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
         <div>
-          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Patient Management</h1>
-          <p className="text-gray-600 text-sm md:text-xs">Manage registered patients and their treatment plans.</p>
+          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Consultation Management</h1>
+          <p className="text-gray-600 text-sm md:text-xs">Manage consultation, client details,and treatment records.</p>
         </div>
         {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
           <>{
             Permissions.isAdd &&
-              <Button onClick={handleNewPatient}><PlusCircle className="mr-2 h-4 w-4" /> New Patient</Button>
+              <Button onClick={handleNewPatient}><PlusCircle className="mr-2 h-4 w-4" /> New Consultation</Button>
           }
         
           </>
@@ -701,18 +756,18 @@ const Consulation = () => {
       </motion.div>
 
       <Card className="medical-card">
-        <CardHeader><CardTitle>Search Patients</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Search Consultations</CardTitle></CardHeader>
         <CardContent>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input placeholder="Search by name, contact or Patient ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+            <Input placeholder="Search by name, contact or Consultation ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
           </div>
         </CardContent>
       </Card>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
         <Card className="medical-card">
-          <CardHeader><CardTitle>Patients ({filteredPatients.length})</CardTitle><CardDescription>All registered patients in the system</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Consultations ({filteredPatients.length})</CardTitle><CardDescription>All registered consultations in the system</CardDescription></CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredPatients.map((patient) => (
@@ -738,14 +793,17 @@ const Consulation = () => {
                   </div>
                   <div className="space-y-2">
                     {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
+                      <div className="flex space-x-2">
                       <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>
+                      <Button size="sm" onClick={() => openLead(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Revert</Button>
+                      </div>
                     )}
-                    <div className="flex space-x-2">
+                    {/* <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleViewConsultation(patient)} className="flex-1"><FileText size={14} /><span>Consultation</span></Button>
-                      <Button size="sm" onClick={() => handleScheduleReview(patient)} className="flex-1"><CalendarIcon size={14} /><span className='hidden md:inline lg:inline'>Review</span></Button>
-                    </div>
+                    <Button size="sm" onClick={() => handleScheduleReview(patient)} className="flex-1"><CalendarIcon size={14} /><span className='hidden md:inline lg:inline'>Review</span></Button> 
+                    </div> */}
                     <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button>
+                      {/* <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button> */}
                       {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
                         <>
                        {
@@ -819,7 +877,7 @@ const Consulation = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+      {/* <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Patient History: {historyPatient?.name}</DialogTitle>
@@ -843,7 +901,7 @@ const Consulation = () => {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
@@ -854,7 +912,7 @@ const Consulation = () => {
                 <AccordionItem value="item-1"><AccordionTrigger>Patient Details</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required disabled /></div>
-                    <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus /></PopoverContent></Popover></div>
+                    <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus  disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))} /></PopoverContent></Popover></div>
                     <div className="space-y-2"><Label>Name</Label><Input name="patientName" value={patientForm.patientName} onChange={handleFormChange} required /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -911,7 +969,7 @@ const Consulation = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div>
                     {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
-                    <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus /></PopoverContent></Popover></div>
+                    <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus disabled={(date)=>date<new Date().setHours(0,0,0,0)} /></PopoverContent></Popover></div>
                    
                       <div className="space-y-2">
                       <Label>Reference</Label>

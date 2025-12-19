@@ -393,8 +393,8 @@ const LeadManagement = () => {
                 <tr key={lead._id} className="border-b hover:bg-gray-50">
                   <td className="p-3">{lead.leadName}</td>
                   <td className="p-3">{lead.leadContactNo}</td>
-                  <td className="p-3"><span className='text-xs font-extralight border-2 border-blue-200 p-2 bg-blue-200 text-blue-700 rounded-2xl'>{lead?.physioCategoryId?.physioCateName}</span></td>
-                  <td className="p-3">{lead?.leadSourceId?.leadSourceName}</td>
+                  <td className="p-3"><span className='text-xs font-extralight border-2 border-blue-200 p-2 bg-blue-200 text-blue-700 rounded-2xl'>{lead.physioCategoryId.physioCateName}</span></td>
+                  <td className="p-3">{lead.leadSourceId.leadSourceName}</td>
                   <td><span style={{ backgroundColor: lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' }} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td>
                   {/* <td><span style={{backgroundColor:lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' ,color:lead.LeadStatusId.leadStatusTextColor}} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td> */}
                   <td className="p-3 flex gap-2">
