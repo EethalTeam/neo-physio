@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Search, FileText, Calendar as CalendarIcon, User, Edit, Trash2, Upload, Paperclip, ClipboardList, PlusCircle, UserPlus, History } from 'lucide-react';
+import { Search, FileText, Calendar as CalendarIcon, User, Edit, Trash2, Upload, Paperclip, ClipboardList, PlusCircle, UserPlus, History, UserCheck } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -209,24 +209,47 @@ const Consulation = () => {
     }
   }
 
-  const getAllPatient = async () => {
-    try {
-      const res = await apiRequest("Consultation/getAllConsultation", {
-        method: 'POST',
-        body: JSON.stringify({}),
-      })
+  // const getAllPatient = async () => {
+  //   try {
+  //     const res = await apiRequest("Consultation/getAllConsultation", {
+  //       method: 'POST',
+  //       body: JSON.stringify({}),
+  //     })
 
-      setFilteredPatients(res);
-      setPatients(res);
-    } catch (error) {
-      console.error('Error:', error);
-      throw error;
-    }
+  //     setFilteredPatients(res);
+  //     setPatients(res);
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     throw error;
+  //   }
+  // }
+
+
+  const getAllPatient = async () => {
+  try {
+    const res = await apiRequest("Consultation/getAllConsultation", {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+
+    console.log("Fetched patients:", res);
+
+    const consultantPatients = res.filter(item => item.status !== "Lead");
+
+    setFilteredPatients(consultantPatients);
+    setPatients(consultantPatients);
+
+  } catch (error) {
+    console.error('Error:', error);
   }
+};
+
 
 
   //api call and delete Patients
   const deletePatient = async (id) => {
+    if (user?.role === 'Admin' || user?.role === 'SuperAdmin') {
+      console.log(id, "id")
     try {
       const response = await apiRequest("Consultation/deleteConsultation", {
         method: 'POST',
@@ -248,6 +271,7 @@ const Consulation = () => {
       throw error;
     }
   }
+}
 
 
   //api for update Patients
@@ -296,23 +320,60 @@ const Consulation = () => {
   //   AssignPhysio()
   // }, [])
   //api for Assign physio
-  const AssignPhysio = async (data) => {
-    try {
-      const response = await apiRequest("Patient/AssignPhysio", {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-      toast({ title: "Success", description: "Assign updated successfully." });
-      getAllPatient()
-      setIsAssignPhysioOpen(false)
+  
+  // const AssignPhysio = async (data) => {
+  //   try {
+  //     const response = await apiRequest("Consultation/AssignPhysio", {
+  //       method: 'POST',
+  //       body: JSON.stringify(data),
+  //     });
+  //     toast({ title: "Success", description: "Assign updated successfully." });
+  //     getAllPatient()
+  //     setIsAssignPhysioOpen(false)
 
-      return response;
-    } catch (error) {
-      console.error('Error:', error);
-      throw error;
+  //     return response;
+  //   } catch (error) {
+
+  //     console.error('Error:', error);
+  //     throw error;
+  //   }
+  // }
+
+const AssignPhysio = async (data) => {
+  console.log(data,"data")
+  try {
+    const response = await apiRequest("Consultation/AssignPhysio", {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+
+    toast({ title: "Success", description: "Physio assigned and sessions created." });
+
+    // Wait for Patients list to refresh
+    await getAllPatient();
+
+    setIsAssignPhysioOpen(false);
+
+    // Navigate to Sessions page with sessions data
+    if (response.sessions && response.sessions.length > 0) {
+      navigate('/sessions', { state: { refresh: true, sessions: response.sessions } });
     }
-  }
 
+    return response;
+  } catch (error) {
+    console.error('Error:', error);
+    toast({
+      title: "Error",
+      description: error.message || "Something went wrong",
+      variant: "destructive"
+    });
+  }
+};
+
+
+useEffect(() => { 
+  getAllPatient();
+},[]);
 
 
   // useEffect(() => {
@@ -583,56 +644,42 @@ const generatePatientId = () => {
     }
   };
 
+  
   const openLead = async (patient) => {
   if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
     try {
-      // Call backend to revert consultant to lead
-      const response = await fetch(`/api/revert-consultant/${patient._id}`, {
+      // Call backend to revert the patient
+      const response = await apiRequest('Consultation/revertConsultation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: JSON.stringify({ id: patient._id, status: "Pending" }), // optional: send "Pending" status
       });
-      
-      const data = await response.json();
 
-      if (response.ok) {
-        // Remove from current list
-        setPatients(prev => prev.filter(p => p._id !== patient._id));
+      const data = response; // API returns updated patient
 
-        // Show success toast
-        toast({
-          title: "Success",
-          description: `${patient.name} has been reverted to lead.`,
-          variant: "success"
-        });
+      // Remove from Consultant page
+      setPatients(prev => prev.filter(p => p._id !== patient._id));
+      setFilteredPatients(prev => prev.filter(p => p._id !== patient._id));
 
-        // Navigate to lead details page
-        navigate('/leads', { state: { patient: data.leadDetails } });
-      } else {
-        // Show error from backend
-        toast({
-          title: "Error",
-          description: data.message || "Something went wrong",
-          variant: "destructive"
-        });
-      }
-    } catch (err) {
-      console.error(err);
+      toast({
+        title: "Reverted",
+        description: `${patient.patientName || "Patient"} has been reverted to lead.`,
+        variant: "default"
+      });
+
+      // Navigate to Lead page and send reverted patient data
+      navigate('/leads', { state: { refresh: true, patient: data.leadDetails } });
+
+    } catch (error) {
+      console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Failed to revert consultant.",
+        description: error.message || "Something went wrong",
         variant: "destructive"
       });
     }
-  } else {
-    toast({
-      title: "Access Denied",
-      description: "You do not have permission to revert to lead.",
-      variant: "destructive"
-    });
   }
 };
+
 
   const openAssignPhysioDialog = (patient) => {
     console.log(patient, "patient")
@@ -745,14 +792,14 @@ const generatePatientId = () => {
           <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Consultation Management</h1>
           <p className="text-gray-600 text-sm md:text-xs">Manage consultation, client details,and treatment records.</p>
         </div>
-        {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
+        {/* {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
           <>{
             Permissions.isAdd &&
               <Button onClick={handleNewPatient}><PlusCircle className="mr-2 h-4 w-4" /> New Consultation</Button>
           }
         
           </>
-        )}
+        )} */}
       </motion.div>
 
       <Card className="medical-card">
@@ -794,7 +841,15 @@ const generatePatientId = () => {
                   <div className="space-y-2">
                     {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
                       <div className="flex space-x-2">
-                      <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>
+                      <Button size="sm" disabled={!!patient.physioId} onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2">
+                      {patient.physioId?(
+                        <>
+                        <UserCheck size={14}/>Physio Assigned</>
+                      ):(
+                        <>
+                        <UserPlus size={14}/>Assign Physio</>
+                      )}</Button>
+                    {/* <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>*/}
                       <Button size="sm" onClick={() => openLead(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Revert</Button>
                       </div>
                     )}
@@ -903,7 +958,7 @@ const generatePatientId = () => {
         </DialogContent>
       </Dialog> */}
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      {/* <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
           <DialogHeader><DialogTitle>{editingPatient ? 'Edit Patient' : 'Create New Patient'}</DialogTitle></DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
@@ -967,9 +1022,9 @@ const generatePatientId = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div>
+                    <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div> */}
                     {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
-                    <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus disabled={(date)=>date<new Date().setHours(0,0,0,0)} /></PopoverContent></Popover></div>
+                    {/* <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus disabled={(date)=>date<new Date().setHours(0,0,0,0)} /></PopoverContent></Popover></div>
                    
                       <div className="space-y-2">
                       <Label>Reference</Label>
@@ -996,8 +1051,8 @@ const generatePatientId = () => {
 
                 </AccordionContent></AccordionItem>
 
-                <AccordionItem value="item-2"><AccordionTrigger>Medical History & Risk Factors</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
+                <AccordionItem value="item-2"><AccordionTrigger>Medical History & Risk Factors</AccordionTrigger><AccordionContent className="space-y-4"> */}
+                  {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
                     {
                       risk.map((risk) => (
                         <div key={risk.RiskFactorIDPK}>
@@ -1037,8 +1092,8 @@ const generatePatientId = () => {
 
                 <AccordionItem value="item-6"><AccordionTrigger>Treatment Plan</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="space-y-2"><Label>Short-term Goals</Label><textarea name="shortTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.shortTermGoals} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>Long-term Goals</Label><textarea name="longTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.longTermGoals} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>Recommended Therapy</Label><textarea name="RecomTherapy" rows={2} className="w-full p-2 border rounded-md" value={patientForm.RecomTherapy} onChange={handleFormChange} /></div>
+                  <div className="space-y-2"><Label>Long-term Goals</Label><textarea name="longTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.longTermGoals} onChange={handleFormChange} /></div> */}
+                  {/* <div className="space-y-2"><Label>Recommended Therapy</Label><textarea name="RecomTherapy" rows={2} className="w-full p-2 border rounded-md" value={patientForm.RecomTherapy} onChange={handleFormChange} /></div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Frequency (per week)</Label><Input name="Frequency" type="number" value={patientForm.Frequency} onChange={handleFormChange} /></div>
                     <div className="space-y-2"><Label>Duration (weeks/months)</Label><Input name="Duration" value={patientForm.Duration} onChange={handleFormChange} /></div>
@@ -1066,7 +1121,7 @@ const generatePatientId = () => {
             </form>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       <Dialog open={isAssignPhysioOpen} onOpenChange={setIsAssignPhysioOpen}>
         <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">

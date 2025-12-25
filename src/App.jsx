@@ -39,6 +39,8 @@ import Modalities from '@/pages/Modalities';
 import Role from '@/pages/Role';
 import MenuRegistry from '@/pages/MenuRegistry';
 import Consultation from '@/pages/Consultation'
+import ReviewType from './pages/ReviewType';
+import ReviewForm from './pages/ReviewMasterForm';
 
 function App() {
   return (
@@ -285,6 +287,23 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             } />
+
+
+            <Route path='/reviewtype' element={
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
+                <Layout>
+                  <ReviewType/>
+                </Layout>
+              </ProtectedRoute>
+
+            }/>
+            <Route path='/reviewform' element={
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD','Physio']}>
+                <Layout>
+                  <ReviewForm/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
 
 
           </Routes>

@@ -203,6 +203,7 @@ const LeadManagement = () => {
       console.error('Error loading leads:', error);
     }
   };
+  
 
   //  Create Lead
   const createLead = async (data) => {

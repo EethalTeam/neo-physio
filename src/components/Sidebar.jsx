@@ -116,7 +116,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Layers, label: 'Fees Type', path: '/feesType' },
         { icon: Layers, label: 'Lead Status', path: '/leadStatus' },
         { icon: Layers, label: 'Session Status', path: '/sessionStatus' },
-        { icon: Layers, label: 'Modalities', path: '/modalities' }
+        { icon: Layers, label: 'Modalities', path: '/modalities' },
+        {icon: Layers, label: 'Review Type', path: '/reviewtype' },
+        {icon: Layers, label: 'Review form', path: '/reviewform' },
 
       ]
     };

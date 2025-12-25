@@ -1,0 +1,487 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Calendar as CalendarIcon, Play, Square, MessageSquare, Search, PlusCircle, Edit, Trash2, Upload, Paperclip, XCircle } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, formatISO } from "date-fns";
+import { cn } from "@/lib/utils";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { apiRequest } from '@/components/CustomComponents/apiRequest'
+
+const initialFormState = {
+  patientId: "",
+  physioId: "",
+  sessionDate: "",
+  sessionTime: "",
+  machineId: "",
+};
+
+const initialFeedbackState = {
+  sessionFeedbackPros: "",
+  modeOfExercise: "passive",
+  redFlags: [],
+  homeExerciseAssigned: "no",
+  modalities: "no",
+  modalitiesList: [],
+  machineId: "",
+  targetArea: "",
+  media: [],
+  reviewTypeId: ""
+};
+
+const ReviewMasterForm = () => {
+  const navigate = useNavigate();
+  const { user, getPermissionsByPath } = useAuth();
+
+  const [reviews, setReviews] = useState([]);
+  const [filteredReviews, setFilteredReviews] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [physios, setPhysios] = useState([]);
+  const [reviewTypes, setReviewTypes] = useState([]);
+  const [redFlags, setRedFlags] = useState([]);
+  const [machines, setMachines] = useState([]);
+  const [modalities, setModalities] = useState([]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [reviewTypeFilter, setReviewTypeFilter] = useState("all");
+
+  const [permissions, setPermissions] = useState({
+    isAdd: false,
+    isView: false,
+    isEdit: false,
+    isDelete: false,
+  });
+
+  const [feedbackDialog, setFeedbackDialog] = useState({ open: false, sessionId: null, patientId: null });
+  const [cancelDialog, setCancelDialog] = useState({ open: false, sessionId: null });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
+
+  const [sessionForm, setSessionForm] = useState(initialFormState);
+  const [feedback, setFeedback] = useState(initialFeedbackState);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    getPermissions();
+    getAllData();
+  }, []);
+
+  const getPermissions = async () => {
+    const res = await getPermissionsByPath(window.location.pathname);
+    if (res) setPermissions(res);
+    else navigate("/dashboard");
+  };
+
+  const getAllData = async () => {
+    await Promise.all([getReviews(), getPatients(), getPhysios(), getReviewTypes(), getRedFlags()]);
+  };
+const getReviews = async () => {
+  try {
+        const storedRole = localStorage.getItem('userRole');
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+  
+        let date = today.toISOString();
+        let filter = `${date.split('T')[0]}T00:00:00Z`
+  
+        let nextdate = `${tomorrow.toISOString().split('T')[0]}T00:00:00Z`
+  
+        console.log(filter, "filter")
+        console.log(nextdate, "nextdate")
+
+
+        const response = await apiRequest("Review/getAllReview", {
+          method: 'POST',
+          body: JSON.stringify({
+            sessionDate: filter,
+            nextDate: nextdate,
+            physioId: user._id,
+            storedRole: storedRole
+  
+          })
+        });
+  
+        setReviews(response);
+        setFilteredReviews(response);
+console.log(response, "reviews from frontend");
+      } catch (error) {
+        console.log(error, "error from frontend get All Session");
+      }
+};
+
+  const getPatients = async () => {
+    const res = await apiRequest("Patient/getAllPatient", { method: "POST", body: JSON.stringify({}) });
+    setPatients(res?.data || res || []);
+
+  };
+
+  const getPhysios = async () => {
+    const res = await apiRequest("Physio/getAllPhysio", { method: "POST", body: JSON.stringify({}) });
+    setPhysios(res.physios || []);
+  };
+
+  const getReviewTypes = async () => {
+    const res = await apiRequest("ReviewType/getAllReviewType", { method: "POST" });
+    // setReviewTypes(res || []);
+     console.log(res, "review types")
+   
+  };
+
+  const getRedFlags = async () => {
+    const res = await apiRequest("Redflag/getAllRedflag", { method: "POST" });
+    // setRedFlags(res || []);
+     console.log(res, "review types")
+  };
+
+  useEffect(() => {
+    let filtered = [...reviews];
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (r) =>
+          r.patientId?.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          r.physioId?.physioName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          r.feedback?.toLowerCase()?.includes(searchTerm.toLowerCase())
+      );
+    }
+    if (reviewTypeFilter !== "all") {
+      filtered = filtered.filter((r) => r.reviewTypeId?._id === reviewTypeFilter);
+    }
+    setFilteredReviews(filtered);
+  }, [searchTerm, reviewTypeFilter, reviews]);
+
+  const getPatientName = (id) => patients.find((p) => p._id === id)?.patientName || "Unknown";
+  const getPhysioName = (id) => physios.find((p) => p._id === id)?.physioName || "Unknown";
+  const getReviewTypeName = (id) => reviewTypes.find((r) => r._id === id)?.reviewTypeName || "Unknown";
+
+  const handleFeedbackSubmit = async () => {
+    try {
+      if (!feedback.sessionFeedbackPros || !feedback.reviewTypeId) {
+        alert("Please enter feedback and select review type before submitting");
+        return;
+      }
+
+      const payload = {
+        patientId: feedbackDialog.patientId,
+        physioId: user._id,
+        reviewDate: new Date(),
+        reviewTime: new Date().toLocaleTimeString(),
+        reviewTypeId: feedback.reviewTypeId,
+        redflagId: feedback.redFlags.length > 0 ? feedback.redFlags[0].redflagId : null,
+        feedback: feedback.sessionFeedbackPros,
+      };
+
+      await apiRequest("Review/createReview", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      setFeedbackDialog({ open: false, sessionId: null, patientId: null });
+      getReviews();
+      setFeedback(initialFeedbackState);
+    } catch (err) {
+      console.error("Error submitting feedback:", err);
+      alert("Failed to submit feedback");
+    }
+  };
+const createReview = async (data) => {
+  try {
+    if (!data.sessionDate || !data.patientId || !data.reviewTypeId) return;
+
+    const payload = {
+      patientId: data.patientId,
+      physioId: data.physioId || user._id,
+      reviewDate: new Date(data.sessionDate).toISOString(),
+      reviewTime: data.sessionTime || new Date().toLocaleTimeString(),
+      reviewTypeId: data.reviewTypeId,        // MUST be selected from form
+      redflagId: data.redflagId || null,
+      feedback: data.feedback || "",          // Default empty string
+    };
+
+    await apiRequest("Review/createReview", {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    getReviews();
+  } catch (error) {
+    console.error(error, "Error creating review");
+  }
+};
+
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+
+    if (!sessionForm.patientId || !sessionForm.physioId) {
+      alert("Please select patient and physio");
+      return;
+    }
+
+    if (editingReview) {
+      toast({ title: "Success", description: "Review updated." });
+    } else {
+      createReview(sessionForm);
+      toast({ title: "Success", description: "New Review scheduled." });
+    }
+
+    setIsFormOpen(false);
+    setEditingReview(null);
+    setSessionForm(initialFormState);
+  };
+
+  
+   return (
+    <div className="md:space-y-6 space-y-10">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="md:flex md:justify-between md:items-center lg:flex lg:justify-between lg:items-center space-y-5"
+      >
+        <div>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
+            {user?.role === "Physio" ? "My Reviews" : "Review Management"}
+          </h1>
+          <p className="text-gray-600">
+            {user?.role === "Physio"
+              ? "Manage your assigned patient reviews"
+              : "Manage all patient reviews and track progress"}
+          </p>
+        </div>
+        {user?.role !== "physio" && permissions.isAdd && (
+          <Button onClick={() => setIsFormOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Schedule Review
+          </Button>
+        )}
+      </motion.div>
+
+      {/* Filter Card */}
+      <Card className="medical-card max-w-fit md:max-w-full">
+        <CardHeader>
+          <CardTitle>Search & Filter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex md:flex-row flex-col items-center gap-4">
+            <div className="flex-1 relative">
+              <Input
+                placeholder="Search by patient name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="w-48">
+              <Select value={reviewTypeFilter} onValueChange={setReviewTypeFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Review Types</SelectItem>
+                  {reviewTypes.map((r) => (
+                    <SelectItem key={r._id} value={r._id}>
+                      {r.reviewTypeName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+<Card className="medical-card md:hidden">
+  <CardHeader>
+    <CardTitle>Reviews({reviews.length})</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="md:hidden space-y-4">
+      {reviews.map((session) => (
+        <Card key={session._id} className="p-4 shadow-lg rounded-2xl border">
+
+          {/* Top Section */}
+          <div className="mb-2">
+            <p className="text-base font-bold">{session.patientId?.patientName || '-'}</p>
+
+            {user?.role !== 'physio' && (
+              <p className="text-sm text-gray-500">
+                Physio: <span className="font-medium">{session.physioId?.physioName || '-'}</span>
+              </p>
+            )}
+          </div>
+                   {/* Feedback */}
+          <div className="text-xs mb-3">
+            {session.feedback ? (
+              <>
+                {session.feedback.sessionFeedbackPros && (
+                  <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>
+                )}
+                {session.feedback.redFlags?.length > 0 && (
+                  <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>
+                )}
+                {session.feedback.media?.length > 0 && (
+                  <p className="text-blue-600">
+                    <Paperclip size={12} className="inline-block mr-1" />
+                    {session.feedback.media.join(', ')}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-gray-400">No feedback</p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2">
+            {session.sessionStatusId?.sessionStatusName?.toLowerCase() === 'scheduled' && (
+              <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}>
+                <Play size={12} />
+              </Button>
+            )}
+           {(session.reviewTypeId?.reviewTypeName?.toLowerCase() === 'scheduled' ||
+              session.reviewTypeId?.reviewTypeName?.toLowerCase() === 'attended') && (
+              <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'Canceled')}>
+                <XCircle size={12} />
+              </Button>
+            )}
+
+            {user?.role !== 'physio' && (
+              <>
+                <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}>
+                  <Edit size={12} />
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive">
+                      <Trash2 size={12} />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>This will permanently delete the session.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteSession(session._id)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
+        </Card>
+      ))}
+    </div>
+  </CardContent>
+</Card>
+ <Dialog open={feedbackDialog.open} onOpenChange={(open) => setFeedbackDialog({ open, sessionId: null })}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader><DialogTitle>Add Session Feedback</DialogTitle><DialogDescription>Provide feedback for the completed session.</DialogDescription></DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-6">
+            <div className="space-y-6 pt-4">
+              <div className="space-y-2"><Label htmlFor="sessionFeedbackPros ">Positive Feedback (Pros)</Label><textarea id="sessionFeedbackPros " className="w-full p-2 border rounded-md" rows={2} value={feedback.sessionFeedbackPros} onChange={(e) => setFeedback({ ...feedback, sessionFeedbackPros: e.target.value })} placeholder="What went well..." /></div>
+
+              <div className="space-y-2"><Label>Mode of Exercise</Label><RadioGroup defaultValue="passive" value={feedback.modeOfExercise} onValueChange={(v) => setFeedback({ ...feedback, modeOfExercise: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ex-active" /><Label htmlFor="ex-active">Active</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="passive" id="ex-passive" /><Label htmlFor="ex-passive">Passive</Label></div></RadioGroup></div>
+
+
+              <div className="space-y-2"><Label>Red Flags</Label><div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">{redFlags.map(flag => (
+  <div key={flag._id} className="flex items-center space-x-2">
+    <Checkbox
+      id={`rf-${flag._id}`}
+      onCheckedChange={(checked) => {
+        setFeedback(prev => ({
+          ...prev,
+          redFlags: checked
+            ? [...prev.redFlags, { redflagId: flag._id, isOccurred: true }]
+            : prev.redFlags.filter(f => f.redflagId !== flag._id)
+        }));
+      }}
+    />
+    <Label htmlFor={`rf-${flag._id}`} className="text-sm font-normal">{flag.redflagName}</Label>
+  </div>
+))}
+</div></div>
+             
+              <div className="space-y-2"><Label>Home Exercise Program Assigned</Label><RadioGroup value={feedback.homeExerciseAssigned} onValueChange={(v) => setFeedback({ ...feedback, homeExerciseAssigned: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="he-yes" /><Label htmlFor="he-yes">Yes</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="no" id="he-no" /><Label htmlFor="he-no">No</Label></div></RadioGroup></div>
+
+              <div className="space-y-2"><Label>Modalities</Label><RadioGroup value={feedback.modalities} onValueChange={(v) => setFeedback({ ...feedback, modalities: v })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="yes" id="mod-yes" /><Label htmlFor="mod-yes">Yes</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="no" id="mod-no" /><Label htmlFor="mod-no">No</Label></div></RadioGroup></div>
+
+              {feedback.modalities === 'yes' && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label>
+                <div className="p-3 border rounded-md grid grid-cols-3 gap-2">{Modalities.map(mod => (<div key={mod._id} className="flex items-center space-x-2"><Checkbox id={`mod-${mod._id}`} onCheckedChange={(checked) => {
+                  setFeedback(prev => (checked ? { ...prev, modalitiesList: [...prev.modalitiesList, { modalityId: mod._id, isOccurred: true }] } : { ...prev, modalitiesList: prev.modalitiesList.filter(m => m.modalityId !== mod._id) }))
+                }} /><Label htmlFor={`rf-${mod._id}`} className="text-sm font-normal">{mod.modalitiesName}</Label></div>))}</div></motion.div>}
+              <div className="space-y-2"><Label>Machine Used</Label><Select onValueChange={(v) => setFeedback(p => ({ ...p, machineId: v }))} value={feedback.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div>
+
+              <div className="space-y-2"><Label htmlFor="targetArea">Targeted Area</Label><Input id="targetArea" value={feedback.targetArea} onChange={(e) => setFeedback({ ...feedback, targetArea: e.target.value })} placeholder="e.g., Lower back, right shoulder" /></div>
+
+
+
+
+
+              {user?.role === 'Physio' && (
+                <div className="space-y-2">
+                  <Label>Upload Image/Video</Label>
+                  <Input type="file" accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFeedbackUpload} />
+                  <Button type="button" variant="outline" onClick={() => fileInputRef.current.click()}><Upload size={16} className="mr-2" /> Attach Media</Button>
+                  <div className="mt-2 space-y-1">
+                    {feedback.media.map((doc, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm text-gray-600"><Paperclip size={14} /> {doc}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <DialogFooter><Button type="button" variant="outline" onClick={() => setFeedbackDialog({ open: false, sessionId: null })}>Cancel</Button><Button onClick={handleFeedbackSubmit}>Submit Feedback</Button></DialogFooter>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+     
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen} >
+        <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide"><DialogHeader><DialogTitle>{editingReview ? 'Edit Review' : 'Schedule New Review'}</DialogTitle></DialogHeader>
+          <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
+            <div className="space-y-2">
+  <Label>Patient</Label>
+  <Select
+    onValueChange={(v) => setSessionForm(p => ({ ...p, patientId: v }))}
+    value={sessionForm.patientId}
+    required
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Select a patient" />
+    </SelectTrigger>
+    <SelectContent>
+      {patients.length === 0 ? (
+        <SelectItem value="" disabled>Loading patients...</SelectItem>
+      ) : (
+        patients.map(p => (
+          <SelectItem key={p._id || p.id} value={p._id || p.id}>
+            {p.patientName || p.name}
+          </SelectItem>
+        ))
+      )}
+    </SelectContent>
+  </Select>
+            </div>
+            <div className="space-y-2"><Label>Physiotherapist</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, physioId: v }))} value={sessionForm.physioId}><SelectTrigger><SelectValue placeholder="Select a physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id}>{p.physioName}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Session Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{sessionForm.sessionDate ? format(sessionForm.sessionDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d }))} initialFocus disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))} /></PopoverContent></Popover></div>
+            {/* <div className="space-y-2"><Label htmlFor="sessionDay">Session Day</Label><Input id="sessionDay" disabled type="text" value={sessionForm.sessionDay} onChange={(e) => setSessionForm(p => ({ ...p, sessionDay: e.target.value }))} /></div> */}
+            <div className="space-y-2"><Label htmlFor="sessionTime">Session Time</Label><Input id="sessionTime" type="time" value={sessionForm.sessionTime} onChange={(e) => setSessionForm(p => ({ ...p, sessionTime: e.target.value }))} /></div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingReview ? 'Save Changes' : 'Schedule Review'}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+export default ReviewMasterForm;

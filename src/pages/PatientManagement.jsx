@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Search, FileText, Calendar as CalendarIcon, User, Edit, Trash2, Upload, Paperclip, ClipboardList, PlusCircle, UserPlus, History } from 'lucide-react';
+import { Search, FileText, Calendar as CalendarIcon, User, Edit, Trash2, Upload, Paperclip, ClipboardList, PlusCircle, UserPlus, History, UserCheck } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -607,9 +607,50 @@ const PatientManagement = () => {
       toast({ title: "Access Denied", description: "You do not have permission to assign physiotherapists.", variant: "destructive" });
     }
   };
+const handleAssignPhysioSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const response = await AssignPhysio(assignForm); // wait for API
 
-  const handleAssignPhysioSubmit = (e) => {
-    e.preventDefault();
+    // Update patients state locally
+    setPatients(prev => prev.map(p => {
+      if (p._id === assigningPatient._id) {
+        return {
+          ...p,
+          physioId: {
+            _id: assignForm.physioId,
+            physioName: assignForm.Physiotherapist
+          },
+          sessionStartDate: assignForm.sessionStartDate,
+          sessionTime: assignForm.sessionTime,
+          totalSessionDays: assignForm.totalSessionDays,
+          InitialShorttermGoal: assignForm.InitialShorttermGoal,
+          goalDuration: assignForm.goalDuration,
+          goalDescription: assignForm.goalDescription,
+          reviewFrequency: assignForm.reviewFrequency,
+          visitOrder: assignForm.visitOrder,
+          KmsfromHub: assignForm.KmsfromHub,
+          KmsfLPatienttoHub: assignForm.KmsfLPatienttoHub,
+          kmsFromPrevious: assignForm.kmsFromPrevious
+        };
+      }
+      return p;
+    }));
+
+    toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
+
+    setIsAssignPhysioOpen(false);
+    setAssigningPatient(null);
+    setAssignForm(initialAssignState);
+
+  } catch (error) {
+    console.error('Error assigning physio:', error);
+    toast({ title: "Error", description: "Failed to assign physio", variant: "destructive" });
+  }
+};
+
+  // const handleAssignPhysioSubmit = (e) => {
+    // e.preventDefault();
     // setPatients(prev => prev.map(p => {
     //   if (p._id === assigningPatient._id) {
     //     return {
@@ -632,14 +673,14 @@ const PatientManagement = () => {
     //   }
     //   return p;
     // }));
-    console.log(assignForm, "...assigningPatient,...assignForm")
+    // console.log(assignForm, "...assigningPatient,...assignForm")
 
-    AssignPhysio(assignForm)
-    toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
+    // AssignPhysio(assignForm)
+    // toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
     // setIsAssignPhysioOpen(false);
     // setAssigningPatient(null);
     // setAssignForm(initialAssignState);
-  };
+  // };
 
   const handleViewHistory = (patient) => {
     setHistoryPatient(patient);
@@ -738,7 +779,17 @@ const PatientManagement = () => {
                   </div>
                   <div className="space-y-2">
                     {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-                      <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>
+                      <Button size="sm" disabled={!!patient.physioId} 
+                       onClick={() => openAssignPhysioDialog(patient)} 
+                       className="w-full flex items-center gap-2">
+                        {patient.physioId ? (
+                          <>
+                          <UserCheck size={14}/> Physio Assigned</>
+                        ):(
+                          <>
+                          <UserPlus size={14} /> Assign Physio</>
+                        )}
+                        </Button>
                     )}
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleViewConsultation(patient)} className="flex-1"><FileText size={14} /><span>Consultation</span></Button>
@@ -854,7 +905,7 @@ const PatientManagement = () => {
                 <AccordionItem value="item-1"><AccordionTrigger>Patient Details</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required disabled /></div>
-                    <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus /></PopoverContent></Popover></div>
+                    <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))}/></PopoverContent></Popover></div>
                     <div className="space-y-2"><Label>Name</Label><Input name="patientName" value={patientForm.patientName} onChange={handleFormChange} required /></div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -911,7 +962,7 @@ const PatientManagement = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div>
                     {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
-                    <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus /></PopoverContent></Popover></div>
+                    <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))}/></PopoverContent></Popover></div>
                    
                       <div className="space-y-2">
                       <Label>Reference</Label>

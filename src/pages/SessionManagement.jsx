@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog , AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Calendar as CalendarIcon, Play, Square, MessageSquare, Search, PlusCircle, Edit, Trash2, Upload, Paperclip, XCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -663,15 +663,19 @@ const SessionManagement = () => {
                 <tbody>
                   {filteredSessions.map((session) => (
                     <tr key={session._id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">{session.patientId.patientName}</td>
+                      <td className="p-2">{session.patientId?.patientName}</td>
+                      {/* <td className="p-2">{session.patientId.patientName}</td> */}
                       {/* <td className='p-2'>
                         {
                           patients.map((pat)=>{
                               <div key={pat._id}>{pat.patientName}</div> 
                           })
                         }
+                          
                       </td> */}
-                      {user?.role !== 'physio' && <td className="p-2">{session.physioId.physioName}</td>}
+
+                      {user?.role !== 'physio' && <td className="p-2">{session.physioId?.physioName || '-'}</td>}
+                      {/* {user?.role !== 'physio' && <td className="p-2">{session.physioId.physioName}</td>} */}
                       <td className="p-2"><div><p className="text-sm">{session.sessionDate.split('T')[0].split('-').reverse().join('-')} ({session.sessionDay})</p><p className="text-xs text-gray-600">{Converttime(session.sessionTime)}</p></div></td>
                       <td className="p-2">{session.machineId ? session.machineId.machineName : '-'}</td>
                       <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs status-${session.status}`} style={{ backgroundColor: session.sessionStatusId ? session.sessionStatusId.sessionStatusColor : 'white', color: session.sessionStatusId ? session.sessionStatusId.sessionStatusTextColor : 'black' }}> {session.sessionStatusId ? session.sessionStatusId.sessionStatusName : ''}</span></td>
@@ -685,28 +689,29 @@ const SessionManagement = () => {
                           {user?.role !== 'physio' && <>
                             <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}><Edit size={12} /></Button>
                             <AlertDialog><AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={12} /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the session.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSession(session._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-                          </>}
-                        </div>
+                          </>} 
+                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+           </CardContent>
+         </Card>  
 
+         
         {/* //card for mobile view */}
-        <Card className="medical-card  md:hidden">
-          <CardHeader><CardTitle>Sessions ({filteredSessions.length})</CardTitle></CardHeader>
-          <CardContent>
+        {/* <Card className="medical-card  md:hidden"> */}
+          {/* <CardHeader><CardTitle>Sessions ({filteredSessions.length})</CardTitle></CardHeader> */}
+          {/* <CardContent> */}
             {/* Mobile view */}
-            <div className="md:hidden space-y-4">
+            {/* <div className="md:hidden space-y-4">
               {filteredSessions.map((session) => (
-                <Card key={session._id} className="p-4 shadow-lg rounded-2xl border">
+                <Card key={session._id} className="p-4 shadow-lg rounded-2xl border"> */}
 
                   {/* --- Top Section --- */}
-                  <div className="mb-2">
+                  {/* <div className="mb-2">
                     <p className="text-base font-bold">{session.patientId.patientName}</p>
 
                     {user?.role !== 'physio' && (
@@ -714,20 +719,20 @@ const SessionManagement = () => {
                         Physio: <span className="font-medium">{session.physioId.physioName}</span>
                       </p>
                     )}
-                  </div>
+                  </div> */}
 
                   {/* --- Date + Time Badge --- */}
-                  <div className="bg-gray-100 rounded-md p-2 text-xs mb-2">
+                  {/* <div className="bg-gray-100 rounded-md p-2 text-xs mb-2">
                     <p className="font-semibold">
                       {session.sessionDate.split('T')[0].split('-').reverse().join('-')} ({session.sessionDay})
                     </p>
                     <p className="text-gray-700">
                       {Converttime(session.sessionTime)}
                     </p>
-                  </div>
+                  </div> */}
 
                   {/* --- Machine & Status --- */}
-                  <div className="flex justify-between text-xs mb-2">
+                  {/* <div className="flex justify-between text-xs mb-2">
                     <p className="font-medium">
                       Machine: {session.machineId ? session.machineId.machineName : '-'}
                     </p>
@@ -741,10 +746,10 @@ const SessionManagement = () => {
                     >
                       {session.sessionStatusId?.sessionStatusName}
                     </span>
-                  </div>
+                  </div> */}
 
                   {/* --- Feedback --- */}
-                  <div className="text-xs mb-3">
+                  {/* <div className="text-xs mb-3">
                     {session.feedback ? (
                       <>
                         {session.feedback.sessionFeedbackPros && (
@@ -763,10 +768,10 @@ const SessionManagement = () => {
                     ) : (
                       <p className="text-gray-400">No feedback</p>
                     )}
-                  </div>
+                  </div> */}
 
                   {/* --- Action Buttons --- */}
-                  <div className="flex flex-wrap gap-2">
+                  {/* <div className="flex flex-wrap gap-2">
                     {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && (
                       <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}>
                         <Play size={12} />
@@ -827,7 +832,144 @@ const SessionManagement = () => {
             </div>
 
           </CardContent>
+        </Card> */}
+
+{/* Mobile view card */}
+<Card className="medical-card md:hidden">
+  <CardHeader>
+    <CardTitle>Sessions ({filteredSessions.length})</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="md:hidden space-y-4">
+      {filteredSessions.map((session) => (
+        <Card key={session._id} className="p-4 shadow-lg rounded-2xl border">
+
+          {/* Top Section */}
+          <div className="mb-2">
+            <p className="text-base font-bold">{session.patientId?.patientName || '-'}</p>
+
+            {user?.role !== 'physio' && (
+              <p className="text-sm text-gray-500">
+                Physio: <span className="font-medium">{session.physioId?.physioName || '-'}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Date + Time */}
+          <div className="bg-gray-100 rounded-md p-2 text-xs mb-2">
+            <p className="font-semibold">
+              {session.sessionDate
+                ? new Date(session.sessionDate).toLocaleDateString('en-GB') + ` (${session.sessionDay || '-'})`
+                : '-'}
+            </p>
+            <p className="text-gray-700">
+              {session.sessionTime ? Converttime(session.sessionTime) : '-'}
+            </p>
+          </div>
+
+          {/* Machine & Status */}
+          <div className="flex justify-between text-xs mb-2">
+            <p className="font-medium">
+              Machine: {session.machineId?.machineName || '-'}
+            </p>
+            <span
+              className="px-2 py-1 rounded-sm text-[10px]"
+              style={{
+                backgroundColor: session.sessionStatusId?.sessionStatusColor || 'white',
+                color: session.sessionStatusId?.sessionStatusTextColor || 'black',
+              }}
+            >
+              {session.sessionStatusId?.sessionStatusName || '-'}
+            </span>
+          </div>
+
+          {/* Feedback */}
+          <div className="text-xs mb-3">
+            {session.feedback ? (
+              <>
+                {session.feedback.sessionFeedbackPros && (
+                  <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>
+                )}
+                {session.feedback.redFlags?.length > 0 && (
+                  <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>
+                )}
+                {session.feedback.media?.length > 0 && (
+                  <p className="text-blue-600">
+                    <Paperclip size={12} className="inline-block mr-1" />
+                    {session.feedback.media.join(', ')}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-gray-400">No feedback</p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2">
+            {session.sessionStatusId?.sessionStatusName?.toLowerCase() === 'scheduled' && (
+              <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}>
+                <Play size={12} />
+              </Button>
+            )}
+
+            {session.sessionStatusId?.sessionStatusName?.toLowerCase() === 'attended' && (
+              <Button size="sm" variant="outline" onClick={() => handleSessionAction(session._id, 'Completed')}>
+                <Square size={12} />
+              </Button>
+            )}
+
+            {session.sessionStatusId?.sessionStatusName?.toLowerCase() === 'completed' && !session.feedback && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setFeedbackDialog({ open: true, sessionId: session._id })}
+              >
+                <MessageSquare size={12} />
+              </Button>
+            )}
+
+            {(session.sessionStatusId?.sessionStatusName?.toLowerCase() === 'scheduled' ||
+              session.sessionStatusId?.sessionStatusName?.toLowerCase() === 'attended') && (
+              <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'Canceled')}>
+                <XCircle size={12} />
+              </Button>
+            )}
+
+            {user?.role !== 'physio' && (
+              <>
+                <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}>
+                  <Edit size={12} />
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive">
+                      <Trash2 size={12} />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>This will permanently delete the session.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteSession(session._id)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
         </Card>
+      ))}
+    </div>
+  </CardContent>
+</Card>
+
+
+
       </motion.div>
 
       <Dialog open={feedbackDialog.open} onOpenChange={(open) => setFeedbackDialog({ open, sessionId: null })}>
@@ -926,7 +1068,7 @@ const SessionManagement = () => {
               </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d , }))} initialFocus /></PopoverContent></Popover></div> */}
-            <div className="space-y-2"><Label>Session Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{sessionForm.sessionDate ? format(sessionForm.sessionDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d, sessionDay: getDayName(d) }))} initialFocus /></PopoverContent></Popover></div>
+            <div className="space-y-2"><Label>Session Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{sessionForm.sessionDate ? format(sessionForm.sessionDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d, sessionDay: getDayName(d) }))} initialFocus disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))} /></PopoverContent></Popover></div>
             <div className="space-y-2"><Label htmlFor="sessionDay">Session Day</Label><Input id="sessionDay" disabled type="text" value={sessionForm.sessionDay} onChange={(e) => setSessionForm(p => ({ ...p, sessionDay: e.target.value }))} /></div>
             <div className="space-y-2"><Label htmlFor="sessionTime">Session Time</Label><Input id="sessionTime" type="time" value={sessionForm.sessionTime} onChange={(e) => setSessionForm(p => ({ ...p, sessionTime: e.target.value }))} /></div>
             {/* <div className="space-y-2"><Label>Machine Used (Optional)</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, machineId: v }))} value={sessionForm.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div> */}
