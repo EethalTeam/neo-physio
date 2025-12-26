@@ -24,7 +24,6 @@ const SessionManagement = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
-  console.log(sessions, "sessions")
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
   const [machines, setMachines] = useState([]);
@@ -33,10 +32,8 @@ const SessionManagement = () => {
   // console.log(Modalities,"Modalities")
   const [sessionStatus, setSessionStatus] = useState([])
   const [filteredSessions, setFilteredSessions] = useState([]);
-  console.log(filteredSessions, "filteredSessions")
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  console.log(statusFilter, "statusFilter")
   const [dateFilter, setDateFilter] = useState('Date')
 
 
@@ -61,8 +58,8 @@ const SessionManagement = () => {
 
   };
   const [sessionForm, setSessionForm] = useState(initialFormState);
-  console.log(sessionForm.patientId, "patientId")
   const [feedbackDialog, setFeedbackDialog] = useState({ open: false, sessionId: null });
+  console.log(feedbackDialog,"feedbackDialog")
   const initialFeedbackState = {
     sessionFeedbackPros: '',
     redFlags: [],
@@ -75,7 +72,6 @@ const SessionManagement = () => {
     machineId: ""
   };
   const [feedback, setFeedback] = useState(initialFeedbackState);
-  console.log(feedback, "feedback")
   const fileInputRef = useRef(null);
 
   const [cancelDialog, setCancelDialog] = useState({ open: false, sessionId: null });
@@ -104,7 +100,6 @@ const SessionManagement = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then(res => {
       if (res) {
-        console.log(res, "res")
         setPermissions(res)
       } else {
         navigate('/dashboard')
@@ -157,10 +152,6 @@ const SessionManagement = () => {
 
       let nextdate = `${tomorrow.toISOString().split('T')[0]}T00:00:00Z`
 
-      console.log(filter, "filter")
-      console.log(nextdate, "nextdate")
-
-
       const response = await apiRequest("Session/getAllSession", {
         method: 'POST',
         body: JSON.stringify({
@@ -184,7 +175,6 @@ const SessionManagement = () => {
   const getCreateSession = async (data) => {
     try {
       if (!data.sessionDate) {
-        console.log(!data.sessionDate, "!data.sessionDate")
         return
       }
       let [month, date, year] = data.sessionDate.toLocaleDateString().split('/')
@@ -308,7 +298,6 @@ const SessionManagement = () => {
 
 
   const getModalities = async (data) => {
-    console.log(data, "Modalities Data")
     try {
       const response = await apiRequest("Modalities/getAllModalities", {
         method: 'POST',
@@ -323,7 +312,6 @@ const SessionManagement = () => {
 
 
   const SessionStart = async (data) => {
-    console.log(data, "data")
     try {
       const response = await apiRequest("Session/SessionStart", {
         method: 'POST',
@@ -469,13 +457,13 @@ const SessionManagement = () => {
   const getMachineName = (id) => machines.find(m => m.id === id)?.name || 'No machine';
 
   const handleSessionAction = (sessionId, action) => {
+    console.log(sessionId,"sessionId")
     if (action === 'Completed') {
       setFeedbackDialog({ open: true, sessionId: sessionId });
       // handleActionEnd(sessionId, action)
     } else if (action === 'Canceled') {
       setCancelDialog({ open: true, sessionId: sessionId });
     } else {
-      console.log(sessionId, action, "object")
       handleActionStart(sessionId, action)
 
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: action } : s));
@@ -502,6 +490,7 @@ const SessionManagement = () => {
 
   const handleFeedbackSubmit = () => {
     const { sessionId } = feedbackDialog;
+    console.log(sessionId,"sessionId")
     handleActionEnd(feedback, 'Completed', sessionId)
     // setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'Completed', feedback } : s));
 
@@ -525,7 +514,6 @@ const SessionManagement = () => {
 
 
   const handleActionEnd = (session, action, id) => {
-
     SessionEnd({
       _id: id,
       sessionToTime: CovertTdyTim(),
@@ -685,7 +673,7 @@ const SessionManagement = () => {
                         <div className="flex space-x-1">
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}><Play size={12} /></Button>}
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'attended' && <Button size="sm" variant="outline" onClick={() => handleSessionAction(session._id, 'Completed')}><Square size={12} /></Button>}
-                          {session.sessionStatusId.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && <Button size="sm" variant="outline" onClick={() => setFeedbackDialog({ open: true, sessionId: session.sessionId })}><MessageSquare size={12} /></Button>}
+                          {session.sessionStatusId.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && <Button size="sm" variant="outline" onClick={() => setFeedbackDialog({ open: true, sessionId: session._id })}><MessageSquare size={12} /></Button>}
                           {(session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' || session.sessionStatusId.sessionStatusName === 'Attended') && <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'Canceled')}><XCircle size={12} /></Button>}
                           {user?.role !== 'physio' && <>
                             <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}><Edit size={12} /></Button>
