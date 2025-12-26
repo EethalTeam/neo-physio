@@ -52,7 +52,6 @@ const ReviewMasterForm = () => {
   const [redFlags, setRedFlags] = useState([]);
   const [machines, setMachines] = useState([]);
   const [modalities, setModalities] = useState([]);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [reviewTypeFilter, setReviewTypeFilter] = useState("all");
 
@@ -134,14 +133,14 @@ console.log(response, "reviews from frontend");
 
   const getReviewTypes = async () => {
     const res = await apiRequest("ReviewType/getAllReviewType", { method: "POST" });
-    // setReviewTypes(res || []);
+    setReviewTypes(res || []);
      console.log(res, "review types")
    
   };
 
   const getRedFlags = async () => {
     const res = await apiRequest("Redflag/getAllRedflag", { method: "POST" });
-    // setRedFlags(res || []);
+    setRedFlags(res || []);
      console.log(res, "review types")
   };
 
@@ -195,7 +194,7 @@ console.log(response, "reviews from frontend");
       alert("Failed to submit feedback");
     }
   };
-const createReview = async (data) => {
+  const createReview = async (data) => {
   try {
     if (!data.sessionDate || !data.patientId || !data.reviewTypeId) return;
 
@@ -203,10 +202,10 @@ const createReview = async (data) => {
       patientId: data.patientId,
       physioId: data.physioId || user._id,
       reviewDate: new Date(data.sessionDate).toISOString(),
-      reviewTime: data.sessionTime || new Date().toLocaleTimeString(),
-      reviewTypeId: data.reviewTypeId,        // MUST be selected from form
-      redflagId: data.redflagId || null,
-      feedback: data.feedback || "",          // Default empty string
+      // reviewTime: data.sessionTime || new Date().toLocaleTimeString(),
+      reviewTypeId: data.reviewTypeId,       
+      redflagId: data.redflagId ||"694e1fc2212f38083803642a",
+      feedback: data.feedback || "",         
     };
 
     await apiRequest("Review/createReview", {
@@ -219,6 +218,7 @@ const createReview = async (data) => {
     console.error(error, "Error creating review");
   }
 };
+
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -239,7 +239,42 @@ const createReview = async (data) => {
     setEditingReview(null);
     setSessionForm(initialFormState);
   };
+  const deleteReview = async (data) => {
+    try {
+      const response = await apiRequest("Review/deleteReview", {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      getReviews()
+    } catch (error) {
+      console.log(error, "error   Session delete")
+    }
+  }
 
+
+const handleEditReview = (review) => {
+  setEditingReview(review);
+
+setSessionForm({
+  reviewCode: review.reviewCode || "",
+  patientId: review.patientId?._id || "",
+  physioId: review.physioId?._id || "",
+  sessionDate: review.reviewDate ? new Date(review.reviewDate) : "",
+  reviewTime: review.reviewTime || "",
+  reviewTypeId: review.reviewTypeId?._id || "",
+  sessionStatusId: review.sessionStatusId?._id || "",
+});
+
+
+  setIsFormOpen(true);
+};
+
+
+  const handleDeleteSession = (id) => {
+    // setSessions(prev => prev.filter(s => s.id !== sessionId));
+    deleteReview({ _id: id })
+    toast({ title: "Deleted", description: "Session has been removed.", variant: "destructive" });
+  };
   
    return (
     <div className="md:space-y-6 space-y-10">
@@ -298,11 +333,53 @@ const createReview = async (data) => {
           </div>
         </CardContent>
       </Card>
-<Card className="medical-card md:hidden">
+<Card className="medical-card ">
   <CardHeader>
     <CardTitle>Reviews({reviews.length})</CardTitle>
+      <Card className="medical-card hidden md:block">
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr className="border-b"><th className="text-left p-2">Patient</th>{user?.role !== 'physio' && <th className="text-left p-2">Physiotherapist</th>}<th className="text-left p-2">Date</th> <th className='text-left p-2'>Review Type</th><th className="text-left p-2">Feedback</th><th className="text-left p-2">Actions</th></tr></thead>
+                    <tbody>
+                      {reviews.map((session) => (
+                        <tr key={session._id} className="border-b hover:bg-gray-50">
+                          <td className="p-2">{session.patientId?.patientName}</td>
+                        
+                          {user?.role !== 'physio' && <td className="p-2">{session.physioId?.physioName || '-'}</td>}
+                          {/* {user?.role !== 'physio' && <td className="p-2">{session.physioId.physioName}</td>} */}
+                          <td className="p-2"><div><p className="text-sm">{session.reviewDate?session.reviewDate.split('T')[0].split('-').reverse().join('-'):'-'}</p><p className="text-xs text-gray-600">
+                            </p></div></td>
+                          {/* <td className="p-2">{session.machineId ? session.machineId.machineName : '-'}</td> */}
+                          {/* <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs status-${session.status}`} style={{ backgroundColor: session.sessionStatusId ? session.sessionStatusId.sessionStatusColor : 'white', color: session.sessionStatusId ? session.sessionStatusId.sessionStatusTextColor : 'black' }}> {session.sessionStatusId ? session.sessionStatusId.sessionStatusName : ''}</span></td> */}
+                          {/* <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs status-${session.reviewTypeName}`} style={{ backgroundColor: session.sessionStatusId ? session.sessionStatusId.sessionStatusColor : 'white', color: session.sessionStatusId ? session.sessionStatusId.sessionStatusTextColor : 'black' }}> {session.sessionStatusId ? session.sessionStatusId.reviewTypeName : ''}</span></td> */}
+                          <td className="p-2">{session.reviewTypeId.reviewTypeNames && session.reviewTypeId.reviewTypeName.length > 0 ? (session.redFlags.map(flag => (<span key={flag._id} className="px-2  hover:bg-gray-50">{session.reviewTypeId.reviewTypeName}</span>))) : (session.feedback && (<span className="px-2  hover:bg-gray-50">{session.reviewTypeId.reviewTypeName}</span>))}</td>
+                          {/* <td className="p-2">{session.feedback ? <div className="text-xs">{session.feedback.sessionFeedbackPros && <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>}{session.feedback.redFlags?.length > 0 && <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>}{session.feedback.media?.length > 0 && <p className="text-blue-600"><Paperclip size={12} className="inline-block mr-1" />{session.feedback.media.join(', ')}</p>}</div> : <span className="text-gray-400 text-xs">No feedback</span>}</td> */}
+                          <td className="p-2">  {session.feedback ? (<div className="text-xs space-y-1">{typeof session.feedback === "string" && (<p className={session.reviewType?.reviewTypeName === "General"? "text-green-600": "text-red-600"}>{session.reviewType?.reviewTypeName === "General" ? "✓" : "⚠"} {session.feedback}</p>)}{session.feedback.sessionFeedbackPros && (<p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>)}{session.feedback.redFlags?.length > 0 && (<p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>)}
+      {session.feedback.media?.length > 0 && (<p className="text-blue-600"><Paperclip size={12} className="inline-block mr-1" />{session.feedback.media.join(', ')}</p>)}</div>) : (<span className="text-gray-400 text-xs">No feedback</span>)}</td><td className="p-2">
+                          
+                            <div className="flex space-x-1">
+                              {/* {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}><Play size={12} /></Button>}
+                              {session.sessionStatusId.sessionStatusName.toLowerCase() === 'attended' && <Button size="sm" variant="outline" onClick={() => handleSessionAction(session._id, 'Completed')}><Square size={12} /></Button>}
+                              {session.sessionStatusId.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && <Button size="sm" variant="outline" onClick={() => setFeedbackDialog({ open: true, sessionId: session._id })}><MessageSquare size={12} /></Button>}
+                              {(session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' || session.sessionStatusId.sessionStatusName === 'Attended') && <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'Canceled')}><XCircle size={12} /></Button>} */}
+                              {user?.role !== 'physio' && <>
+                                <Button size="sm" variant="outline" onClick={() => handleEditReview(session)}><Edit size={12} /></Button>
+                                <AlertDialog><AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={12} /></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the session.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteSession(session._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+                              </>} 
+                             </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+               </CardContent>
+             </Card>  
+    
   </CardHeader>
   <CardContent>
+    
     <div className="md:hidden space-y-4">
       {reviews.map((session) => (
         <Card key={session._id} className="p-4 shadow-lg rounded-2xl border">
@@ -474,9 +551,45 @@ const createReview = async (data) => {
   </Select>
             </div>
             <div className="space-y-2"><Label>Physiotherapist</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, physioId: v }))} value={sessionForm.physioId}><SelectTrigger><SelectValue placeholder="Select a physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id}>{p.physioName}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Session Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{sessionForm.sessionDate ? format(sessionForm.sessionDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d }))} initialFocus disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))} /></PopoverContent></Popover></div>
+            <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{sessionForm.sessionDate ? format(sessionForm.sessionDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d }))} initialFocus disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))} /></PopoverContent></Popover></div>
             {/* <div className="space-y-2"><Label htmlFor="sessionDay">Session Day</Label><Input id="sessionDay" disabled type="text" value={sessionForm.sessionDay} onChange={(e) => setSessionForm(p => ({ ...p, sessionDay: e.target.value }))} /></div> */}
-            <div className="space-y-2"><Label htmlFor="sessionTime">Session Time</Label><Input id="sessionTime" type="time" value={sessionForm.sessionTime} onChange={(e) => setSessionForm(p => ({ ...p, sessionTime: e.target.value }))} /></div>
+            {/* <div className="space-y-2"><Label htmlFor="sessionTime">Session Time</Label><Input id="sessionTime" type="time" value={sessionForm.sessionTime} onChange={(e) => setSessionForm(p => ({ ...p, sessionTime: e.target.value }))} /></div> */}
+                  <div className="space-y-2">
+        <Label>Review Type</Label>
+        <Select
+          value={sessionForm.reviewTypeId}
+          onValueChange={(v) => setSessionForm(p => ({ ...p, reviewTypeId: v }))}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a review type" />
+          </SelectTrigger>
+          <SelectContent>
+            {reviewTypes.map(rt => (
+              <SelectItem key={rt._id} value={rt._id}>{rt.reviewTypeName}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div> <div className="space-y-2">
+        <Label>Feedback</Label>
+        {/* <Select
+          value={sessionForm.feedback}
+          onValueChange={(v) => setSessionForm(p => ({ ...p, feedback: v }))}
+          required
+        > */}
+          {/* <SelectTrigger>
+            <SelectValue placeholder="Select a feedback type" />
+          </SelectTrigger> */}
+          {/* <SelectContent>
+            {reviewTypes.map(rt => (
+              <SelectItem key={rt._id} value={rt._id}>{rt.reviewTypeName}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select> */}
+        {/* <Input name="leadContactNo" value={leadForm.leadContactNo} onChange={handleFormChange} required /> */}
+        <Input name="feedback" type="text" value={sessionForm.feedback} onChange={(e) => setSessionForm(p => ({ ...p, feedback: e.target.value }))} required />
+      </div>
+
             <DialogFooter><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingReview ? 'Save Changes' : 'Schedule Review'}</Button></DialogFooter>
           </form>
         </DialogContent>

@@ -668,7 +668,35 @@ const SessionManagement = () => {
                       <td className="p-2"><div><p className="text-sm">{session.sessionDate.split('T')[0].split('-').reverse().join('-')} ({session.sessionDay})</p><p className="text-xs text-gray-600">{Converttime(session.sessionTime)}</p></div></td>
                       <td className="p-2">{session.machineId ? session.machineId.machineName : '-'}</td>
                       <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs status-${session.status}`} style={{ backgroundColor: session.sessionStatusId ? session.sessionStatusId.sessionStatusColor : 'white', color: session.sessionStatusId ? session.sessionStatusId.sessionStatusTextColor : 'black' }}> {session.sessionStatusId ? session.sessionStatusId.sessionStatusName : ''}</span></td>
-                      <td className="p-2">{session.feedback ? <div className="text-xs">{session.feedback.sessionFeedbackPros && <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>}{session.feedback.redFlags?.length > 0 && <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>}{session.feedback.media?.length > 0 && <p className="text-blue-600"><Paperclip size={12} className="inline-block mr-1" />{session.feedback.media.join(', ')}</p>}</div> : <span className="text-gray-400 text-xs">No feedback</span>}</td>
+<td className="p-2">
+  <div className="text-xs space-y-1">
+    {/* Session Feedback Pros */}
+    {session.sessionFeedbackPros && (
+      <p className="text-green-600">
+        ✓ {session.sessionFeedbackPros}
+      </p>
+    )}
+
+    {/* Red Flags */}
+    {session.redFlags?.length > 0 ? (
+      session.redFlags.map(flag => (
+        flag.isOccurred && (
+          <p
+            key={flag._id}
+            className="text-red-600"
+          >
+            ⚠ {flag.redFlagId?.redflagName}
+          </p>
+        )
+      ))
+    ) : (
+      !session.sessionFeedbackPros && (
+        <span className="text-gray-400">No feedback</span>
+      )
+    )}
+  </div>
+</td>
+{/* <td className="p-2">{session.feedback ? <div className="text-xs">{session.feedback.sessionFeedbackPros && <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>}{session.feedback.redFlags?.length > 0 && <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>}{session.feedback.media?.length > 0 && <p className="text-blue-600"><Paperclip size={12} className="inline-block mr-1" />{session.feedback.media.join(', ')}</p>}</div> : <span className="text-gray-400 text-xs">No feedback</span>}</td> */}
                       <td className="p-2">
                         <div className="flex space-x-1">
                           {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}><Play size={12} /></Button>}
