@@ -468,7 +468,7 @@ const generatePatientId = () => {
     if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
       setEditingPatient(true);
       const formData = {
-        _id: patient._id ? patient._id : '',
+        _id: patient._id ? patient._id : null,
         patientCode: patient.patientCode ? patient.patientCode : null,
         patientName: patient.patientName ? patient.patientName : null,
         patientAge: patient.patientAge ? patient.patientAge : null,

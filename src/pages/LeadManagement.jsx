@@ -414,7 +414,7 @@ const LeadManagement = () => {
                         </DialogHeader>
                         <div className="space-y-3">
                           <Label>Consultation Date</Label>
-                          <Input type="date" value={ConsultationDate} onChange={(e) => setConsultationDate(e.target.value)} />
+                          <Input type="date" value={ConsultationDate} onChange={(e) => setConsultationDate(e.target.value)} min ={new Date().toISOString().split('T')[0]} />
                         </div>
                         <DialogFooter>
                           <Button onClick={() => setOpen(false)} variant="outline">
