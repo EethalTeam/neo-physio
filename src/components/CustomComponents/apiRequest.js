@@ -28,6 +28,8 @@ export async function apiRequest(endpoint, options = {}) {
       return;
     }
           if (!response.ok) {
+            const errorText=await response.text();
+            console.error("API Error Response:", errorText);
         throw new Error('Failed to get datas');
       }
 

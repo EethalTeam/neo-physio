@@ -10,6 +10,7 @@ import { PlusCircle, Edit, Trash2, FileSearch } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import { id } from 'date-fns/locale';
 // import { json } from 'stream/consumers';
 
 const ReviewType = () => {
@@ -18,6 +19,7 @@ const ReviewType = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingType, setEditingType] = useState(null);
   const initialReviewType = {
+    id: '',
     reviewTypeName: '',
     reviewTypeCode: '',
     isActive: true
@@ -92,16 +94,17 @@ const ReviewType = () => {
     setEditingType(null);
     setReviewTypeData(initialReviewType);
   };
+const handleEdit = (type) => {
+  setEditingType(type);
+  setReviewTypeData({
+    _id: type._id || type.ReviewTypeIDPK,   
+    reviewTypeName: type.reviewTypeName,
+    reviewTypeCode: type.reviewTypeCode,
+    isActive: type.isActive
+  });
+  setIsFormOpen(true);
+};
 
-  const handleEdit = (type) => {
-    setEditingType(type);
-    setReviewTypeData({
-      reviewTypeName: type.reviewTypeName,
-      reviewTypeCode: type.reviewTypeCode,
-      isActive: type.isActive
-    });
-    setIsFormOpen(true);
-  };
 
   const handleNew = () => {
     setEditingType(null);
@@ -151,22 +154,51 @@ const ReviewType = () => {
   // }, [])
 
 
-  const updateReviewType = async () => {
-    try {
-      const response = await fetch("http://localhost:8001/api/ReviewType/updateReviewType", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewTypeName: reviewTypeData.reviewTypeName, isActive: true, reviewTypeCode: reviewTypeData.reviewTypeCode ,ReviewTypeIDPK:reviewTypeData.ReviewTypeIDPK })
-      });
-      toast({ title: "Success", description: "Category updated successfully." });
-      handleget()
-      setIsFormOpen(false)
-      return response;
-    } catch (error) {
-      console.error('Error:', error);
-      throw error;
-    }
+  // const updateReviewType = async () => {
+  //   try {
+  //     const response = await fetch("http://localhost:8001/api/ReviewType/updateReviewType", {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ reviewTypeName: reviewTypeData.reviewTypeName,
+  //          isActive: true,
+  //           reviewTypeCode: reviewTypeData.reviewTypeCode ,
+  //           _id:reviewTypeData.ReviewTypeIDPK })
+  //     });
+  //     toast({ title: "Success", description: "Category updated successfully." });
+  //     handleGetReviewTypes()
+  //     setIsFormOpen(false)
+  //     return response;
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     throw error;
+  //   }
+  // }
+const updateReviewType = async () => {
+  try {
+    console.log("Updating ReviewType ID:", reviewTypeData._id); // check ID
+    const response = await fetch("http://localhost:8001/api/ReviewType/updateReviewType", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        _id: reviewTypeData._id, 
+        reviewTypeName: reviewTypeData.reviewTypeName,
+        reviewTypeCode: reviewTypeData.reviewTypeCode,
+        isActive: reviewTypeData.isActive
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message);
+
+    toast({ title: "Success", description: "Category updated successfully." });
+    handleGetReviewTypes();
+    setIsFormOpen(false);
+    return data;
+  } catch (error) {
+    console.error('Error:', error);
+    throw error;
   }
+};
 
     const handleChangeReviewType = (e) => {
     const { name, value } = e.target;

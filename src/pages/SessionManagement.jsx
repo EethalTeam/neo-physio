@@ -270,7 +270,8 @@ const SessionManagement = () => {
         method: 'POST',
         body: JSON.stringify(data)
       });
-      setSessionStatus(response)
+      // setSessionStatus(response)
+      setSessionStatus(response.sessionStatuses);
 
     } catch (error) {
       console.log(error, "error from frontend get All Session Status")
