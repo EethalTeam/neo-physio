@@ -55,7 +55,7 @@ const Consulation = () => {
 
   };
   const [assignForm, setAssignForm] = useState(initialAssignState);
-  // console.log(assignForm, "assignForm")
+  console.log(assignForm, "assignForm")
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewingPatient, setViewingPatient] = useState(null);
 
@@ -85,8 +85,6 @@ const Consulation = () => {
     travelDetails: null, genderName: '', FeesTypeId: '', feeAmount: '', feesTypeAmount: '',ReferenceId:'',sourceName:''
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
-  console.log(patientForm.FeesTypeId, "FeesTypeId")
-  console.log(patientForm.ReferenceId, "ReferenceId")
   
   const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
   const [risk, setRisk] = useState([]) //for dropdown 
@@ -117,7 +115,6 @@ const Consulation = () => {
     useEffect(() => {
       getPermissionsByPath(window.location.pathname).then(res => {
         if (res) {
-          console.log(res, "res")
           setPermissions(res)
         } else {
           navigate('/dashboard')
@@ -232,8 +229,6 @@ const Consulation = () => {
       body: JSON.stringify({})
     });
 
-    console.log("Fetched patients:", res);
-
     const consultantPatients = res.filter(item => item.status !== "Lead");
 
     setFilteredPatients(consultantPatients);
@@ -249,7 +244,6 @@ const Consulation = () => {
   //api call and delete Patients
   const deletePatient = async (id) => {
     if (user?.role === 'Admin' || user?.role === 'SuperAdmin') {
-      console.log(id, "id")
     try {
       const response = await apiRequest("Consultation/deleteConsultation", {
         method: 'POST',
@@ -299,7 +293,6 @@ const Consulation = () => {
   //api for create patients
 
   const createPatient = async (data) => {
-    console.log(data, "data")
     try {
       const response = await apiRequest("Consultation/createConsultation", {
         method: 'POST',
@@ -682,7 +675,6 @@ const generatePatientId = () => {
 
 
   const openAssignPhysioDialog = (patient) => {
-    console.log(patient, "patient")
     if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
       setAssigningPatient(patient);
       setAssignForm({
