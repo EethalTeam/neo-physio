@@ -842,7 +842,7 @@ const generatePatientId = () => {
                         <UserPlus size={14}/>Assign Physio</>
                       )}</Button>
                     {/* <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>*/}
-                      <Button size="sm" onClick={() => openLead(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Revert</Button>
+                      <Button size="sm"disabled={!!patient.physioId} onClick={() => openLead(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Revert</Button>
                       </div>
                     )}
                     {/* <div className="flex space-x-2">
@@ -853,10 +853,10 @@ const generatePatientId = () => {
                       {/* <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button> */}
                       {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
                         <>
-                       {
+                       {/* {
                         Permissions.isEdit && 
                          <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span className="hidden md:inline lg:inline">Edit</span></Button>
-                       }
+                       } */}
                        
                          </>
                       )}
@@ -914,7 +914,7 @@ const generatePatientId = () => {
             <div className="space-y-2"><Label htmlFor="newShortTermGoal">New Short-term Goal</Label><Input id="newShortTermGoal" value={newGoalForm.newShortTermGoal} onChange={(e) => setNewGoalForm(p => ({ ...p, newShortTermGoal: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label htmlFor="newGoalDuration">New Goal Duration (days)</Label><Input id="newGoalDuration" type="number" value={newGoalForm.newGoalDuration} onChange={(e) => setNewGoalForm(p => ({ ...p, newGoalDuration: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Next Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !newGoalForm.nextReviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{newGoalForm.nextReviewDate ? format(newGoalForm.nextReviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newGoalForm.nextReviewDate} onSelect={(d) => setNewGoalForm(p => ({ ...p, nextReviewDate: d }))} initialFocus /></PopoverContent></Popover></div>
+              <div className="space-y-2"><Label>Next Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !newGoalForm.nextReviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{newGoalForm.nextReviewDate ? format(newGoalForm.nextReviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newGoalForm.nextReviewDate} onSelect={(d) => setNewGoalForm(p => ({ ...p, nextReviewDate: d }))} initialFocus/></PopoverContent></Popover></div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsNewGoalOpen(false)}>Cancel</Button>
@@ -1142,7 +1142,9 @@ const generatePatientId = () => {
                         <Label>Session Start Date</Label>
                         <Popover>
                           <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !assignForm.sessionStartDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{assignForm.sessionStartDate ? format(assignForm.sessionStartDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={assignForm.sessionStartDate} onSelect={(d) => setAssignForm(p => ({ ...p, sessionStartDate: d }))} initialFocus /></PopoverContent>
+                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={assignForm.sessionStartDate} onSelect={(d) => setAssignForm(p => ({ ...p, sessionStartDate: d }))} initialFocus  disabled={(date) =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0))
+                    }/></PopoverContent>
                         </Popover>
                       </div>
                       <div className="space-y-2">

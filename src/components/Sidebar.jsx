@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database,Fuel, Map, SquareCode, ShieldPlus, Menu } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database,Fuel, Map, SquareCode, ShieldPlus, Menu, Globe, ClipboardCheck, ClipboardList, AlertTriangle, MapPinned, Building2, RadioTower, ShieldAlert, Receipt, CreditCard, Signal, CalendarCheck, Activity } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
@@ -37,7 +37,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const iconMapping = {
     LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3,
     Stethoscope, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet,
-    Layers, Database, Map, SquareCode, ShieldPlus
+    Layers, Database, Map, SquareCode, ShieldPlus, Globe, ClipboardCheck, ClipboardList,
+    Activity,CalendarCheck,Signal,Receipt,ShieldAlert,RadioTower,AlertTriangle,Globe,MapPinned,
+    Building2,RadioTower,CreditCard
   };
   const getAllMenus = async () => {
     try {
@@ -104,21 +106,21 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       isMenu: true,
       submenu: [
         { icon: Layers, label: 'Categories', path: '/categories' },
-        { icon: Flag, label: 'Red Flags', path: '/red-flags' },
-        { icon: Map, label: 'Country', path: '/country' },
-        { icon: Map, label: 'State', path: '/state' },
-        { icon: Map, label: 'City', path: '/city' },
-        { icon: Layers, label: 'Physio Category', path: '/physioCategory' },
-        { icon: SquareCode, label: 'Lead Source', path: '/leadSource' },
-        { icon: SquareCode, label: 'Gender', path: '/gender' },
-        { icon: ShieldPlus, label: 'Risk Factor', path: '/riskFactor' },
-        { icon: Layers, label: 'Expense Type', path: '/expenseType' },
-        { icon: Layers, label: 'Fees Type', path: '/feesType' },
-        { icon: Layers, label: 'Lead Status', path: '/leadStatus' },
-        { icon: Layers, label: 'Session Status', path: '/sessionStatus' },
-        { icon: Layers, label: 'Modalities', path: '/modalities' },
-        {icon: Layers, label: 'Review Type', path: '/reviewtype' },
-        {icon: Layers, label: 'Review form', path: '/reviewform' },
+        { icon: AlertTriangle, label: 'Red Flags', path: '/red-flags' },
+        { icon: Globe, label: 'Country', path: '/country' },
+        { icon: MapPinned, label: 'State', path: '/state' },
+        { icon: Building2, label: 'City', path: '/city' },
+        { icon: Stethoscope, label: 'Physio Category', path: '/physioCategory' },
+        { icon: RadioTower, label: 'Lead Source', path: '/leadSource' },
+        { icon: Users, label: 'Gender', path: '/gender' },
+        { icon: ShieldAlert, label: 'Risk Factor', path: '/riskFactor' },
+        { icon: Receipt, label: 'Expense Type', path: '/expenseType' },
+        { icon: CreditCard, label: 'Fees Type', path: '/feesType' },
+        { icon: Signal, label: 'Lead Status', path: '/leadStatus' },
+        { icon: CalendarCheck, label: 'Session Status', path: '/sessionStatus' },
+        { icon: Activity, label: 'Modalities', path: '/modalities' },
+        {icon: ClipboardList, label: 'Review Type', path: '/reviewtype' },
+        {icon: ClipboardCheck, label: 'Review form', path: '/reviewform' },
 
       ]
     };

@@ -41,6 +41,7 @@ import MenuRegistry from '@/pages/MenuRegistry';
 import Consultation from '@/pages/Consultation'
 import ReviewType from './pages/ReviewType';
 import ReviewForm from './pages/ReviewMasterForm';
+import ReviewStatus from './pages/ReviewStatus';
 
 function App() {
   return (
@@ -207,6 +208,14 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             } />
+            <Route path='/reviewstatus' element={
+              <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin','HOD']}>
+                <Layout>
+                  <ReviewStatus/>
+                </Layout>
+              </ProtectedRoute>
+            }/>
+            
 
               <Route path="/feesType" element={
               <ProtectedRoute allowedRoles={['SuperAdmin', 'Admin']}>
