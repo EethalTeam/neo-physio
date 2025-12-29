@@ -10,7 +10,7 @@ const HODDashboard = () => {
   const [stats, setStats] = useState({
 
     patient: 0,
-    session: 0,
+    todaysession: 0,
     alertsCount: 0,
     pendingReviews: 0,
     sessionCompleted: 0
@@ -92,8 +92,8 @@ const HODDashboard = () => {
       bgColor: 'bg-green-100'
     },
     {
-      title: 'Total Sessions',
-      value: stats.session,
+      title: 'Today Sessions',
+      value: stats.todaysession,
       icon: Calendar,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'

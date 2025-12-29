@@ -755,7 +755,7 @@ const handleAssignPhysioSubmit = async (e) => {
         <Card className="medical-card">
           <CardHeader><CardTitle>Patients ({filteredPatients.length})</CardTitle><CardDescription>All registered patients in the system</CardDescription></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredPatients.map((patient) => (
                 <motion.div key={patient.PatientIDPK} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
                   <div className="flex items-center space-x-3 mb-3">
@@ -767,9 +767,9 @@ const handleAssignPhysioSubmit = async (e) => {
                     </div>
                   </div>
                   <div className="space-y-2 mb-4 flex-grow">
-                    <p className="text-sm"><strong>Contact:</strong> {patient.patientNumber}</p>
+                    <p className="text-sm"><strong>Contact:</strong> {patient.patientNumber}</p> */}
                     {/* <p className="text-sm"><strong>Category:</strong><span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{patient.category}</span></p> */}
-                    <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PP") : 'Not set'}</p>
+                    {/* <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PP") : 'Not set'}</p>
                     <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PP") : 'N/A'}</p>
                     {patient.shortTermGoals && (
                       <div className="text-sm mt-2 p-2 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
@@ -822,10 +822,194 @@ const handleAssignPhysioSubmit = async (e) => {
                   </div>
                 </motion.div>
               ))}
-            </div>
+            </div>*/}
+
+
+            <div className="overflow-x-auto">
+  <table className="min-w-full text-sm border rounded-lg">
+<thead className="bg-gray-100 text-gray-700">
+  <tr>
+    <th className="px-3 py-2 text-left">Patient</th>
+    <th className="px-3 py-2 text-left  sm:table-cell">Age / Gender</th>
+    <th className="px-3 py-2 text-left hidden md:table-cell">Contact</th>
+    <th className="px-3 py-2 text-left hidden lg:table-cell">Consultation</th>
+    <th className="px-3 py-2 text-left hidden lg:table-cell">Review</th>
+    <th className="px-3 py-2 text-left">Physio</th>
+    <th className="px-3 py-2 text-center ">Actions</th>
+  </tr>
+</thead>
+
+
+<tbody>
+  {filteredPatients.map((patient) => (
+    <tr key={patient.PatientIDPK} className="border-t hover:bg-gray-50 align-top">
+
+      {/* Patient */}
+      <td className="px-3 py-2">
+        <div className="font-medium truncate max-w-[120px]">{patient.patientName}</div>
+        <div className="text-xs text-gray-500 truncate max-w-[120px]">{patient.patientCode}</div>
+        
+      </td>
+
+      {/* Age / Gender */}
+      <td className="px-3 py-2  sm:table-cell">
+        {patient.patientAge} / {patient.patientGenderId.genderName}
+      </td>
+
+      {/* Contact */}
+      <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+        {patient.patientNumber}
+      </td>
+
+      {/* Consultation */}
+      <td className="px-3 py-2 hidden lg:table-cell">
+        {patient.consultationDate
+          ? format(new Date(patient.consultationDate), "PP")
+          : "Not set"}
+      </td>
+
+      {/* Review */}
+      <td className="px-3 py-2 hidden lg:table-cell">
+        {patient.reviewDate
+          ? format(new Date(patient.reviewDate), "PP")
+          : "N/A"}
+      </td>
+
+      {/* Physio Status / Assign */}
+      <td className="px-3 py-2 whitespace-nowrap">
+        <div className='flex flex-col sm:flex-row gap-2'>
+        {patient.physioId ? (
+          <span className="inline-flex items-center gap-1 text-green-700 text-sm font-medium">
+            <UserCheck size={14} />
+            <span className="hidden sm:inline">Physio Assigned</span>
+            <span className="sm:hidden">Assigned</span>
+          </span>
+        ) : (
+          (user?.role === 'HOD' ||
+            user?.role === 'Admin' ||
+            user?.role === 'SuperAdmin') && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex items-center gap-1 whitespace-nowrap"
+              onClick={() => openAssignPhysioDialog(patient)}
+            >
+              <UserPlus size={14} />
+              <span className="hidden sm:inline">Assign Physio</span>
+              <span className="sm:hidden">Assign</span>
+            </Button>
+          )
+        )}
+        </div>
+      </td>
+{/* Mobile-only action buttons */}
+<div className="mt-2 flex flex-row gap-2 sm:hidden">
+  <Button size="sm" variant="outline" onClick={() => handleViewConsultation(patient)}>
+    <FileText size={14} />
+  </Button>
+
+  <Button size="sm" onClick={() => handleScheduleReview(patient)}>
+    <CalendarIcon size={14} />
+  </Button>
+
+  <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)}>
+    <History size={14} />
+  </Button>
+
+  {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') &&
+    Permissions.isEdit && (
+      <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)}>
+        <Edit size={14} />
+      </Button>
+    )}
+    {(user?.role === 'Admin' || user?.role === 'SuperAdmin') &&
+            Permissions.isDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive">
+                    <Trash2 size={14} />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete patient?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the patient.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+</div>
+
+      {/* Actions */}
+
+      
+      <td className="px-3 py-2 hidden sm:table-cell">
+        <div className="flex flex-row flex-wrap gap-2 justify-center">
+          <Button size="sm" variant="outline" onClick={() => handleViewConsultation(patient)}>
+            <FileText size={14} />
+          </Button>
+
+          <Button size="sm" onClick={() => handleScheduleReview(patient)}>
+            <CalendarIcon size={14} />
+          </Button>
+
+          <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)}>
+            <History size={14} />
+          </Button>
+
+          {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') &&
+            Permissions.isEdit && (
+              <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)}>
+                <Edit size={14} />
+              </Button>
+            )}
+
+          {(user?.role === 'Admin' || user?.role === 'SuperAdmin') &&
+            Permissions.isDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive">
+                    <Trash2 size={14} />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete patient?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the patient.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
+</table>
+</div>
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div> 
+
+
+
 
       <PatientDetailsDialog isOpen={isDetailsOpen} onOpenChange={setIsDetailsOpen} patient={viewingPatient} />
 
