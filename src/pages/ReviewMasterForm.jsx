@@ -167,14 +167,14 @@ const [reviewStatuses, setReviewStatuses] = useState([]);
         body: JSON.stringify({
           sessionDate: filter,
           nextDate: nextdate,
-          physioId: user._id,
-          storedRole: storedRole,
+          // physioId: user._id,
+          // storedRole: storedRole,
           // redFlags: true,
         }),
       });
 const redflagsReview= response.filter((review)=>Array.isArray(review.redFlags)&& review.redFlags.length>0);
-      setReviews(redflagsReview);
-      setFilteredReviews(redflagsReview);
+      setReviews(response);
+      setFilteredReviews(response);
       console.log(response, "reviews from frontend");
     } catch (error) {
       console.log(error, "error from frontend get All Session");

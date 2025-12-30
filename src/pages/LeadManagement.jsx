@@ -133,6 +133,7 @@ const LeadManagement = () => {
     try {
       const payload = lead
       payload.ConsultationDate = ConsultationDate
+      payload.fromEmployeeId = user._id
 
       const res = await apiRequest('Lead/QualifyLead',
         {
