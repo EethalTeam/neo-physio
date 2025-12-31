@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database,Fuel, Map, SquareCode, ShieldPlus, Menu, Globe, ClipboardCheck, ClipboardList, AlertTriangle, MapPinned, Building2, RadioTower, ShieldAlert, Receipt, CreditCard, Signal, CalendarCheck, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Calendar, Settings, BarChart3, Stethoscope, ChevronLeft, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet, Layers, Database,Fuel, Map, SquareCode, ShieldPlus, Menu, Globe, ClipboardCheck, ClipboardList, AlertTriangle, MapPinned, Building2, RadioTower, ShieldAlert, Receipt, CreditCard, Signal, CalendarCheck, Activity, CalendarClock, MessageCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { apiRequest } from '@/components/CustomComponents/apiRequest';
 
@@ -39,7 +39,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     Stethoscope, HeartPulse, Share2, FileSpreadsheet, Flag, Wallet,
     Layers, Database, Map, SquareCode, ShieldPlus, Globe, ClipboardCheck, ClipboardList,
     Activity,CalendarCheck,Signal,Receipt,ShieldAlert,RadioTower,AlertTriangle,Globe,MapPinned,
-    Building2,RadioTower,CreditCard
+    Building2,RadioTower,CreditCard,CalendarClock,MessageCircle
   };
   const getAllMenus = async () => {
     try {
@@ -143,7 +143,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
         { icon: UserPlus, label: 'Leads', path: '/leads' },
         { icon: Users, label: 'Patients', path: '/patients' },
-        { icon: Calendar, label: 'Sessions', path: '/sessions' },
+        { icon: CalendarClock, label: 'Sessions', path: '/sessions' },
         { icon: Stethoscope, label: 'Physios', path: '/physios' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Share2, label: 'References', path: '/references' },
@@ -153,13 +153,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Fuel, label: 'Petrol Allowance', path: '/petrol-allowance' }, 
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
-        { icon: Calendar, label: 'Consultation', path: '/consultation' }
+        { icon: MessageCircle, label: 'Consultation', path: '/consultation' }
 
       ],
       Admin: [
         { icon: UserPlus, label: 'Leads', path: '/leads' },
         { icon: Users, label: 'Patients', path: '/patients' },
-        { icon: Calendar, label: 'Sessions', path: '/sessions' },
+        { icon: CalendarClock, label: 'Sessions', path: '/sessions' },
         { icon: Stethoscope, label: 'Physios', path: '/physios' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Share2, label: 'References', path: '/references' },
@@ -168,21 +168,21 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: FileSpreadsheet, label: 'Payroll', path: '/payroll' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
         { icon: Map, label: 'Country', path: '/country' },
-        { icon: Calendar, label: 'Consultation', path: '/consultation' }
+        { icon: MessageCircle, label: 'Consultation', path: '/consultation' }
 
 
       ],
       HOD: [
         { icon: Users, label: 'Patients', path: '/patients' },
-        { icon: Calendar, label: 'Sessions', path: '/sessions' },
+        { icon: CalendarClock, label: 'Sessions', path: '/sessions' },
         { icon: Settings, label: 'Machinery', path: '/machinery' },
         { icon: Flag, label: 'Red Flags', path: '/red-flags' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
-        { icon: Calendar, label: 'Consultation', path: '/consultation' }
+        { icon: MessageCircle, label: 'Consultation', path: '/consultation' }
 
       ],
       Physio: [
-        { icon: Calendar, label: 'My Sessions', path: '/sessions' },
+        { icon: CalendarClock, label: 'My Sessions', path: '/sessions' },
         { icon: FileSpreadsheet, label: 'Monthly Summary', path: '/monthly-summary' }
       ],
     };

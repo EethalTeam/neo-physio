@@ -583,7 +583,7 @@ const LeadManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Contact</Label><Input name="leadContactNo" value={leadForm.leadContactNo} onChange={handleFormChange} required /></div>
+              <div><Label>Contact</Label><Input name="leadContactNo" value={leadForm.leadContactNo} onChange={handleFormChange} maxLength={10} inputMode="numeric" pattern="[6-9][0-9]{9}"  required /></div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

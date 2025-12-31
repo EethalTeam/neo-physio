@@ -118,7 +118,6 @@ const ReviewMasterForm = () => {
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
-
   const [sessionForm, setSessionForm] = useState(initialFormState);
   const [feedback, setFeedback] = useState(initialFeedbackState);
   const fileInputRef = useRef(null);
@@ -353,9 +352,14 @@ if (!pendingStatus) {
 
   const UpdateReview = async (data) => {
     try {
+      const payload={
+        ...data,
+        redFlags:data.redFlags &&  data.redFlags.length>0
+        ? data.redFlags : editingReview?.redFlags || []
+      }
           const response = await apiRequest("Review/updateReview", {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify(payload)
           });
           getReviews()
           toast({ title: "Success", description: "Review updated." });
@@ -390,6 +394,7 @@ if (!pendingStatus) {
       reviewTime: review.reviewTime || "",
       reviewTypeId: review.reviewTypeId?._id || "",
       reviewStatusId: review.reviewStatusId?review.reviewStatusId._id : '',
+      redFlags:review.redFlags||[],
     });
 
     setIsFormOpen(true);
@@ -560,35 +565,30 @@ if (!pendingStatus) {
                         <td className="p-2">
                           {" "}
                           {session.feedback ? (
-                            <div className="text-xs space-y-1">
+                            <div className="text-sm space-y-1">
                               {typeof session.feedback === "string" && (
                                 <p
                                   className={
                                     session.reviewType?.reviewTypeName ===
-                                    "General"
-                                      ? "text-green-600"
-                                      : "text-red-600"
-                                  }
+                                    "General"}
                                 >
                                   {session.reviewType?.reviewTypeName ===
-                                  "General"
-                                    ? "✓"
-                                    : "⚠"}{" "}
+                                  "General"}
                                   {session.feedback}
                                 </p>
                               )}
                               {session.feedback.sessionFeedbackPros && (
-                                <p className="text-green-600">
-                                  ✓ {session.feedback.sessionFeedbackPros}
+                                <p  className="text-sm text-gray-600">
+                                   {session.feedback.sessionFeedbackPros}
                                 </p>
                               )}
                               {session.feedback.redFlags?.length > 0 && (
-                                <p className="text-red-600">
-                                  ⚠ {session.feedback.redFlags.join(", ")}
+                                <p  className="text-sm text-gray-600">
+                                   {session.feedback.redFlags.join(", ")}
                                 </p>
                               )}
                               {session.feedback.media?.length > 0 && (
-                                <p className="text-blue-600">
+                                <p className="text-gray-600">
                                   <Paperclip
                                     size={12}
                                     className="inline-block mr-1"
@@ -598,7 +598,7 @@ if (!pendingStatus) {
                               )}
                             </div>
                           ) : (
-                            <span className="text-gray-400 text-xs">
+                            <span className="text-gray-600 text-sm">
                               No feedback
                             </span>
                           )}
