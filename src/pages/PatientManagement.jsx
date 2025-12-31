@@ -1122,11 +1122,17 @@ const handleAssignPhysioSubmit = async (e) => {
                       <Select
                         value={JSON.stringify({ id: patientForm.FeesTypeId, name: patientForm.FeesTypeName })}
                         onValueChange={(v) => {
+                          if(!v) return;
+                          try{
                           const selected = JSON.parse(v);
                           handleSelectChange('FeesTypeId', selected.id);
                           handleSelectChange('FeesTypeName', selected.name);
+                          } catch(err){
+                            console.error("Failed to Parse JSON",v,err)
+                          }
                         }}
-                      >                      <SelectTrigger><SelectValue placeholder="Select Fees" /></SelectTrigger>
+                      >   
+                                         <SelectTrigger><SelectValue placeholder="Select Fees" /></SelectTrigger>
                         <SelectContent>
                           {feesType.map((fee) => (
                             <SelectItem
@@ -1153,9 +1159,14 @@ const handleAssignPhysioSubmit = async (e) => {
                       <Select
                         value={JSON.stringify({ id: patientForm.ReferenceId, name: patientForm.sourceName })}
                         onValueChange={(v) => {
+                          if(!v) return;
+                          try{
                           const selected = JSON.parse(v);
                           handleSelectChange('ReferenceId', selected.id);
                           handleSelectChange('sourceName', selected.name);
+                          } catch(err){
+console.error("Unable to parse JSON",v,err)
+                          }
                         }}
                       >  <SelectTrigger><SelectValue placeholder="Select Reference" /></SelectTrigger>
                         <SelectContent>
