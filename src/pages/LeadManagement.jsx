@@ -339,7 +339,7 @@ const LeadManagement = () => {
     }
     if (!leadForm.leadGenderId) {
       toast({
-        title: "Select Details",
+        title: "Alert",
         description: "Please select Gender",
         variant: "destructive",
       });
@@ -348,7 +348,7 @@ const LeadManagement = () => {
 
     if (!leadForm.physioCategoryId) {
       toast({
-        title: "Select Details",
+        title: "Alert",
         description: "Please select Physio Category",
         variant: "destructive",
       });
@@ -357,7 +357,7 @@ const LeadManagement = () => {
 
     if (!leadForm.leadSourceId) {
       toast({
-        title: "Select Details",
+        title: "Alert",
         description: "Please select Lead Source",
         variant: "destructive",
       });
@@ -366,7 +366,7 @@ const LeadManagement = () => {
 
     if (!leadForm.LeadStatusId) {
       toast({
-        title: "Select Details",
+        title: "Alert",
         description: "Please select Lead Status",
         variant: "destructive",
       });
@@ -375,7 +375,7 @@ const LeadManagement = () => {
 
     if (leadForm.leadSourceName === "Reference" && !leadForm.ReferenceId) {
       toast({
-        title: "Select Details",
+        title: "Alert",
         description: "Please select Reference",
         variant: "destructive",
       });
