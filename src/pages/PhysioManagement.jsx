@@ -156,7 +156,7 @@ const PhysioManagement = () => {
     }
   };
 
-  // ✅ Create Physio
+  // Create Physio
   const createPhysio = async (data) => {
     try {
       await apiRequest("Physio/createPhysio", {
@@ -171,7 +171,7 @@ const PhysioManagement = () => {
     }
   };
 
-  // ✅ Update Physio
+  //  Update Physio
   const updatePhysio = async (data) => {
     try {
       await apiRequest("Physio/updatePhysio", {
@@ -186,7 +186,7 @@ const PhysioManagement = () => {
     }
   };
 
-  // ✅ Delete Physio
+  // Delete Physio
   const deletePhysio = async (id) => {
     try {
       await apiRequest("Physio/deletePhysio", {
@@ -219,7 +219,7 @@ const PhysioManagement = () => {
     }
   };
 
-  // ✅ Search filter
+  // Search filter
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredPhysios(physios);
@@ -246,13 +246,130 @@ const PhysioManagement = () => {
     setPhysioForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  // const handleFormSubmit = (e) => {
+  //   e.preventDefault();
+  //   if (editingPhysio) {
+  //     // updatePhysio({ ...physioForm, _id: editingPhysio._id });
+
+  //     updatePhysio(physioForm);
+  //   } else {
+  //     createPhysio(physioForm);
+  //   }
+  // };
+
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (editingPhysio) {
-      // updatePhysio({ ...physioForm, _id: editingPhysio._id });
-      updatePhysio(physioForm);
+
+    // Sequential validation for editing or creating physio
+    if (!physioForm.physioName) {
+      toast({
+        title: "Alert",
+        description: "Enter the Name",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioAge) {
+      toast({
+        title: "Alert",
+        description: "Enter the Age",
+        variant: "destructive",
+      });
+    } else if (!physioForm?.physioGenderId) {
+      toast({
+        title: "Alert",
+        description: "Select Gender",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioContactNo) {
+      toast({
+        title: "Alert",
+        description: "Enter Contact Number",
+        variant: "destructive",
+      });
+    } else if (!physioForm.password) {
+      toast({
+        title: "Alert",
+        description: "Enter Password",
+        variant: "destructive",
+      });
+    } else if (!physioForm?.roleId) {
+      toast({
+        title: "Alert",
+        description: "Select Role",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioSpcl) {
+      toast({
+        title: "Alert",
+        description: "Enter Specialization",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioQulifi) {
+      toast({
+        title: "Alert",
+        description: "Enter Qualifications",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioExp) {
+      toast({
+        title: "Alert",
+        description: "Enter Experience",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioPAN) {
+      toast({
+        title: "Alert",
+        description: "Enter PAN Number",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioAadhar) {
+      toast({
+        title: "Alert",
+        description: "Enter Aadhar Number",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioSalary) {
+      toast({
+        title: "Alert",
+        description: "Enter Salary",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioProbation) {
+      toast({
+        title: "Alert",
+        description: "Enter Probation Period",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioINCRDate) {
+      toast({
+        title: "Alert",
+        description: "Enter Increment",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioPetrolAlw) {
+      toast({
+        title: "Alert",
+        description: "Enter Petrol Allowance",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioVehicleMTC) {
+      toast({
+        title: "Alert",
+        description: "Enter Vehicle Maintenance",
+        variant: "destructive",
+      });
+    } else if (!physioForm.physioIncentive) {
+      toast({
+        title: "Alert",
+        description: "Enter Incentive",
+        variant: "destructive",
+      });
     } else {
-      createPhysio(physioForm);
+      // If all validations pass
+      if (editingPhysio) {
+        updatePhysio({ ...physioForm, _id: editingPhysio._id });
+      } else {
+        createPhysio(physioForm);
+      }
     }
   };
 
@@ -582,7 +699,6 @@ const PhysioManagement = () => {
                       name="physioCode"
                       value={physioForm.physioCode}
                       onChange={handleFormChange}
-                      required
                       disabled
                     />
                   </div>
@@ -594,7 +710,6 @@ const PhysioManagement = () => {
                     name="physioName"
                     value={physioForm.physioName}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -604,7 +719,6 @@ const PhysioManagement = () => {
                     type="number"
                     value={physioForm.physioAge}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
                 <div>
@@ -633,7 +747,6 @@ const PhysioManagement = () => {
                     name="physioContactNo"
                     value={physioForm.physioContactNo}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -642,7 +755,6 @@ const PhysioManagement = () => {
                     name="password"
                     value={physioForm.password}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
                 {/* <div className="space-y-2"><Label>Role</Label><Input name="roleId" value={physioForm.roleId} onChange={handleFormChange} required /></div> */}
@@ -672,7 +784,6 @@ const PhysioManagement = () => {
                     name="physioSpcl"
                     value={physioForm.physioSpcl}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -681,7 +792,6 @@ const PhysioManagement = () => {
                     name="physioQulifi"
                     value={physioForm.physioQulifi}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -690,7 +800,6 @@ const PhysioManagement = () => {
                     name="physioExp"
                     value={physioForm.physioExp}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
               </div>
@@ -720,7 +829,6 @@ const PhysioManagement = () => {
                     type="number"
                     value={physioForm.physioSalary}
                     onChange={handleFormChange}
-                    required
                   />
                 </div>
                 <div className="space-y-2">

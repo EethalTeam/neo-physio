@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import PatientDetailsDialog from "@/components/PatientDetailsDialog";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
-
+import { useNavigate } from "react-router-dom";
 const PhysioDashboard = () => {
   const [stats, setStats] = useState({
     todaySessions: 0,
@@ -20,7 +20,7 @@ const PhysioDashboard = () => {
     upcomingSessions: 0,
     activePatients: 0,
   });
-
+  const Navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -71,12 +71,21 @@ const PhysioDashboard = () => {
     );
 
     const completedSessions = sessionsData.filter(
-      (s) => s.status === "completed"
+      (s) => s?.sessionStatusId?.sessionStatusName === "Completed"
     );
 
-    const upcomingSessions = sessionsData.filter(
-      (s) => s.status === "scheduled" || s.status === "attended"
-    );
+    const upcomingSessions = sessionsData.filter((s) => {
+      const sessionDate = new Date(s.sessionDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const status = s.sessionStatusId?.sessionStatusName;
+
+      return (
+        sessionDate >= today &&
+        (status === "Scheduled" || status === "Attended")
+      );
+    });
 
     const activePatientIds = new Set(sessionsData.map((s) => s.patientId));
 
@@ -91,13 +100,14 @@ const PhysioDashboard = () => {
           id: session._id, // normalize for UI
           patientName: patient?.name || "Unknown",
           patientDetails: patient || null,
+          status: session.sessionStatusId?.sessionStatusName?.toLowerCase(),
         };
       });
 
     setStats({
       todaySessions: todaySessions.length,
       completedSessions: completedSessions.length,
-      upcomingSessions: todaySessions.length,
+      upcomingSessions: upcomingSessions.length,
       activePatients: activePatientIds.size,
     });
 
@@ -145,7 +155,7 @@ const PhysioDashboard = () => {
       bgColor: "bg-green-100",
     },
     {
-      title: "Completed This Month",
+      title: "Today Completed Session",
       value: stats.completedSessions,
       icon: CheckCircle,
       color: "text-purple-600",
@@ -199,7 +209,7 @@ const PhysioDashboard = () => {
         })}
       </div>
 
-      {/* <motion.div
+      <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.5 }}
@@ -225,7 +235,7 @@ const PhysioDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-800">
-                          {session.patientName}
+                          {session.patientId?.patientName}
                         </p>
                         <p className="text-sm text-gray-600">
                           {new Date(session.sessionDate).toLocaleDateString(
@@ -237,7 +247,7 @@ const PhysioDashboard = () => {
                         <span
                           className={`inline-block px-2 py-1 text-xs rounded-full status-${session.status}`}
                         >
-                          {session.status}
+                          {session.sessionStatusId?.sessionStatusName}
                         </span>
                       </div>
                     </div>
@@ -256,8 +266,15 @@ const PhysioDashboard = () => {
                       {session.status === "scheduled" && (
                         <Button
                           size="sm"
-                          onClick={() =>
-                            handleSessionAction(session.id, "attended")
+                          onClick={
+                            () =>
+                              Navigate("/sessions", {
+                                state: {
+                                  sessionId: session.id,
+                                  from: "dashboard",
+                                },
+                              })
+                            // handleSessionAction(session.id, "attended")
                           }
                         >
                           Attend
@@ -290,7 +307,7 @@ const PhysioDashboard = () => {
             </div>
           </CardContent>
         </Card>
-      </motion.div> */}
+      </motion.div>
 
       <PatientDetailsDialog
         isOpen={isDetailsOpen}

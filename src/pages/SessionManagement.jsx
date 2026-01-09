@@ -76,6 +76,7 @@ const SessionManagement = () => {
   // console.log(Modalities,"Modalities")
   const [sessionStatus, setSessionStatus] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
+  console.log(filteredSessions, "filteredSessions");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("Date");
@@ -122,6 +123,7 @@ const SessionManagement = () => {
     open: false,
     sessionId: null,
   });
+  const [cancelledReason, setCancelledReason] = useState("");
   const [cancelledKms, setCancelledKms] = useState("");
   const [radio, setRadio] = useState([]);
   const { getPermissionsByPath } = useAuth();
@@ -353,6 +355,7 @@ const SessionManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
+      console.log(data, "data of cancel");
       getSession();
       return response;
     } catch (error) {
@@ -511,8 +514,16 @@ const SessionManagement = () => {
   };
 
   const handleCancelSubmit = () => {
+    if (!cancelledReason.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please enter a reason for cancelling this session.",
+        variant: "destructive",
+      });
+      return;
+    }
     const { sessionId } = cancelDialog;
-    handleActionCancel(sessionId, "Canceled", cancelledKms);
+    handleActionCancel(sessionId, "Canceled", cancelledKms, cancelledReason);
     setSessions((prev) =>
       prev.map((s) =>
         s._id === sessionId
@@ -530,6 +541,7 @@ const SessionManagement = () => {
     });
     setCancelDialog({ open: false, sessionId: null });
     setCancelledKms("");
+    setCancelledReason("");
   };
 
   const handleFeedbackUpload = (e) => {
@@ -558,11 +570,17 @@ const SessionManagement = () => {
     });
   };
 
-  const handleActionCancel = (session, action, cancelledKms) => {
+  const handleActionCancel = (
+    session,
+    action,
+    cancelledKms,
+    cancelledReason
+  ) => {
     SessionCancel({
       _id: session,
       action: action,
       cancelledKms: cancelledKms,
+      cancelledReason: cancelledReason,
     });
   };
 
@@ -759,6 +777,8 @@ const SessionManagement = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
+                    <th className="text-left p-2">Session Code</th>
+
                     <th className="text-left p-2">Patient</th>
                     {user?.role !== "physio" && (
                       <th className="text-left p-2">Physiotherapist</th>
@@ -773,6 +793,7 @@ const SessionManagement = () => {
                 <tbody>
                   {filteredSessions.map((session) => (
                     <tr key={session._id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">{session.sessionCode}</td>
                       <td className="p-2">{session.patientId?.patientName}</td>
                       {/* <td className="p-2">{session.patientId.patientName}</td> */}
                       {/* <td className='p-2'>
@@ -836,18 +857,25 @@ const SessionManagement = () => {
                               ✓ {session.sessionFeedbackPros}
                             </p>
                           )}
+                          {session.sessionFeedbackCons && (
+                            <p className="text-yellow-600">
+                              {session.sessionFeedbackCons}
+                            </p>
+                          )}
 
                           {/* Red Flags */}
                           {session.redFlags?.length > 0
                             ? session.redFlags.map(
                                 (flag) =>
                                   flag.isOccurred && (
-                                    <p key={flag._id} className="text-red-600">
+                                    <p key={flag._id} className="tet-red-600">
                                       ⚠ {flag.redFlagId?.redflagName}
                                     </p>
                                   )
                               )
-                            : !session.sessionFeedbackPros && (
+                            : !session.sessionFeedbackPros &&
+                              !session.sessionFeedbackCons &&
+                              !session.redFlags.length && (
                                 <span className="text-gray-400">
                                   No feedback
                                 </span>
@@ -1159,19 +1187,26 @@ const SessionManagement = () => {
 
                   {/* Feedback */}
                   <div className="text-xs mb-3">
-                    {session.feedback ? (
-                      <>
-                        {session.feedback.sessionFeedbackPros && (
-                          <p className="text-green-600">
-                            ✓ {session.feedback.sessionFeedbackPros}
-                          </p>
-                        )}
-                        {session.feedback.redFlags?.length > 0 && (
-                          <p className="text-red-600">
-                            ⚠ {session.feedback.redFlags.join(", ")}
-                          </p>
-                        )}
-                        {session.feedback.media?.length > 0 && (
+                    {/* {session.sessionFeedbackPros ||
+                    session.sessionFeedbackCons ||
+                    session.redFlags.length > 0 ? ( */}
+                    <>
+                      {session.sessionFeedbackPros && (
+                        <p className="text-green-600">
+                          ✓ {session.sessionFeedbackPros}
+                        </p>
+                      )}
+                      {session.sessionFeedbackCons && (
+                        <p className="text-yellow-600">
+                          {session.sessionFeedbackCons}
+                        </p>
+                      )}
+                      {session.redFlags?.length > 0 && (
+                        <p className="text-red-600">
+                          ⚠ {session.redFlags.join(", ")}
+                        </p>
+                      )}
+                      {/* {session.feedback.media?.length > 0 && (
                           <p className="text-blue-600">
                             <Paperclip
                               size={12}
@@ -1179,11 +1214,11 @@ const SessionManagement = () => {
                             />
                             {session.feedback.media.join(", ")}
                           </p>
-                        )}
-                      </>
-                    ) : (
+                        )} */}
+                    </>
+                    {/* ) : (
                       <p className="text-gray-400">No feedback</p>
-                    )}
+                    )} */}
                   </div>
 
                   {/* Actions */}
@@ -1570,21 +1605,38 @@ const SessionManagement = () => {
           <DialogHeader>
             <DialogTitle>Cancel Session</DialogTitle>
             <DialogDescription>
-              Enter the kilometers travelled before cancellation, if any.
+              Enter the below details before cancellation, if any.
+              {/* Enter the kilometers travelled before cancellation, if any. */}
             </DialogDescription>
           </DialogHeader>
+          {user?.role !== "Physio" && (
+            <div className="space-y-4 pt-4">
+              <Label htmlFor="cancelledKms">Cancelled Kms</Label>
+              <Input
+                id="cancelledKms"
+                type="number"
+                value={cancelledKms}
+                onChange={(e) => setCancelledKms(e.target.value)}
+                placeholder="e.g., 5"
+              />
+              <p className="text-xs text-gray-500">
+                This amount will be deducted from the physio's daily total.
+              </p>
+            </div>
+          )}
           <div className="space-y-4 pt-4">
-            <Label htmlFor="cancelledKms">Cancelled Kms</Label>
+            <Label htmlFor="cancelledKms">Cancel Reason</Label>
             <Input
-              id="cancelledKms"
-              type="number"
-              value={cancelledKms}
-              onChange={(e) => setCancelledKms(e.target.value)}
-              placeholder="e.g., 5"
+              id="cancelledReason"
+              type="text"
+              value={cancelledReason}
+              onChange={(e) => setCancelledReason(e.target.value)}
+              placeholder="Enter reason for cancelling this session..."
+              required
             />
-            <p className="text-xs text-gray-500">
+            {/* <p className="text-xs text-gray-500">
               This amount will be deducted from the physio's daily total.
-            </p>
+            </p> */}
           </div>
           <DialogFooter>
             <Button
