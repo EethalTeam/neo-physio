@@ -337,10 +337,51 @@ const LeadManagement = () => {
     } else {
       createLead(leadForm);
     }
+    if (!leadForm.leadName) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Lead Name",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!leadForm.leadAge) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Lead Age",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     if (!leadForm.leadGenderId) {
       toast({
         title: "Alert",
         description: "Please select Gender",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!leadForm.leadContactNo) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Lead Mobile number",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!leadForm.leadAddress) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Lead Address",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!leadForm.LeadStatusId) {
+      toast({
+        title: "Alert",
+        description: "Please select Lead Status",
         variant: "destructive",
       });
       return false;
@@ -359,15 +400,6 @@ const LeadManagement = () => {
       toast({
         title: "Alert",
         description: "Please select Lead Source",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!leadForm.LeadStatusId) {
-      toast({
-        title: "Alert",
-        description: "Please select Lead Status",
         variant: "destructive",
       });
       return false;
@@ -759,7 +791,6 @@ const LeadManagement = () => {
                   name="leadName"
                   value={leadForm.leadName}
                   onChange={handleFormChange}
-                  required
                 />
               </div>
               <div>
@@ -768,7 +799,6 @@ const LeadManagement = () => {
                   name="leadAge"
                   value={leadForm.leadAge}
                   onChange={handleFormChange}
-                  required
                 />
               </div>
             </div>
@@ -801,7 +831,6 @@ const LeadManagement = () => {
                   maxLength={10}
                   inputMode="numeric"
                   pattern="[6-9][0-9]{9}"
-                  required
                 />
               </div>
             </div>

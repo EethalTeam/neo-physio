@@ -14,7 +14,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, CheckCircle, BarChart2, Calendar } from "lucide-react";
+import {
+  DollarSign,
+  CheckCircle,
+  BarChart2,
+  Ban,
+  Calendar,
+  BanIcon,
+  ClipboardList,
+} from "lucide-react";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -182,7 +190,7 @@ const MonthlySummary = () => {
     {
       title: "Total Sessions",
       value: summary.totalSessions,
-      icon: CheckCircle,
+      icon: ClipboardList,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
     },
@@ -196,10 +204,11 @@ const MonthlySummary = () => {
     {
       title: "Cancelled Sessions",
       value: summary.cancelledSessions,
-      icon: CheckCircle,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      icon: BanIcon,
+      color: "text-red-600",
+      bgColor: "bg-red-100",
     },
+
     // {
     //   title: "Avg. Patient Satisfaction",
     //   value: `${summary.averageSatisfaction}%`,
@@ -215,53 +224,51 @@ const MonthlySummary = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex justify-between items-center"
+        className="md:flex justify-between items-center"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
             Monthly Summary
           </h1>
           <p className="text-gray-600">
             Your financial and performance overview.
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <Select
-              value={selectedMonth.toString()}
-              onValueChange={(val) => setSelectedMonth(parseInt(val))}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m, i) => (
-                  <SelectItem key={i} value={i.toString()}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedYear.toString()}
-              onValueChange={(val) => setSelectedYear(parseInt(val))}
-            >
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((y) => (
-                  <SelectItem key={y} value={y.toString()}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <br />
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-gray-500" />
+          <Select
+            value={selectedMonth.toString()}
+            onValueChange={(val) => setSelectedMonth(parseInt(val))}
+          >
+            <SelectTrigger className="w-30">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m, i) => (
+                <SelectItem key={i} value={i.toString()}>
+                  {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedYear.toString()}
+            onValueChange={(val) => setSelectedYear(parseInt(val))}
+          >
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={y.toString()}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+        {/* <div className="flex items-center gap-2"></div> */}
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -336,6 +343,106 @@ const MonthlySummary = () => {
       </motion.div> */}
     </div>
   );
+  // return (
+  //   <div className="space-y-6 overflow-x-hidden">
+  //     {/* // <div className="min-h-screen w-full overflow-x-hidden"> */}
+  //     <motion.div
+  //       initial={{ opacity: 0, y: 20 }}
+  //       animate={{ opacity: 1, y: 0 }}
+  //       transition={{ duration: 0.5 }}
+  //       className="flex justify-between items-center"
+  //     >
+  //       <div>
+  //         <h1 className="text-3xl font-bold text-gray-800 mb-2">
+  //           Monthly Summary
+  //         </h1>
+  //         <p className="text-gray-600 text-sm md:text-xs">
+  //           Your financial and performance overview.
+  //         </p>
+  //       </div>
+  //     </motion.div>
+
+  //     <Card className="medical-card  hidden md:block">
+  //       <CardContent className="flex items-center gap-4">
+  //         {/* <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4"> */}
+  //         <div className="flex items-center gap-2">
+  //           <Calendar className="h-5 w-5 text-gray-500" />
+  //           <Select
+  //             value={selectedMonth.toString()}
+  //             onValueChange={(val) => setSelectedMonth(parseInt(val))}
+  //           >
+  //             <SelectTrigger className="w-30">
+  //               <SelectValue />
+  //             </SelectTrigger>
+  //             <SelectContent>
+  //               {months.map((m, i) => (
+  //                 <SelectItem key={i} value={i.toString()}>
+  //                   {m}
+  //                 </SelectItem>
+  //               ))}
+  //             </SelectContent>
+  //           </Select>
+  //         </div>
+  //         <div className="flex items-center p-5 gap-2">
+  //           <Select
+  //             value={selectedYear.toString()}
+  //             onValueChange={(val) => setSelectedYear(parseInt(val))}
+  //           >
+  //             <SelectTrigger className="w-20">
+  //               <SelectValue />
+  //             </SelectTrigger>
+  //             <SelectContent>
+  //               {years.map((y) => (
+  //                 <SelectItem key={y} value={y.toString()}>
+  //                   {y}
+  //                 </SelectItem>
+  //               ))}
+  //             </SelectContent>
+  //           </Select>
+  //         </div>
+  //       </CardContent>
+  //     </Card>
+
+  //     <motion.div
+  //       initial={{ opacity: 0 }}
+  //       animate={{ opacity: 1 }}
+  //       transition={{ duration: 0.5, delay: 0.2 }}
+  //     >
+  //       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  //         {statCards.map((stat, index) => {
+  //           const Icon = stat.icon;
+  //           return (
+  //             <motion.div
+  //               key={stat.title}
+  //               initial={{ opacity: 0, y: 20 }}
+  //               animate={{ opacity: 1, y: 0 }}
+  //               transition={{ duration: 0.5, delay: index * 0.1 }}
+  //             >
+  //               <Card className="medical-card hover:shadow-lg transition-shadow">
+  //                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+  //                   <CardTitle className="text-sm font-medium text-gray-600">
+  //                     {stat.title}
+  //                   </CardTitle>
+  //                   <div className={`p-2 rounded-full ${stat.bgColor}`}>
+  //                     <Icon className={`h-4 w-4 ${stat.color}`} />
+  //                   </div>
+  //                 </CardHeader>
+  //                 <CardContent>
+  //                   <div className="text-2xl font-bold text-gray-800">
+  //                     {stat.value}
+  //                   </div>
+  //                   <p className="text-xs text-gray-500 mt-1">
+  //                     {months[selectedMonth]} {selectedYear}
+  //                   </p>
+  //                 </CardContent>
+  //               </Card>
+  //             </motion.div>
+  //           );
+  //         })}
+  //       </div>
+  //     </motion.div>
+  //   </div>
+  // );
 };
 
 export default MonthlySummary;

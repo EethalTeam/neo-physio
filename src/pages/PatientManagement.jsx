@@ -493,6 +493,79 @@ const PatientManagement = () => {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (editingPatient) {
+      if (!patientForm.patientName) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Patient Name",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.patientName) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Patient Name",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.byStandar) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Bystander Name",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.patientNumber) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Patient Number",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.patientAddress) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Patient Address",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.patientPinCode) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Patient Pin Code",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.FeesTypeId) {
+        toast({
+          title: "Alert",
+          description: "Please Select fees type",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.feeAmount) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Fee Amount",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!patientForm.reviewDate) {
+        toast({
+          title: "Alert",
+          description: "Please Select the Review Date",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       // setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
       updatePatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
       toast({ title: "Success", description: "Patient details updated." });
@@ -502,6 +575,7 @@ const PatientManagement = () => {
       createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
       toast({ title: "Success", description: "New patient created." });
     }
+
     setIsFormOpen(false);
     setEditingPatient(null);
     setPatientForm(initialFormState);
@@ -1017,7 +1091,7 @@ const PatientManagement = () => {
         )}
       </motion.div>
 
-      <Card className="medical-card">
+      <Card className="medical-card ">
         <CardHeader>
           <CardTitle>Search Patients</CardTitle>
         </CardHeader>
@@ -1116,7 +1190,7 @@ const PatientManagement = () => {
               ))}
             </div>*/}
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto hidden sm:block">
               <table className="min-w-full text-sm border rounded-lg">
                 <thead className="bg-gray-100 text-gray-700">
                   <tr>
@@ -1360,6 +1434,179 @@ const PatientManagement = () => {
                 </tbody>
               </table>
             </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card className="medical-card sm:hidden">
+                <CardHeader>
+                  {/* <CardTitle>
+                    Consultations ({filteredPatients.length})
+                  </CardTitle> */}
+                  {/* <CardDescription>
+                    All registered consultations in the system
+                  </CardDescription> */}
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredPatients.map((patient) => (
+                      <motion.div
+                        key={patient.PatientIDPK}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+                      >
+                        <div className="flex items-center space-x-3 mb-3">
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="text-blue-600" size={20} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-800">
+                              {patient.patientName}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {patient.patientCode}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {patient.patientAge} years,{" "}
+                              {patient.patientGenderId.genderName}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-2 mb-4 flex-grow">
+                          <p className="text-sm">
+                            <strong>Contact:</strong> {patient.patientNumber}
+                          </p>
+                        </div>
+                        <div className="space-y-2 mb-4 flex-grow">
+                          <p className="text-sm">
+                            <strong>Consultation Date:</strong>
+                            {patient.consultationDate
+                              ? format(new Date(patient.consultationDate), "PP")
+                              : "Not set"}
+                          </p>
+                        </div>
+
+                        {/* Review */}
+                        <div className="space-y-2 mb-4 flex-grow">
+                          <p className="text-sm">
+                            <strong>Review Date:</strong>
+
+                            {patient.reviewDate
+                              ? format(new Date(patient.reviewDate), "PP")
+                              : "N/A"}
+                          </p>
+                        </div>
+                        <div className="px-3 py-2 whitespace-nowrap">
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            {patient.physioId ? (
+                              <span className="inline-flex items-center gap-1 text-green-700 text-sm font-medium">
+                                <UserCheck size={14} />
+                                <span className="hidden sm:inline">
+                                  Physio Assigned
+                                </span>
+                                <span className="sm:hidden">Assigned</span>
+                              </span>
+                            ) : (
+                              (user?.role === "HOD" ||
+                                user?.role === "Admin" ||
+                                user?.role === "SuperAdmin") && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex items-center gap-1 whitespace-nowrap"
+                                  onClick={() =>
+                                    openAssignPhysioDialog(patient)
+                                  }
+                                >
+                                  <UserPlus size={14} />
+                                  <span className="hidden sm:inline">
+                                    Assign Physio
+                                  </span>
+                                  <span className="sm:hidden">Assign</span>
+                                </Button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-row flex-wrap gap-2 sm:hidden">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewConsultation(patient)}
+                          >
+                            <FileText size={14} />
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            onClick={() => handleScheduleReview(patient)}
+                          >
+                            <CalendarIcon size={14} />
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewHistory(patient)}
+                          >
+                            <History size={14} />
+                          </Button>
+
+                          {(user?.role === "HOD" ||
+                            user?.role === "Admin" ||
+                            user?.role === "SuperAdmin") &&
+                            Permissions.isEdit && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditPatient(patient)}
+                              >
+                                <Edit size={14} />
+                              </Button>
+                            )}
+                          {(user?.role === "Admin" ||
+                            user?.role === "SuperAdmin") &&
+                            Permissions.isDelete && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="destructive">
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Delete patient?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete the patient.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleDeletePatient(patient._id)
+                                      }
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </CardContent>
         </Card>
       </motion.div>
@@ -1595,7 +1842,6 @@ const PatientManagement = () => {
                           name="patientCode"
                           value={patientForm.patientCode}
                           onChange={handleFormChange}
-                          required
                           disabled
                         />
                       </div>
@@ -1640,7 +1886,6 @@ const PatientManagement = () => {
                           name="patientName"
                           value={patientForm.patientName}
                           onChange={handleFormChange}
-                          required
                         />
                       </div>
                     </div>
@@ -1652,7 +1897,6 @@ const PatientManagement = () => {
                           type="number"
                           value={patientForm.patientAge}
                           onChange={handleFormChange}
-                          required
                         />
                       </div>
                       <div className="space-y-2">
@@ -1702,7 +1946,9 @@ const PatientManagement = () => {
                           name="patientNumber"
                           value={patientForm.patientNumber}
                           onChange={handleFormChange}
-                          required
+                          maxLength={10}
+                          inputMode="numeric"
+                          pattern="[6-9][0-9]{9}"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1711,6 +1957,9 @@ const PatientManagement = () => {
                           name="patientAltNum"
                           value={patientForm.patientAltNum}
                           onChange={handleFormChange}
+                          maxLength={10}
+                          inputMode="numeric"
+                          pattern="[6-9][0-9]{9}"
                         />
                       </div>
                     </div>
@@ -1721,7 +1970,6 @@ const PatientManagement = () => {
                           name="patientAddress"
                           value={patientForm.patientAddress}
                           onChange={handleFormChange}
-                          required
                         />
                       </div>
                       <div className="space-y-2">
@@ -1730,7 +1978,6 @@ const PatientManagement = () => {
                           name="patientPinCode"
                           value={patientForm.patientPinCode}
                           onChange={handleFormChange}
-                          required
                         />
                       </div>
                     </div>

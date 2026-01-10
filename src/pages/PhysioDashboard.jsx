@@ -188,7 +188,7 @@ const PhysioDashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card className="medical-card hover:shadow-lg transition-shadow">
+              <Card className="medical-card hover:shadow-lg transition-shadow w-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">
                     {stat.title}
@@ -222,15 +222,16 @@ const PhysioDashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            {/* <div className="space-y-4"> */}
+            <div className="max-h-96 overflow-y-auto space-y-4">
               {sessions.length > 0 ? (
                 sessions.map((session) => (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50/50 transition-colors"
+                    className="flex items-center justify-between p-2 border rounded-lg hover:bg-gray-50/50 transition-colors"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <div className="flex items-center space-x-2 ">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                         <User className="text-blue-600" size={16} />
                       </div>
                       <div>
@@ -251,7 +252,8 @@ const PhysioDashboard = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+
+                    <div className="flex items-center">
                       {session.patientDetails && (
                         <Button
                           size="sm"
