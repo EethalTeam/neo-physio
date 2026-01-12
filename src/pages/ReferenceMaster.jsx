@@ -275,7 +275,7 @@ const ReferenceMaster = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className=" hidden md:blockoverflow-x-auto w-full">
+            <div className=" hidden md:block overflow-x-auto w-full">
               <table className="min-w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="border-b">
