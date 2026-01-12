@@ -275,7 +275,7 @@ const ReferenceMaster = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto w-full">
+            <div className=" hidden md:blockoverflow-x-auto w-full">
               <table className="min-w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="border-b">
@@ -351,6 +351,71 @@ const ReferenceMaster = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+              {references.map((ref) => (
+                <div
+                  key={ref._id}
+                  className="border rounded-xl p-4 shadow-sm bg-white space-y-3"
+                >
+                  <div>
+                    <p className="text-xs text-gray-500">Source Name</p>
+                    <p className="font-semibold text-gray-800">
+                      {ref.sourceName}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500">Commission</p>
+                    <p className="text-gray-700">
+                      {ref.commissionAmount
+                        ? `₹${ref.commissionAmount}`
+                        : `${ref.CommissionPercentage}%`}{" "}
+                      ({ref.commissionCategory})
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    {Permissions.isEdit && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(ref)}
+                      >
+                        <Edit size={14} />
+                      </Button>
+                    )}
+
+                    {Permissions.isDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            <Trash2 size={14} />
+                          </Button>
+                        </AlertDialogTrigger>
+
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the reference source.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(ref._id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
