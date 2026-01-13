@@ -1256,32 +1256,7 @@ const PatientManagement = () => {
                       {/* Physio Status / Assign */}
                       <td className="px-3 py-2 whitespace-nowrap">
                         <div className="flex flex-col sm:flex-row gap-2">
-                          {patient.physioId ? (
-                            <span className="inline-flex items-center gap-1 text-green-700 text-sm font-medium">
-                              <UserCheck size={14} />
-                              <span className="hidden sm:inline">
-                                Physio Assigned
-                              </span>
-                              <span className="sm:hidden">Assigned</span>
-                            </span>
-                          ) : (
-                            (user?.role === "HOD" ||
-                              user?.role === "Admin" ||
-                              user?.role === "SuperAdmin") && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="flex items-center gap-1 whitespace-nowrap"
-                                onClick={() => openAssignPhysioDialog(patient)}
-                              >
-                                <UserPlus size={14} />
-                                <span className="hidden sm:inline">
-                                  Assign Physio
-                                </span>
-                                <span className="sm:hidden">Assign</span>
-                              </Button>
-                            )
-                          )}
+                          {patient.physioId?.physioName}
                         </div>
                       </td>
                       {/* Mobile-only action buttons */}
@@ -1501,34 +1476,7 @@ const PatientManagement = () => {
                         </div>
                         <div className="px-3 py-2 whitespace-nowrap">
                           <div className="flex flex-col sm:flex-row gap-2">
-                            {patient.physioId ? (
-                              <span className="inline-flex items-center gap-1 text-green-700 text-sm font-medium">
-                                <UserCheck size={14} />
-                                <span className="hidden sm:inline">
-                                  Physio Assigned
-                                </span>
-                                <span className="sm:hidden">Assigned</span>
-                              </span>
-                            ) : (
-                              (user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex items-center gap-1 whitespace-nowrap"
-                                  onClick={() =>
-                                    openAssignPhysioDialog(patient)
-                                  }
-                                >
-                                  <UserPlus size={14} />
-                                  <span className="hidden sm:inline">
-                                    Assign Physio
-                                  </span>
-                                  <span className="sm:hidden">Assign</span>
-                                </Button>
-                              )
-                            )}
+                            <p>Physio: {patient.physioId?.physioName} </p>
                           </div>
                         </div>
                         <div className="mt-2 flex flex-row flex-wrap gap-2 sm:hidden">

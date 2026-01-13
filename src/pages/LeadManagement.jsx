@@ -91,8 +91,8 @@ const LeadManagement = () => {
     ReferenceId: "",
     sourceName: "",
     isQualified: true,
-    LeadStatusId: "",
-    leadStatusName: "",
+    LeadStatusId: "691c06c97abd26fd38437215",
+    leadStatusName: "Pending",
   };
   const [leadStatus, setLeadStatus] = useState([]);
   const [leadForm, setLeadForm] = useState(initialFormState);
@@ -229,8 +229,13 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setLeads(response.leads || []);
-      setFilteredLeads(response.leads || []);
+      const Otherleads = (response.leads || []).filter(
+        (lead) =>
+          lead.isQualified !== "true" &&
+          lead.LeadStatusId?.leadStatusName !== "Qualified"
+      );
+      setLeads(Otherleads || []);
+      setFilteredLeads(Otherleads || []);
     } catch (error) {
       console.error("Error loading leads:", error);
     }
@@ -243,6 +248,17 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
+      if (
+        response?.success === false &&
+        response?.message === "EXISTING_NUMBER"
+      ) {
+        toast({
+          title: "Alert",
+          description: "This phone number is already registered.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({ title: "Success", description: "Lead created successfully." });
       getLead();
       setIsFormOpen(false);
@@ -332,11 +348,7 @@ const LeadManagement = () => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (editingLead) {
-      updateLead(leadForm);
-    } else {
-      createLead(leadForm);
-    }
+
     if (!leadForm.leadName) {
       toast({
         title: "Alert",
@@ -413,7 +425,26 @@ const LeadManagement = () => {
       });
       return false;
     }
+    if (editingLead) {
+      updateLead(leadForm);
+    } else {
+      createLead(leadForm);
+    }
   };
+  useEffect(() => {
+    if (leadStatus.length > 0 && !leadForm.LeadStatusId) {
+      const pendingStatus = leadStatus.find(
+        (st) => st.leadStatusName === "Pending"
+      );
+
+      if (pendingStatus) {
+        setLeadForm((prev) => ({
+          ...prev,
+          LeadStatusId: pendingStatus._id,
+        }));
+      }
+    }
+  }, [leadStatus]);
 
   //  Edit
   const handleEdit = (lead) => {

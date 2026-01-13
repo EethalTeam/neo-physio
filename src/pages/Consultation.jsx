@@ -1,35 +1,86 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Search, FileText, Calendar as CalendarIcon, User, Edit, Trash2, Upload, Paperclip, ClipboardList, PlusCircle, UserPlus, History, UserCheck } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Search,
+  FileText,
+  Calendar as CalendarIcon,
+  User,
+  Edit,
+  Trash2,
+  Upload,
+  Paperclip,
+  ClipboardList,
+  PlusCircle,
+  UserPlus,
+  History,
+  UserCheck,
+} from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import PatientDetailsDialog from '@/components/PatientDetailsDialog';
-import { useNavigate } from 'react-router-dom';
-import { apiRequest } from '@/components/CustomComponents/apiRequest'
-
+import PatientDetailsDialog from "@/components/PatientDetailsDialog";
+import { useNavigate } from "react-router-dom";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const Consulation = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const fileInputRef = useRef(null);
@@ -37,35 +88,38 @@ const Consulation = () => {
   const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
   const [assigningPatient, setAssigningPatient] = useState(null);
   const initialAssignState = {
-    _id: '',
-    physioName: '',
-    Physiotherapist: '',
-    physioId: '',
-    sessionStartDate: '',
-    sessionTime: '',
-    totalSessionDays: '',
-    InitialShorttermGoal: '',
-    goalDuration: '',
-    goalDescription: '',
-    reviewFrequency: '',
+    _id: "",
+    physioName: "",
+    Physiotherapist: "",
+    physioId: "",
+    sessionStartDate: "",
+    sessionTime: "",
+    totalSessionDays: "",
+    InitialShorttermGoal: "",
+    goalDuration: "",
+    goalDescription: "",
+    reviewFrequency: "",
     visitOrder: 1,
-    KmsfromHub: '',
-    KmsfLPatienttoHub: '',
-    kmsFromPrevious: '',
-
+    KmsfromHub: "",
+    KmsfLPatienttoHub: "",
+    kmsFromPrevious: "",
   };
   const [assignForm, setAssignForm] = useState(initialAssignState);
-  console.log(assignForm, "assignForm")
+  console.log(assignForm, "assignForm");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewingPatient, setViewingPatient] = useState(null);
 
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [reviewingPatient, setReviewingPatient] = useState(null);
-  const initialReviewState = { feedback: '', satisfaction: 0 };
+  const initialReviewState = { feedback: "", satisfaction: 0 };
   const [reviewForm, setReviewForm] = useState(initialReviewState);
 
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
-  const initialNewGoalState = { newShortTermGoal: '', newGoalDuration: '', nextReviewDate: null };
+  const initialNewGoalState = {
+    newShortTermGoal: "",
+    newGoalDuration: "",
+    nextReviewDate: null,
+  };
   const [newGoalForm, setNewGoalForm] = useState(initialNewGoalState);
 
   // const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -73,138 +127,186 @@ const Consulation = () => {
   // const [patientHistory, setPatientHistory] = useState([]);
 
   const initialFormState = {
-    _id: '', patientCode: '', patientName: '', patientAge: '', patientGenderId: '', patientNumber: '', patientAddress: '', category: '', MedicalHistoryAndRiskFactor: '', documents: [],
-    consultationDate: null, byStandar: '', Relation: '', patientAltNum: '', patientPinCode: '', patientCondition: '', Physiotherapist: '', reviewDate: null,
-    historyOfSurgery: false, historyOfSurgeryDetails: '', historyOfFall: false, historyOfFallDetails: '', otherMedCon: '', currMed: '',
-    typesOfLifeStyle: '', smokingOrAlcohol: false, dietaryHabits: '',
-    Contraindications: '', goalDescription: '',
-    painLevel: '', rangeOfMotion: '', muscleStrength: '', postureOrGaitAnalysis: '', functionalLimitations: '', ADLAbility: '',
-    shortTermGoals: '', longTermGoals: '', RecomTherapy: '', Frequency: '', Duration: '', Modalities: false, modalityList: [], targetedArea: '', noOfDays: '',
-    hodNotes: '',
+    _id: "",
+    patientCode: "",
+    patientName: "",
+    patientAge: "",
+    patientGenderId: "",
+    patientNumber: "",
+    patientAddress: "",
+    category: "",
+    MedicalHistoryAndRiskFactor: "",
+    documents: [],
+    consultationDate: null,
+    byStandar: "",
+    Relation: "",
+    patientAltNum: "",
+    patientPinCode: "",
+    patientCondition: "",
+    Physiotherapist: "",
+    reviewDate: null,
+    historyOfSurgery: false,
+    historyOfSurgeryDetails: "",
+    historyOfFall: false,
+    historyOfFallDetails: "",
+    otherMedCon: "",
+    currMed: "",
+    typesOfLifeStyle: "",
+    smokingOrAlcohol: false,
+    dietaryHabits: "",
+    Contraindications: "",
+    goalDescription: "",
+    painLevel: "",
+    rangeOfMotion: "",
+    muscleStrength: "",
+    postureOrGaitAnalysis: "",
+    functionalLimitations: "",
+    ADLAbility: "",
+    shortTermGoals: "",
+    longTermGoals: "",
+    RecomTherapy: "",
+    Frequency: "",
+    Duration: "",
+    Modalities: false,
+    modalityList: [],
+    targetedArea: "",
+    noOfDays: "",
+    hodNotes: "",
     goalLog: [],
-    travelDetails: null, genderName: '', FeesTypeId: '', feeAmount: '', feesTypeAmount: '',ReferenceId:'',sourceName:''
+    travelDetails: null,
+    genderName: "",
+    FeesTypeId: "",
+    feeAmount: "",
+    feesTypeAmount: "",
+    ReferenceId: "",
+    sourceName: "",
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
-  
-  const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
-  const [risk, setRisk] = useState([]) //for dropdown 
 
-  const [gender, setGender] = useState([])
-  const [radio, setRadio] = useState([])
-  const [feesType, setFeesType] = useState([])
-  const [reference,setReference]= useState([])
+  const modalitiesOptions = [
+    "TENS",
+    "IFT",
+    "USD",
+    "WAX",
+    "ICE",
+    "HOT",
+    "Weights",
+    "Band",
+  ];
+  const [risk, setRisk] = useState([]); //for dropdown
+
+  const [gender, setGender] = useState([]);
+  const [radio, setRadio] = useState([]);
+  const [feesType, setFeesType] = useState([]);
+  const [reference, setReference] = useState([]);
   // console.log(radio,"radio")
   const { getPermissionsByPath } = useAuth();
-    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
+  const [Permissions, setPermissions] = useState({
+    isAdd: false,
+    isView: false,
+    isEdit: false,
+    isDelete: false,
+  });
 
-
-
-  //api call  and get all risk Factor 
+  //api call  and get all risk Factor
 
   useEffect(() => {
-    getAllRisk()
-    getAllpshyio()
-    getAllGender()
-   
-    getFeesType()
-    getReference()
-  }, [])
+    getAllRisk();
+    getAllpshyio();
+    getAllGender();
 
-    
-    // console.log(Permissions,"Permissions")
-    useEffect(() => {
-      getPermissionsByPath(window.location.pathname).then(res => {
-        if (res) {
-          setPermissions(res)
-        } else {
-          navigate('/dashboard')
-        }
-      })
-  
-    }, [])
-  
-  useEffect(()=>{
-      if (Permissions.isView) {
-         getAllPatient()
+    getFeesType();
+    getReference();
+  }, []);
+
+  // console.log(Permissions,"Permissions")
+  useEffect(() => {
+    getPermissionsByPath(window.location.pathname).then((res) => {
+      if (res) {
+        setPermissions(res);
+      } else {
+        navigate("/dashboard");
       }
-  },[Permissions])
+    });
+  }, []);
 
+  useEffect(() => {
+    if (Permissions.isView) {
+      getAllPatient();
+    }
+  }, [Permissions]);
 
+  //api for Reference
 
-  //api for Reference 
-
-  const getReference = async () =>{
+  const getReference = async () => {
     try {
-      const res = await apiRequest('References/getALLReferences', {
-        method: 'POST',
+      const res = await apiRequest("References/getALLReferences", {
+        method: "POST",
         body: JSON.stringify({}),
-      })
-      setReference(res)
+      });
+      setReference(res);
     } catch (error) {
-          console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
-
+  };
 
   //api for FeesType
 
   const getFeesType = async () => {
     try {
-      const res = await apiRequest('FeesType/getAllFeesType', {
-        method: 'POST',
+      const res = await apiRequest("FeesType/getAllFeesType", {
+        method: "POST",
         body: JSON.stringify({}),
-      })
-      setFeesType(res)
+      });
+      setFeesType(res);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
+  };
 
-
-  //api for getall pshyio 
+  //api for getall pshyio
   const getAllpshyio = async () => {
     try {
       const res = await apiRequest("Physio/getAllPhysio", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({}),
-      })
-      setPhysios(res.physios)
+      });
+      setPhysios(res.physios);
       // setAssignForm(res.physio)
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
+  };
 
   const getAllRisk = async () => {
     try {
       const res = await apiRequest("RiskFactor/getAllRiskFactor", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({}),
-      })
-      setRisk(res)
+      });
+      setRisk(res);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
+  };
 
-
-  //Gender api for drop down 
+  //Gender api for drop down
   const getAllGender = async () => {
     try {
       const res = await apiRequest("Gender/getAllGender", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({}),
-      })
-      setGender(res)
+      });
+      setGender(res);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
+  };
 
   // const getAllPatient = async () => {
   //   try {
@@ -219,101 +321,98 @@ const Consulation = () => {
   //     console.error('Error:', error);
   //     throw error;
   //   }
-  // }
-
+  // // }
 
   const getAllPatient = async () => {
-  try {
-    const res = await apiRequest("Consultation/getAllConsultation", {
-      method: 'POST',
-      body: JSON.stringify({})
-    });
+    try {
+      const res = await apiRequest("Consultation/getAllConsultation", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      //     const consultantPatients = res.filter((item) => item.status !== "Lead");
 
-    const consultantPatients = res.filter(item => item.status !== "Lead");
+      const unassignedPatients = (res || []).filter(
+        (patient) => !patient.physioId
+      );
 
-    setFilteredPatients(consultantPatients);
-    setPatients(consultantPatients);
-
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
-
-
+      setFilteredPatients(unassignedPatients);
+      setPatients(unassignedPatients);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
   //api call and delete Patients
   const deletePatient = async (id) => {
-    if (user?.role === 'Admin' || user?.role === 'SuperAdmin') {
-    try {
-      const response = await apiRequest("Consultation/deleteConsultation", {
-        method: 'POST',
-        body: JSON.stringify({ _id: id }),
+    if (user?.role === "Admin" || user?.role === "SuperAdmin") {
+      try {
+        const response = await apiRequest("Consultation/deleteConsultation", {
+          method: "POST",
+          body: JSON.stringify({ _id: id }),
+        });
+        toast({
+          title: "Deleted",
+          description: "Patients has been removed.",
+          variant: "destructive",
+        });
+        getAllPatient();
 
-      });
-      toast({ title: "Deleted", description: "Patients has been removed.", variant: "destructive" });
-      getAllPatient();
+        // setFilteredPatients(response);
+        // setPhysios(response);
+        // setSessions(response);
 
-      // setFilteredPatients(response);
-      // setPhysios(response);
-      // setSessions(response);
-
-
-      return response;
-    } catch (error) {
-
-      console.error('Error:', error);
-      throw error;
+        return response;
+      } catch (error) {
+        console.error("Error:", error);
+        throw error;
+      }
     }
-  }
-}
-
+  };
 
   //api for update Patients
 
   const updatePatient = async (data) => {
     try {
       const response = await apiRequest("Consultation/updateConsultation", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(data),
       });
       toast({ title: "Success", description: "Patient updated successfully." });
-      getAllPatient()
-      setIsFormOpen(false)
+      getAllPatient();
+      setIsFormOpen(false);
       // setFilteredPatients(response);
       // setPhysios(response);
       // setSessions(response);
       return response;
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
-
+  };
 
   //api for create patients
 
   const createPatient = async (data) => {
     try {
       const response = await apiRequest("Consultation/createConsultation", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(data),
       });
       toast({ title: "Success", description: "Patient Create successfully." });
-      getAllPatient()
-      setIsFormOpen(false)
+      getAllPatient();
+      setIsFormOpen(false);
       return response;
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
   };
-
 
   // useEffect(() => {
   //   AssignPhysio()
   // }, [])
   //api for Assign physio
-  
+
   // const AssignPhysio = async (data) => {
   //   try {
   //     const response = await apiRequest("Consultation/AssignPhysio", {
@@ -332,42 +431,45 @@ const Consulation = () => {
   //   }
   // }
 
-const AssignPhysio = async (data) => {
-  console.log(data,"data")
-  try {
-    const response = await apiRequest("Consultation/AssignPhysio", {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  const AssignPhysio = async (data) => {
+    console.log(data, "data");
+    try {
+      const response = await apiRequest("Consultation/AssignPhysio", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
 
-    toast({ title: "Success", description: "Physio assigned and sessions created." });
+      toast({
+        title: "Success",
+        description: "Physio assigned and sessions created.",
+      });
 
-    // Wait for Patients list to refresh
-    await getAllPatient();
+      // Wait for Patients list to refresh
+      await getAllPatient();
 
-    setIsAssignPhysioOpen(false);
+      setIsAssignPhysioOpen(false);
 
-    // Navigate to Sessions page with sessions data
-    if (response.sessions && response.sessions.length > 0) {
-      navigate('/sessions', { state: { refresh: true, sessions: response.sessions } });
+      // Navigate to Sessions page with sessions data
+      if (response.sessions && response.sessions.length > 0) {
+        navigate("/sessions", {
+          state: { refresh: true, sessions: response.sessions },
+        });
+      }
+
+      return response;
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
     }
+  };
 
-    return response;
-  } catch (error) {
-    console.error('Error:', error);
-    toast({
-      title: "Error",
-      description: error.message || "Something went wrong",
-      variant: "destructive"
-    });
-  }
-};
-
-
-useEffect(() => { 
-  getAllPatient();
-},[]);
-
+  useEffect(() => {
+    getAllPatient();
+  }, []);
 
   // useEffect(() => {
   //   Promise.all([
@@ -384,59 +486,64 @@ useEffect(() => {
 
   useEffect(() => {
     if (searchTerm) {
-      const filtered = patients.filter(patient =>
-        patient.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        // patient.patientNumber.includes(searchTerm) ||
-        patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = patients.filter(
+        (patient) =>
+          patient.patientName
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          // patient.patientNumber.includes(searchTerm) ||
+          patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredPatients(filtered);
     } else {
       setFilteredPatients(patients);
     }
   }, [patients, searchTerm]);
-const generatePatientId = () => {
-  const ids = patients
-    .map(p => parseInt(p.patientCode?.replace('CON', ''), 10))
-    .filter(num => !isNaN(num));
+  const generatePatientId = () => {
+    const ids = patients
+      .map((p) => parseInt(p.patientCode?.replace("CON", ""), 10))
+      .filter((num) => !isNaN(num));
 
-  const lastId = ids.length > 0 ? Math.max(...ids) : 0;
-  const newId = lastId + 1;
+    const lastId = ids.length > 0 ? Math.max(...ids) : 0;
+    const newId = lastId + 1;
 
-  return `CON${String(newId).padStart(6, '0')}`;
-};
+    return `CON${String(newId).padStart(6, "0")}`;
+  };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setPatientForm(prev => ({ ...prev, [name]: value }));
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name, value) => {
-    setPatientForm(prev => ({ ...prev, [name]: value }));
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleRadioChange = (name, value) => {
-    setPatientForm(prev => ({ ...prev, [name]: value }));
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleRadio = (name, value, id) => {
     // setRadio(prev => ({ ...prev, [name]: value }));
-    setRadio(prev =>[...prev, { RiskFactorID: id, isExist: value }] )
-    setPatientForm(prev => ({ ...prev, [name]: value }));
-
-
+    setRadio((prev) => [...prev, { RiskFactorID: id, isExist: value }]);
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  
-
   const handleDateChange = (name, date) => {
-    setPatientForm(prev => ({ ...prev, [name]: date }));
+    setPatientForm((prev) => ({ ...prev, [name]: date }));
   };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setPatientForm(prev => ({ ...prev, documents: [...prev.documents, file.name] }));
-      toast({ title: "File Added", description: `${file.name} has been staged for upload.` });
+      setPatientForm((prev) => ({
+        ...prev,
+        documents: [...prev.documents, file.name],
+      }));
+      toast({
+        title: "File Added",
+        description: `${file.name} has been staged for upload.`,
+      });
     }
   };
 
@@ -444,12 +551,12 @@ const generatePatientId = () => {
     e.preventDefault();
     if (editingPatient) {
       // setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
-      updatePatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio })
+      updatePatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
       toast({ title: "Success", description: "Patient details updated." });
     } else {
       // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
       // setPatients(prev => [newPatient, ...prev]);
-      createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio })
+      createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
       toast({ title: "Success", description: "New patient created." });
     }
     setIsFormOpen(false);
@@ -458,43 +565,75 @@ const generatePatientId = () => {
   };
 
   const handleEditPatient = (patient) => {
-    if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
+    if (
+      user?.role === "HOD" ||
+      user?.role === "Admin" ||
+      user?.role === "SuperAdmin"
+    ) {
       setEditingPatient(true);
       const formData = {
         _id: patient._id ? patient._id : null,
         patientCode: patient.patientCode ? patient.patientCode : null,
         patientName: patient.patientName ? patient.patientName : null,
         patientAge: patient.patientAge ? patient.patientAge : null,
-        patientGenderId: patient.patientGenderId._id ? patient.patientGenderId._id : null,
+        patientGenderId: patient.patientGenderId._id
+          ? patient.patientGenderId._id
+          : null,
         patientNumber: patient.patientNumber ? patient.patientNumber : null,
         patientAddress: patient.patientAddress ? patient.patientAddress : null,
         // category: patient.category ? patient.category : null,
-        MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor ? patient.MedicalHistoryAndRiskFactor : null,
+        MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor
+          ? patient.MedicalHistoryAndRiskFactor
+          : null,
         documents: patient.documents ? patient.documents : [],
-        consultationDate: patient.consultationDate ? new Date(patient.consultationDate) : '',
+        consultationDate: patient.consultationDate
+          ? new Date(patient.consultationDate)
+          : "",
         byStandar: patient.byStandar ? patient.byStandar : null,
         Relation: patient.Relation ? patient.Relation : null,
         patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
         patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
-        patientCondition: patient.patientCondition ? patient.patientCondition : null,
-        Physiotherapist: patient.Physiotherapist ? patient.Physiotherapist : null,
-        reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : '',
-        historyOfSurgery: patient.historyOfSurgery ? patient.historyOfSurgery : null,
-        historyOfSurgeryDetails: patient.historyOfSurgeryDetails ? patient.historyOfSurgeryDetails : null,
+        patientCondition: patient.patientCondition
+          ? patient.patientCondition
+          : null,
+        Physiotherapist: patient.Physiotherapist
+          ? patient.Physiotherapist
+          : null,
+        reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
+        historyOfSurgery: patient.historyOfSurgery
+          ? patient.historyOfSurgery
+          : null,
+        historyOfSurgeryDetails: patient.historyOfSurgeryDetails
+          ? patient.historyOfSurgeryDetails
+          : null,
         historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
-        historyOfFallDetails: patient.historyOfFallDetails ? patient.historyOfFallDetails : null,
+        historyOfFallDetails: patient.historyOfFallDetails
+          ? patient.historyOfFallDetails
+          : null,
         otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
         currMed: patient.currMed ? patient.currMed : null,
-        typesOfLifeStyle: patient.typesOfLifeStyle ? patient.typesOfLifeStyle : null,
-        smokingOrAlcohol: patient.smokingOrAlcohol ? patient.smokingOrAlcohol : false,
+        typesOfLifeStyle: patient.typesOfLifeStyle
+          ? patient.typesOfLifeStyle
+          : null,
+        smokingOrAlcohol: patient.smokingOrAlcohol
+          ? patient.smokingOrAlcohol
+          : false,
         dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
-        Contraindications: patient.Contraindications ? patient.Contraindications : null,
-        goalDescription: patient.goalDescription ? patient.goalDescription : null,
+        Contraindications: patient.Contraindications
+          ? patient.Contraindications
+          : null,
+        goalDescription: patient.goalDescription
+          ? patient.goalDescription
+          : null,
         painLevel: patient.painLevel ? patient.painLevel : null,
         rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
         muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
-        postureOrGaitAnalysis: patient.postureOrGaitAnalysis ? patient.postureOrGaitAnalysis : null,
-        functionalLimitations: patient.functionalLimitations ? patient.functionalLimitations : null,
+        postureOrGaitAnalysis: patient.postureOrGaitAnalysis
+          ? patient.postureOrGaitAnalysis
+          : null,
+        functionalLimitations: patient.functionalLimitations
+          ? patient.functionalLimitations
+          : null,
         ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
         shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
         longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
@@ -508,33 +647,47 @@ const generatePatientId = () => {
         hodNotes: patient.hodNotes ? patient.hodNotes : null,
         goalLog: patient.goalLog ? patient.goalLog : [],
         travelDetails: patient.travelDetails ? patient.travelDetails : null,
-        genderName: patient.patientGenderId ? patient.patientGenderId.genderName : null,
+        genderName: patient.patientGenderId
+          ? patient.patientGenderId.genderName
+          : null,
         FeesTypeId: patient.FeesTypeId ? patient.FeesTypeId._id : null,
-        feesTypeName: patient.FeesTypeId ? patient.FeesTypeId.feesTypeName : null,
+        feesTypeName: patient.FeesTypeId
+          ? patient.FeesTypeId.feesTypeName
+          : null,
         feeAmount: patient.feeAmount ? patient.feeAmount : null,
-        ReferenceId:patient.ReferenceId?patient.ReferenceId._id:null,
-        sourceName:patient.ReferenceId?patient.ReferenceId.sourceName:null
+        ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
+        sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
       };
-      if (patient.consultationDate) formData.consultationDate = new Date(patient.consultationDate);
-      if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
-      let radio = []
-      const RiskFactor = patient.MedicalHistoryAndRiskFactor.map(val => {
+      if (patient.consultationDate)
+        formData.consultationDate = new Date(patient.consultationDate);
+      if (patient.reviewDate)
+        formData.reviewDate = new Date(patient.reviewDate);
+      let radio = [];
+      const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
         if (val.isExist) {
-          radio.push({ RiskFactorID: val.RiskFactorID._id, isExist: val.isExist })
+          radio.push({
+            RiskFactorID: val.RiskFactorID._id,
+            isExist: val.isExist,
+          });
         }
-        return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() }
-      }
-      )
-      setRadio(radio)
+        return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
+      });
+      setRadio(radio);
       if (RiskFactor.length > 0) {
-        RiskFactor.map(val =>
-          formData[Object.keys(val)[0].toLowerCase()] = val[Object.keys(val)[0]] == 'true'
-        )
+        RiskFactor.map(
+          (val) =>
+            (formData[Object.keys(val)[0].toLowerCase()] =
+              val[Object.keys(val)[0]] == "true")
+        );
       }
       setPatientForm(formData);
       setIsFormOpen(true);
     } else {
-      toast({ title: "Access Denied", description: "You do not have permission to edit patient details.", variant: "destructive" });
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to edit patient details.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -545,10 +698,14 @@ const generatePatientId = () => {
   };
 
   const handleDeletePatient = (id) => {
-    setPatients(prev => prev.filter(p => p.id !== id));
-    deletePatient(id)
+    setPatients((prev) => prev.filter((p) => p.id !== id));
+    deletePatient(id);
 
-    toast({ title: "Deleted", description: "Patient has been removed.", variant: "destructive" });
+    toast({
+      title: "Deleted",
+      description: "Patient has been removed.",
+      variant: "destructive",
+    });
   };
 
   const handleViewConsultation = (patient) => {
@@ -557,148 +714,188 @@ const generatePatientId = () => {
   };
 
   const handleUpdateFeedback = () => {
-    setPatients(prev => prev.map(p => {
-      if (p.id === reviewingPatient.id) {
-        const newGoalLog = [...(p.goalLog || [])];
-        const lastLogIndex = newGoalLog.length - 1;
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id === reviewingPatient.id) {
+          const newGoalLog = [...(p.goalLog || [])];
+          const lastLogIndex = newGoalLog.length - 1;
 
-        if (lastLogIndex >= 0 && newGoalLog[lastLogIndex].goal === p.shortTermGoals) {
-          newGoalLog[lastLogIndex] = {
-            ...newGoalLog[lastLogIndex],
-            feedback: reviewForm.feedback,
-            satisfaction: reviewForm.satisfaction,
-            status: 'Feedback Updated'
-          };
-        } else {
-          newGoalLog.push({
-            goal: p.shortTermGoals || 'Initial Goal',
-            date: new Date().toISOString().split('T')[0],
-            status: 'Feedback Updated',
-            feedback: reviewForm.feedback,
-            satisfaction: reviewForm.satisfaction
-          });
+          if (
+            lastLogIndex >= 0 &&
+            newGoalLog[lastLogIndex].goal === p.shortTermGoals
+          ) {
+            newGoalLog[lastLogIndex] = {
+              ...newGoalLog[lastLogIndex],
+              feedback: reviewForm.feedback,
+              satisfaction: reviewForm.satisfaction,
+              status: "Feedback Updated",
+            };
+          } else {
+            newGoalLog.push({
+              goal: p.shortTermGoals || "Initial Goal",
+              date: new Date().toISOString().split("T")[0],
+              status: "Feedback Updated",
+              feedback: reviewForm.feedback,
+              satisfaction: reviewForm.satisfaction,
+            });
+          }
+          return { ...p, goalLog: newGoalLog };
         }
-        return { ...p, goalLog: newGoalLog };
-      }
-      return p;
-    }));
-    toast({ title: "Feedback Updated", description: `Feedback for ${reviewingPatient.name} has been saved.` });
+        return p;
+      })
+    );
+    toast({
+      title: "Feedback Updated",
+      description: `Feedback for ${reviewingPatient.name} has been saved.`,
+    });
     setIsReviewOpen(false);
     setReviewForm(initialReviewState);
   };
 
   const handleLogAndOpenNewGoal = () => {
-    setPatients(prev => prev.map(p => {
-      if (p.id === reviewingPatient.id) {
-        const newGoalLog = [...(p.goalLog || [])];
-        if (p.shortTermGoals) {
-          newGoalLog.push({
-            goal: p.shortTermGoals,
-            date: new Date().toISOString().split('T')[0],
-            status: 'Reviewed & Completed',
-            feedback: reviewForm.feedback,
-            satisfaction: reviewForm.satisfaction
-          });
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id === reviewingPatient.id) {
+          const newGoalLog = [...(p.goalLog || [])];
+          if (p.shortTermGoals) {
+            newGoalLog.push({
+              goal: p.shortTermGoals,
+              date: new Date().toISOString().split("T")[0],
+              status: "Reviewed & Completed",
+              feedback: reviewForm.feedback,
+              satisfaction: reviewForm.satisfaction,
+            });
+          }
+          return { ...p, goalLog: newGoalLog };
         }
-        return { ...p, goalLog: newGoalLog };
-      }
-      return p;
-    }));
-    toast({ title: "Goal Logged", description: "Current goal has been logged. Now set the next goal." });
+        return p;
+      })
+    );
+    toast({
+      title: "Goal Logged",
+      description: "Current goal has been logged. Now set the next goal.",
+    });
     setIsReviewOpen(false);
     setIsNewGoalOpen(true);
   };
 
   const handleNewGoalSubmit = (e) => {
     e.preventDefault();
-    setPatients(prev => prev.map(p => {
-      if (p.id === reviewingPatient.id) {
-        return {
-          ...p,
-          shortTermGoals: newGoalForm.newShortTermGoal,
-          goalDuration: newGoalForm.newGoalDuration,
-          reviewDate: newGoalForm.nextReviewDate,
-        };
-      }
-      return p;
-    }));
-    toast({ title: "New Goal Set!", description: `A new goal has been set for ${reviewingPatient.name}.` });
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id === reviewingPatient.id) {
+          return {
+            ...p,
+            shortTermGoals: newGoalForm.newShortTermGoal,
+            goalDuration: newGoalForm.newGoalDuration,
+            reviewDate: newGoalForm.nextReviewDate,
+          };
+        }
+        return p;
+      })
+    );
+    toast({
+      title: "New Goal Set!",
+      description: `A new goal has been set for ${reviewingPatient.name}.`,
+    });
     setIsNewGoalOpen(false);
     setNewGoalForm(initialNewGoalState);
     setReviewForm(initialReviewState);
   };
 
   const handleScheduleReview = (patient) => {
-    if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
+    if (
+      user?.role === "HOD" ||
+      user?.role === "Admin" ||
+      user?.role === "SuperAdmin"
+    ) {
       setReviewingPatient(patient);
       setIsReviewOpen(true);
     } else {
-      toast({ title: "Access Denied", description: "You do not have permission to conduct reviews.", variant: "destructive" });
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to conduct reviews.",
+        variant: "destructive",
+      });
     }
   };
 
-  
   const openLead = async (patient) => {
-  if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
-    try {
-      // Call backend to revert the patient
-      const response = await apiRequest('Consultation/revertConsultation', {
-        method: 'POST',
-        body: JSON.stringify({ id: patient._id, status: "Pending" }), // optional: send "Pending" status
-      });
+    if (
+      user?.role === "HOD" ||
+      user?.role === "Admin" ||
+      user?.role === "SuperAdmin"
+    ) {
+      try {
+        // Call backend to revert the patient
+        const response = await apiRequest("Consultation/revertConsultation", {
+          method: "POST",
+          body: JSON.stringify({ id: patient._id, status: "Pending" }), // optional: send "Pending" status
+        });
 
-      const data = response; // API returns updated patient
+        const data = response; // API returns updated patient
 
-      // Remove from Consultant page
-      setPatients(prev => prev.filter(p => p._id !== patient._id));
-      setFilteredPatients(prev => prev.filter(p => p._id !== patient._id));
+        // Remove from Consultant page
+        setPatients((prev) => prev.filter((p) => p._id !== patient._id));
+        setFilteredPatients((prev) =>
+          prev.filter((p) => p._id !== patient._id)
+        );
 
-      toast({
-        title: "Reverted",
-        description: `${patient.patientName || "Patient"} has been reverted to lead.`,
-        variant: "default"
-      });
+        toast({
+          title: "Reverted",
+          description: `${
+            patient.patientName || "Patient"
+          } has been reverted to lead.`,
+          variant: "default",
+        });
 
-      // Navigate to Lead page and send reverted patient data
-      navigate('/leads', { state: { refresh: true, patient: data.leadDetails } });
-
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Something went wrong",
-        variant: "destructive"
-      });
+        // Navigate to Lead page and send reverted patient data
+        navigate("/leads", {
+          state: { refresh: true, patient: data.leadDetails },
+        });
+      } catch (error) {
+        console.error("Error:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Something went wrong",
+          variant: "destructive",
+        });
+      }
     }
-  }
-};
-
+  };
 
   const openAssignPhysioDialog = (patient) => {
-    if (user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') {
+    if (
+      user?.role === "HOD" ||
+      user?.role === "Admin" ||
+      user?.role === "SuperAdmin"
+    ) {
       setAssigningPatient(patient);
       setAssignForm({
         _id: patient._id ? patient._id : null,
         Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
-        physioId: patient.physioId ? patient.physioId._id : '',
-        InitialShorttermGoal: patient.InitialShorttermGoal || '',
-        goalDuration: patient.goalDuration || '',
-        totalSessionDays: patient.totalSessionDays || '',
-        sessionStartDate: patient.sessionStartDate ? new Date(patient.sessionStartDate) : '',
-        sessionTime: patient.sessionTime || '',
+        physioId: patient.physioId ? patient.physioId._id : "",
+        InitialShorttermGoal: patient.InitialShorttermGoal || "",
+        goalDuration: patient.goalDuration || "",
+        totalSessionDays: patient.totalSessionDays || "",
+        sessionStartDate: patient.sessionStartDate
+          ? new Date(patient.sessionStartDate)
+          : "",
+        sessionTime: patient.sessionTime || "",
         goalDescription: patient.goalDescription || " ",
         reviewFrequency: patient.reviewFrequency || "",
-        visitOrder: patient.visitOrder || '',
-        KmsfromHub: patient.KmsfromHub || '',
-        KmsfLPatienttoHub: patient.KmsfLPatienttoHub || '',
-        kmsFromPrevious: patient.kmsFromPrevious || ''
-
-
-
+        visitOrder: patient.visitOrder || "",
+        KmsfromHub: patient.KmsfromHub || "",
+        KmsfLPatienttoHub: patient.KmsfLPatienttoHub || "",
+        kmsFromPrevious: patient.kmsFromPrevious || "",
       });
       setIsAssignPhysioOpen(true);
     } else {
-      toast({ title: "Access Denied", description: "You do not have permission to assign physiotherapists.", variant: "destructive" });
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to assign physiotherapists.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -726,10 +923,13 @@ const generatePatientId = () => {
     //   }
     //   return p;
     // }));
-    console.log(assignForm, "...assigningPatient,...assignForm")
+    console.log(assignForm, "...assigningPatient,...assignForm");
 
-    AssignPhysio(assignForm)
-    toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
+    AssignPhysio(assignForm);
+    toast({
+      title: "Success",
+      description: `Physio assigned and plan updated for ${assigningPatient.patientName}.`,
+    });
     // setIsAssignPhysioOpen(false);
     // setAssigningPatient(null);
     // setAssignForm(initialAssignState);
@@ -759,12 +959,23 @@ const generatePatientId = () => {
   const renderRadioGroup = (label, name, value, id, group, dynamic) => (
     <div className="flex items-center space-x-4">
       <Label className="w-24">{label}</Label>
-      <RadioGroup value={patientForm[name] || (group ? false : 'no')} onValueChange={(v) => { dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v) }} className="flex gap-4">
-        <div className="flex items-center space-x-2"><RadioGroupItem value={group ? true : 'yes'} id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
-        <div className="flex items-center space-x-2"><RadioGroupItem value={group ? false : 'no'} id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
+      <RadioGroup
+        value={patientForm[name] || (group ? false : "no")}
+        onValueChange={(v) => {
+          dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v);
+        }}
+        className="flex gap-4"
+      >
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value={group ? true : "yes"} id={`${name}-yes`} />
+          <Label htmlFor={`${name}-yes`}>Yes</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <RadioGroupItem value={group ? false : "no"} id={`${name}-no`} />
+          <Label htmlFor={`${name}-no`}>No</Label>
+        </div>
       </RadioGroup>
     </div>
-
   );
   // const renderRadioGroup = (label, name, value, id, group) => (
   //   <div className="flex items-center space-x-4">
@@ -779,10 +990,19 @@ const generatePatientId = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="md:flex justify-between items-center space-y-5">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="md:flex justify-between items-center space-y-5"
+      >
         <div>
-          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">Consultation Management</h1>
-          <p className="text-gray-600 text-sm md:text-xs">Manage consultation, client details,and treatment records.</p>
+          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">
+            Consultation Management
+          </h1>
+          <p className="text-gray-600 text-sm md:text-xs">
+            Manage consultation, client details,and treatment records.
+          </p>
         </div>
         {/* {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
           <>{
@@ -795,54 +1015,119 @@ const generatePatientId = () => {
       </motion.div>
 
       <Card className="medical-card">
-        <CardHeader><CardTitle>Search Consultations</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Search Consultations</CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input placeholder="Search by name, contact or Consultation ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+            <Input
+              placeholder="Search by name, contact or Consultation ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </CardContent>
       </Card>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <Card className="medical-card">
-          <CardHeader><CardTitle>Consultations ({filteredPatients.length})</CardTitle><CardDescription>All registered consultations in the system</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle>Consultations ({filteredPatients.length})</CardTitle>
+            <CardDescription>
+              All registered consultations in the system
+            </CardDescription>
+          </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredPatients.map((patient) => (
-                <motion.div key={patient.PatientIDPK} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
+                <motion.div
+                  key={patient.PatientIDPK}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+                >
                   <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><User className="text-blue-600" size={20} /></div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="text-blue-600" size={20} />
+                    </div>
                     <div>
-                      <h3 className="font-semibold text-gray-800">{patient.patientName}</h3>
-                      <p className="text-sm text-gray-600">{patient.patientCode}</p>
-                      <p className="text-sm text-gray-600">{patient.patientAge} years, {patient.patientGenderId.genderName}</p>
+                      <h3 className="font-semibold text-gray-800">
+                        {patient.patientName}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {patient.patientCode}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {patient.patientAge} years,{" "}
+                        {patient.patientGenderId.genderName}
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-2 mb-4 flex-grow">
-                    <p className="text-sm"><strong>Contact:</strong> {patient.patientNumber}</p>
+                    <p className="text-sm">
+                      <strong>Contact:</strong> {patient.patientNumber}
+                    </p>
                     {/* <p className="text-sm"><strong>Category:</strong><span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{patient.category}</span></p> */}
-                    <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PP") : 'Not set'}</p>
-                    <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PP") : 'N/A'}</p>
+                    <p className="text-sm">
+                      <strong>Consultation:</strong>{" "}
+                      {patient.consultationDate
+                        ? format(new Date(patient.consultationDate), "PP")
+                        : "Not set"}
+                    </p>
+                    <p className="text-sm">
+                      <strong>Next Review:</strong>{" "}
+                      {patient.reviewDate
+                        ? format(new Date(patient.reviewDate), "PP")
+                        : "N/A"}
+                    </p>
                     {patient.shortTermGoals && (
                       <div className="text-sm mt-2 p-2 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
-                        <p><strong>Goal:</strong> {patient.InitialShorttermGoal} ({patient.goalDuration} days)</p>
+                        <p>
+                          <strong>Goal:</strong> {patient.InitialShorttermGoal}{" "}
+                          ({patient.goalDuration} days)
+                        </p>
                       </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
+                    {(user?.role === "HOD" ||
+                      user?.role === "Admin" ||
+                      user?.role === "SuperAdmin") && (
                       <div className="flex space-x-2">
-                      <Button size="sm" disabled={!!patient.physioId} onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2">
-                      {patient.physioId?(
-                        <>
-                        <UserCheck size={14}/>Physio Assigned</>
-                      ):(
-                        <>
-                        <UserPlus size={14}/>Assign Physio</>
-                      )}</Button>
-                    {/* <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>*/}
-                      <Button size="sm"disabled={!!patient.physioId} onClick={() => openLead(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Revert</Button>
+                        <Button
+                          size="sm"
+                          disabled={!!patient.physioId}
+                          onClick={() => openAssignPhysioDialog(patient)}
+                          className="w-full flex items-center gap-2"
+                        >
+                          {patient.physioId ? (
+                            <>
+                              <UserCheck size={14} />
+                              Physio Assigned
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus size={14} />
+                              Assign Physio
+                            </>
+                          )}
+                        </Button>
+                        {/* <Button size="sm" onClick={() => openAssignPhysioDialog(patient)} className="w-full flex items-center gap-2"><UserPlus size={14} /> Assign Physio</Button>*/}
+                        <Button
+                          size="sm"
+                          disabled={!!patient.physioId}
+                          onClick={() => openLead(patient)}
+                          className="w-full flex items-center gap-2"
+                        >
+                          <UserPlus size={14} /> Revert
+                        </Button>
                       </div>
                     )}
                     {/* <div className="flex space-x-2">
@@ -851,25 +1136,56 @@ const generatePatientId = () => {
                     </div> */}
                     <div className="flex space-x-2">
                       {/* <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button> */}
-                      {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
+                      {(user?.role === "HOD" ||
+                        user?.role === "Admin" ||
+                        user?.role === "SuperAdmin") && (
                         <>
-                       {/* {
+                          {/* {
                         Permissions.isEdit && 
                          <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span className="hidden md:inline lg:inline">Edit</span></Button>
                        } */}
-                       
-                         </>
+                        </>
                       )}
-                      {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
+                      {(user?.role === "Admin" ||
+                        user?.role === "SuperAdmin") && (
                         <>
-                        {
-                          Permissions.isDelete && 
-                          <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} /><span className="hidden md:inline lg:inline">Delete</span></Button></AlertDialogTrigger>
-                          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the patient and all their records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                        </AlertDialog>
-                        }
-                        
+                          {Permissions.isDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="flex-1"
+                                >
+                                  <Trash2 size={14} />
+                                  <span className="hidden md:inline lg:inline">
+                                    Delete
+                                  </span>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Are you sure?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the patient and
+                                    all their records.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDeletePatient(patient._id)
+                                    }
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </>
                       )}
                     </div>
@@ -881,25 +1197,81 @@ const generatePatientId = () => {
         </Card>
       </motion.div>
 
-      <PatientDetailsDialog isOpen={isDetailsOpen} onOpenChange={setIsDetailsOpen} patient={viewingPatient} />
+      <PatientDetailsDialog
+        isOpen={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        patient={viewingPatient}
+      />
 
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
         <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
-          <DialogHeader><DialogTitle>Review Goal for {reviewingPatient?.patientName}</DialogTitle><DialogDescription>Update feedback and satisfaction for the current goal.</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              Review Goal for {reviewingPatient?.patientName}
+            </DialogTitle>
+            <DialogDescription>
+              Update feedback and satisfaction for the current goal.
+            </DialogDescription>
+          </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <div className="space-y-4 pt-4">
               <div>
                 <Label className="font-semibold">Current Goal</Label>
-                <p className="text-sm text-gray-700 p-2 bg-gray-100 rounded-md mt-1">{reviewingPatient?.shortTermGoals || "No current goal set."}</p>
+                <p className="text-sm text-gray-700 p-2 bg-gray-100 rounded-md mt-1">
+                  {reviewingPatient?.shortTermGoals || "No current goal set."}
+                </p>
               </div>
-              <div className="space-y-2"><Label htmlFor="feedback">Feedback / Suggestions</Label><textarea id="feedback" className="w-full p-2 border rounded-md" value={reviewForm.feedback} onChange={(e) => setReviewForm(p => ({ ...p, feedback: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Satisfaction (%)</Label><div className="flex items-center gap-2 flex-wrap">{[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(p => (<Button key={p} type="button" variant={reviewForm.satisfaction === p ? 'default' : 'outline'} size="sm" onClick={() => setReviewForm(f => ({ ...f, satisfaction: p }))}>{p}%</Button>))}</div></div>
+              <div className="space-y-2">
+                <Label htmlFor="feedback">Feedback / Suggestions</Label>
+                <textarea
+                  id="feedback"
+                  className="w-full p-2 border rounded-md"
+                  value={reviewForm.feedback}
+                  onChange={(e) =>
+                    setReviewForm((p) => ({ ...p, feedback: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Satisfaction (%)</Label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((p) => (
+                    <Button
+                      key={p}
+                      type="button"
+                      variant={
+                        reviewForm.satisfaction === p ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() =>
+                        setReviewForm((f) => ({ ...f, satisfaction: p }))
+                      }
+                    >
+                      {p}%
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsReviewOpen(false)}>Cancel</Button>
-            <Button type="button" variant="secondary" onClick={handleUpdateFeedback}>Update Feedback Only</Button>
-            <Button type="button" onClick={handleLogAndOpenNewGoal}>Log Goal & Set New One</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReviewOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleUpdateFeedback}
+            >
+              Update Feedback Only
+            </Button>
+            <Button type="button" onClick={handleLogAndOpenNewGoal}>
+              Log Goal & Set New One
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -907,17 +1279,84 @@ const generatePatientId = () => {
       <Dialog open={isNewGoalOpen} onOpenChange={setIsNewGoalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Set Next Goal for {reviewingPatient?.patientName}</DialogTitle>
-            <DialogDescription>Define the next short-term goal and review date.</DialogDescription>
+            <DialogTitle>
+              Set Next Goal for {reviewingPatient?.patientName}
+            </DialogTitle>
+            <DialogDescription>
+              Define the next short-term goal and review date.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleNewGoalSubmit} className="space-y-4 pt-4">
-            <div className="space-y-2"><Label htmlFor="newShortTermGoal">New Short-term Goal</Label><Input id="newShortTermGoal" value={newGoalForm.newShortTermGoal} onChange={(e) => setNewGoalForm(p => ({ ...p, newShortTermGoal: e.target.value }))} /></div>
+            <div className="space-y-2">
+              <Label htmlFor="newShortTermGoal">New Short-term Goal</Label>
+              <Input
+                id="newShortTermGoal"
+                value={newGoalForm.newShortTermGoal}
+                onChange={(e) =>
+                  setNewGoalForm((p) => ({
+                    ...p,
+                    newShortTermGoal: e.target.value,
+                  }))
+                }
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label htmlFor="newGoalDuration">New Goal Duration (days)</Label><Input id="newGoalDuration" type="number" value={newGoalForm.newGoalDuration} onChange={(e) => setNewGoalForm(p => ({ ...p, newGoalDuration: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Next Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !newGoalForm.nextReviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{newGoalForm.nextReviewDate ? format(newGoalForm.nextReviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={newGoalForm.nextReviewDate} onSelect={(d) => setNewGoalForm(p => ({ ...p, nextReviewDate: d }))} initialFocus/></PopoverContent></Popover></div>
+              <div className="space-y-2">
+                <Label htmlFor="newGoalDuration">
+                  New Goal Duration (days)
+                </Label>
+                <Input
+                  id="newGoalDuration"
+                  type="number"
+                  value={newGoalForm.newGoalDuration}
+                  onChange={(e) =>
+                    setNewGoalForm((p) => ({
+                      ...p,
+                      newGoalDuration: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Next Review Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newGoalForm.nextReviewDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newGoalForm.nextReviewDate ? (
+                        format(newGoalForm.nextReviewDate, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={newGoalForm.nextReviewDate}
+                      onSelect={(d) =>
+                        setNewGoalForm((p) => ({ ...p, nextReviewDate: d }))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsNewGoalOpen(false)}>Cancel</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsNewGoalOpen(false)}
+              >
+                Cancel
+              </Button>
               <Button type="submit">Set New Goal</Button>
             </DialogFooter>
           </form>
@@ -1015,8 +1454,8 @@ const generatePatientId = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div> */}
-                    {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
-                    {/* <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus disabled={(date)=>date<new Date().setHours(0,0,0,0)} /></PopoverContent></Popover></div>
+      {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
+      {/* <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus disabled={(date)=>date<new Date().setHours(0,0,0,0)} /></PopoverContent></Popover></div>
                    
                       <div className="space-y-2">
                       <Label>Reference</Label>
@@ -1044,7 +1483,7 @@ const generatePatientId = () => {
                 </AccordionContent></AccordionItem>
 
                 <AccordionItem value="item-2"><AccordionTrigger>Medical History & Risk Factors</AccordionTrigger><AccordionContent className="space-y-4"> */}
-                  {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
                     {
                       risk.map((risk) => (
                         <div key={risk.RiskFactorIDPK}>
@@ -1085,7 +1524,7 @@ const generatePatientId = () => {
                 <AccordionItem value="item-6"><AccordionTrigger>Treatment Plan</AccordionTrigger><AccordionContent className="space-y-4">
                   <div className="space-y-2"><Label>Short-term Goals</Label><textarea name="shortTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.shortTermGoals} onChange={handleFormChange} /></div>
                   <div className="space-y-2"><Label>Long-term Goals</Label><textarea name="longTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.longTermGoals} onChange={handleFormChange} /></div> */}
-                  {/* <div className="space-y-2"><Label>Recommended Therapy</Label><textarea name="RecomTherapy" rows={2} className="w-full p-2 border rounded-md" value={patientForm.RecomTherapy} onChange={handleFormChange} /></div>
+      {/* <div className="space-y-2"><Label>Recommended Therapy</Label><textarea name="RecomTherapy" rows={2} className="w-full p-2 border rounded-md" value={patientForm.RecomTherapy} onChange={handleFormChange} /></div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Frequency (per week)</Label><Input name="Frequency" type="number" value={patientForm.Frequency} onChange={handleFormChange} /></div>
                     <div className="space-y-2"><Label>Duration (weeks/months)</Label><Input name="Duration" value={patientForm.Duration} onChange={handleFormChange} /></div>
@@ -1118,22 +1557,46 @@ const generatePatientId = () => {
       <Dialog open={isAssignPhysioOpen} onOpenChange={setIsAssignPhysioOpen}>
         <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Assign Physio & Plan for {assigningPatient?.patientName}</DialogTitle>
-            <DialogDescription>Schedule sessions, set goals, and configure travel details.</DialogDescription>
+            <DialogTitle>
+              Assign Physio & Plan for {assigningPatient?.patientName}
+            </DialogTitle>
+            <DialogDescription>
+              Schedule sessions, set goals, and configure travel details.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
-            <form onSubmit={handleAssignPhysioSubmit} className="space-y-4 pt-4">
-              <Accordion type="multiple" defaultValue={['plan', 'travel']} className="w-full">
+            <form
+              onSubmit={handleAssignPhysioSubmit}
+              // onSubmit={handleFormSubmit}
+              className="space-y-4 pt-4"
+            >
+              <Accordion
+                type="multiple"
+                defaultValue={["plan", "travel"]}
+                className="w-full"
+              >
                 <AccordionItem value="plan">
                   <AccordionTrigger>Treatment Plan</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
                       <Label> Assign Physiotherapist</Label>
-                      <Select onValueChange={(v) => setAssignForm(p => ({ ...p, physioId: v }))} value={assignForm.physioId}>
-                        <SelectTrigger><SelectValue placeholder="Select a physiotherapist" /></SelectTrigger>
-                        <SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent>
+                      <Select
+                        onValueChange={(v) =>
+                          setAssignForm((p) => ({ ...p, physioId: v }))
+                        }
+                        value={assignForm.physioId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a physiotherapist" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {physios.map((p) => (
+                            <SelectItem key={p._id} value={p._id.toString()}>
+                              {p.physioName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-
                     </div>
                     {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
 
@@ -1141,38 +1604,139 @@ const generatePatientId = () => {
                       <div className="space-y-2">
                         <Label>Session Start Date</Label>
                         <Popover>
-                          <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !assignForm.sessionStartDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{assignForm.sessionStartDate ? format(assignForm.sessionStartDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                          <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={assignForm.sessionStartDate} onSelect={(d) => setAssignForm(p => ({ ...p, sessionStartDate: d }))} initialFocus  disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }/></PopoverContent>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !assignForm.sessionStartDate &&
+                                  "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {assignForm.sessionStartDate ? (
+                                format(assignForm.sessionStartDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={assignForm.sessionStartDate}
+                              onSelect={(d) =>
+                                setAssignForm((p) => ({
+                                  ...p,
+                                  sessionStartDate: d,
+                                }))
+                              }
+                              initialFocus
+                              disabled={(date) =>
+                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                              }
+                            />
+                          </PopoverContent>
                         </Popover>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="sessionTime">Session Time</Label>
-                        <Input id="sessionTime" type="time" value={assignForm.sessionTime} onChange={(e) => setAssignForm(p => ({ ...p, sessionTime: e.target.value }))} />
+                        <Input
+                          id="sessionTime"
+                          type="time"
+                          value={assignForm.sessionTime}
+                          onChange={(e) =>
+                            setAssignForm((p) => ({
+                              ...p,
+                              sessionTime: e.target.value,
+                            }))
+                          }
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="totalSessionDays">Total Session Days</Label>
-                        <Input id="totalSessionDays" type="number" placeholder="e.g., 30" value={assignForm.totalSessionDays} onChange={(e) => setAssignForm(p => ({ ...p, totalSessionDays: e.target.value }))} />
+                        <Label htmlFor="totalSessionDays">
+                          Total Session Days
+                        </Label>
+                        <Input
+                          id="totalSessionDays"
+                          type="number"
+                          placeholder="e.g., 30"
+                          value={assignForm.totalSessionDays}
+                          onChange={(e) =>
+                            setAssignForm((p) => ({
+                              ...p,
+                              totalSessionDays: e.target.value,
+                            }))
+                          }
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="reviewFrequency">Review Frequency (in days)</Label>
-                        <Input id="reviewFrequency" type="number" placeholder="e.g., 15" value={assignForm.reviewFrequency} onChange={(e) => setAssignForm(p => ({ ...p, reviewFrequency: e.target.value }))} />
+                        <Label htmlFor="reviewFrequency">
+                          Review Frequency (in days)
+                        </Label>
+                        <Input
+                          id="reviewFrequency"
+                          type="number"
+                          placeholder="e.g., 15"
+                          value={assignForm.reviewFrequency}
+                          onChange={(e) =>
+                            setAssignForm((p) => ({
+                              ...p,
+                              reviewFrequency: e.target.value,
+                            }))
+                          }
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="InitialShorttermGoal">Initial Short-term Goal</Label>
-                      <Input id="InitialShorttermGoal" placeholder="e.g., Walk for 15 mins without pain" value={assignForm.InitialShorttermGoal} onChange={(e) => setAssignForm(p => ({ ...p, InitialShorttermGoal: e.target.value }))} />
+                      <Label htmlFor="InitialShorttermGoal">
+                        Initial Short-term Goal
+                      </Label>
+                      <Input
+                        id="InitialShorttermGoal"
+                        placeholder="e.g., Walk for 15 mins without pain"
+                        value={assignForm.InitialShorttermGoal}
+                        onChange={(e) =>
+                          setAssignForm((p) => ({
+                            ...p,
+                            InitialShorttermGoal: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="goalDuration">Goal Duration (in days)</Label>
-                      <Input id="goalDuration" type="number" placeholder="e.g., 10" value={assignForm.goalDuration} onChange={(e) => setAssignForm(p => ({ ...p, goalDuration: e.target.value }))} />
+                      <Label htmlFor="goalDuration">
+                        Goal Duration (in days)
+                      </Label>
+                      <Input
+                        id="goalDuration"
+                        type="number"
+                        placeholder="e.g., 10"
+                        value={assignForm.goalDuration}
+                        onChange={(e) =>
+                          setAssignForm((p) => ({
+                            ...p,
+                            goalDuration: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="goalDescription">Goal Description</Label>
-                      <textarea id="goalDescription" className="w-full p-2 border rounded-md min-h-[100px]" placeholder="Describe the exercises and focus for this goal..." value={assignForm.goalDescription} onChange={(e) => setAssignForm(p => ({ ...p, goalDescription: e.target.value }))} />
+                      <textarea
+                        id="goalDescription"
+                        className="w-full p-2 border rounded-md min-h-[100px]"
+                        placeholder="Describe the exercises and focus for this goal..."
+                        value={assignForm.goalDescription}
+                        onChange={(e) =>
+                          setAssignForm((p) => ({
+                            ...p,
+                            goalDescription: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -1181,29 +1745,84 @@ const generatePatientId = () => {
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
                       <Label htmlFor="visitOrder">Visit Order</Label>
-                      <Input id="visitOrder" type="number" min="1" placeholder="e.g., 1 for first visit" value={assignForm.visitOrder} onChange={(e) => setAssignForm(p => ({ ...p, visitOrder: e.target.value }))} />
+                      <Input
+                        id="visitOrder"
+                        type="number"
+                        min="1"
+                        placeholder="e.g., 1 for first visit"
+                        value={assignForm.visitOrder}
+                        onChange={(e) =>
+                          setAssignForm((p) => ({
+                            ...p,
+                            visitOrder: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
                     {assignForm.visitOrder == 1 && (
                       <div className="space-y-2">
                         <Label htmlFor="KmsfromHub">Kms from Hub</Label>
-                        <Input id="KmsfromHub" type="number" placeholder="Distance from hub to first patient" value={assignForm.KmsfromHub} onChange={(e) => setAssignForm(p => ({ ...p, KmsfromHub: e.target.value }))} />
+                        <Input
+                          id="KmsfromHub"
+                          type="number"
+                          placeholder="Distance from hub to first patient"
+                          value={assignForm.KmsfromHub}
+                          onChange={(e) =>
+                            setAssignForm((p) => ({
+                              ...p,
+                              KmsfromHub: e.target.value,
+                            }))
+                          }
+                        />
                       </div>
                     )}
                     {assignForm.visitOrder > 1 && (
                       <div className="space-y-2">
-                        <Label htmlFor="kmsFromPrevious">Kms from Previous Appointment</Label>
-                        <Input id="kmsFromPrevious" type="number" placeholder="Distance from previous patient" value={assignForm.kmsFromPrevious} onChange={(e) => setAssignForm(p => ({ ...p, kmsFromPrevious: e.target.value }))} />
+                        <Label htmlFor="kmsFromPrevious">
+                          Kms from Previous Appointment
+                        </Label>
+                        <Input
+                          id="kmsFromPrevious"
+                          type="number"
+                          placeholder="Distance from previous patient"
+                          value={assignForm.kmsFromPrevious}
+                          onChange={(e) =>
+                            setAssignForm((p) => ({
+                              ...p,
+                              kmsFromPrevious: e.target.value,
+                            }))
+                          }
+                        />
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Label htmlFor="KmsfLPatienttoHub">Kms from Last Patient to Hub</Label>
-                      <Input id="KmsfLPatienttoHub" type="number" placeholder="Distance for return trip" value={assignForm.KmsfLPatienttoHub} onChange={(e) => setAssignForm(p => ({ ...p, KmsfLPatienttoHub: e.target.value }))} />
+                      <Label htmlFor="KmsfLPatienttoHub">
+                        Kms from Last Patient to Hub
+                      </Label>
+                      <Input
+                        id="KmsfLPatienttoHub"
+                        type="number"
+                        placeholder="Distance for return trip"
+                        value={assignForm.KmsfLPatienttoHub}
+                        onChange={(e) =>
+                          setAssignForm((p) => ({
+                            ...p,
+                            KmsfLPatienttoHub: e.target.value,
+                          }))
+                        }
+                      />
                     </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsAssignPhysioOpen(false)}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAssignPhysioOpen(false)}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit">Assign & Save Plan</Button>
               </DialogFooter>
             </form>
