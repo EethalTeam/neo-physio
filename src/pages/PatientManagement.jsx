@@ -161,6 +161,9 @@ const PatientManagement = () => {
     muscleStrength: "",
     postureOrGaitAnalysis: "",
     functionalLimitations: "",
+    static: "",
+    dynamic: "",
+    coordination: "",
     ADLAbility: "",
     shortTermGoals: "",
     longTermGoals: "",
@@ -426,31 +429,69 @@ const PatientManagement = () => {
   //   }).catch(err => console.error('Error loading data:', err));
   // }, []);
 
+  // useEffect(() => {
+  //   if (searchTerm) {
+  //     const filtered = patients.filter(
+  //       (patient) =>
+  //         patient.patientName
+  //           .toLowerCase()
+  //           .includes(searchTerm.toLowerCase()) ||
+  //         // patient.patientNumber.includes(searchTerm) ||
+  //         patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase()),
+  //     );
+  //     setFilteredPatients(filtered);
+  //   } else {
+  //     setFilteredPatients(patients);
+  //   }
+  // }, [patients, searchTerm]);
   useEffect(() => {
-    if (searchTerm) {
+    if (searchTerm.trim()) {
       const filtered = patients.filter(
         (patient) =>
           patient.patientName
-            .toLowerCase()
+            ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          // patient.patientNumber.includes(searchTerm) ||
-          patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase())
+          patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
+
       setFilteredPatients(filtered);
     } else {
       setFilteredPatients(patients);
     }
   }, [patients, searchTerm]);
 
+  useEffect(() => {
+    if (isFormOpen && !editingPatient) {
+      setPatientForm((prev) => ({
+        ...prev,
+        patientCode: generatePatientId(),
+      }));
+    }
+  }, [isFormOpen, editingPatient]);
+
+  // const generatePatientId = () => {
+  //   const lastId =
+  //     patients.length > 0
+  //       ? Math.max(
+  //           ...patients.map((p) => parseInt(p.patientCode.replace("PAT", "")))
+  //         )
+  //       : 0;
+  //   const newId = lastId + 1;
+  //   return `PAT${String(newId).padStart(6, "0")}`;
+  // };
+
   const generatePatientId = () => {
     const lastId =
       patients.length > 0
         ? Math.max(
-            ...patients.map((p) => parseInt(p.patientCode.replace("PAT", "")))
+            ...patients
+              .filter((p) => p.patientCode?.startsWith("HNP"))
+              .map((p) => parseInt(p.patientCode.replace("HNP", ""), 10)),
           )
         : 0;
+
     const newId = lastId + 1;
-    return `PAT${String(newId).padStart(6, "0")}`;
+    return `HNP${String(newId).padStart(4, "0")}`;
   };
 
   const handleFormChange = (e) => {
@@ -651,6 +692,9 @@ const PatientManagement = () => {
         functionalLimitations: patient.functionalLimitations
           ? patient.functionalLimitations
           : null,
+        static: patient.static ? patient.static : null,
+        dynamic: patient.dynamic ? patient.dynamic : null,
+        coordination: patient.coordination ? patient.coordination : null,
         ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
         shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
         longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
@@ -694,7 +738,7 @@ const PatientManagement = () => {
         RiskFactor.map(
           (val) =>
             (formData[Object.keys(val)[0].toLowerCase()] =
-              val[Object.keys(val)[0]] == "true")
+              val[Object.keys(val)[0]] == "true"),
         );
       }
       setPatientForm(formData);
@@ -760,7 +804,7 @@ const PatientManagement = () => {
           return { ...p, goalLog: newGoalLog };
         }
         return p;
-      })
+      }),
     );
     toast({
       title: "Feedback Updated",
@@ -787,7 +831,7 @@ const PatientManagement = () => {
           return { ...p, goalLog: newGoalLog };
         }
         return p;
-      })
+      }),
     );
     toast({
       title: "Goal Logged",
@@ -810,7 +854,7 @@ const PatientManagement = () => {
           };
         }
         return p;
-      })
+      }),
     );
     toast({
       title: "New Goal Set!",
@@ -839,7 +883,6 @@ const PatientManagement = () => {
   };
 
   const openAssignPhysioDialog = (patient) => {
-    console.log(patient, "patient");
     if (
       user?.role === "HOD" ||
       user?.role === "Admin" ||
@@ -902,7 +945,7 @@ const PatientManagement = () => {
             };
           }
           return p;
-        })
+        }),
       );
 
       toast({
@@ -979,7 +1022,7 @@ const PatientManagement = () => {
     }));
 
     const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
-      (a, b) => new Date(b.date) - new Date(a.date)
+      (a, b) => new Date(b.date) - new Date(a.date),
     );
     setPatientHistory(combinedHistory);
     setIsHistoryOpen(true);
@@ -1015,7 +1058,7 @@ const PatientManagement = () => {
       const confirmAction = window.confirm(
         `Are you sure you want to mark ${patient.patientName} as ${
           newStatus ? "Recovered" : "Not Recovered"
-        }?`
+        }?`,
       );
       if (!confirmAction) return;
 
@@ -1039,8 +1082,8 @@ const PatientManagement = () => {
         // Update UI instantly
         setPatients((prev) =>
           prev.map((p) =>
-            p._id === patient._id ? { ...p, isRecovered: newStatus } : p
-          )
+            p._id === patient._id ? { ...p, isRecovered: newStatus } : p,
+          ),
         );
       }
     } catch (error) {
@@ -1063,6 +1106,27 @@ const PatientManagement = () => {
   //   </div>
 
   // );
+  const [selectedPhysioId, setSelectedPhysioId] = useState("ALL");
+  useEffect(() => {
+    const filtered = patients.filter((patient) => {
+      const search = searchTerm.toLowerCase();
+
+      // Search filter
+      const matchesSearch =
+        patient.patientName?.toLowerCase().includes(search) ||
+        patient.patientCode?.toLowerCase().includes(search) ||
+        patient.patientNumber?.toString().includes(search);
+
+      // Physiotherapist filter
+      const matchesPhysio =
+        selectedPhysioId === "ALL" ||
+        patient.physioId?._id === selectedPhysioId;
+
+      return matchesSearch && matchesPhysio;
+    });
+
+    setFilteredPatients(filtered);
+  }, [patients, searchTerm, selectedPhysioId]);
 
   return (
     <div className="space-y-6 ">
@@ -1091,19 +1155,41 @@ const PatientManagement = () => {
         )}
       </motion.div>
 
-      <Card className="medical-card ">
+      <Card className="medical-card">
         <CardHeader>
           <CardTitle>Search Patients</CardTitle>
         </CardHeader>
+
         <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by name, contact or Patient ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Search Column */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by name, contact or Patient ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Physio Filter Column */}
+            <Select
+              value={selectedPhysioId}
+              onValueChange={(v) => setSelectedPhysioId(v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by Physiotherapist" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Physiotherapists</SelectItem>
+                {physios.map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.physioName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -1201,6 +1287,16 @@ const PatientManagement = () => {
                     <th className="px-3 py-2 text-left hidden md:table-cell">
                       Contact
                     </th>
+                    {user?.role === "HOD" && (
+                      <>
+                        <th className="px-3 py-2 text-left hidden md:table-cell">
+                          No of Sessions
+                        </th>
+                        <th className="px-3 py-2 text-left hidden md:table-cell">
+                          Condition
+                        </th>
+                      </>
+                    )}
                     <th className="px-3 py-2 text-left hidden lg:table-cell">
                       Consultation
                     </th>
@@ -1227,32 +1323,37 @@ const PatientManagement = () => {
                           {patient.patientCode}
                         </div>
                       </td>
-
                       {/* Age / Gender */}
                       <td className="px-3 py-2  sm:table-cell">
                         {patient.patientAge} /{" "}
                         {patient.patientGenderId.genderName}
                       </td>
-
                       {/* Contact */}
                       <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
                         {patient.patientNumber}
                       </td>
-
+                      {user?.role === "HOD" && (
+                        <>
+                          <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                            {patient.totalSessionDays || 0}
+                          </td>
+                          <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                            {patient.patientCondition}
+                          </td>
+                        </>
+                      )}
                       {/* Consultation */}
-                      <td className="px-3 py-2 hidden lg:table-cell">
+                      <td className="px-3 py-2 hidden lg:table-cell max-w-full">
                         {patient.consultationDate
                           ? format(new Date(patient.consultationDate), "PP")
                           : "Not set"}
                       </td>
-
                       {/* Review */}
                       <td className="px-3 py-2 hidden lg:table-cell">
                         {patient.reviewDate
                           ? format(new Date(patient.reviewDate), "PP")
                           : "N/A"}
                       </td>
-
                       {/* Physio Status / Assign */}
                       <td className="px-3 py-2 whitespace-nowrap">
                         <div className="flex flex-col sm:flex-row gap-2">
@@ -1260,77 +1361,7 @@ const PatientManagement = () => {
                         </div>
                       </td>
                       {/* Mobile-only action buttons */}
-                      <div className="mt-2 flex flex-row gap-2 sm:hidden">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewConsultation(patient)}
-                        >
-                          <FileText size={14} />
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          onClick={() => handleScheduleReview(patient)}
-                        >
-                          <CalendarIcon size={14} />
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewHistory(patient)}
-                        >
-                          <History size={14} />
-                        </Button>
-
-                        {(user?.role === "HOD" ||
-                          user?.role === "Admin" ||
-                          user?.role === "SuperAdmin") &&
-                          Permissions.isEdit && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditPatient(patient)}
-                            >
-                              <Edit size={14} />
-                            </Button>
-                          )}
-                        {(user?.role === "Admin" ||
-                          user?.role === "SuperAdmin") &&
-                          Permissions.isDelete && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="destructive">
-                                  <Trash2 size={14} />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete patient?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete the patient.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      handleDeletePatient(patient._id)
-                                    }
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                      </div>
-
                       {/* Actions */}
-
                       <td className="px-3 py-2 hidden sm:table-cell">
                         <div className="flex flex-row flex-wrap gap-2 justify-center">
                           <Button
@@ -1368,6 +1399,24 @@ const PatientManagement = () => {
                                 <Edit size={14} />
                               </Button>
                             )}
+                          {(user?.role === "HOD" ||
+                            user?.role === "Admin" ||
+                            user?.role === "SuperAdmin") && (
+                            <Button
+                              size="sm"
+                              onClick={() => openAssignPhysioDialog(patient)}
+                            >
+                              {patient.physioId ? (
+                                <>
+                                  <UserCheck size={14} />
+                                </>
+                              ) : (
+                                <>
+                                  <UserPlus size={14} />
+                                </>
+                              )}
+                            </Button>
+                          )}
 
                           {(user?.role === "Admin" ||
                             user?.role === "SuperAdmin") &&
@@ -1463,7 +1512,27 @@ const PatientManagement = () => {
                               : "Not set"}
                           </p>
                         </div>
+                        {user?.role === "HOD" && (
+                          <>
+                            <div className="space-y-2 mb-4 flex-grow">
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <p className="text-sm">
+                                  <strong>Condition:</strong>
+                                  {patient.patientCondition}
+                                </p>
+                              </div>
+                            </div>
 
+                            <div className="space-y-2 mb-4 flex-grow">
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <p className="text-sm">
+                                  <strong>No of Sessions:</strong>
+                                  {patient.totalSessionDays}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        )}
                         {/* Review */}
                         <div className="space-y-2 mb-4 flex-grow">
                           <p className="text-sm">
@@ -1480,6 +1549,25 @@ const PatientManagement = () => {
                           </div>
                         </div>
                         <div className="mt-2 flex flex-row flex-wrap gap-2 sm:hidden">
+                          {(user?.role === "HOD" ||
+                            user?.role === "Admin" ||
+                            user?.role === "SuperAdmin") && (
+                            <Button
+                              size="sm"
+                              onClick={() => openAssignPhysioDialog(patient)}
+                            >
+                              {patient.physioId ? (
+                                <>
+                                  <UserCheck size={14} />
+                                </>
+                              ) : (
+                                <>
+                                  <UserPlus size={14} />
+                                </>
+                              )}
+                            </Button>
+                          )}
+
                           <Button
                             size="sm"
                             variant="outline"
@@ -1487,14 +1575,12 @@ const PatientManagement = () => {
                           >
                             <FileText size={14} />
                           </Button>
-
                           <Button
                             size="sm"
                             onClick={() => handleScheduleReview(patient)}
                           >
                             <CalendarIcon size={14} />
                           </Button>
-
                           <Button
                             size="sm"
                             variant="outline"
@@ -1502,7 +1588,6 @@ const PatientManagement = () => {
                           >
                             <History size={14} />
                           </Button>
-
                           {(user?.role === "HOD" ||
                             user?.role === "Admin" ||
                             user?.role === "SuperAdmin") &&
@@ -1687,7 +1772,7 @@ const PatientManagement = () => {
                       variant={"outline"}
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !newGoalForm.nextReviewDate && "text-muted-foreground"
+                        !newGoalForm.nextReviewDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1789,7 +1874,7 @@ const PatientManagement = () => {
                         <Input
                           name="patientCode"
                           value={patientForm.patientCode}
-                          onChange={handleFormChange}
+                          // onChange={handleFormChange}
                           disabled
                         />
                       </div>
@@ -1802,7 +1887,7 @@ const PatientManagement = () => {
                               className={cn(
                                 "w-full justify-start text-left font-normal",
                                 !patientForm.consultationDate &&
-                                  "text-muted-foreground"
+                                  "text-muted-foreground",
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -2006,7 +2091,7 @@ const PatientManagement = () => {
                               className={cn(
                                 "w-full justify-start text-left font-normal",
                                 !patientForm.reviewDate &&
-                                  "text-muted-foreground"
+                                  "text-muted-foreground",
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -2107,7 +2192,7 @@ const PatientManagement = () => {
                             patientForm[risk.RiskFactorName.toLowerCase()],
                             risk.RiskFactorIDPK,
                             true,
-                            true
+                            true,
                           )}
                         </div>
                       ))}
@@ -2116,7 +2201,7 @@ const PatientManagement = () => {
                       {renderRadioGroup(
                         "History of Surgery",
                         "historyOfSurgery",
-                        patientForm.historyOfSurgery
+                        patientForm.historyOfSurgery,
                       )}
                     </div>
                     {patientForm.historyOfSurgery === "yes" && (
@@ -2135,7 +2220,7 @@ const PatientManagement = () => {
                       {renderRadioGroup(
                         "History of Fall",
                         "historyOfFall",
-                        patientForm.historyOfFall
+                        patientForm.historyOfFall,
                       )}
                     </div>
                     {patientForm.historyOfFall === "yes" && (
@@ -2205,7 +2290,7 @@ const PatientManagement = () => {
                         "smokingOrAlcohol",
                         patientForm.smokingOrAlcohol,
                         "",
-                        true
+                        true,
                       )}
                     </div>
                     <div className="space-y-2">
@@ -2272,6 +2357,46 @@ const PatientManagement = () => {
                         rows={2}
                         className="w-full p-2 border rounded-md"
                         value={patientForm.postureOrGaitAnalysis}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="w-full border rounded-md p-4 bg-gray-50">
+                      <Label className="text-sm font-semibold text-gray-700 mb-3 block">
+                        Balance
+                      </Label>
+
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">Static</p>
+                          <textarea
+                            name="static"
+                            rows={2}
+                            className="w-full p-2 border rounded-md text-sm"
+                            value={patientForm.static}
+                            onChange={handleFormChange}
+                          />
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1">Dynamic</p>
+                          <textarea
+                            name="dynamic"
+                            rows={2}
+                            className="w-full p-2 border rounded-md text-sm"
+                            value={patientForm.dynamic}
+                            onChange={handleFormChange}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Coordination</Label>
+                      <textarea
+                        name="coordination"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.coordination}
                         onChange={handleFormChange}
                       />
                     </div>
@@ -2365,7 +2490,7 @@ const PatientManagement = () => {
                         "Modalities",
                         patientForm.Modalities,
                         "",
-                        true
+                        true,
                       )}
                     </div>
                     {patientForm.Modalities === true && (
@@ -2390,7 +2515,7 @@ const PatientManagement = () => {
                                     modalityList: checked
                                       ? [...prev.modalityList, mod]
                                       : prev.modalityList.filter(
-                                          (m) => m !== mod
+                                          (m) => m !== mod,
                                         ),
                                   }));
                                 }}
@@ -2487,6 +2612,7 @@ const PatientManagement = () => {
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <form
               onSubmit={handleAssignPhysioSubmit}
+              // onSubmit={handleFormSubmit}
               className="space-y-4 pt-4"
             >
               <Accordion
@@ -2529,7 +2655,7 @@ const PatientManagement = () => {
                               className={cn(
                                 "w-full justify-start text-left font-normal",
                                 !assignForm.sessionStartDate &&
-                                  "text-muted-foreground"
+                                  "text-muted-foreground",
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -2551,6 +2677,9 @@ const PatientManagement = () => {
                                 }))
                               }
                               initialFocus
+                              disabled={(date) =>
+                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                              }
                             />
                           </PopoverContent>
                         </Popover>

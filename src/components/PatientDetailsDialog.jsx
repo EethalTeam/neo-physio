@@ -35,10 +35,14 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Patient Details: {patient.patientName}</DialogTitle>
+          <DialogTitle>
+            Patient Details:
+            {patient.patientName || patient?.patientId?.patientName}
+          </DialogTitle>
           <DialogDescription>
-            Comprehensive overview of {patient.patientName}'s profile and
-            medical history.
+            Comprehensive overview of{" "}
+            {patient.patientName || patient?.patientId?.patientName}'s profile
+            and medical history.
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto pr-6 -mr-6 mt-4">
@@ -61,46 +65,83 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                 <DetailSection>
                   <DetailItem
                     label="Patient Code "
-                    value={patient.patientCode}
+                    value={
+                      patient?.patientId?.patientCode || patient.patientCode
+                    }
                   />
                   <DetailItem
                     label="Consultation Date"
                     value={
                       patient.consultationDate
                         ? format(new Date(patient.consultationDate), "PPP")
-                        : "N/A"
+                        : "N/A" || patient?.patientId?.consultationDate
+                          ? format(
+                              new Date(patient?.patientId?.consultationDate),
+                              "PPP",
+                            )
+                          : "N/A"
                     }
                   />
                   <DetailItem
                     label="Physio Name"
                     value={patient.physioId?.physioName}
                   />
-                  <DetailItem label="Age" value={patient.patientAge} />
+                  <DetailItem
+                    label="Age"
+                    value={patient.patientAge || patient?.patientId?.patientAge}
+                  />
                   <DetailItem
                     label="Gender"
-                    value={patient.patientGenderId?.genderName}
+                    value={
+                      patient.patientGenderId?.genderName ||
+                      patient?.patientId?.patientGenderId?.genderName
+                    }
                   />
                   <DetailItem
                     label="Bystander Name"
-                    value={patient.byStandar}
+                    value={patient.byStandar || patient?.patientId?.byStandar}
                   />
-                  <DetailItem label="Relation" value={patient.Relation} />
+                  <DetailItem
+                    label="Relation"
+                    value={patient.Relation || patient?.patientId?.Relation}
+                  />
                   <DetailItem
                     label="Mobile No."
-                    value={patient.patientNumber}
+                    value={
+                      patient.patientNumber || patient?.patientId?.patientNumber
+                    }
                   />
                   <DetailItem
                     label="Alt. Mobile No."
-                    value={patient.patientAltNum}
+                    value={
+                      patient.patientAltNum || patient?.patientId?.patientAltNum
+                    }
                   />
-                  <DetailItem label="Address" value={patient.patientAddress} />
-                  <DetailItem label="PIN Code" value={patient.patientPinCode} />
+                  <DetailItem
+                    label="Address"
+                    value={
+                      patient.patientAddress ||
+                      patient?.patientId?.patientAddress
+                    }
+                  />
+                  <DetailItem
+                    label="PIN Code"
+                    value={
+                      patient.patientPinCode ||
+                      patient?.patientId?.patientPinCode
+                    }
+                  />
                   <DetailItem
                     label="Review Date"
                     value={
                       patient.reviewDate
                         ? format(new Date(patient.reviewDate), "PPP")
-                        : "N/A"
+                        : "N/A" || patient?.patientId?.reviewDate
+                          ? format(
+                              new Date(patient?.patientId?.reviewDate),
+                              "PPP",
+                            )
+                          : "N/A"
                     }
                   />
                   <DetailItem
@@ -108,29 +149,50 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                     value={
                       patient.sessionStartDate
                         ? format(new Date(patient.sessionStartDate), "PPP")
-                        : "N/A"
+                        : "N/A" || patient?.patientId?.sessionStartDate
+                          ? format(
+                              new Date(patient?.patientId?.sessionStartDate),
+                              "PPP",
+                            )
+                          : "N/A"
                     }
                   />
                   <DetailItem
                     label=" Total Session Days"
-                    value={patient.totalSessionDays}
+                    value={
+                      patient.totalSessionDays ||
+                      patient?.patientId?.totalSessionDays
+                    }
                   />
                   <DetailItem
                     label="Session Time"
-                    value={patient.sessionTime}
+                    value={
+                      patient.sessionTime || patient?.patientId?.sessionTime
+                    }
                   />
                   <DetailItem
                     label="KM From Patient to Hub"
-                    value={patient.KmsfLPatienttoHub}
+                    value={
+                      patient.KmsfLPatienttoHub ||
+                      patient?.patientId?.KmsfLPatienttoHub
+                    }
                   />
-                  <DetailItem label="KM from Hub" value={patient.KmsfromHub} />{" "}
+                  <DetailItem
+                    label="KM from Hub"
+                    value={patient.KmsfromHub || patient?.patientId?.KmsfromHub}
+                  />
                   <DetailItem
                     label="Initial Short term Goal"
-                    value={patient.InitialShorttermGoal}
+                    value={
+                      patient.InitialShorttermGoal ||
+                      patient?.patientId?.InitialShorttermGoal
+                    }
                   />
                   <DetailItem
                     label="Goal Duration"
-                    value={patient.goalDuration}
+                    value={
+                      patient.goalDuration || patient?.patientId?.goalDuration
+                    }
                   />
                 </DetailSection>
               </AccordionContent>
@@ -142,42 +204,65 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
               </AccordionTrigger>
               <AccordionContent>
                 <DetailSection>
-                  <DetailItem label="Diabetic" value={patient.diabetic} />
+                  <DetailItem
+                    label="Diabetic"
+                    value={patient.diabetic || patient?.patientId?.diabetic}
+                  />
                   <DetailItem
                     label="Hypertension"
-                    value={patient.hypertension}
+                    value={
+                      patient.hypertension || patient?.patientId?.hypertension
+                    }
                   />
-                  <DetailItem label="Arthritis" value={patient.arthritis} />
-                  <DetailItem label="Trauma" value={patient.trauma} />
+                  <DetailItem
+                    label="Arthritis"
+                    value={patient.arthritis || patient?.patientId?.arthritis}
+                  />
+                  <DetailItem
+                    label="Trauma"
+                    value={patient.trauma || patient?.patientId?.trauma}
+                  />
                   <DetailItem
                     label="Osteoporosis"
-                    value={patient.osteoporosis}
+                    value={
+                      patient.osteoporosis || patient?.patientId?.osteoporosis
+                    }
                   />
                 </DetailSection>
                 <div className="mt-2 space-y-2">
                   <DetailItem
                     label="History of Surgery"
-                    value={`${patient.historyOfSurgery} ${
-                      patient.historyOfSurgery === "yes"
-                        ? `(${patient.historyOfSurgeryDetails})`
-                        : ""
-                    }`}
+                    value={
+                      `${patient.historyOfSurgery} ${
+                        patient.historyOfSurgery === "yes"
+                          ? `(${patient.historyOfSurgeryDetails})`
+                          : ""
+                      }` || patient?.patientId?.historyOfSurgery
+                    }
                   />
                   <DetailItem
                     label="History of Fall"
-                    value={`${patient.historyOfFall} ${
-                      patient.historyOfFall === "yes"
-                        ? `(${patient.historyOfFallDetails})`
-                        : ""
-                    }`}
+                    value={
+                      `${patient.historyOfFall} ${
+                        patient.historyOfFall === "yes"
+                          ? `(${patient.historyOfFallDetails})`
+                          : ""
+                      }` || patient?.patientId?.historyOfFall
+                    }
                   />
                   <DetailItem
                     label="Other Medical Conditions"
-                    value={patient.otherMedicalConditions}
+                    value={
+                      patient.otherMedicalConditions ||
+                      patient?.patientId?.otherMedicalConditions
+                    }
                   />
                   <DetailItem
                     label="Current Medications"
-                    value={patient.currentMedications}
+                    value={
+                      patient.currentMedications ||
+                      patient?.patientId?.currentMedications
+                    }
                   />
                 </div>
               </AccordionContent>
@@ -190,26 +275,41 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
               <AccordionContent className="space-y-4">
                 <div>
                   <h4 className="font-semibold mb-1">Lifestyle Information</h4>
-                  <DetailItem label="Lifestyle" value={patient.lifestyle} />
+                  <DetailItem
+                    label="Lifestyle"
+                    value={
+                      patient.typesOfLifeStyle ||
+                      patient?.patientId?.typesOfLifeStyle
+                    }
+                  />
                   <DetailItem
                     label="Smoking/Alcohol"
-                    value={patient.smokingAlcohol}
+                    value={
+                      patient.smokingOrAlcohol ||
+                      patient?.patientId?.smokingOrAlcohol
+                    }
                   />
                   <DetailItem
                     label="Dietary Habits"
-                    value={patient.dietaryHabits}
+                    value={
+                      patient.dietaryHabits || patient?.patientId?.dietaryHabits
+                    }
                   />
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">Contraindications</h4>
                   <p className="text-sm p-2 bg-red-50/50 rounded">
-                    {patient.contraindications || "None specified"}
+                    {patient.Contraindications ||
+                      "None specified" ||
+                      patient?.patientId?.Contraindications}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">HOD Notes</h4>
                   <p className="text-sm p-2 bg-blue-50/50 rounded">
-                    {patient.hodNotes || "No notes from HOD"}
+                    {patient.hodNotes ||
+                      "No notes from HOD" ||
+                      patient?.patientId?.hodNotes}
                   </p>
                 </div>
               </AccordionContent>
@@ -221,37 +321,59 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                 <DetailSection>
                   <DetailItem
                     label="Short-term Goals"
-                    value={patient.shortTermGoals}
+                    value={
+                      patient.shortTermGoals ||
+                      patient?.patientId?.shortTermGoals
+                    }
                   />
                   <DetailItem
                     label="Long-term Goals"
-                    value={patient.longTermGoals}
+                    value={
+                      patient.longTermGoals || patient?.patientId?.longTermGoals
+                    }
                   />
                   <DetailItem
                     label="Recommended Therapy"
-                    value={patient.recommendedTherapy}
+                    value={
+                      patient.RecomTherapy || patient?.patientId?.RecomTherapy
+                    }
                   />
                   <DetailItem
-                    label="Frequency"
-                    value={`${patient.frequencyOfSessions} per week`}
+                    label="Review Frequency"
+                    value={
+                      `${patient?.patientId?.reviewFrequency} Per Week` ||
+                      `${patient.reviewFrequency} Per Week`
+                    }
                   />
                   <DetailItem
                     label="Duration"
-                    value={patient.durationOfTreatment}
+                    value={patient.Duration || patient?.patientId?.Duration}
                   />
                   <DetailItem
                     label="Modalities"
-                    value={`${patient.modalities} ${
-                      patient.modalities === "yes"
-                        ? `(${patient.modalityList?.join(", ")})`
-                        : ""
-                    }`}
+                    value={
+                      `${patient.modalities} ${
+                        patient.modalities === "yes"
+                          ? `(${patient.modalityList?.join(", ")})`
+                          : ""
+                      }` ||
+                      `${patient?.patientId?.modalities} ${
+                        patient?.patientId?.modalities === "yes"
+                          ? `(${patient?.patientId?.modalityList?.join(", ")})`
+                          : ""
+                      }`
+                    }
                   />
                   <DetailItem
                     label="Targeted Area"
-                    value={patient.targetedArea}
+                    value={
+                      patient.targetedArea || patient?.patientId?.targetedArea
+                    }
                   />
-                  <DetailItem label="No of Days" value={patient.noOfDays} />
+                  <DetailItem
+                    label="No of Days"
+                    value={patient.noOfDays || patient?.patientId?.noOfDays}
+                  />
                 </DetailSection>
               </AccordionContent>
             </AccordionItem>

@@ -227,7 +227,7 @@ const PhysioManagement = () => {
       const filtered = physios.filter(
         (p) =>
           p.physioName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.physioSpcl.toLowerCase().includes(searchTerm.toLowerCase())
+          p.physioSpcl.toLowerCase().includes(searchTerm.toLowerCase()),
       );
       setFilteredPhysios(filtered);
     }
@@ -300,7 +300,7 @@ const PhysioManagement = () => {
     } else if (!physioForm.physioSpcl) {
       toast({
         title: "Alert",
-        description: "Enter Specialization",
+        description: "Enter Designation",
         variant: "destructive",
       });
     } else if (!physioForm.physioQulifi) {
@@ -414,7 +414,7 @@ const PhysioManagement = () => {
       const confirmAction = window.confirm(
         `Are you sure you want to ${newStatus ? "activate" : "deactivate"} ${
           physio.physioName
-        }?`
+        }?`,
       );
       if (!confirmAction) return;
 
@@ -438,8 +438,8 @@ const PhysioManagement = () => {
         // Update UI instantly
         setPhysios((prev) =>
           prev.map((p) =>
-            p._id === physio._id ? { ...p, isActive: newStatus } : p
-          )
+            p._id === physio._id ? { ...p, isActive: newStatus } : p,
+          ),
         );
       }
     } catch (error) {
@@ -490,14 +490,14 @@ const PhysioManagement = () => {
             Search Physiotherapists
           </CardTitle>
           <CardDescription>
-            Find physiotherapists by name or specialization
+            Find physiotherapists by name or Designation
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search by name or specialization..."
+              placeholder="Search by name or Designation..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -779,7 +779,7 @@ const PhysioManagement = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Specialization</Label>
+                  <Label>Designation</Label>
                   <Input
                     name="physioSpcl"
                     value={physioForm.physioSpcl}
@@ -812,12 +812,36 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label>Aadhar</Label>
                   <Input
                     name="physioAadhar"
                     value={physioForm.physioAadhar}
                     onChange={handleFormChange}
+                  />
+                </div> */}
+                <div className="space-y-2">
+                  <Label>Aadhaar</Label>
+                  <Input
+                    name="physioAadhar"
+                    value={physioForm.physioAadhar}
+                    onChange={(e) => {
+                      let value = e.target.value;
+
+                      // Remove non-digits
+                      value = value.replace(/\D/g, "");
+
+                      // Limit to 12 digits
+                      value = value.slice(0, 12);
+
+                      // Add space every 4 digits
+                      value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+
+                      // Update your form state
+                      setPhysioForm({ ...physioForm, physioAadhar: value });
+                      handleFormChange(e);
+                    }}
+                    placeholder="1234 5678 9012"
                   />
                 </div>
               </div>
@@ -848,7 +872,7 @@ const PhysioManagement = () => {
                         variant={"outline"}
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !physioForm.physioINCRDate && "text-muted-foreground"
+                          !physioForm.physioINCRDate && "text-muted-foreground",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -941,39 +965,39 @@ const PhysioManagement = () => {
                 {renderDetailRow("Name", viewingPhysio.physioName)}
                 {renderDetailRow("Age", viewingPhysio.physioAge)}
                 {renderDetailRow("Contact", viewingPhysio.physioContactNo)}
-                {renderDetailRow("Specialization", viewingPhysio.physioSpcl)}
+                {renderDetailRow("Designation", viewingPhysio.physioSpcl)}
                 {renderDetailRow("Qualifications", viewingPhysio.physioQulifi)}
                 {renderDetailRow("Experience", viewingPhysio.physioExp)}
                 {renderDetailRow("PAN", viewingPhysio.physioPAN)}
                 {renderDetailRow("Aadhar", viewingPhysio.physioAadhar)}
                 {renderDetailRow(
                   "Salary",
-                  `₹${viewingPhysio.physioSalary?.toLocaleString()}`
+                  `₹${viewingPhysio.physioSalary?.toLocaleString()}`,
                 )}
                 {renderDetailRow(
                   "Probation Period",
-                  `${viewingPhysio.physioProbation} months`
+                  `${viewingPhysio.physioProbation} months`,
                 )}
                 {renderDetailRow(
                   "Next Increment Date",
                   viewingPhysio.physioINCRDate,
-                  true
+                  true,
                 )}
                 {renderDetailRow(
                   "Petrol Allowance",
-                  `₹${viewingPhysio.physioPetrolAlw}/km`
+                  `₹${viewingPhysio.physioPetrolAlw}/km`,
                 )}
                 {renderDetailRow(
                   "Vehicle Maintenance",
-                  `₹${viewingPhysio.physioVehicleMTC?.toLocaleString()}`
+                  `₹${viewingPhysio.physioVehicleMTC?.toLocaleString()}`,
                 )}
                 {renderDetailRow(
                   "Incentive",
-                  `${viewingPhysio.physioIncentive}%`
+                  `${viewingPhysio.physioIncentive}%`,
                 )}
                 {renderDetailRow(
                   "Status",
-                  viewingPhysio.isActive ? "Active" : "Inactive"
+                  viewingPhysio.isActive ? "Active" : "Inactive",
                 )}
               </div>
             )}

@@ -332,7 +332,7 @@ const Consulation = () => {
       //     const consultantPatients = res.filter((item) => item.status !== "Lead");
 
       const unassignedPatients = (res || []).filter(
-        (patient) => !patient.physioId
+        (patient) => !patient.physioId,
       );
 
       setFilteredPatients(unassignedPatients);
@@ -492,22 +492,38 @@ const Consulation = () => {
             .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           // patient.patientNumber.includes(searchTerm) ||
-          patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase())
+          patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
       setFilteredPatients(filtered);
     } else {
       setFilteredPatients(patients);
     }
   }, [patients, searchTerm]);
-  const generatePatientId = () => {
-    const ids = patients
-      .map((p) => parseInt(p.patientCode?.replace("CON", ""), 10))
-      .filter((num) => !isNaN(num));
+  // const generatePatientId = () => {
+  //   const ids = patients
+  //     .map((p) => parseInt(p.patientCode?.replace("CON", ""), 10))
+  //     .filter((num) => !isNaN(num));
 
-    const lastId = ids.length > 0 ? Math.max(...ids) : 0;
+  //   const lastId = ids.length > 0 ? Math.max(...ids) : 0;
+  //   const newId = lastId + 1;
+
+  //   return `CON${String(newId).padStart(6, "0")}`;
+  // };
+  const generatePatientId = () => {
+    const hnpIds = patients
+      .map((p) => {
+        if (!p.patientCode) return null;
+        if (!p.patientCode.startsWith("HNP")) return null;
+
+        const num = parseInt(p.patientCode.replace("HNP", ""), 10);
+        return isNaN(num) ? null : num;
+      })
+      .filter((num) => num !== null);
+
+    const lastId = hnpIds.length > 0 ? Math.max(...hnpIds) : 0;
     const newId = lastId + 1;
 
-    return `CON${String(newId).padStart(6, "0")}`;
+    return `HNP${String(newId).padStart(4, "0")}`;
   };
 
   const handleFormChange = (e) => {
@@ -677,7 +693,7 @@ const Consulation = () => {
         RiskFactor.map(
           (val) =>
             (formData[Object.keys(val)[0].toLowerCase()] =
-              val[Object.keys(val)[0]] == "true")
+              val[Object.keys(val)[0]] == "true"),
         );
       }
       setPatientForm(formData);
@@ -693,7 +709,10 @@ const Consulation = () => {
 
   const handleNewPatient = () => {
     setEditingPatient(null);
-    setPatientForm({ ...initialFormState, patientCode: generatePatientId() });
+    setPatientForm({
+      ...initialFormState,
+      patientCode: generatePatientId(),
+    });
     setIsFormOpen(true);
   };
 
@@ -742,7 +761,7 @@ const Consulation = () => {
           return { ...p, goalLog: newGoalLog };
         }
         return p;
-      })
+      }),
     );
     toast({
       title: "Feedback Updated",
@@ -769,7 +788,7 @@ const Consulation = () => {
           return { ...p, goalLog: newGoalLog };
         }
         return p;
-      })
+      }),
     );
     toast({
       title: "Goal Logged",
@@ -792,7 +811,7 @@ const Consulation = () => {
           };
         }
         return p;
-      })
+      }),
     );
     toast({
       title: "New Goal Set!",
@@ -838,7 +857,7 @@ const Consulation = () => {
         // Remove from Consultant page
         setPatients((prev) => prev.filter((p) => p._id !== patient._id));
         setFilteredPatients((prev) =>
-          prev.filter((p) => p._id !== patient._id)
+          prev.filter((p) => p._id !== patient._id),
         );
 
         toast({
@@ -901,6 +920,84 @@ const Consulation = () => {
 
   const handleAssignPhysioSubmit = (e) => {
     e.preventDefault();
+    if (!assignForm.physioId) {
+      toast({
+        title: "Alert",
+        description: "Please Select Physiotherapist.",
+        variant: "destructive",
+      });
+      return false;
+    } else if (!assignForm.sessionStartDate) {
+      toast({
+        title: "Alert",
+        description: "Please Select Session Start Date.",
+        variant: "destructive",
+      });
+      return false;
+    } else if (!assignForm.sessionTime) {
+      toast({
+        title: "Alert",
+        description: "Please Select Session Time.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!assignForm.totalSessionDays) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Total Session Days.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!assignForm.totalSessionDays) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Total Session Days.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!assignForm.reviewFrequency) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Review Frequency.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!assignForm.InitialShorttermGoal) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Initial Short term Goal.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!assignForm.goalDuration) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Goal Duration.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!assignForm.visitOrder) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Visit Order.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!assignForm.kmsFromPrevious && assignForm.visitOrder > 1) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Kms From Previous.",
+        variant: "destructive",
+      });
+      return false;
+    }
     // setPatients(prev => prev.map(p => {
     //   if (p._id === assigningPatient._id) {
     //     return {
@@ -1325,7 +1422,7 @@ const Consulation = () => {
                       variant={"outline"}
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !newGoalForm.nextReviewDate && "text-muted-foreground"
+                        !newGoalForm.nextReviewDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1610,7 +1707,7 @@ const Consulation = () => {
                               className={cn(
                                 "w-full justify-start text-left font-normal",
                                 !assignForm.sessionStartDate &&
-                                  "text-muted-foreground"
+                                  "text-muted-foreground",
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />

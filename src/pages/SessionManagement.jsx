@@ -48,6 +48,7 @@ import {
   Upload,
   Paperclip,
   XCircle,
+  FileText,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -63,6 +64,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import PatientDetailsDialog from "../components/PatientDetailsDialog";
 
 const SessionManagement = () => {
   const navigate = useNavigate();
@@ -183,17 +185,16 @@ const SessionManagement = () => {
   //   }
   // }
 
-  const getSession = async (data) => {
+  const getSession = async () => {
     try {
       const storedRole = localStorage.getItem("userRole");
+
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(today.getDate() + 1);
 
-      let date = today.toISOString();
-      let filter = `${date.split("T")[0]}T00:00:00Z`;
-
-      let nextdate = `${tomorrow.toISOString().split("T")[0]}T00:00:00Z`;
+      const filter = `${today.toISOString().split("T")[0]}T00:00:00Z`;
+      const nextdate = `${tomorrow.toISOString().split("T")[0]}T00:00:00Z`;
 
       const response = await apiRequest("Session/getAllSession", {
         method: "POST",
@@ -201,14 +202,23 @@ const SessionManagement = () => {
           sessionDate: filter,
           nextDate: nextdate,
           physioId: user._id,
-          storedRole: storedRole,
+          storedRole,
         }),
       });
 
-      setSessions(response);
-      setFilteredSessions(response);
+      //  IMPORTANT SAFETY CHECK
+      if (Array.isArray(response)) {
+        setSessions(response);
+        setFilteredSessions(response);
+      } else {
+        console.warn("Session API did not return array:", response);
+        setSessions([]);
+        setFilteredSessions([]);
+      }
     } catch (error) {
       console.log(error, "error from frontend get All Session");
+      setSessions([]);
+      setFilteredSessions([]);
     }
   };
 
@@ -472,14 +482,15 @@ const SessionManagement = () => {
       filtered = filtered.filter((session) =>
         session.patientId?.patientName
           ?.toLowerCase()
-          .includes(searchTerm.toLowerCase())
+          .includes(searchTerm.toLowerCase()),
       );
     }
 
     // Filter by status
     if (statusFilter !== "all") {
       filtered = filtered.filter(
-        (session) => session.sessionStatusId?.sessionStatusName === statusFilter
+        (session) =>
+          session.sessionStatusId?.sessionStatusName === statusFilter,
       );
     }
 
@@ -504,7 +515,7 @@ const SessionManagement = () => {
       handleActionStart(sessionId, action);
 
       setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s))
+        prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
       );
       toast({
         title: "Session Updated",
@@ -532,8 +543,8 @@ const SessionManagement = () => {
               status: "Canceled",
               cancelledKms: parseFloat(cancelledKms) || 0,
             }
-          : s
-      )
+          : s,
+      ),
     );
     toast({
       title: "Session Canceled",
@@ -574,7 +585,7 @@ const SessionManagement = () => {
     session,
     action,
     cancelledKms,
-    cancelledReason
+    cancelledReason,
   ) => {
     SessionCancel({
       _id: session,
@@ -693,7 +704,35 @@ const SessionManagement = () => {
   //         <div className="flex items-center space-x-2"><RadioGroupItem value={group ? false : 'no'} id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
   //       </RadioGroup>
   //     </div>  )
+  const [viewingPatient, setViewingPatient] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [filteredPatients, setFilteredPatients] = useState([]);
 
+  const getAllPatient = async () => {
+    try {
+      const res = await apiRequest("Patient/getAllPatient", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+
+      setFilteredPatients(res);
+      setPatients(res);
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
+  };
+  useEffect(() => {
+    getAllPatient();
+  }, []);
+
+  const handleViewConsultation = (patient) => {
+    setFilteredPatients(
+      patients.filter((p) => p._id === patient.patientId._id),
+    );
+    setViewingPatient(patient);
+    setIsDetailsOpen(true);
+  };
   return (
     <div className="md:space-y-6  space-y-10">
       <motion.div
@@ -871,7 +910,7 @@ const SessionManagement = () => {
                                     <p key={flag._id} className="tet-red-600">
                                       ⚠ {flag.redFlagId?.redflagName}
                                     </p>
-                                  )
+                                  ),
                               )
                             : !session.sessionFeedbackPros &&
                               !session.sessionFeedbackCons &&
@@ -885,6 +924,13 @@ const SessionManagement = () => {
                       {/* <td className="p-2">{session.feedback ? <div className="text-xs">{session.feedback.sessionFeedbackPros && <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>}{session.feedback.redFlags?.length > 0 && <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>}{session.feedback.media?.length > 0 && <p className="text-blue-600"><Paperclip size={12} className="inline-block mr-1" />{session.feedback.media.join(', ')}</p>}</div> : <span className="text-gray-400 text-xs">No feedback</span>}</td> */}
                       <td className="p-2">
                         <div className="flex space-x-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewConsultation(session)}
+                          >
+                            <FileText size={14} />
+                          </Button>
                           {session.sessionStatusId.sessionStatusName.toLowerCase() ===
                             "scheduled" && (
                             <Button
@@ -988,6 +1034,11 @@ const SessionManagement = () => {
           </CardContent>
         </Card>
 
+        <PatientDetailsDialog
+          isOpen={isDetailsOpen}
+          onOpenChange={setIsDetailsOpen}
+          patient={viewingPatient}
+        />
         {/* //card for mobile view */}
         {/* <Card className="medical-card  md:hidden"> */}
         {/* <CardHeader><CardTitle>Sessions ({filteredSessions.length})</CardTitle></CardHeader> */}
@@ -1154,7 +1205,7 @@ const SessionManagement = () => {
                     <p className="font-semibold">
                       {session.sessionDate
                         ? new Date(session.sessionDate).toLocaleDateString(
-                            "en-GB"
+                            "en-GB",
                           ) + ` (${session.sessionDay || "-"})`
                         : "-"}
                     </p>
@@ -1405,9 +1456,9 @@ const SessionManagement = () => {
                               : {
                                   ...prev,
                                   redFlags: prev.redFlags.filter(
-                                    (f) => f.redFlagId !== flag.RedflagIDPK
+                                    (f) => f.redFlagId !== flag.RedflagIDPK,
                                   ),
-                                }
+                                },
                           );
                         }}
                       />
@@ -1501,9 +1552,9 @@ const SessionManagement = () => {
                                 : {
                                     ...prev,
                                     modalitiesList: prev.modalitiesList.filter(
-                                      (m) => m.modalityId !== mod._id
+                                      (m) => m.modalityId !== mod._id,
                                     ),
-                                  }
+                                  },
                             );
                           }}
                         />
@@ -1714,7 +1765,7 @@ const SessionManagement = () => {
                     variant={"outline"}
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !sessionForm.sessionDate && "text-muted-foreground"
+                      !sessionForm.sessionDate && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
