@@ -81,7 +81,7 @@ const SessionManagement = () => {
   console.log(filteredSessions, "filteredSessions");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("Date");
+  const [dateFilter, setDateFilter] = useState(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
@@ -185,38 +185,79 @@ const SessionManagement = () => {
   //   }
   // }
 
+  // const getSession = async () => {
+  //   try {
+  //     const storedRole = localStorage.getItem("userRole");
+
+  //     const today = new Date();
+  //     const tomorrow = new Date(today);
+  //     tomorrow.setDate(today.getDate() + 1);
+
+  //     const filter = `${today.toISOString().split("T")[0]}T00:00:00Z`;
+  //     const nextdate = `${tomorrow.toISOString().split("T")[0]}T00:00:00Z`;
+
+  //     const response = await apiRequest("Session/getAllSession", {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         sessionDate: filter,
+  //         nextDate: nextdate,
+  //         physioId: user._id,
+  //         storedRole,
+  //       }),
+  //     });
+
+  //     //  IMPORTANT SAFETY CHECK
+  //     if (Array.isArray(response)) {
+  //       setSessions(response);
+  //       setFilteredSessions(response);
+  //     } else {
+  //       console.warn("Session API did not return array:", response);
+  //       setSessions([]);
+  //       setFilteredSessions([]);
+  //     }
+  //   } catch (error) {
+  //     console.log(error, "error from frontend get All Session");
+  //     setSessions([]);
+  //     setFilteredSessions([]);
+  //   }
+  // };
   const getSession = async () => {
     try {
       const storedRole = localStorage.getItem("userRole");
 
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-
-      const filter = `${today.toISOString().split("T")[0]}T00:00:00Z`;
-      const nextdate = `${tomorrow.toISOString().split("T")[0]}T00:00:00Z`;
-
       const response = await apiRequest("Session/getAllSession", {
         method: "POST",
         body: JSON.stringify({
-          sessionDate: filter,
-          nextDate: nextdate,
           physioId: user._id,
           storedRole,
         }),
       });
 
-      //  IMPORTANT SAFETY CHECK
       if (Array.isArray(response)) {
         setSessions(response);
-        setFilteredSessions(response);
+
+        // Today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split("T")[0];
+
+        // Filter sessions for today
+        const todaySessions = response.filter((s) => {
+          if (!s.sessionDate) return false;
+
+          // Make sure the sessionDate is in proper format
+          const sessionDay = new Date(s.sessionDate)
+            .toISOString()
+            .split("T")[0];
+          return sessionDay === today;
+        });
+
+        setFilteredSessions(todaySessions);
       } else {
         console.warn("Session API did not return array:", response);
         setSessions([]);
         setFilteredSessions([]);
       }
     } catch (error) {
-      console.log(error, "error from frontend get All Session");
+      console.error("Error fetching all sessions:", error);
       setSessions([]);
       setFilteredSessions([]);
     }
@@ -475,27 +516,32 @@ const SessionManagement = () => {
   // }, [sessions, patients, searchTerm, statusFilter]);
 
   useEffect(() => {
-    let filtered = sessions;
+    let filtered = [...sessions];
 
-    // Search by patient name
+    const term = searchTerm.toLowerCase();
+
+    // Filter by patient name
     if (searchTerm) {
-      filtered = filtered.filter((session) =>
-        session.patientId?.patientName
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()),
+      filtered = filtered.filter((s) =>
+        s.patientId?.patientName?.toLowerCase().includes(term),
       );
     }
 
     // Filter by status
     if (statusFilter !== "all") {
       filtered = filtered.filter(
-        (session) =>
-          session.sessionStatusId?.sessionStatusName === statusFilter,
+        (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
       );
     }
 
+    // Filter by date
+    const filterDate = dateFilter || new Date().toISOString().slice(0, 10);
+    filtered = filtered.filter(
+      (s) => s.sessionDate?.slice(0, 10) === filterDate,
+    );
+
     setFilteredSessions(filtered);
-  }, [sessions, searchTerm, statusFilter]);
+  }, [sessions, searchTerm, statusFilter, dateFilter]);
 
   const getPatientName = (id) =>
     patients.find((p) => p.id === id)?.name || "Unknown";
@@ -773,8 +819,8 @@ const SessionManagement = () => {
                 className="pl-10"
               />
             </div>
-            <div className="w-48">
-              <Select value={dateFilter} onValueChange={setDateFilter}>
+            {/* <div className="w-48"> */}
+            {/* <Select value={dateFilter} onValueChange={setDateFilter}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -782,8 +828,17 @@ const SessionManagement = () => {
                   <SelectItem value="Date">Date</SelectItem>
                   <Input type="Date" value={sessionForm.sessionDate} />
                 </SelectContent>
-              </Select>
+              </Select> */}
+            <div className="w-48">
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full"
+              />
             </div>
+
+            {/* </div> */}
             <div className="w-48">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>

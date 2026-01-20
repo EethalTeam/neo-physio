@@ -121,7 +121,7 @@ const ReviewMasterForm = () => {
   const [sessionForm, setSessionForm] = useState(initialFormState);
   const [feedback, setFeedback] = useState(initialFeedbackState);
   const fileInputRef = useRef(null);
-const [reviewStatuses, setReviewStatuses] = useState([]);
+  const [reviewStatuses, setReviewStatuses] = useState([]);
 
   useEffect(() => {
     getPermissions();
@@ -144,7 +144,6 @@ const [reviewStatuses, setReviewStatuses] = useState([]);
       getRedFlags(),
     ]);
   };
-
 
   const getReviews = async () => {
     try {
@@ -171,7 +170,10 @@ const [reviewStatuses, setReviewStatuses] = useState([]);
           // redFlags: true,
         }),
       });
-const redflagsReview= response.filter((review)=>Array.isArray(review.redFlags)&& review.redFlags.length>0);
+      const redflagsReview = response.filter(
+        (review) =>
+          Array.isArray(review.redFlags) && review.redFlags.length > 0,
+      );
       setReviews(response);
       setFilteredReviews(response);
       console.log(response, "reviews from frontend");
@@ -221,34 +223,75 @@ const redflagsReview= response.filter((review)=>Array.isArray(review.redFlags)&&
       .filter(Boolean);
   };
 
+  // useEffect(() => {
+  //   let filtered = [...reviews];
+  //   if (searchTerm) {
+  //     filtered = filtered.filter(
+  //       (r) =>
+  //         r.patientId?.patientName
+  //           ?.toLowerCase()
+  //           .includes(searchTerm.toLowerCase()) ||
+  //         r.physioId?.physioName
+  //           ?.toLowerCase()
+  //           .includes(searchTerm.toLowerCase()) ||
+  //         r.feedback?.toLowerCase()?.includes(searchTerm.toLowerCase()),
+  //     );
+  //   }
+  //   if (reviewTypeFilter !== "all") {
+  //     filtered = filtered.filter(
+  //       (r) => r.reviewTypeId?._id === reviewTypeFilter,
+  //     );
+  //   }
+  //   setFilteredReviews(filtered);
+  // }, [searchTerm, reviewTypeFilter, reviews]);
+
+  const getPatientName = (patient) => {
+    if (!patient) return "unknown";
+    if (typeof patient === "object") return patient.patientName || "unknown";
+    return patients.find((p) => p._id === patient)?.patientName || "unknown";
+  };
+
+  const getPhysioName = (physio) => {
+    if (!physio) return "unknown";
+    if (typeof physio === "object") return physio.physioName || "unknown";
+    return physios.find((p) => p._id === physio)?.physioName || "unknown";
+  };
+
+  const getReviewTypeName = (type) => {
+    if (!type) return "unknown";
+    if (typeof type === "object") return type.reviewTypeName || "unknown";
+    return reviewTypes.find((r) => r._id === type)?.reviewTypeName || "unknown";
+  };
+
   useEffect(() => {
     let filtered = [...reviews];
+
     if (searchTerm) {
-      filtered = filtered.filter(
-        (r) =>
-          r.patientId?.patientName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          r.physioId?.physioName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          r.feedback?.toLowerCase()?.includes(searchTerm.toLowerCase())
-      );
+      const term = searchTerm.toLowerCase();
+
+      filtered = filtered.filter((r) => {
+        const patientName = String(getPatientName(r.patientId)).toLowerCase();
+        const physioName = String(getPhysioName(r.physioId)).toLowerCase();
+        const feedback = String(r.feedback || "").toLowerCase();
+
+        return (
+          patientName.includes(term) ||
+          physioName.includes(term) ||
+          feedback.includes(term)
+        );
+      });
     }
+
     if (reviewTypeFilter !== "all") {
       filtered = filtered.filter(
-        (r) => r.reviewTypeId?._id === reviewTypeFilter
+        (r) =>
+          r.reviewTypeId === reviewTypeFilter ||
+          r.reviewTypeId?._id === reviewTypeFilter,
       );
     }
-    setFilteredReviews(filtered);
-  }, [searchTerm, reviewTypeFilter, reviews]);
 
-  const getPatientName = (id) =>
-    patients.find((p) => p._id === id)?.patientName || "Unknown";
-  const getPhysioName = (id) =>
-    physios.find((p) => p._id === id)?.physioName || "Unknown";
-  const getReviewTypeName = (id) =>
-    reviewTypes.find((r) => r._id === id)?.reviewTypeName || "Unknown";
+    setFilteredReviews(filtered);
+  }, [searchTerm, reviewTypeFilter, reviews, patients, physios]);
 
   const handleFeedbackSubmit = async () => {
     try {
@@ -256,14 +299,14 @@ const redflagsReview= response.filter((review)=>Array.isArray(review.redFlags)&&
         alert("Please enter feedback and select review type before submitting");
         return;
       }
-const pendingStatus = reviewStatuses.find(
-  (s) => s.reviewStatusName.toLowerCase() === "pending"
-);
+      const pendingStatus = reviewStatuses.find(
+        (s) => s.reviewStatusName.toLowerCase() === "pending",
+      );
 
-if (!pendingStatus) {
-  alert("Pending status not found");
-  return;
-}
+      if (!pendingStatus) {
+        alert("Pending status not found");
+        return;
+      }
 
       const payload = {
         patientId: feedbackDialog.patientId,
@@ -274,7 +317,7 @@ if (!pendingStatus) {
         redflagId:
           feedback.redFlags.length > 0 ? feedback.redFlags[0].redflagId : null,
         feedback: feedback.sessionFeedbackPros,
-        reviewStatusId:pendingStatus._id
+        reviewStatusId: pendingStatus._id,
       };
 
       await apiRequest("Review/createReview", {
@@ -305,16 +348,15 @@ if (!pendingStatus) {
         feedback: data.feedback || "",
       };
 
-
-     const response= await apiRequest("Review/createReview", {
+      const response = await apiRequest("Review/createReview", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
       getReviews();
 
-      if(response.ok){
-        console.log(response,"response")
+      if (response.ok) {
+        console.log(response, "response");
       }
     } catch (error) {
       console.error(error, "Error creating review");
@@ -329,16 +371,16 @@ if (!pendingStatus) {
       return;
     }
 
-    const formData={
+    const formData = {
       ...sessionForm,
-      patientId:parseInt(sessionForm.patientId),
-      physioId:parseInt(sessionForm.physioId),
-      reviewDate:sessionForm.reviewDate,
-      reviewStatusId:sessionForm.reviewStatusId,
-      reviewStatusName:sessionForm.reviewStatusName,
-    }
+      patientId: parseInt(sessionForm.patientId),
+      physioId: parseInt(sessionForm.physioId),
+      reviewDate: sessionForm.reviewDate,
+      reviewStatusId: sessionForm.reviewStatusId,
+      reviewStatusName: sessionForm.reviewStatusName,
+    };
     if (editingReview) {
-      UpdateReview({...sessionForm,_id:editingReview._id})
+      UpdateReview({ ...sessionForm, _id: editingReview._id });
       toast({ title: "Success", description: "Review updated." });
     } else {
       createReview(sessionForm);
@@ -352,23 +394,23 @@ if (!pendingStatus) {
 
   const UpdateReview = async (data) => {
     try {
-      const payload={
+      const payload = {
         ...data,
-        redFlags:data.redFlags &&  data.redFlags.length>0
-        ? data.redFlags : editingReview?.redFlags || []
-      }
-          const response = await apiRequest("Review/updateReview", {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-          getReviews()
-          toast({ title: "Success", description: "Review updated." });
-    
-        } catch (error) {
-          console.log(error, "error from frontend update  Review")
-        }
-  }
-
+        redFlags:
+          data.redFlags && data.redFlags.length > 0
+            ? data.redFlags
+            : editingReview?.redFlags || [],
+      };
+      const response = await apiRequest("Review/updateReview", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      getReviews();
+      toast({ title: "Success", description: "Review updated." });
+    } catch (error) {
+      console.log(error, "error from frontend update  Review");
+    }
+  };
 
   const deleteReview = async (data) => {
     try {
@@ -384,7 +426,6 @@ if (!pendingStatus) {
 
   const handleEditReview = (review) => {
     setEditingReview(review);
-    
 
     setSessionForm({
       reviewCode: review.reviewCode || "",
@@ -393,8 +434,8 @@ if (!pendingStatus) {
       sessionDate: review.reviewDate ? new Date(review.reviewDate) : "",
       reviewTime: review.reviewTime || "",
       reviewTypeId: review.reviewTypeId?._id || "",
-      reviewStatusId: review.reviewStatusId?review.reviewStatusId._id : '',
-      redFlags:review.redFlags||[],
+      reviewStatusId: review.reviewStatusId ? review.reviewStatusId._id : "",
+      redFlags: review.redFlags || [],
     });
 
     setIsFormOpen(true);
@@ -416,8 +457,8 @@ if (!pendingStatus) {
         method: "POST",
         body: JSON.stringify(data),
       });
-      setReviewStatuses(response)
-       setFilteredReviews(response);
+      setReviewStatuses(response);
+      setFilteredReviews(response);
       // setReviewStatuses(response.reviewStatuses || []);
     } catch (error) {
       console.log(error, "error from frontend get All Review Status");
@@ -466,7 +507,7 @@ if (!pendingStatus) {
             <div className="w-48">
               <Select
                 value={reviewTypeFilter}
-                onValueChange={setReviewTypeFilter}
+                onValueChange={(v) => setReviewTypeFilter(v)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -505,8 +546,7 @@ if (!pendingStatus) {
                     </tr>
                   </thead>
                   <tbody>
-                    {reviews.map((session) => (
-                      
+                    {filteredReviews.map((session) => (
                       <tr
                         key={session._id}
                         className="border-b hover:bg-gray-50"
@@ -545,8 +585,8 @@ if (!pendingStatus) {
         session.reviewTypeId?.reviewTypeName === "General"
           ? "bg-blue-100 text-blue-800"
           : session.reviewTypeId?.reviewTypeName === "RedFlags"
-          ? "bg-red-100 text-red-800"
-          : "bg-gray-100 text-gray-700"
+            ? "bg-red-100 text-red-800"
+            : "bg-gray-100 text-gray-700"
       }`}
                           >
                             {session.reviewTypeId?.reviewTypeName}
@@ -570,21 +610,22 @@ if (!pendingStatus) {
                                 <p
                                   className={
                                     session.reviewType?.reviewTypeName ===
-                                    "General"}
+                                    "General"
+                                  }
                                 >
                                   {session.reviewType?.reviewTypeName ===
-                                  "General"}
+                                    "General"}
                                   {session.feedback}
                                 </p>
                               )}
                               {session.feedback.sessionFeedbackPros && (
-                                <p  className="text-sm text-gray-600">
-                                   {session.feedback.sessionFeedbackPros}
+                                <p className="text-sm text-gray-600">
+                                  {session.feedback.sessionFeedbackPros}
                                 </p>
                               )}
                               {session.feedback.redFlags?.length > 0 && (
-                                <p  className="text-sm text-gray-600">
-                                   {session.feedback.redFlags.join(", ")}
+                                <p className="text-sm text-gray-600">
+                                  {session.feedback.redFlags.join(", ")}
                                 </p>
                               )}
                               {session.feedback.media?.length > 0 && (
@@ -604,52 +645,63 @@ if (!pendingStatus) {
                           )}
                         </td>
                         <td className="p-2">
-  {session.reviewStatusId && (
-    <span
-      className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${session.reviewStatusId.reviewStatusName.toLowerCase()==="completed"? "bg-green-100 text-green-800": session.reviewStatusId.reviewStatusName.toLowerCase() === "pending"
-          ? "bg-red-100 text-red-800"
-          : "bg-gray-100 text-gray-700"}`}
-      
-    >
-      {session.reviewStatusId?.reviewStatusName}
-    </span>
-  )} 
-</td> 
-<td className="p-2">
-  <div className="flex space-x-1">
+                          {session.reviewStatusId && (
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${
+                                session.reviewStatusId.reviewStatusName.toLowerCase() ===
+                                "completed"
+                                  ? "bg-green-100 text-green-800"
+                                  : session.reviewStatusId.reviewStatusName.toLowerCase() ===
+                                      "pending"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {session.reviewStatusId?.reviewStatusName}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <div className="flex space-x-1">
                             {user?.role !== "physio" && (
-      <>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleEditReview(session)}
-        >
-          <Edit size={12} />
-        </Button>
-                               <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button size="sm" variant="destructive">
-              <Trash2 size={12} />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the review.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => handleDeleteReview(session._id)}
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditReview(session)}
+                                >
+                                  <Edit size={12} />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 size={12} />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Are you sure?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the review.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() =>
+                                          handleDeleteReview(session._id)
+                                        }
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
                             )}
                           </div>
                         </td>
@@ -663,7 +715,7 @@ if (!pendingStatus) {
         </CardHeader>
         <CardContent>
           <div className="md:hidden space-y-4">
-            {reviews.map((session) => (
+            {filteredReviews.map((session) => (
               <Card
                 key={session._id}
                 className="p-4 shadow-lg rounded-2xl border"
@@ -682,6 +734,56 @@ if (!pendingStatus) {
                       </span>
                     </p>
                   )}
+                  <p className="text-base font-bold">
+                    {session.reviewTypeId?.reviewTypeName || "-"}
+                  </p>
+                  <p className="text-base font-bold">
+                    {session.reviewDate
+                      ? session.reviewDate
+                          .split("T")[0]
+                          .split("-")
+                          .reverse()
+                          .join("-")
+                      : "-"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {session.reviewStatusId && (
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${
+                          session.reviewStatusId.reviewStatusName.toLowerCase() ===
+                          "completed"
+                            ? "bg-green-100 text-green-800"
+                            : session.reviewStatusId.reviewStatusName.toLowerCase() ===
+                                "pending"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {session.reviewStatusId?.reviewStatusName}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-4">
+                    <div
+                      className={`inline-block px-3 py-1 rounded-md text-sm font-medium
+      ${
+        session.reviewTypeId?.reviewTypeName === "General"
+          ? "bg-blue-100 text-blue-800"
+          : session.reviewTypeId?.reviewTypeName === "RedFlags"
+            ? "bg-red-100 text-red-800"
+            : "bg-gray-100 text-gray-700"
+      }`}
+                    >
+                      {session.reviewTypeId?.reviewTypeName}
+                    </div>
+
+                    {session.reviewTypeId?.reviewTypeName === "RedFlags" &&
+                      session.redFlags?.length > 0 && (
+                        <div className="text-xs text-red-600 mt-1">
+                          ({getRedFlagNames(session.redFlags).join(", ")})
+                        </div>
+                      )}
+                  </p>
                 </div>
                 {/* Feedback */}
                 <div className="text-xs mb-3">
@@ -708,7 +810,7 @@ if (!pendingStatus) {
                     <p className="text-gray-400">No feedback</p>
                   )}
                 </div>
-             {/* <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs status-${session.status}`} style={{ backgroundColor: session.reviewStatusId ? session.reviewStatusId.reviewStatusColor : 'white', color: session.reviewStatusId ? session.reviewStatusId.reviewStatusTextColor : 'black' }}> {session.reviewStatusId ? session.reviewStatusId.reviewStatusName : ''}</span></td> */}
+                {/* <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs status-${session.status}`} style={{ backgroundColor: session.reviewStatusId ? session.reviewStatusId.reviewStatusColor : 'white', color: session.reviewStatusId ? session.reviewStatusId.reviewStatusTextColor : 'black' }}> {session.reviewStatusId ? session.reviewStatusId.reviewStatusName : ''}</span></td> */}
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
@@ -848,7 +950,7 @@ if (!pendingStatus) {
                                   { redflagId: flag._id, isOccurred: true },
                                 ]
                               : prev.redFlags.filter(
-                                  (f) => f.redflagId !== flag._id
+                                  (f) => f.redflagId !== flag._id,
                                 ),
                           }));
                         }}
@@ -932,9 +1034,9 @@ if (!pendingStatus) {
                                 : {
                                     ...prev,
                                     modalitiesList: prev.modalitiesList.filter(
-                                      (m) => m.modalityId !== mod._id
+                                      (m) => m.modalityId !== mod._id,
                                     ),
-                                  }
+                                  },
                             );
                           }}
                         />
@@ -1091,7 +1193,7 @@ if (!pendingStatus) {
                     variant={"outline"}
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !sessionForm.sessionDate && "text-muted-foreground"
+                      !sessionForm.sessionDate && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1167,7 +1269,7 @@ if (!pendingStatus) {
                 required
               />
             </div>
-              <div className="space-y-2">
+            <div className="space-y-2">
               <Label>Review Status</Label>
               <Select
                 value={sessionForm.reviewStatusId}

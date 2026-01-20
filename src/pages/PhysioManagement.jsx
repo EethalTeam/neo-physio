@@ -80,7 +80,8 @@ const PhysioManagement = () => {
     physioName: "",
     physioGenderId: "",
     genderName: "",
-    physioAge: "",
+    // physioAge: "",
+    physioDob: "",
     physioExp: "",
     physioQulifi: "",
     physioSpcl: "",
@@ -267,10 +268,10 @@ const PhysioManagement = () => {
         description: "Enter the Name",
         variant: "destructive",
       });
-    } else if (!physioForm.physioAge) {
+    } else if (!physioForm.physioDob) {
       toast({
         title: "Alert",
-        description: "Enter the Age",
+        description: "Enter the Date of Birth",
         variant: "destructive",
       });
     } else if (!physioForm?.physioGenderId) {
@@ -375,13 +376,18 @@ const PhysioManagement = () => {
 
   const handleEdit = (physio) => {
     setEditingPhysio(true);
+    console.log(physio.physioDob);
+
     setPhysioForm({
       _id: physio._id,
       physioCode: physio.physioCode,
       physioName: physio.physioName,
       physioGenderId: physio.physioGenderId._id,
       genderName: physio.physioGenderId.genderName,
-      physioAge: physio.physioAge,
+      // physioAge: physio.physioAge,
+      physioDob: physio.physioDob
+        ? new Date(physio.physioDob).toISOString().split("T")[0]
+        : "",
       physioExp: physio.physioExp,
       physioQulifi: physio.physioQulifi,
       physioSpcl: physio.physioSpcl,
@@ -692,17 +698,17 @@ const PhysioManagement = () => {
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <form onSubmit={handleFormSubmit} className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {editingPhysio == true ? (
-                  <div className="space-y-2">
-                    <Label>Physio Code</Label>
-                    <Input
-                      name="physioCode"
-                      value={physioForm.physioCode}
-                      onChange={handleFormChange}
-                      disabled
-                    />
-                  </div>
-                ) : null}
+                {/* {editingPhysio == true ? ( */}
+                <div className="space-y-2">
+                  <Label>Physio Code</Label>
+                  <Input
+                    name="physioCode"
+                    value={physioForm.physioCode}
+                    onChange={handleFormChange}
+                    // disabled
+                  />
+                </div>
+                {/* ) : null} */}
                 {/* <div className="space-y-2"><Label>Physio Code</Label><Input name="physioCode" value={physioForm.physioCode} onChange={handleFormChange} required disabled/></div> */}
                 <div className="space-y-2">
                   <Label>Name</Label>
@@ -713,11 +719,11 @@ const PhysioManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Age</Label>
+                  <Label>Date Of Birth</Label>
                   <Input
-                    name="physioAge"
-                    type="number"
-                    value={physioForm.physioAge}
+                    name="physioDob"
+                    type="date"
+                    value={physioForm.physioDob}
                     onChange={handleFormChange}
                   />
                 </div>
@@ -744,9 +750,12 @@ const PhysioManagement = () => {
                 <div className="space-y-2">
                   <Label>Contact No</Label>
                   <Input
+                    type="tel"
                     name="physioContactNo"
                     value={physioForm.physioContactNo}
                     onChange={handleFormChange}
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                   />
                 </div>
                 <div className="space-y-2">
@@ -963,7 +972,7 @@ const PhysioManagement = () => {
             {viewingPhysio && (
               <div className="space-y-2">
                 {renderDetailRow("Name", viewingPhysio.physioName)}
-                {renderDetailRow("Age", viewingPhysio.physioAge)}
+                {renderDetailRow("Date Of Birth", viewingPhysio.physioDob)}
                 {renderDetailRow("Contact", viewingPhysio.physioContactNo)}
                 {renderDetailRow("Designation", viewingPhysio.physioSpcl)}
                 {renderDetailRow("Qualifications", viewingPhysio.physioQulifi)}

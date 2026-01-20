@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
+
 import {
   Dialog,
   DialogContent,
@@ -34,43 +36,144 @@ const Payroll = () => {
   const [isPayslipOpen, setIsPayslipOpen] = useState(false);
   const [selectedPayslip, setSelectedPayslip] = useState(null);
 
+  // useEffect(() => {
+  //   Promise.all([
+  //     fetch("/mockdata/physios.json").then((res) => res.json()),
+  //     fetch("/mockdata/sessions.json").then((res) => res.json()),
+  //   ])
+  //     .then(([physiosData, sessionsData]) => {
+  //       setEmployees(physiosData.filter((p) => p.active));
+  //       setSessions(sessionsData);
+  //     })
+  //     .catch((err) => console.error("Error loading data:", err));
+  // }, []);
   useEffect(() => {
-    Promise.all([
-      fetch("/mockdata/physios.json").then((res) => res.json()),
-      fetch("/mockdata/sessions.json").then((res) => res.json()),
-    ])
-      .then(([physiosData, sessionsData]) => {
-        setEmployees(physiosData.filter((p) => p.active));
-        setSessions(sessionsData);
-      })
-      .catch((err) => console.error("Error loading data:", err));
+    console.log("Calling APIs...");
+    getPhysio();
+    getSessions();
   }, []);
 
-  useEffect(() => {
-    if (employees.length > 0 && sessions.length > 0) {
-      const data = employees.map((emp) => {
-        const employeeSessions = sessions.filter(
-          (s) =>
-            s.physioId === emp.id &&
-            s.status === "completed" &&
-            new Date(s.sessionDate).getMonth() === selectedMonth &&
-            new Date(s.sessionDate).getFullYear() === selectedYear
-        );
-        const totalSessions = employeeSessions.length;
-        const grossRevenue = totalSessions * emp.ratePerSession;
-        const deductions = grossRevenue * 0.1; // Mock 10% deduction
-        const netPay = grossRevenue - deductions;
-
-        return {
-          ...emp,
-          totalSessions,
-          grossRevenue,
-          deductions,
-          netPay,
-        };
+  const getPhysio = async () => {
+    try {
+      const response = await apiRequest("Physio/getAllPhysio", {
+        method: "POST",
+        body: JSON.stringify({ type: "master" }),
       });
-      setPayrollData(data);
+
+      const physios = response.physios || [];
+
+      // Only active physios
+      setEmployees(physios.filter((p) => p.isActive !== false));
+    } catch (error) {
+      console.error("Error loading physios:", error);
+      setEmployees([]);
     }
+  };
+  const getSessions = async () => {
+    try {
+      const response = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+
+      if (Array.isArray(response)) {
+        setSessions(response);
+      } else {
+        setSessions([]);
+      }
+    } catch (error) {
+      console.error("Error loading sessions:", error);
+      setSessions([]);
+    }
+  };
+  const getCompletedSessionsCount = (physioId) => {
+    return sessions.filter(
+      (s) =>
+        (s.physioId?._id || s.physioId) === physioId &&
+        s.sessionStatusId?.sessionStatusName.toLowerCase() === "completed",
+    ).length;
+  };
+
+  // useEffect(() => {
+  //   if (employees.length > 0 && sessions.length > 0) {
+  //     const data = employees.map((emp) => {
+  //       const employeeSessions = sessions.filter(
+  //         (s) =>
+  //           s.physioId === emp.id &&
+  //           s.status === "completed" &&
+  //           new Date(s.sessionDate).getMonth() === selectedMonth &&
+  //           new Date(s.sessionDate).getFullYear() === selectedYear,
+  //       );
+  //       const totalSessions = employeeSessions.length;
+  //       const grossRevenue = totalSessions * emp.ratePerSession;
+  //       const deductions = grossRevenue * 0.1; // Mock 10% deduction
+  //       const netPay = grossRevenue - deductions;
+
+  //       return {
+  //         ...emp,
+  //         totalSessions,
+  //         grossRevenue,
+  //         deductions,
+  //         netPay,
+  //       };
+  //     });
+  //     setPayrollData(data);
+  //   }
+  // }, [employees, sessions, selectedMonth, selectedYear]);
+  useEffect(() => {
+    if (!employees.length || !sessions.length) {
+      setPayrollData([]);
+      return;
+    }
+
+    const data = employees.map((physio) => {
+      const employeeSessions = sessions.filter((s) => {
+        if (s.sessionStatusId?.sessionStatusName.toLowerCase() !== "completed")
+          return false;
+
+        const physioId = s.physioId
+          ? typeof s.physioId === "object"
+            ? s.physioId._id
+            : s.physioId
+          : null;
+
+        if (!physioId || physioId !== physio._id) return false;
+
+        const date = new Date(s.sessionDate);
+        return (
+          date.getMonth() === selectedMonth &&
+          date.getFullYear() === selectedYear
+        );
+      });
+
+      const totalSessions = employeeSessions.length;
+
+      // const grossRevenue =
+      //   (physio.ratePerSession || 0) * totalSessions +
+      //   (physio.physioPetrolAlw || 0) +
+      //   (physio.physioVehicleMTC || 0);
+      const grossRevenue =
+        physio.physioSalary + physio.physioPetrolAlw + physio.physioVehicleMTC;
+      // const deductions = grossRevenue * 0.1;
+      const netPay = grossRevenue;
+      // const netPay = grossRevenue - deductions;
+      const completedSessions = getCompletedSessionsCount(physio._id);
+
+      return {
+        _id: physio._id,
+        name: physio.physioName,
+        specialization: physio.physioSpcl,
+        role: physio.roleId?.RoleName,
+        salary: physio.physioSalary,
+        // totalSessions,
+        grossRevenue,
+        // deductions,
+        netPay,
+        totalSessions: completedSessions,
+      };
+    });
+
+    setPayrollData(data);
   }, [employees, sessions, selectedMonth, selectedYear]);
 
   const handleViewPayslip = (employeeData) => {
@@ -214,45 +317,55 @@ const Payroll = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {payrollData.map((emp) => (
-                    <tr key={emp.id} className="border-b hover:bg-gray-50/50">
-                      <td className="p-3">
-                        <p className="font-medium text-gray-800">{emp.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {emp.specialization}
-                        </p>
-                      </td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            emp.role === "HOD"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {emp.role}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center font-medium">
-                        {emp.totalSessions}
-                      </td>
-                      <td className="p-3 text-right text-green-600 font-medium">
-                        ₹{emp.grossRevenue.toLocaleString()}
-                      </td>
-                      <td className="p-3 text-right text-blue-600 font-bold">
-                        ₹{emp.netPay.toLocaleString()}
-                      </td>
-                      <td className="p-3 text-center">
-                        <Button
-                          size="sm"
-                          onClick={() => handleViewPayslip(emp)}
-                        >
-                          <FileSpreadsheet size={14} className="mr-2" /> View
-                          Payslip
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {payrollData
+                    .filter(
+                      (emp) =>
+                        emp.role !== "Admin" && emp.role !== "SuperAdmin",
+                    )
+                    .map((emp) => (
+                      <tr
+                        key={emp._id}
+                        className="border-b hover:bg-gray-50/50"
+                      >
+                        <td className="p-3">
+                          <p className="font-medium text-gray-800">
+                            {emp.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {emp.specialization}
+                          </p>
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              emp.role === "HOD"
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {emp.role}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center font-medium">
+                          {emp.totalSessions}
+                        </td>
+                        <td className="p-3 text-right text-green-600 font-medium">
+                          ₹{emp.grossRevenue.toLocaleString()}
+                        </td>
+                        <td className="p-3 text-right text-blue-600 font-bold">
+                          ₹{emp.netPay.toLocaleString()}
+                        </td>
+                        <td className="p-3 text-center">
+                          <Button
+                            size="sm"
+                            onClick={() => handleViewPayslip(emp)}
+                          >
+                            <FileSpreadsheet size={14} className="mr-2" /> View
+                            Payslip
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -275,7 +388,7 @@ const Payroll = () => {
           <CardContent className="space-y-4">
             {payrollData.map((emp) => (
               <motion.div
-                key={emp.id}
+                key={emp._id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -308,7 +421,9 @@ const Payroll = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Sessions</span>
-                        <span className="font-medium">{emp.totalSessions}</span>
+                        <span className="font-medium">
+                          {emp.totalSessions ?? 0}
+                        </span>
                       </div>
 
                       <div className="flex justify-between">
@@ -395,7 +510,7 @@ const Payroll = () => {
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    {/* <tbody>
                       <tr className="border-b">
                         <td className="p-2">Completed Sessions</td>
                         <td className="p-2 text-right">
@@ -422,7 +537,46 @@ const Payroll = () => {
                           - ₹{selectedPayslip.deductions.toLocaleString()}
                         </td>
                       </tr>
+                    </tbody> */}
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-2">Completed Sessions</td>
+                        <td className="p-2 text-right">
+                          {selectedPayslip?.totalSessions ?? 0}
+                        </td>
+                      </tr>
+
+                      <tr className="border-b">
+                        <td className="p-2">Rate per Session</td>
+                        <td className="p-2 text-right">
+                          ₹
+                          {(
+                            selectedPayslip?.ratePerSession ?? 0
+                          ).toLocaleString()}
+                        </td>
+                      </tr>
+
+                      <tr className="border-b">
+                        <td className="p-2 font-semibold">Gross Revenue</td>
+                        <td className="p-2 text-right font-semibold">
+                          ₹
+                          {(
+                            selectedPayslip?.grossRevenue ?? 0
+                          ).toLocaleString()}
+                        </td>
+                      </tr>
+
+                      {/* <tr className="border-b">
+                        <td className="p-2 text-red-600">
+                          Deductions (TDS, etc.)
+                        </td>
+                        <td className="p-2 text-right text-red-600">
+                          - ₹
+                          {(selectedPayslip?.deductions ?? 0).toLocaleString()}
+                        </td>
+                      </tr> */}
                     </tbody>
+
                     <tfoot>
                       <tr className="bg-gray-100">
                         <td className="p-2 font-bold text-lg">Net Payable</td>
@@ -445,7 +599,7 @@ const Payroll = () => {
                   <div className="border rounded-lg p-3 flex justify-between">
                     <span className="text-gray-600">Rate / Session</span>
                     <span className="font-medium">
-                      ₹{selectedPayslip.ratePerSession.toLocaleString()}
+                      ₹{(selectedPayslip?.ratePerSession ?? 0).toLocaleString()}
                     </span>
                   </div>
 
@@ -456,12 +610,12 @@ const Payroll = () => {
                     </span>
                   </div>
 
-                  <div className="border rounded-lg p-3 flex justify-between">
+                  {/* <div className="border rounded-lg p-3 flex justify-between">
                     <span className="text-red-600">Deductions</span>
                     <span className="font-medium text-red-600">
                       - ₹{selectedPayslip.deductions.toLocaleString()}
                     </span>
-                  </div>
+                  </div> */}
 
                   <div className="border rounded-lg p-4 bg-blue-50 flex justify-between">
                     <span className="font-bold text-blue-800">Net Pay</span>

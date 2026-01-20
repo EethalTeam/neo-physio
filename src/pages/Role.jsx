@@ -1,21 +1,56 @@
 // ✔️ Only syntax/backtick fixes done — no logic changes
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Helmet } from 'react-helmet';
-import { Plus, Edit, Trash2, Settings, Save, Eye, UserPlus, FileEdit, Trash, ShieldCheck, Lock } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Helmet } from "react-helmet";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Settings,
+  Save,
+  Eye,
+  UserPlus,
+  FileEdit,
+  Trash,
+  ShieldCheck,
+  Lock,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { apiRequest } from '@/components/CustomComponents/apiRequest';
-import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import { cn } from "@/lib/utils";
 
 // ------------------ API FUNCTIONS ------------------
 // const navigate = useNavigate()
@@ -40,7 +75,6 @@ import { cn } from '@/lib/utils';
 //       getRole()
 //     }
 // },[Permissions])
-
 
 const getRole = async (setRoles) => {
   try {
@@ -78,7 +112,7 @@ const updateMenusAndAccess = async (roleId, menus) => {
         menus: menus,
       }),
     });
-    
+
     return response;
   } catch (error) {
     console.error("Failed to update permissions", error);
@@ -138,7 +172,9 @@ const RoleForm = ({ open, setOpen, role, onSave }) => {
         <DialogHeader>
           <DialogTitle>{role ? "Edit Role" : "Add New Role"}</DialogTitle>
           <DialogDescription>
-            {role ? "Modify the role name below." : "Create a new role to assign to users."}
+            {role
+              ? "Modify the role name below."
+              : "Create a new role to assign to users."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
@@ -153,7 +189,11 @@ const RoleForm = ({ open, setOpen, role, onSave }) => {
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit">Save Role</Button>
@@ -253,13 +293,18 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
 
   const isMenuFullySelected = (menuId) => {
     const perms = currentPermissions[menuId];
-    return perms && (perms.isView || perms.isAdd || perms.isEdit || perms.isDelete);
+    return (
+      perms && (perms.isView || perms.isAdd || perms.isEdit || perms.isDelete)
+    );
   };
 
   const handleSave = async () => {
     try {
       const menusToUpdate = Object.entries(currentPermissions)
-        .filter(([_, perms]) => perms.isView || perms.isAdd || perms.isEdit || perms.isDelete)
+        .filter(
+          ([_, perms]) =>
+            perms.isView || perms.isAdd || perms.isEdit || perms.isDelete,
+        )
         .map(([menuId, perms]) => ({
           menuId,
           ...perms,
@@ -302,7 +347,6 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
         return "Delete";
       default:
         return type;
-       
     }
   };
 
@@ -314,12 +358,16 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
             <ShieldCheck className="h-5 w-5 text-primary" />
             {`Permissions: ${role?.RoleName || "Role"}`}
           </DialogTitle>
-          <DialogDescription>Configure specific access rights for this role.</DialogDescription>
+          <DialogDescription>
+            Configure specific access rights for this role.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4 py-2">
           {loading ? (
-            <div className="flex items-center justify-center p-8 text-gray-500">Loading configuration...</div>
+            <div className="flex items-center justify-center p-8 text-gray-500">
+              Loading configuration...
+            </div>
           ) : (
             <>
               {menus.map((parentMenu) => (
@@ -330,7 +378,9 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
                         <Checkbox
                           id={`select-all-${parentMenu._id}`}
                           checked={isMenuFullySelected(parentMenu._id)}
-                          onCheckedChange={(checked) => handleSelectAllForMenu(parentMenu._id, checked)}
+                          onCheckedChange={(checked) =>
+                            handleSelectAllForMenu(parentMenu._id, checked)
+                          }
                         />
                         <Label
                           htmlFor={`select-all-${parentMenu._id}`}
@@ -342,36 +392,54 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
                     </div>
 
                     <div className="flex flex-wrap gap-4 mt-2 pl-7">
-                      {["isView", "isAdd", "isEdit", "isDelete"].map((permission) => (
-                        <div key={permission} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`${parentMenu._id}-${permission}`}
-                            checked={currentPermissions[parentMenu._id]?.[permission] || false}
-                            onCheckedChange={(checked) =>
-                              handlePermissionChange(parentMenu._id, permission, checked)
-                            }
-                          />
-                          <Label
-                            htmlFor={`${parentMenu._id}-${permission}`}
-                            className="flex items-center space-x-1 text-sm text-gray-600 font-normal cursor-pointer"
+                      {["isView", "isAdd", "isEdit", "isDelete"].map(
+                        (permission) => (
+                          <div
+                            key={permission}
+                            className="flex items-center space-x-2"
                           >
-                            {renderPermissionIcon(permission)}
-                            <span>{getPermissionLabel(permission)}</span>
-                          </Label>
-                        </div>
-                      ))}
+                            <Checkbox
+                              id={`${parentMenu._id}-${permission}`}
+                              checked={
+                                currentPermissions[parentMenu._id]?.[
+                                  permission
+                                ] || false
+                              }
+                              onCheckedChange={(checked) =>
+                                handlePermissionChange(
+                                  parentMenu._id,
+                                  permission,
+                                  checked,
+                                )
+                              }
+                            />
+                            <Label
+                              htmlFor={`${parentMenu._id}-${permission}`}
+                              className="flex items-center space-x-1 text-sm text-gray-600 font-normal cursor-pointer"
+                            >
+                              {renderPermissionIcon(permission)}
+                              <span>{getPermissionLabel(permission)}</span>
+                            </Label>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </CardHeader>
 
                   {parentMenu.subMenus?.length > 0 && (
                     <CardContent className="p-4 space-y-3">
                       {parentMenu.subMenus.map((subMenu) => (
-                        <div key={subMenu._id} className="pl-4 md:pl-6 border-l-2 border-gray-100">
+                        <div
+                          key={subMenu._id}
+                          className="pl-4 md:pl-6 border-l-2 border-gray-100"
+                        >
                           <div className="flex items-center space-x-3 mb-2">
                             <Checkbox
                               id={`select-all-${subMenu._id}`}
                               checked={isMenuFullySelected(subMenu._id)}
-                              onCheckedChange={(checked) => handleSelectAllForMenu(subMenu._id, checked)}
+                              onCheckedChange={(checked) =>
+                                handleSelectAllForMenu(subMenu._id, checked)
+                              }
                             />
                             <Label
                               htmlFor={`select-all-${subMenu._id}`}
@@ -382,24 +450,39 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
                           </div>
 
                           <div className="flex flex-wrap gap-4 ml-7">
-                            {["isView", "isAdd", "isEdit", "isDelete"].map((permission) => (
-                              <div key={permission} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`${subMenu._id}-${permission}`}
-                                  checked={currentPermissions[subMenu._id]?.[permission] || false}
-                                  onCheckedChange={(checked) =>
-                                    handlePermissionChange(subMenu._id, permission, checked)
-                                  }
-                                />
-                                <Label
-                                  htmlFor={`${subMenu._id}-${permission}`}
-                                  className="flex items-center space-x-1 text-sm text-gray-500 font-normal cursor-pointer"
+                            {["isView", "isAdd", "isEdit", "isDelete"].map(
+                              (permission) => (
+                                <div
+                                  key={permission}
+                                  className="flex items-center space-x-2"
                                 >
-                                  {renderPermissionIcon(permission)}
-                                  <span>{getPermissionLabel(permission)}</span>
-                                </Label>
-                              </div>
-                            ))}
+                                  <Checkbox
+                                    id={`${subMenu._id}-${permission}`}
+                                    checked={
+                                      currentPermissions[subMenu._id]?.[
+                                        permission
+                                      ] || false
+                                    }
+                                    onCheckedChange={(checked) =>
+                                      handlePermissionChange(
+                                        subMenu._id,
+                                        permission,
+                                        checked,
+                                      )
+                                    }
+                                  />
+                                  <Label
+                                    htmlFor={`${subMenu._id}-${permission}`}
+                                    className="flex items-center space-x-1 text-sm text-gray-500 font-normal cursor-pointer"
+                                  >
+                                    {renderPermissionIcon(permission)}
+                                    <span>
+                                      {getPermissionLabel(permission)}
+                                    </span>
+                                  </Label>
+                                </div>
+                              ),
+                            )}
                           </div>
                         </div>
                       ))}
@@ -412,7 +495,11 @@ const PermissionsDialog = ({ open, setOpen, role, onSave }) => {
         </div>
 
         <DialogFooter className="pt-2 border-t">
-          <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setOpen(false)}
+          >
             Cancel
           </Button>
           <Button onClick={handleSave} className="gap-2">
@@ -442,7 +529,10 @@ const RolesPage = () => {
   useEffect(() => {
     const rolepath = roles.reduce((acc, curr) => {
       if (!acc[curr.RoleName]) {
-        return { ...acc, [curr.RoleName]: curr.permissions?.map((val) => val.menuDetails.path) };
+        return {
+          ...acc,
+          [curr.RoleName]: curr.permissions?.map((val) => val.menuDetails.path),
+        };
       } else {
         return acc;
       }
@@ -492,7 +582,11 @@ const RolesPage = () => {
       setIsConfirmOpen(false);
       setRoleToEdit(null);
     } catch (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -508,7 +602,11 @@ const RolesPage = () => {
         }
       }
     } catch (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -519,17 +617,48 @@ const RolesPage = () => {
     });
     getRole(setRoles);
   };
+  const { getPermissionsByPath } = useAuth();
+  const navigate = useNavigate();
+
+  const [Permissions, setPermissions] = useState({
+    isAdd: false,
+    isView: false,
+    isEdit: false,
+    isDelete: false,
+  });
+  useEffect(() => {
+    getPermissionsByPath(window.location.pathname).then((res) => {
+      if (res) {
+        setPermissions(res);
+      } else {
+        navigate("/dashboard");
+      }
+    });
+  }, []);
+  useEffect(() => {
+    if (Permissions.isView) {
+      getRole(setRoles);
+    }
+  }, [Permissions]);
 
   return (
     <div className="space-y-6">
       <Helmet>
         <title>Roles & Permissions</title>
-        <meta name="description" content="Manage user roles and their access permissions across the application." />
+        <meta
+          name="description"
+          content="Manage user roles and their access permissions across the application."
+        />
       </Helmet>
 
       <AnimatePresence>
         {isRoleFormOpen && (
-          <RoleForm open={isRoleFormOpen} setOpen={setIsRoleFormOpen} role={roleToEdit} onSave={handleSaveRole} />
+          <RoleForm
+            open={isRoleFormOpen}
+            setOpen={setIsRoleFormOpen}
+            role={roleToEdit}
+            onSave={handleSaveRole}
+          />
         )}
         {isPermissionsOpen && (
           <PermissionsDialog
@@ -550,7 +679,9 @@ const RolesPage = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsConfirmOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsConfirmOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteRole}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -568,19 +699,25 @@ const RolesPage = () => {
         className="flex justify-between items-center"
       >
         <div>
-          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">Roles & Permissions</h1>
-          <p className="text-gray-600">Define roles and control access to different modules</p>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
+            Roles & Permissions
+          </h1>
+          <p className="text-gray-600">
+            Define roles and control access to different modules
+          </p>
         </div>
-        {
-          Permissions.isAdd && 
+        {Permissions.isAdd && (
           <Button onClick={handleAddNewRole} className="bg-primary">
-          <Plus className="w-4 h-4 mr-2" /> Add Role
-        </Button>
-        }
-        
+            <Plus className="w-4 h-4 mr-2" /> Add Role
+          </Button>
+        )}
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <Card className="border-none shadow-none bg-transparent">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {roles.map((role) => {
@@ -595,13 +732,15 @@ const RolesPage = () => {
                   <Card
                     className={cn(
                       "hover:shadow-md transition-all duration-200 border-l-4",
-                      isSuperAdmin ? "border-l-blue-500" : "border-l-gray-300"
+                      isSuperAdmin ? "border-l-blue-500" : "border-l-gray-300",
                     )}
                   >
                     <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                       <div>
                         <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                          {isSuperAdmin && <Lock size={18} className="text-blue-500" />}
+                          {isSuperAdmin && (
+                            <Lock size={18} className="text-blue-500" />
+                          )}
                           {role.RoleName}
                         </CardTitle>
                         <CardDescription className="font-mono text-xs text-gray-500 mt-1">
@@ -611,7 +750,9 @@ const RolesPage = () => {
                       <span
                         className={cn(
                           "px-2.5 py-0.5 rounded-full text-xs font-medium",
-                          role.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          role.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800",
                         )}
                       >
                         {role.isActive ? "Active" : "Inactive"}
@@ -638,29 +779,27 @@ const RolesPage = () => {
                       </Button>
 
                       {!isSuperAdmin && (
-                        <>{
-                          Permissions.isEdit && 
+                        <>
+                          {Permissions.isEdit && (
                             <Button
-                            variant="ghost"
-                            size="sm"
-                            className="px-2 text-gray-500 hover:text-gray-900"
-                            onClick={() => handleEditRole(role)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        }
-                        {
-                          Permissions.isDelete && 
-                           <Button
-                            variant="ghost"
-                            size="sm"
-                            className="px-2 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => handleDeleteRole(role)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        }
-                         
+                              variant="ghost"
+                              size="sm"
+                              className="px-2 text-gray-500 hover:text-gray-900"
+                              onClick={() => handleEditRole(role)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {Permissions.isDelete && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="px-2 text-gray-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => handleDeleteRole(role)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </>
                       )}
                     </CardFooter>

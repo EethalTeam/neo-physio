@@ -157,7 +157,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
     if (item.subItems.length > 0) {
       const accessibleSubItems = item.subItems.filter((sub) =>
-        hasAccess(sub.path)
+        hasAccess(sub.path),
       );
       if (accessibleSubItems.length > 0) {
         return { ...item, subItems: accessibleSubItems };
@@ -222,6 +222,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: "Physios", path: "/physios" },
         { icon: Settings, label: "Machinery", path: "/machinery" },
         { icon: Share2, label: "References", path: "/references" },
+        { icon: ClipboardCheck, label: "Income", path: "/income" },
+
         mastersSubmenu,
         Adminpannel,
         { icon: Wallet, label: "Expenses", path: "/expenses" },
@@ -237,6 +239,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: "Physios", path: "/physios" },
         { icon: Settings, label: "Machinery", path: "/machinery" },
         { icon: Share2, label: "References", path: "/references" },
+        { icon: ClipboardCheck, label: "Income", path: "/income" },
+
         mastersSubmenu,
         { icon: Flag, label: "Red Flags", path: "/red-flags" },
         { icon: FileSpreadsheet, label: "Payroll", path: "/payroll" },
@@ -251,6 +255,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Flag, label: "Red Flags", path: "/red-flags" },
         { icon: BarChart3, label: "Reports", path: "/reports" },
         { icon: MessageCircle, label: "Consultation", path: "/consultation" },
+        { icon: ClipboardCheck, label: "Income", path: "/income" },
       ],
       Physio: [
         { icon: CalendarClock, label: "My Sessions", path: "/sessions" },
