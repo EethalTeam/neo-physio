@@ -219,7 +219,7 @@ const Income = () => {
             Total Income: ₹{totalMonthlyIncome}
           </div> */}
 
-          <div className="flex gap-4 flex-wrap items-center mb-4">
+          <div className="flex gap-4 items-center mb-4">
             <Select
               onValueChange={(val) => setSelectedMonth(Number(val))}
               value={selectedMonth}
@@ -260,21 +260,13 @@ const Income = () => {
           ) : ( */}
           {/* Desktop / Tablet */}
           <div className="hidden md:block overflow-x-auto">
-            <table className="w-full border border-gray-300 rounded-md">
-              <thead>
-                <tr className="bg-gray-100 text-sm md:text-base">
-                  <th className="p-2 border text-left whitespace-nowrap">
-                    Patient Name
-                  </th>
-                  <th className="p-2 border text-center whitespace-nowrap">
-                    Completed Sessions
-                  </th>
-                  <th className="p-2 border text-center whitespace-nowrap">
-                    Fees
-                  </th>
-                  <th className="p-2 border text-center whitespace-nowrap">
-                    Total Income
-                  </th>
+            <table className="min-w-full text-sm border rounded-lg">
+              <thead className="bg-gray-100 text-gray-700">
+                <tr>
+                  <th className="px-3 py-2 text-left">Patient Name</th>
+                  <th className="px-3 py-2 text-left">Completed Sessions</th>
+                  <th className="px-3 py-2 text-left">Fees</th>
+                  <th className="px-3 py-2 text-left">Total Income</th>
                 </tr>
               </thead>
 
