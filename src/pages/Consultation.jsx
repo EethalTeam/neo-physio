@@ -93,6 +93,7 @@ const Consulation = () => {
     Physiotherapist: "",
     physioId: "",
     sessionStartDate: "",
+    consultationNumber: "",
     sessionTime: "",
     totalSessionDays: "",
     InitialShorttermGoal: "",
@@ -433,16 +434,26 @@ const Consulation = () => {
 
   const AssignPhysio = async (data) => {
     console.log(data, "data");
+
     try {
       const response = await apiRequest("Consultation/AssignPhysio", {
         method: "POST",
         body: JSON.stringify(data),
       });
 
-      toast({
-        title: "Success",
-        description: "Physio assigned and sessions created.",
-      });
+      if (!response.ok) {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to assign physio.",
+          variant: "destructive",
+        });
+        return response;
+      } else {
+        toast({
+          title: "Success",
+          description: "Physio assigned and sessions created.",
+        });
+      }
 
       // Wait for Patients list to refresh
       await getAllPatient();
@@ -897,6 +908,7 @@ const Consulation = () => {
         InitialShorttermGoal: patient.InitialShorttermGoal || "",
         goalDuration: patient.goalDuration || "",
         totalSessionDays: patient.totalSessionDays || "",
+        consultationNumber: patient.patientNumber || "",
         sessionStartDate: patient.sessionStartDate
           ? new Date(patient.sessionStartDate)
           : "",

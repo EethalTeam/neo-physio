@@ -19,6 +19,8 @@ const PhysioDashboard = () => {
     completedSessions: 0,
     upcomingSessions: 0,
     activePatients: 0,
+    notConcered: 0,
+    cancelledSessions: 0,
   });
   const Navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
@@ -67,11 +69,11 @@ const PhysioDashboard = () => {
     const todayStr = new Date().toISOString().split("T")[0];
 
     const todaySessions = sessionsData.filter((s) =>
-      s.sessionDate?.startsWith(todayStr)
+      s.sessionDate?.startsWith(todayStr),
     );
 
     const completedSessions = sessionsData.filter(
-      (s) => s?.sessionStatusId?.sessionStatusName === "Completed"
+      (s) => s?.sessionStatusId?.sessionStatusName === "Completed",
     );
 
     const upcomingSessions = sessionsData.filter((s) => {
@@ -103,12 +105,28 @@ const PhysioDashboard = () => {
           status: session.sessionStatusId?.sessionStatusName?.toLowerCase(),
         };
       });
+    const notConceredPatients = (physioId) => {
+      return patientsData.filter(
+        (patient) =>
+          patient.physioId?._id === physioId &&
+          patient.isConcernReceived === false,
+      ).length;
+    };
+    const todayDate = new Date().toISOString().split("T")[0];
+    const todaycancelledSessions = sessionsData.filter(
+      (s) =>
+        s.sessionStatusId?.sessionStatusName === "Canceled" &&
+        s.sessionDate?.startsWith(todayDate),
+    );
+    console.log(todaycancelledSessions, "Todays cancelled session");
 
     setStats({
       todaySessions: todaySessions.length,
       completedSessions: completedSessions.length,
       upcomingSessions: upcomingSessions.length,
       activePatients: activePatientIds.size,
+      notConcered: notConceredPatients(user._id),
+      cancelledSessions: todaycancelledSessions.length,
     });
 
     setSessions(enrichedSessions.slice(0, 5));
@@ -117,8 +135,8 @@ const PhysioDashboard = () => {
   const handleSessionAction = (sessionId, action) => {
     setSessions((prev) =>
       prev.map((session) =>
-        session.id === sessionId ? { ...session, status: action } : session
-      )
+        session.id === sessionId ? { ...session, status: action } : session,
+      ),
     );
 
     toast({
@@ -155,11 +173,25 @@ const PhysioDashboard = () => {
       bgColor: "bg-green-100",
     },
     {
+      title: "Not Concerned Patients",
+      value: stats.notConcered,
+      icon: CheckCircle,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
       title: "Today Completed Session",
       value: stats.completedSessions,
       icon: CheckCircle,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
+    },
+    {
+      title: "Cancelled Sessions",
+      value: stats.cancelledSessions,
+      icon: CheckCircle,
+      color: "text-red-600",
+      bgColor: "bg-red-100",
     },
   ];
 
@@ -241,7 +273,7 @@ const PhysioDashboard = () => {
                         <p className="text-sm text-gray-600">
                           {new Date(session.sessionDate).toLocaleDateString(
                             undefined,
-                            { weekday: "long", month: "long", day: "numeric" }
+                            { weekday: "long", month: "long", day: "numeric" },
                           )}{" "}
                           at {session.sessionTime}
                         </p>

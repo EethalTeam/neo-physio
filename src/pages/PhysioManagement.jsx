@@ -92,6 +92,8 @@ const PhysioManagement = () => {
     physioINCRDate: null,
     physioPetrolAlw: "",
     physioContactNo: "",
+    physioAltno: "",
+    physioAltno2: "",
     physioVehicleMTC: "",
     physioIncentive: "",
     isActive: true,
@@ -107,12 +109,35 @@ const PhysioManagement = () => {
     isEdit: false,
     isDelete: false,
   });
+  const [sessions, setSessions] = useState([]);
+  const [completedSessions, setCompletedSessions] = useState([]);
 
   useEffect(() => {
     getGender();
-
+    // getCompletedSessionsForPhysio();
     getAllRole();
   }, []);
+  // Call this when you open the physiotherapist details
+  // const getCompletedSessionsForPhysio = async (physioId) => {
+  //   try {
+  //     const response = await apiRequest("Session/getAllSession", {
+  //       method: "POST",
+  //       body: JSON.stringify({ physioId }),
+  //     });
+
+  //     // Filter completed sessions for that physio
+  //     const completedSessions = response.filter(
+  //       (session) =>
+  //         session.physioId?._id === physioId &&
+  //         session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+  //           "completed",
+  //     );
+
+  //     setCompletedSessions(completedSessions); // Store in a separate state
+  //   } catch (error) {
+  //     console.log(error, "Error fetching completed sessions for physio");
+  //   }
+  // };
 
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
@@ -179,6 +204,8 @@ const PhysioManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
+      console.log(data, "data");
+
       toast({ title: "Updated", description: "Physio updated successfully." });
       getPhysio();
       setIsFormOpen(false);
@@ -266,6 +293,12 @@ const PhysioManagement = () => {
       toast({
         title: "Alert",
         description: "Enter the Name",
+        variant: "destructive",
+      });
+    } else if (!physioForm._id && !physioForm.physioCode) {
+      toast({
+        title: "Alert",
+        description: "Enter the physio Code",
         variant: "destructive",
       });
     } else if (!physioForm.physioDob) {
@@ -367,7 +400,8 @@ const PhysioManagement = () => {
     } else {
       // If all validations pass
       if (editingPhysio) {
-        updatePhysio({ ...physioForm, _id: editingPhysio._id });
+        // updatePhysio({ ...physioForm, _id: editingPhysio._id });
+        updatePhysio(physioForm);
       } else {
         createPhysio(physioForm);
       }
@@ -397,6 +431,10 @@ const PhysioManagement = () => {
       physioProbation: physio.physioProbation,
       physioINCRDate: new Date(physio.physioINCRDate),
       physioPetrolAlw: physio.physioPetrolAlw,
+      physioAltno: physio.physioAltno,
+      physioAltno2: physio.physioAltno2,
+      physiorelationAltno: physio.physiorelationAltno,
+      physiorelationAltno2: physio.physiorelationAltno2,
       physioContactNo: physio.physioContactNo,
       physioVehicleMTC: physio.physioVehicleMTC,
       physioIncentive: physio.physioIncentive,
@@ -407,9 +445,31 @@ const PhysioManagement = () => {
     setIsFormOpen(true);
   };
 
-  const handleViewDetails = (physio) => {
+  // const handleViewDetails = (physio) => {
+  //   setViewingPhysio(physio);
+  //   setIsDetailsOpen(true);
+  // };
+  const handleViewDetails = async (physio) => {
     setViewingPhysio(physio);
     setIsDetailsOpen(true);
+
+    try {
+      const response = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({ physioId: physio._id }),
+      });
+
+      const completed = response
+        .filter(
+          (s) =>
+            s.physioId?._id === physio._id &&
+            s.sessionStatusId?.sessionStatusName?.toLowerCase() === "completed",
+        )
+        .sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate));
+      setCompletedSessions(completed);
+    } catch (error) {
+      console.error("Error fetching completed sessions:", error);
+    }
   };
 
   const handleToggleStatus = async (physio) => {
@@ -758,6 +818,90 @@ const PhysioManagement = () => {
                     pattern="[0-9]{10}"
                   />
                 </div>
+                {editingPhysio && (
+                  <>
+                    {/* Alt No 1 */}
+                    <div className="space-y-2">
+                      <Label>Alt No</Label>
+                      <Input
+                        type="tel"
+                        name="physioAltno"
+                        value={physioForm.physioAltno}
+                        maxLength={10}
+                        required
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          if (value.length <= 10) {
+                            setPhysioForm({
+                              ...physioForm,
+                              physioAltno: value,
+                            });
+                          }
+                        }}
+                        placeholder="Enter 10-digit number"
+                      />
+                    </div>
+
+                    {/* Relation Alt No 1 */}
+                    <div className="space-y-2">
+                      <Label>Relation with Alt No</Label>
+                      <Input
+                        type="text"
+                        name="physiorelationAltno"
+                        value={physioForm.physiorelationAltno}
+                        required
+                        onChange={(e) =>
+                          setPhysioForm({
+                            ...physioForm,
+                            physiorelationAltno: e.target.value,
+                          })
+                        }
+                        placeholder="Enter relation (Father, Mother, etc.)"
+                      />
+                    </div>
+
+                    {/* Alt No 2 */}
+                    <div className="space-y-2">
+                      <Label>Alt No 2</Label>
+                      <Input
+                        type="tel"
+                        name="physioAltno2"
+                        value={physioForm.physioAltno2}
+                        maxLength={10}
+                        required
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          if (value.length <= 10) {
+                            setPhysioForm({
+                              ...physioForm,
+                              physioAltno2: value,
+                            });
+                          }
+                        }}
+                        placeholder="Enter 10-digit number"
+                      />
+                    </div>
+
+                    {/* Relation Alt No 2 */}
+                    <div className="space-y-2">
+                      <Label>Relation with Alt No 2</Label>
+                      <Input
+                        type="text"
+                        name="physiorelationAltno2"
+                        value={physioForm.physiorelationAltno2}
+                        required
+                        onChange={(e) =>
+                          setPhysioForm({
+                            ...physioForm,
+                            physiorelationAltno2: e.target.value,
+                          })
+                        }
+                        placeholder="Enter relation"
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="space-y-2">
                   <Label>Password</Label>
                   <Input
@@ -836,16 +980,10 @@ const PhysioManagement = () => {
                     value={physioForm.physioAadhar}
                     onChange={(e) => {
                       let value = e.target.value;
-
                       // Remove non-digits
                       value = value.replace(/\D/g, "");
-
                       // Limit to 12 digits
                       value = value.slice(0, 12);
-
-                      // Add space every 4 digits
-                      value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-
                       // Update your form state
                       setPhysioForm({ ...physioForm, physioAadhar: value });
                       handleFormChange(e);
@@ -956,7 +1094,7 @@ const PhysioManagement = () => {
       </Dialog>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           {/* Fixed header without border */}
           <DialogHeader className="sticky top-0 z-10 pb-2">
             <DialogTitle className="flex items-center gap-2">
@@ -968,18 +1106,18 @@ const PhysioManagement = () => {
           </DialogHeader>
 
           {/* Scrollable section (includes all details + footer) */}
-          <div className="overflow-y-auto max-h-[70vh] mt-2 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            {viewingPhysio && (
+          {/* <div className="overflow-y-auto max-h-[70vh] mt-2 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {sessions && (
               <div className="space-y-2">
-                {renderDetailRow("Name", viewingPhysio.physioName)}
-                {renderDetailRow("Date Of Birth", viewingPhysio.physioDob)}
-                {renderDetailRow("Contact", viewingPhysio.physioContactNo)}
-                {renderDetailRow("Designation", viewingPhysio.physioSpcl)}
-                {renderDetailRow("Qualifications", viewingPhysio.physioQulifi)}
-                {renderDetailRow("Experience", viewingPhysio.physioExp)}
-                {renderDetailRow("PAN", viewingPhysio.physioPAN)}
-                {renderDetailRow("Aadhar", viewingPhysio.physioAadhar)}
-                {renderDetailRow(
+                {renderDetailRow("Name", sessions.patientId?.patientName)}
+                {/* {renderDetailRow("Date Of Birth", sessions.physioDob)}
+                {renderDetailRow("Contact", sessions.physioContactNo)}
+                {renderDetailRow("Designation", sessions.physioSpcl)}
+                {renderDetailRow("Qualifications", sessions.physioQulifi)}
+                {renderDetailRow("Experience", sessions.physioExp)}
+                {renderDetailRow("PAN", sessions.physioPAN)}
+                {renderDetailRow("Aadhar", sessions.physioAadhar)} */}
+          {/* {renderDetailRow(
                   "Salary",
                   `₹${viewingPhysio.physioSalary?.toLocaleString()}`,
                 )}
@@ -1007,16 +1145,65 @@ const PhysioManagement = () => {
                 {renderDetailRow(
                   "Status",
                   viewingPhysio.isActive ? "Active" : "Inactive",
-                )}
-              </div>
-            )}
+                )} */}
+          {/* </div> */}
+          {/* )} */}
 
-            {/*        
+          {/*        
       <DialogFooter className="mt-4">
         <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
           Close
         </Button>
       </DialogFooter> */}
+          {/* </div> */}
+          <div className="physio-details mt-4">
+            <h2 className="font-semibold text-lg mb-2">
+              Physiotherapist: {viewingPhysio?.physioName}
+            </h2>
+
+            <h3 className="font-medium text-md mb-2">
+              Completed Sessions {completedSessions.length}
+            </h3>
+
+            {completedSessions.length === 0 ? (
+              <p>No completed sessions yet.</p>
+            ) : (
+              <div className="max-h-[45vh] overflow-y-auto space-y-2 pr-2">
+                {completedSessions.map((session) => (
+                  <div
+                    key={session._id}
+                    className="p-3 border rounded shadow-sm bg-white"
+                  >
+                    <p>
+                      <strong>Session Code:</strong> {session.sessionCode}
+                    </p>
+                    <p>
+                      <strong>Patient Name:</strong>{" "}
+                      {session.patientId?.patientName}
+                    </p>
+                    <p>
+                      <strong>Session Date:</strong>{" "}
+                      {new Date(session.sessionDate).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <strong>Session Time:</strong> {session.sessionTime}
+                    </p>
+                    <p>
+                      <strong>Status:</strong>
+                      {session.sessionStatusId?.sessionStatusName}
+                    </p>
+                    <p>
+                      <strong>Feedback: </strong>
+                      {session.sessionFeedbackPros}
+                    </p>
+                    <p>
+                      <strong>Goal:</strong>{" "}
+                      {session.patientId?.InitialShorttermGoal || "N/A"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

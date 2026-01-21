@@ -50,6 +50,8 @@ import {
   UserPlus,
   History,
   UserCheck,
+  CheckCircle,
+  Circle,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -121,6 +123,8 @@ const PatientManagement = () => {
     nextReviewDate: null,
   };
   const [newGoalForm, setNewGoalForm] = useState(initialNewGoalState);
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [sessionSummary, setSessionSummary] = useState(null);
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyPatient, setHistoryPatient] = useState(null);
@@ -965,6 +969,7 @@ const PatientManagement = () => {
       });
     }
   };
+  const [sessionCount, setSessionCount] = useState({ total: 0, completed: 0 });
 
   // const handleAssignPhysioSubmit = (e) => {
   // e.preventDefault();
@@ -999,33 +1004,63 @@ const PatientManagement = () => {
   // setAssignForm(initialAssignState);
   // };
 
-  const handleViewHistory = (patient) => {
+  const handleViewHistory = async (patient) => {
     setHistoryPatient(patient);
-    const patientSessions = sessions
-      .filter((s) => s.patientCode === patient.id)
-      .map((s) => ({
-        type: "session",
-        date: s.sessionDate,
-        title: `Session ${s.status}`,
-        details: s.feedback
-          ? `Feedback: ${s.feedback.pros}`
-          : `Status: ${s.status}`,
+    setIsHistoryOpen(true);
+
+    console.log("Fetching history for patient:", patient.patientName);
+    console.log("Sending patientId:", patient._id);
+
+    try {
+      // Call API to get all sessions
+      const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: patient._id, // selected patient _id
+        }),
+      });
+
+      // Filter sessions for this patient
+      const patientSessions = allSessions
+        .filter((s) => s.patientId?._id === patient._id) // ensure _id match
+        .map((s, index) => ({
+          type: "session",
+          date: s.sessionDate,
+          title: `Session ${index + 1}`,
+          status: s.sessionStatusId?.sessionStatusName || "N/A",
+          color: s.sessionStatusId?.sessionStatusColor,
+          feedback:
+            s.sessionFeedbackPros || "No feedback" || s.sessionFeedbackPros,
+        }));
+
+      // Count sessions
+      const totalSessions = patientSessions.length;
+      const completedSessions = patientSessions.filter(
+        (s) => s.status?.toLowerCase() === "completed",
+      ).length;
+
+      // Map HOD goal reviews if any
+      const patientGoalLog = (patient.goalLog || []).map((log) => ({
+        type: "review",
+        date: log.date,
+        title: `HOD Review - ${log.status}`,
+        details: `Goal: ${log.goal}. Feedback: ${log.feedback || "N/A"}. Satisfaction: ${
+          log.satisfaction || "N/A"
+        }%`,
       }));
 
-    const patientGoalLog = (patient.goalLog || []).map((log) => ({
-      type: "review",
-      date: log.date,
-      title: `HOD Review: ${log.status}`,
-      details: `Goal: ${log.goal}. Feedback: ${
-        log.feedback || "N/A"
-      }. Satisfaction: ${log.satisfaction || "N/A"}%`,
-    }));
+      // Combine sessions and reviews in chronological order
+      const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
+        (a, b) => new Date(b.date) - new Date(a.date),
+      );
 
-    const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
-      (a, b) => new Date(b.date) - new Date(a.date),
-    );
-    setPatientHistory(combinedHistory);
-    setIsHistoryOpen(true);
+      setPatientHistory(combinedHistory);
+      setSessionCount({ total: totalSessions, completed: completedSessions });
+
+      console.log("Patient sessions:", patientSessions);
+    } catch (error) {
+      console.error("Failed to fetch sessions:", error);
+    }
   };
 
   const renderRadioGroup = (label, name, value, id, group, dynamic) => (
@@ -1054,15 +1089,14 @@ const PatientManagement = () => {
     try {
       const newStatus = !patient.isRecovered;
 
-      // Confirm action
       const confirmAction = window.confirm(
         `Are you sure you want to mark ${patient.patientName} as ${
           newStatus ? "Recovered" : "Not Recovered"
         }?`,
       );
+
       if (!confirmAction) return;
 
-      // Call backend API
       const res = await apiRequest("Patient/updatePatient", {
         method: "POST",
         body: JSON.stringify({
@@ -1079,7 +1113,6 @@ const PatientManagement = () => {
           }.`,
         });
 
-        // Update UI instantly
         setPatients((prev) =>
           prev.map((p) =>
             p._id === patient._id ? { ...p, isRecovered: newStatus } : p,
@@ -1087,10 +1120,55 @@ const PatientManagement = () => {
         );
       }
     } catch (error) {
-      console.error("Error toggling status:", error);
       toast({
         title: "Error",
         description: "Failed to update patient status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleConcernToggle = async (patient) => {
+    try {
+      const newRecoveredStatus = !patient.isConcernReceived;
+
+      const confirmActions = window.confirm(
+        `Are you sure you want to mark ${patient.patientName} as ${
+          newRecoveredStatus ? "Concerned" : "Not concerned"
+        }?`,
+      );
+
+      if (!confirmActions) return;
+
+      const res = await apiRequest("Patient/updatePatient", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: patient._id,
+
+          isConcernReceived: newRecoveredStatus, // ONLY THIS
+        }),
+      });
+
+      if (res) {
+        toast({
+          title: "Status Updated",
+          description: `${patient.patientName} is now ${
+            newRecoveredStatus ? "Concern Received" : "Not Concerned"
+          }.`,
+        });
+
+        setPatients((prev) =>
+          prev.map((p) =>
+            p._id === patient._id
+              ? { ...p, isConcernReceived: newRecoveredStatus }
+              : p,
+          ),
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update recovery status.",
         variant: "destructive",
       });
     }
@@ -1366,19 +1444,35 @@ const PatientManagement = () => {
                         <div className="flex flex-row flex-wrap gap-2 justify-center">
                           <Button
                             size="sm"
+                            variant={
+                              patient.isConcernReceived
+                                ? "secondary"
+                                : "default"
+                            }
+                            onClick={() => handleConcernToggle(patient)}
+                          >
+                            {patient.isConcernReceived ? (
+                              <CheckCircle
+                                size={14}
+                                className="text-green-600"
+                              />
+                            ) : (
+                              <Circle size={14} />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleViewConsultation(patient)}
                           >
                             <FileText size={14} />
                           </Button>
-
                           <Button
                             size="sm"
                             onClick={() => handleScheduleReview(patient)}
                           >
                             <CalendarIcon size={14} />
                           </Button>
-
                           <Button
                             size="sm"
                             variant="outline"
@@ -1386,7 +1480,6 @@ const PatientManagement = () => {
                           >
                             <History size={14} />
                           </Button>
-
                           {(user?.role === "HOD" ||
                             user?.role === "Admin" ||
                             user?.role === "SuperAdmin") &&
@@ -1417,7 +1510,6 @@ const PatientManagement = () => {
                               )}
                             </Button>
                           )}
-
                           {(user?.role === "Admin" ||
                             user?.role === "SuperAdmin") &&
                             Permissions.isDelete && (
@@ -1549,6 +1641,24 @@ const PatientManagement = () => {
                           </div>
                         </div>
                         <div className="mt-2 flex flex-row flex-wrap gap-2 sm:hidden">
+                          <Button
+                            size="sm"
+                            variant={
+                              patient.isConcernReceived
+                                ? "secondary"
+                                : "default"
+                            }
+                            onClick={() => handleConcernToggle(patient)}
+                          >
+                            {patient.isConcernReceived ? (
+                              <CheckCircle
+                                size={14}
+                                className="text-green-600"
+                              />
+                            ) : (
+                              <Circle size={14} />
+                            )}
+                          </Button>{" "}
                           {(user?.role === "HOD" ||
                             user?.role === "Admin" ||
                             user?.role === "SuperAdmin") && (
@@ -1567,7 +1677,6 @@ const PatientManagement = () => {
                               )}
                             </Button>
                           )}
-
                           <Button
                             size="sm"
                             variant="outline"
@@ -1810,7 +1919,7 @@ const PatientManagement = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+      {/* <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="md:max-w-2xl max-h-[90vh] flex flex-col max-w-sm">
           <DialogHeader>
             <DialogTitle>Patient History: {historyPatient?.name}</DialogTitle>
@@ -1838,6 +1947,65 @@ const PatientManagement = () => {
                       </p>
                       <h4 className="font-semibold text-md">{item.title}</h4>
                       <p className="text-sm text-gray-600">{item.details}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500">
+                  No history found for this patient.
+                </p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog> */}
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="md:max-w-2xl max-h-[90vh] flex flex-col max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Patient History: {historyPatient?.name}</DialogTitle>
+            <DialogDescription>
+              Chronological log of all sessions and reviews.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-6 -mr-6 mt-4">
+            <div className="relative pl-6">
+              <div
+                className="absolute left-0 top-0 h-full w-0.5 bg-gray-200"
+                style={{ transform: "translateX(2.5px)" }}
+              ></div>
+
+              {patientHistory.length > 0 ? (
+                patientHistory.map((item, index) => (
+                  <div key={index} className="mb-8 relative">
+                    <div className="pl-6">
+                      {/* Date */}
+                      <p className="text-xs text-gray-500">
+                        {item.date ? format(new Date(item.date), "PPP") : "N/A"}
+                      </p>
+
+                      {/* Title */}
+                      <h4 className="font-semibold text-md">{item.title}</h4>
+
+                      {/* Status and Feedback for sessions */}
+                      {item.type === "session" && (
+                        <p className="text-sm text-gray-600">
+                          Status: {item.status} <br />
+                          Feedback:
+                          <span
+                            className="text-sm text-gray-600"
+                            style={{ color: item.color }}
+                          >
+                            {" "}
+                            {item.feedback}
+                          </span>
+                        </p>
+                      )}
+
+                      {/* Reviews */}
+                      {item.type === "review" && (
+                        <p className="text-sm text-gray-600">{item.details}</p>
+                      )}
                     </div>
                   </div>
                 ))
@@ -2117,7 +2285,6 @@ const PatientManagement = () => {
                           </PopoverContent>
                         </Popover>
                       </div>
-
                       <div className="space-y-2">
                         <Label>Reference</Label>
                         <Select
@@ -2171,6 +2338,26 @@ const PatientManagement = () => {
                             {selectedPatient.isRecovered
                               ? "Mark Not Recovered"
                               : "Mark Recovered"}
+                          </Button>
+                        </div>
+                      )}
+                      {selectedPatient && (
+                        <div className="space-y-2">
+                          <Label>Is Concern Received</Label>
+
+                          <Button
+                            size="sm"
+                            variant={
+                              selectedPatient.isConcernReceived
+                                ? "secondary"
+                                : "default"
+                            }
+                            onClick={() => handleConcernToggle(selectedPatient)}
+                            className="flex-1 ml-5"
+                          >
+                            {selectedPatient.isConcernReceived
+                              ? "Mark Not Concern Received"
+                              : "Mark Concern Received"}
                           </Button>
                         </div>
                       )}
@@ -2735,7 +2922,7 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label htmlFor="InitialShorttermGoal">
                         Initial Short-term Goal
                       </Label>
@@ -2782,7 +2969,7 @@ const PatientManagement = () => {
                           }))
                         }
                       />
-                    </div>
+                    </div> */}
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="travel">

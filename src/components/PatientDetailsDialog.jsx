@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,6 +6,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { apiRequest } from "./CustomComponents/apiRequest";
 import {
   Accordion,
   AccordionContent,
@@ -13,6 +16,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { format } from "date-fns";
+import { toast } from "./ui/use-toast";
+import { Input } from "./ui/input";
 
 const DetailItem = ({ label, value }) =>
   value ? (
@@ -28,8 +33,75 @@ const DetailSection = ({ children }) => (
 );
 
 const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
+  const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
+  const initialAssignState = {
+    // _id: "",
+    // physioName: "",
+    // Physiotherapist: "",
+    // physioId: "",
+    // sessionStartDate: "",
+    // sessionTime: "",
+    // totalSessionDays: "",
+    InitialShorttermGoal: "",
+    goalDuration: "",
+    goalDescription: "",
+    // reviewFrequency: "",
+    // visitOrder: 1,
+    // KmsfromHub: "",
+    // KmsfLPatienttoHub: "",
+    // kmsFromPrevious: "",
+  };
+  const [assignForm, setAssignForm] = useState(initialAssignState);
+  const [goalsForm, setGoalsForm] = useState({
+    shortTermGoals:
+      patient?.shortTermGoals || patient?.patientId?.shortTermGoals || "",
+    longTermGoals:
+      patient?.longTermGoals || patient?.patientId?.longTermGoals || "",
+  });
+  useEffect(() => {
+    setGoalsForm({
+      shortTermGoals:
+        patient?.shortTermGoals || patient?.patientId?.shortTermGoals || "",
+      longTermGoals:
+        patient?.longTermGoals || patient?.patientId?.longTermGoals || "",
+    });
+  }, [patient]);
+  const updatePatientGoals = async () => {
+    try {
+      await apiRequest("Patient/updatePatientGoals", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: patient?.patientId?._id || patient?._id,
+          shortTermGoals: goalsForm.shortTermGoals,
+          longTermGoals: goalsForm.longTermGoals,
+          goalDuration: goalsForm.goalDuration,
+        }),
+      });
+
+      toast({
+        title: "Success",
+        description: "Patient goals updated successfully",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update patient goals",
+      });
+    }
+  };
+
   console.log(patient, "patient");
   if (!patient) return null;
+  const user = JSON.parse(localStorage.getItem("user"));
+  const reviewDateValue = (() => {
+    const rawDate = patient?.reviewDate || patient?.patientId?.reviewDate;
+
+    if (!rawDate) return "N/A";
+
+    const date = new Date(rawDate);
+    return isNaN(date.getTime()) ? "N/A" : format(date, "PPP");
+  })();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -69,19 +141,26 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                       patient?.patientId?.patientCode || patient.patientCode
                     }
                   />
-                  <DetailItem
-                    label="Consultation Date"
-                    value={
-                      patient.consultationDate
-                        ? format(new Date(patient.consultationDate), "PPP")
-                        : "N/A" || patient?.patientId?.consultationDate
-                          ? format(
-                              new Date(patient?.patientId?.consultationDate),
-                              "PPP",
-                            )
-                          : "N/A"
-                    }
-                  />
+                  {user?.role !== "Physio" && user?.role !== "HOD" ? (
+                    <>
+                      <DetailItem
+                        label="Consultation Date"
+                        value={
+                          patient.consultationDate
+                            ? format(new Date(patient.consultationDate), "PPP")
+                            : "N/A" || patient?.patientId?.consultationDate
+                              ? format(
+                                  new Date(
+                                    patient?.patientId?.consultationDate,
+                                  ),
+                                  "PPP",
+                                )
+                              : "N/A"
+                        }
+                      />
+                    </>
+                  ) : null}
+
                   <DetailItem
                     label="Physio Name"
                     value={patient.physioId?.physioName}
@@ -90,108 +169,122 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                     label="Age"
                     value={patient.patientAge || patient?.patientId?.patientAge}
                   />
+                  {user?.role !== "Physio" && user?.role !== "HOD" ? (
+                    <>
+                      {" "}
+                      <DetailItem
+                        label="Gender"
+                        value={
+                          patient.patientGenderId?.genderName ||
+                          patient?.patientId?.patientGenderId?.genderName
+                        }
+                      />
+                      <DetailItem
+                        label="Bystander Name"
+                        value={
+                          patient.byStandar || patient?.patientId?.byStandar
+                        }
+                      />
+                      <DetailItem
+                        label="Relation"
+                        value={patient.Relation || patient?.patientId?.Relation}
+                      />
+                      <DetailItem
+                        label="Mobile No."
+                        value={
+                          patient.patientNumber ||
+                          patient?.patientId?.patientNumber
+                        }
+                      />
+                      <DetailItem
+                        label="Alt. Mobile No."
+                        value={
+                          patient.patientAltNum ||
+                          patient?.patientId?.patientAltNum
+                        }
+                      />
+                      <DetailItem
+                        label="Address"
+                        value={
+                          patient.patientAddress ||
+                          patient?.patientId?.patientAddress
+                        }
+                      />
+                      <DetailItem
+                        label="PIN Code"
+                        value={
+                          patient.patientPinCode ||
+                          patient?.patientId?.patientPinCode
+                        }
+                      />
+                    </>
+                  ) : null}
+                  <DetailItem label="Review Date" value={reviewDateValue} />
+
+                  {user?.role !== "Physio" && user?.role !== "HOD" ? (
+                    <>
+                      <DetailItem
+                        label="Session Start Date"
+                        value={
+                          patient.sessionStartDate
+                            ? format(new Date(patient.sessionStartDate), "PPP")
+                            : "N/A" || patient?.patientId?.sessionStartDate
+                              ? format(
+                                  new Date(
+                                    patient?.patientId?.sessionStartDate,
+                                  ),
+                                  "PPP",
+                                )
+                              : "N/A"
+                        }
+                      />
+                      <DetailItem
+                        label=" Total Session Days"
+                        value={
+                          patient.totalSessionDays ||
+                          patient?.patientId?.totalSessionDays
+                        }
+                      />
+                      <DetailItem
+                        label="Session Time"
+                        value={
+                          patient.sessionTime || patient?.patientId?.sessionTime
+                        }
+                      />
+                      <DetailItem
+                        label="KM From Patient to Hub"
+                        value={
+                          patient.KmsfLPatienttoHub ||
+                          patient?.patientId?.KmsfLPatienttoHub
+                        }
+                      />
+                      <DetailItem
+                        label="KM from Hub"
+                        value={
+                          patient.KmsfromHub || patient?.patientId?.KmsfromHub
+                        }
+                      />
+                      <DetailItem
+                        label="Initial Short term Goal"
+                        value={
+                          patient.InitialShorttermGoal ||
+                          patient?.patientId?.InitialShorttermGoal
+                        }
+                      />
+                      <DetailItem
+                        label="Goal Duration"
+                        value={
+                          patient.goalDuration ||
+                          patient?.patientId?.goalDuration
+                        }
+                      />
+                    </>
+                  ) : null}
                   <DetailItem
-                    label="Gender"
+                    label="Patient Condition"
                     value={
-                      patient.patientGenderId?.genderName ||
-                      patient?.patientId?.patientGenderId?.genderName
-                    }
-                  />
-                  <DetailItem
-                    label="Bystander Name"
-                    value={patient.byStandar || patient?.patientId?.byStandar}
-                  />
-                  <DetailItem
-                    label="Relation"
-                    value={patient.Relation || patient?.patientId?.Relation}
-                  />
-                  <DetailItem
-                    label="Mobile No."
-                    value={
-                      patient.patientNumber || patient?.patientId?.patientNumber
-                    }
-                  />
-                  <DetailItem
-                    label="Alt. Mobile No."
-                    value={
-                      patient.patientAltNum || patient?.patientId?.patientAltNum
-                    }
-                  />
-                  <DetailItem
-                    label="Address"
-                    value={
-                      patient.patientAddress ||
-                      patient?.patientId?.patientAddress
-                    }
-                  />
-                  <DetailItem
-                    label="PIN Code"
-                    value={
-                      patient.patientPinCode ||
-                      patient?.patientId?.patientPinCode
-                    }
-                  />
-                  <DetailItem
-                    label="Review Date"
-                    value={
-                      patient.reviewDate
-                        ? format(new Date(patient.reviewDate), "PPP")
-                        : "N/A" || patient?.patientId?.reviewDate
-                          ? format(
-                              new Date(patient?.patientId?.reviewDate),
-                              "PPP",
-                            )
-                          : "N/A"
-                    }
-                  />
-                  <DetailItem
-                    label="Session Start Date"
-                    value={
-                      patient.sessionStartDate
-                        ? format(new Date(patient.sessionStartDate), "PPP")
-                        : "N/A" || patient?.patientId?.sessionStartDate
-                          ? format(
-                              new Date(patient?.patientId?.sessionStartDate),
-                              "PPP",
-                            )
-                          : "N/A"
-                    }
-                  />
-                  <DetailItem
-                    label=" Total Session Days"
-                    value={
-                      patient.totalSessionDays ||
-                      patient?.patientId?.totalSessionDays
-                    }
-                  />
-                  <DetailItem
-                    label="Session Time"
-                    value={
-                      patient.sessionTime || patient?.patientId?.sessionTime
-                    }
-                  />
-                  <DetailItem
-                    label="KM From Patient to Hub"
-                    value={
-                      patient.KmsfLPatienttoHub ||
-                      patient?.patientId?.KmsfLPatienttoHub
-                    }
-                  />
-                  <DetailItem
-                    label="KM from Hub"
-                    value={patient.KmsfromHub || patient?.patientId?.KmsfromHub}
-                  />
-                  <DetailItem
-                    label="Initial Short term Goal"
-                    value={
-                      patient.InitialShorttermGoal ||
-                      patient?.patientId?.InitialShorttermGoal
-                    }
-                  />
-                  <DetailItem
-                    label="Goal Duration"
-                    value={
-                      patient.goalDuration || patient?.patientId?.goalDuration
+                      patient.patientCondition ||
+                      patient?.patientId?.patientCondition
                     }
                   />
                 </DetailSection>
@@ -323,13 +416,16 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                     label="Short-term Goals"
                     value={
                       patient.shortTermGoals ||
-                      patient?.patientId?.shortTermGoals
+                      patient?.patientId?.shortTermGoals ||
+                      goalsForm.shortTermGoals
                     }
                   />
                   <DetailItem
                     label="Long-term Goals"
                     value={
-                      patient.longTermGoals || patient?.patientId?.longTermGoals
+                      patient.longTermGoals ||
+                      patient?.patientId?.longTermGoals ||
+                      goalsForm.longTermGoals
                     }
                   />
                   <DetailItem
@@ -374,6 +470,60 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                     label="No of Days"
                     value={patient.noOfDays || patient?.patientId?.noOfDays}
                   />
+                  {/* {user?.role !== "Physio" && user?.role !== "HOD" ? (
+                    <> */}
+                  <div className="space-y-2">
+                    <Label>Short-term Goals</Label>
+                    <textarea
+                      className="w-full p-2 border rounded-md"
+                      // value={goalsForm.shortTermGoals}
+                      onChange={(e) =>
+                        setGoalsForm((p) => ({
+                          ...p,
+                          shortTermGoals: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Goal Duration</Label>
+                    <Input
+                      type="number"
+                      className="w-full p-2 border rounded-md"
+                      // value={goalsForm.shortTermGoals}
+                      onChange={(e) =>
+                        setGoalsForm((p) => ({
+                          ...p,
+                          goalDuration: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Long-term Goals</Label>
+                    <textarea
+                      className="w-full p-2 border rounded-md"
+                      // value={goalsForm.longTermGoals}
+                      onChange={(e) =>
+                        setGoalsForm((p) => ({
+                          ...p,
+                          longTermGoals: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAssignPhysioOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={updatePatientGoals}>Save Goals</Button>
+                  {/* </>
+                  ) : null} */}
                 </DetailSection>
               </AccordionContent>
             </AccordionItem>

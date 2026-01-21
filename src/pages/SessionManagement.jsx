@@ -145,6 +145,7 @@ const SessionManagement = () => {
     getMachinery();
     getRedFlag();
     getModalities();
+    handleViewHistory();
   }, []);
 
   useEffect(() => {
@@ -221,6 +222,7 @@ const SessionManagement = () => {
   //     setFilteredSessions([]);
   //   }
   // };
+  const [sessionCountMap, setSessionCountMap] = useState({});
   const getSession = async () => {
     try {
       const storedRole = localStorage.getItem("userRole");
@@ -233,34 +235,61 @@ const SessionManagement = () => {
         }),
       });
 
-      if (Array.isArray(response)) {
-        setSessions(response);
+      if (!Array.isArray(response)) return;
 
-        // Today's date in YYYY-MM-DD format
-        const today = new Date().toISOString().split("T")[0];
+      setSessions(response);
 
-        // Filter sessions for today
-        const todaySessions = response.filter((s) => {
-          if (!s.sessionDate) return false;
+      //Build session count map
+      const countMap = {};
 
-          // Make sure the sessionDate is in proper format
-          const sessionDay = new Date(s.sessionDate)
-            .toISOString()
-            .split("T")[0];
-          return sessionDay === today;
-        });
+      response.forEach((s) => {
+        const pid = s.patientId?._id;
+        const physioId = s.physioId?._id;
+        if (!pid || !physioId) return;
 
-        setFilteredSessions(todaySessions);
-      } else {
-        console.warn("Session API did not return array:", response);
-        setSessions([]);
-        setFilteredSessions([]);
-      }
+        const key = `${pid}-${physioId}`;
+
+        if (!countMap[key]) {
+          countMap[key] = { total: 0, completed: 0 };
+        }
+
+        countMap[key].total += 1;
+
+        if (s.sessionStatusId?.sessionStatusName === "Completed") {
+          countMap[key].completed += 1;
+        }
+      });
+
+      setSessionCountMap(countMap);
+      const today = new Date().toISOString().split("T")[0];
+
+      const todaySessions = response.filter((s) => {
+        if (!s.sessionDate) return false;
+
+        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
+
+        return sessionDay === today;
+      });
+
+      setFilteredSessions(todaySessions);
     } catch (error) {
-      console.error("Error fetching all sessions:", error);
-      setSessions([]);
-      setFilteredSessions([]);
+      console.error("Error fetching sessions:", error);
     }
+  };
+  const getNthSession = (currentSession) => {
+    if (!sessions?.length) return "-";
+    const relatedSessions = sessions
+      .filter(
+        (s) =>
+          s.patientId?._id === currentSession.patientId?._id &&
+          s.physioId?._id === currentSession.physioId?._id,
+      )
+      .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
+    const index = relatedSessions.findIndex(
+      (s) => s._id === currentSession._id,
+    );
+
+    return index !== -1 ? index + 1 : "-";
   };
 
   const getCreateSession = async (data) => {
@@ -337,7 +366,68 @@ const SessionManagement = () => {
       console.log(error, "error from frontend get All Physio");
     }
   };
+  const [sessionCount, setSessionCount] = useState({ total: 0, completed: 0 });
+  const handleViewHistory = async (patient) => {
+    setHistoryPatient(patient);
+    setIsHistoryOpen(true);
 
+    console.log("Fetching history for patient:", patient.patientName);
+    console.log("Sending patientId:", patient._id);
+
+    try {
+      // Call API to get all sessions
+      const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: patient._id, // selected patient _id
+        }),
+      });
+
+      // Filter sessions for this patient
+      const patientSessions = allSessions
+        .filter((s) => s.patientId?._id === patient._id) // ensure _id match
+        .map((s, index) => ({
+          type: "session",
+          date: s.sessionDate,
+          title: `Session ${index + 1}`,
+          status: s.sessionStatusId?.sessionStatusName || "N/A",
+          color: s.sessionStatusId?.sessionStatusColor,
+          feedback:
+            s.sessionFeedbackPros || "No feedback" || s.sessionFeedbackPros,
+        }));
+
+      // Count sessions
+      const totalSessions = patientSessions.length;
+      const completedSessions = patientSessions.filter(
+        (s) => s.status?.toLowerCase() === "completed",
+      ).length;
+
+      // Map HOD goal reviews if any
+      const patientGoalLog = (patient.goalLog || []).map((log) => ({
+        type: "review",
+        date: log.date,
+        title: `HOD Review - ${log.status}`,
+        details: `Goal: ${log.goal}. Feedback: ${log.feedback || "N/A"}. Satisfaction: ${
+          log.satisfaction || "N/A"
+        }%`,
+      }));
+
+      // Combine sessions and reviews in chronological order
+      const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
+        (a, b) => new Date(b.date) - new Date(a.date),
+      );
+
+      setPatientHistory(combinedHistory);
+      setFilteredSessions({
+        total: totalSessions,
+        completed: completedSessions,
+      });
+
+      console.log("Patient sessions:", patientSessions);
+    } catch (error) {
+      console.error("Failed to fetch sessions:", error);
+    }
+  };
   const getSessionStatus = async (data) => {
     try {
       const response = await apiRequest("SessionStatus/getAllSessionStatus", {
@@ -772,13 +862,6 @@ const SessionManagement = () => {
     getAllPatient();
   }, []);
 
-  const handleViewConsultation = (patient) => {
-    setFilteredPatients(
-      patients.filter((p) => p._id === patient.patientId._id),
-    );
-    setViewingPatient(patient);
-    setIsDetailsOpen(true);
-  };
   return (
     <div className="md:space-y-6  space-y-10">
       <motion.div
@@ -880,6 +963,8 @@ const SessionManagement = () => {
                     <th className="text-left p-2">Date & Time</th>
                     <th className="text-left p-2">Machine</th>
                     <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Session</th>
+
                     <th className="text-left p-2">Feedback</th>
                     <th className="text-left p-2">Actions</th>
                   </tr>
@@ -943,6 +1028,8 @@ const SessionManagement = () => {
                             : ""}
                         </span>
                       </td>
+                      <td className="p-2">{getNthSession(session)}</td>
+
                       <td className="p-2">
                         <div className="text-xs space-y-1">
                           {/* Session Feedback Pros */}
@@ -1247,13 +1334,19 @@ const SessionManagement = () => {
 
                     {user?.role !== "physio" && (
                       <p className="text-sm text-gray-500">
-                        Physio:{" "}
+                        Physio:
                         <span className="font-medium">
                           {session.physioId?.physioName || "-"}
                         </span>
                       </p>
                     )}
                   </div>
+                  <p className="text-sm text-gray-500">
+                    Session
+                    <span className="font-medium text-gray-800 ml-1">
+                      {getNthSession(session) || "-"}
+                    </span>
+                  </p>
 
                   {/* Date + Time */}
                   <div className="bg-gray-100 rounded-md p-2 text-xs mb-2">
