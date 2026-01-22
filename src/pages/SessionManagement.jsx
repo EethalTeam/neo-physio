@@ -49,6 +49,9 @@ import {
   Paperclip,
   XCircle,
   FileText,
+  User,
+  CircleDotDashedIcon,
+  StopCircle,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -477,6 +480,18 @@ const SessionManagement = () => {
     }
   };
 
+  const SessionStock = async (data) => {
+    try {
+      const response = await apiRequest("Session/SessionStock", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      getSession();
+      return response;
+    } catch (error) {
+      console.log(error, "error from frontend get All Session Start");
+    }
+  };
   const SessionStart = async (data) => {
     try {
       const response = await apiRequest("Session/SessionStart", {
@@ -649,7 +664,7 @@ const SessionManagement = () => {
       setCancelDialog({ open: true, sessionId: sessionId });
     } else {
       handleActionStart(sessionId, action);
-
+      handlesessionStock(sessionId, action);
       setSessions((prev) =>
         prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
       );
@@ -716,7 +731,12 @@ const SessionManagement = () => {
       action: action,
     });
   };
-
+  const handlesessionStock = (session, action) => {
+    SessionStock({
+      _id: session,
+      action: action,
+    });
+  };
   const handleActionCancel = (
     session,
     action,
@@ -1096,6 +1116,21 @@ const SessionManagement = () => {
                               <Square size={12} />
                             </Button>
                           )}
+                          {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                            "attended" &&
+                            (user?.role === "Admin" ||
+                              user?.role === "HOD") && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() =>
+                                  handleSessionAction(session._id, "Scheduled")
+                                }
+                              >
+                                <StopCircle size={12} />
+                              </Button>
+                            )}
+
                           {session.sessionStatusId.sessionStatusName.toLowerCase() ===
                             "completed" &&
                             !session.feedback && (
@@ -1422,6 +1457,13 @@ const SessionManagement = () => {
 
                   {/* Actions */}
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewConsultation(session)}
+                    >
+                      <FileText size={14} />
+                    </Button>
                     {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                       "scheduled" && (
                       <Button
@@ -1446,6 +1488,20 @@ const SessionManagement = () => {
                         <Square size={12} />
                       </Button>
                     )}
+
+                    {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                      "attended" &&
+                      (user?.role === "Admin" || user?.role === "HOD") && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() =>
+                            handleSessionAction(session._id, "Scheduled")
+                          }
+                        >
+                          <StopCircle size={12} />
+                        </Button>
+                      )}
 
                     {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                       "completed" &&

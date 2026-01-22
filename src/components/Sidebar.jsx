@@ -222,6 +222,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: "Physios", path: "/physios" },
         { icon: Settings, label: "Machinery", path: "/machinery" },
         { icon: Share2, label: "References", path: "/references" },
+        { icon: ClipboardCheck, label: "Leave Assign", path: "/leavephysio" },
         { icon: ClipboardCheck, label: "Income", path: "/income" },
 
         mastersSubmenu,
@@ -240,6 +241,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Settings, label: "Machinery", path: "/machinery" },
         { icon: Share2, label: "References", path: "/references" },
         { icon: ClipboardCheck, label: "Income", path: "/income" },
+        { icon: ClipboardCheck, label: "Leave Assign", path: "/leavephysio" },
 
         mastersSubmenu,
         { icon: Flag, label: "Red Flags", path: "/red-flags" },
@@ -255,6 +257,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Flag, label: "Red Flags", path: "/red-flags" },
         { icon: BarChart3, label: "Reports", path: "/reports" },
         { icon: MessageCircle, label: "Consultation", path: "/consultation" },
+        { icon: ClipboardCheck, label: "Leave Assign", path: "/leavephysio" },
         { icon: ClipboardCheck, label: "Income", path: "/income" },
       ],
       Physio: [

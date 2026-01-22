@@ -47,6 +47,7 @@ import ReviewType from "./pages/ReviewType";
 import ReviewForm from "./pages/ReviewMasterForm";
 import ReviewStatus from "./pages/ReviewStatus";
 import Income from "./pages/Income";
+import LeavephysioManagement from "./pages/LeavephysioManagement";
 
 function App() {
   return (
@@ -63,7 +64,6 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
             <Route
               path="/dashboard"
               element={
@@ -74,7 +74,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/leads"
               element={
@@ -85,7 +84,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/country"
               element={
@@ -96,7 +94,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/state"
               element={
@@ -107,7 +104,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/city"
               element={
@@ -118,7 +114,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/physioCategory"
               element={
@@ -129,7 +124,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/leadSource"
               element={
@@ -140,7 +134,16 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+            <Route
+              path="/leavephysio"
+              element={
+                <ProtectedRoute allowedRoles={["SuperAdmin", "Admin", "HOD"]}>
+                  <Layout>
+                    <LeavephysioManagement />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/leadStatus"
               element={
@@ -151,7 +154,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/sessionStatus"
               element={
@@ -162,7 +164,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/modalities"
               element={
@@ -173,7 +174,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/gender"
               element={
@@ -184,7 +184,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/riskFactor"
               element={
@@ -195,7 +194,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/expenseType"
               element={
@@ -206,7 +204,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/patients"
               element={
@@ -217,7 +214,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/consultation"
               element={
@@ -228,7 +224,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/sessions"
               element={
@@ -239,7 +234,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/physios"
               element={
@@ -250,7 +244,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/machinery"
               element={
@@ -261,7 +254,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/references"
               element={
@@ -292,7 +284,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/feesType"
               element={
@@ -303,7 +294,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/reports"
               element={
@@ -314,7 +304,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/payroll"
               element={
@@ -325,7 +314,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/petrol-allowance"
               element={
@@ -336,7 +324,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/monthly-summary"
               element={
@@ -347,7 +334,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/red-flags"
               element={
@@ -358,7 +344,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/expenses"
               element={
@@ -369,7 +354,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/categories"
               element={
@@ -380,7 +364,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/role"
               element={
@@ -391,7 +374,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/menuregistry"
               element={
@@ -402,7 +384,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/reviewtype"
               element={

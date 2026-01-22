@@ -389,10 +389,23 @@ const PatientManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
+      // if (
+      //   response?.success === false &&
+      //   response?.message === "EXISTING_NUMBER"
+      // ) {
+      //   toast({
+      //     title: "Alert",
+      //     description: "This phone number is already registered.",
+      //     variant: "destructive",
+      //   });
+      // }
       toast({ title: "Success", description: "Patient Create successfully." });
       getAllPatient();
-      setIsFormOpen(false);
+      console.log("RESPONSE:", response);
+
       return response;
+
+      setIsFormOpen(false);
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -535,95 +548,243 @@ const PatientManagement = () => {
     }
   };
 
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    if (editingPatient) {
-      if (!patientForm.patientName) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Patient Name",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.patientName) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Patient Name",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.byStandar) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Bystander Name",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.patientNumber) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Patient Number",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.patientAddress) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Patient Address",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.patientPinCode) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Patient Pin Code",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.FeesTypeId) {
-        toast({
-          title: "Alert",
-          description: "Please Select fees type",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.feeAmount) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Fee Amount",
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (!patientForm.reviewDate) {
-        toast({
-          title: "Alert",
-          description: "Please Select the Review Date",
-          variant: "destructive",
-        });
-        return false;
-      }
+  // const handleFormSubmit = (e) => {
+  //   e.preventDefault();
+  //   if (response?.message === "EXISTING_NUMBER") {
+  //     toast({
+  //       title: "Alert",
+  //       description: "This phone number is already registered.",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+  //   if (!patientForm.patientName) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please Enter Patient Name",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+  //   if (!patientForm.patientAge) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please Enter Patient Age",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
 
-      // setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
-      updatePatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
-      toast({ title: "Success", description: "Patient details updated." });
-    } else {
-      // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
-      // setPatients(prev => [newPatient, ...prev]);
-      createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
-      toast({ title: "Success", description: "New patient created." });
+  //   if (!patientForm.patientGenderId) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please select Gender",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+  //   if (!patientForm.patientNumber) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please Enter Patient Mobile number",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+  //   if (!patientForm.patientAddress) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please Enter Patient Address",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+  //   if (!patientForm.FeesTypeId) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please select Fee Type",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+
+  //   if (!patientForm.feeAmount) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please Enter Fee Amount",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+
+  //   if (!patientForm.patientCondition) {
+  //     toast({
+  //       title: "Alert",
+  //       description: "Please select Patient Condition",
+  //       variant: "destructive",
+  //     });
+  //     return false;
+  //   }
+
+  //   if (editingPatient) {
+  //     if (!patientForm.patientName) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Enter Patient Name",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.patientName) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Enter Patient Name",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.byStandar) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Enter Bystander Name",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.patientNumber) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Enter Patient Number",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.patientAddress) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Enter Patient Address",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.patientPinCode) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Enter Patient Pin Code",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.FeesTypeId) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Select fees type",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.feeAmount) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Enter Fee Amount",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+  //     if (!patientForm.reviewDate) {
+  //       toast({
+  //         title: "Alert",
+  //         description: "Please Select the Review Date",
+  //         variant: "destructive",
+  //       });
+  //       return false;
+  //     }
+
+  //     // setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
+  //     updatePatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
+  //     toast({ title: "Success", description: "Patient details updated." });
+  //   } else {
+  //     // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
+  //     // setPatients(prev => [newPatient, ...prev]);
+  //     createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
+  //     toast({ title: "Success", description: "New patient created." });
+  //   }
+
+  //   setIsFormOpen(false);
+  //   setEditingPatient(null);
+  //   setPatientForm(initialFormState);
+  // };
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!patientForm.patientName) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Patient Name",
+        variant: "destructive",
+      });
+      return;
     }
 
-    setIsFormOpen(false);
-    setEditingPatient(null);
-    setPatientForm(initialFormState);
+    if (!patientForm.patientNumber) {
+      toast({
+        title: "Alert",
+        description: "Please Enter Patient Mobile number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // ---- CREATE PATIENT ----
+      if (!editingPatient) {
+        const response = await createPatient({
+          ...patientForm,
+          MedicalHistoryAndRiskFactor: radio,
+        });
+
+        // DUPLICATE NUMBER
+        if (response?.success === false) {
+          toast({
+            title: "Alert",
+            description: "This phone number is already registered.",
+            variant: "destructive",
+          });
+          return; //modal stays open
+        }
+
+        toast({
+          title: "Success",
+          description: "New patient created.",
+        });
+      }
+
+      // ---- UPDATE PATIENT ----
+      if (editingPatient) {
+        await updatePatient({
+          ...patientForm,
+          MedicalHistoryAndRiskFactor: radio,
+        });
+
+        toast({
+          title: "Success",
+          description: "Patient details updated.",
+        });
+      }
+
+      // ✅ CLOSE MODAL ONLY ON SUCCESS
+      setIsFormOpen(false);
+      setEditingPatient(null);
+      setPatientForm(initialFormState);
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditPatient = (patient) => {
