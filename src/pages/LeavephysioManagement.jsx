@@ -19,13 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
-
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   FileSpreadsheet,
@@ -33,6 +33,7 @@ import {
   Download,
   Printer,
   User,
+  XCircle,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
@@ -267,6 +268,155 @@ const LeavephysioManagement = () => {
       });
     }
   };
+  const [cancelDialog, setCancelDialog] = useState({
+    open: false,
+    sessionId: null,
+  });
+  const [cancelledReason, setCancelledReason] = useState("");
+  const [cancelledKms, setCancelledKms] = useState("");
+  const [sessionStatus, setSessionStatus] = useState([]);
+
+  const getSession = async () => {
+    try {
+      const storedRole = localStorage.getItem("userRole");
+
+      const response = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({
+          physioId: user._id,
+          storedRole,
+        }),
+      });
+
+      if (!Array.isArray(response)) return;
+
+      setSessions(response);
+
+      //Build session count map
+      const countMap = {};
+
+      response.forEach((s) => {
+        const pid = s.patientId?._id;
+        const physioId = s.physioId?._id;
+        if (!pid || !physioId) return;
+
+        const key = `${pid}-${physioId}`;
+
+        if (!countMap[key]) {
+          countMap[key] = { total: 0, completed: 0 };
+        }
+
+        countMap[key].total += 1;
+
+        if (s.sessionStatusId?.sessionStatusName === "Completed") {
+          countMap[key].completed += 1;
+        }
+      });
+
+      setSessionCountMap(countMap);
+      const today = new Date().toISOString().split("T")[0];
+
+      const todaySessions = response.filter((s) => {
+        if (!s.sessionDate) return false;
+
+        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
+
+        return sessionDay === today;
+      });
+
+      setFilteredSessions(todaySessions);
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    }
+  };
+  const getSessionStatus = async (data) => {
+    try {
+      const response = await apiRequest("SessionStatus/getAllSessionStatus", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      // setSessionStatus(response)
+      setSessionStatus(response.sessionStatuses);
+    } catch (error) {
+      console.log(error, "error from frontend get All Session Status");
+    }
+  };
+  const handleSessionAction = (sessionId, action) => {
+    console.log(sessionId, "sessionId");
+    if (action === "Completed") {
+      setFeedbackDialog({ open: true, sessionId: sessionId });
+      // handleActionEnd(sessionId, action)
+    } else if (action === "Canceled") {
+      setCancelDialog({ open: true, sessionId: sessionId });
+    } else {
+      handleActionStart(sessionId, action);
+      handlesessionStock(sessionId, action);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
+      );
+      toast({
+        title: "Session Updated",
+        description: `Session has been marked as ${action}`,
+      });
+    }
+  };
+
+  const handleCancelSubmit = () => {
+    if (!cancelledReason.trim()) {
+      toast({
+        title: "Reason Required",
+        description: "Please enter a reason for cancelling this session.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const { sessionId } = cancelDialog;
+    handleActionCancel(sessionId, "Canceled", cancelledKms, cancelledReason);
+    setSessions((prev) =>
+      prev.map((s) =>
+        s._id === sessionId
+          ? {
+              ...s,
+              status: "Canceled",
+              cancelledKms: parseFloat(cancelledKms) || 0,
+            }
+          : s,
+      ),
+    );
+    toast({
+      title: "Session Canceled",
+      description: "Session has been marked as Canceled.",
+    });
+    setCancelDialog({ open: false, sessionId: null });
+    setCancelledKms("");
+    setCancelledReason("");
+  };
+  const handleActionCancel = (
+    session,
+    action,
+    cancelledKms,
+    cancelledReason,
+  ) => {
+    SessionCancel({
+      _id: session,
+      action: action,
+      cancelledKms: cancelledKms,
+      cancelledReason: cancelledReason,
+    });
+  };
+  const SessionCancel = async (data) => {
+    try {
+      const response = await apiRequest("Session/SessionCancel", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      console.log(data, "data of cancel");
+      getSession();
+      return response;
+    } catch (error) {
+      console.log(error, "error from frontend get All Session Cancel");
+    }
+  };
 
   return (
     <div className="space-y-6 overflow-x-hidden">
@@ -425,7 +575,10 @@ const LeavephysioManagement = () => {
                       Leave Physio
                     </th>
                     <th className="text-left p-3 font-semibold text-gray-600">
-                      Assign To
+                      Session Status
+                    </th>
+                    <th className="text-left p-3 font-semibold text-gray-600">
+                      Re-Assign To
                     </th>
                   </tr>
                 </thead>
@@ -446,9 +599,16 @@ const LeavephysioManagement = () => {
                         <td className="p-3 text-gray-600 font-medium">
                           {s.physioId?.physioName}
                         </td>
-                        <td className="p-3">
+                        <td className="p-3 text-gray-600 font-medium">
+                          {s.sessionStatusId?.sessionStatusName}
+                        </td>
+                        <td className="p-3 flex gap-3">
                           <Select
                             value={s.newPhysioId || ""}
+                            disabled={
+                              s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                              "canceled"
+                            }
                             onValueChange={(physioId) => {
                               const selectedPhysio = employees.find(
                                 (p) => p._id === physioId,
@@ -467,17 +627,20 @@ const LeavephysioManagement = () => {
                                 s.sessionCode,
                               );
                             }}
-                            disabled={!assignForm.physioId}
                           >
                             <SelectTrigger className="w-48">
                               <SelectValue
                                 placeholder={
-                                  assignForm.physioId
-                                    ? "Select Physio"
-                                    : "Select top physio first"
+                                  s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                  "cancelled"
+                                    ? "Session Cancelled"
+                                    : assignForm.physioId
+                                      ? "Select Physio"
+                                      : "Select top physio first"
                                 }
                               />
                             </SelectTrigger>
+
                             <SelectContent>
                               {employees
                                 .filter((p) => p._id !== s.physioId?._id)
@@ -488,6 +651,25 @@ const LeavephysioManagement = () => {
                                 ))}
                             </SelectContent>
                           </Select>
+
+                          {
+                            // (
+                            s.sessionStatusId.sessionStatusName.toLowerCase() ===
+                              "scheduled" && (
+                              //  ||
+                              // s.sessionStatusId.sessionStatusName ===
+                              //   "Attended")
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() =>
+                                  handleSessionAction(s._id, "Canceled")
+                                }
+                              >
+                                <XCircle size={12} />
+                              </Button>
+                            )
+                          }
                         </td>
                       </tr>
                     ))
@@ -498,7 +680,57 @@ const LeavephysioManagement = () => {
           </CardContent>
         </Card>
       </motion.div>
-
+      <Dialog
+        open={cancelDialog.open}
+        onOpenChange={(open) => setCancelDialog({ open, sessionId: null })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Session</DialogTitle>
+            <DialogDescription>
+              Enter the below details before cancellation, if any.
+              {/* Enter the kilometers travelled before cancellation, if any. */}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Label htmlFor="cancelledKms">Cancelled Kms</Label>
+            <Input
+              id="cancelledKms"
+              type="number"
+              value={cancelledKms}
+              onChange={(e) => setCancelledKms(e.target.value)}
+              placeholder="e.g., 5"
+            />
+            <p className="text-xs text-gray-500">
+              This amount will be deducted from the physio's daily total.
+            </p>
+          </div>
+          <div className="space-y-4 pt-4">
+            <Label htmlFor="cancelledKms">Cancel Reason</Label>
+            <Input
+              id="cancelledReason"
+              type="text"
+              value={cancelledReason}
+              onChange={(e) => setCancelledReason(e.target.value)}
+              placeholder="Enter reason for cancelling this session..."
+              required
+            />
+            {/* <p className="text-xs text-gray-500">
+              This amount will be deducted from the physio's daily total.
+            </p> */}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCancelDialog({ open: false, sessionId: null })}
+            >
+              Back
+            </Button>
+            <Button onClick={handleCancelSubmit}>Confirm Cancellation</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Mobile Cards */}
       <motion.div
         initial={{ opacity: 0 }}
