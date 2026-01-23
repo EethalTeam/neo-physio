@@ -607,7 +607,11 @@ const LeavephysioManagement = () => {
                             value={s.newPhysioId || ""}
                             disabled={
                               s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                              "canceled"
+                                "canceled" ||
+                              s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                "attended" ||
+                              s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                "completed"
                             }
                             onValueChange={(physioId) => {
                               const selectedPhysio = employees.find(
