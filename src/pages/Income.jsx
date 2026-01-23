@@ -187,22 +187,22 @@ const Income = () => {
     "November",
     "December",
   ];
-  //   const fetchData = async () => {
-  //     setLoading(true);
-  //     try {
-  //       const response = await apiRequest("Patient/getAllPatient", {
-  //         method: "POST",
-  //         body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
-  //       });
+  // const fetchData = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const response = await apiRequest("Patient/getAllPatient", {
+  //       method: "POST",
+  //       body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
+  //     });
 
-  //       setPatients(Array.isArray(response) ? response : []);
-  //     } catch (err) {
-  //       console.error("Fetch error:", err);
-  //       setPatients([]); // fallback
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
+  //     setPatients(Array.isArray(response) ? response : []);
+  //   } catch (err) {
+  //     console.error("Fetch error:", err);
+  //     setPatients([]); // fallback
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const totalMonthlyIncome = patients.reduce(
     (sum, p) => sum + (p.totalIncome || 0),
     0,
@@ -215,51 +215,55 @@ const Income = () => {
           <CardTitle>Income Dashboard</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* <div className="mb-4 text-right text-lg font-semibold">
-            Total Income: ₹{totalMonthlyIncome}
-          </div> */}
+          <div className="flex flex-wrap justify-between items-center w-full gap-4">
+            {/* Left: Total Income */}
+            <h3 className="text-lg font-semibold">
+              Total Income: ₹{totalMonthlyIncome}
+            </h3>
 
-          <div className="flex gap-4 items-center mb-4">
-            <Select
-              onValueChange={(val) => setSelectedMonth(Number(val))}
-              value={selectedMonth}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m, idx) => (
-                  <SelectItem key={idx} value={idx + 1}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Right: Month, Year, Refresh */}
+            <div className="flex items-center gap-2">
+              <Select
+                onValueChange={(val) => setSelectedMonth(Number(val))}
+                value={selectedMonth}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Select Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((m, idx) => (
+                    <SelectItem key={idx} value={idx + 1}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Select
-              onValueChange={(val) => setSelectedYear(Number(val))}
-              value={selectedYear}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {[2026, 2025, 2024].map((y) => (
-                  <SelectItem key={y} value={y}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select
+                onValueChange={(val) => setSelectedYear(Number(val))}
+                value={selectedYear}
+              >
+                <SelectTrigger className="w-full sm:w-28">
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[2026, 2025, 2024].map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Button onClick={fetchData}>Refresh</Button>
+              {/* <Button onClick={fetchData}>Refresh</Button> */}
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* {loading ? (
-            <p>Loading...</p>
-          ) : ( */}
-          {/* Desktop / Tablet */}
-          <div className="hidden md:block overflow-x-auto">
+      <Card className="medical-card hidden md:block ">
+        <CardContent>
+          <div className="hidden md:block overflow-x-auto mt-5">
             <table className="min-w-full text-sm border rounded-lg">
               <thead className="bg-gray-100 text-gray-700">
                 <tr>
@@ -296,62 +300,61 @@ const Income = () => {
               </tbody>
             </table>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Card className="medical-card sm:hidden">
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {patients.map((patient) => (
-                    <motion.div
-                      key={patient._id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
-                    >
-                      <div className="flex items-center space-x-3 mb-3">
-                        <div>
-                          <h3 className="text-sm font-medium">
-                            Patient Name:
-                            <span className="font-semibold">
-                              {patient.patientName}
-                            </span>
-                          </h3>
-                          <p className="text-sm text-gray-400">
-                            Completed Session :
-                            <span className="font-medium">
-                              {patient.totalCompletedSessions}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-400">
-                            Fees:
-                            <span className="text-sm text-gray-600">
-                              ₹{patient.feePerSession || 0} (
-                              {patient.feeType || "N/A"})
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-400">
-                            Total Income:
-                            <span className="font-semibold">
-                              ₹{patient.totalIncome || 0}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* )} */}
         </CardContent>
       </Card>
+      {/* <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      > */}
+      <Card className="medical-card block sm:hidden">
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {patients.map((patient) => (
+              <motion.div
+                key={patient._id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="border mt-4 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+              >
+                <div className="flex items-center space-x-3 mb-3">
+                  <div>
+                    <h3 className="text-sm font-medium">
+                      Patient Name:
+                      <span className="font-semibold">
+                        {patient.patientName}
+                      </span>
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      Completed Session :
+                      <span className="font-medium">
+                        {patient.totalCompletedSessions}
+                      </span>
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Fees:
+                      <span className="text-sm text-gray-600">
+                        ₹{patient.feePerSession || 0} (
+                        {patient.feeType || "N/A"})
+                      </span>
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Total Income:
+                      <span className="font-semibold">
+                        ₹{patient.totalIncome || 0}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      {/* </motion.div> */}
+
+      {/* )} */}
     </div>
   );
 };

@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@radix-ui/react-dropdown-menu";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -107,6 +108,39 @@ const LeavephysioManagement = () => {
     } catch (error) {
       console.error("Error loading sessions:", error);
       setSessions([]);
+    }
+  };
+  const [leaveData, setLeaveData] = useState([]);
+  const [showModal, setShowModal] = useState(false); // controls popup visibility
+
+  const getLeave = async () => {
+    try {
+      const response = await apiRequest("Physio/getAllLeave", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+
+      console.log(response, "response Leave");
+
+      if (response?.Leaves && Array.isArray(response.Leaves)) {
+        const normal = response.Leaves.map((leave) => ({
+          ...leave,
+          LeaveDate: leave.LeaveDate || leave.Date,
+        }));
+
+        setLeaveData(normal);
+
+        console.log(normal, "normal LeaveData");
+      } else {
+        setLeaveData([]);
+        console.log([], "No leave data found");
+      }
+
+      setShowModal(true);
+    } catch (error) {
+      console.error("Error loading leave data:", error);
+      setLeaveData([]);
+      setShowModal(false);
     }
   };
 
@@ -253,13 +287,60 @@ const LeavephysioManagement = () => {
         </div>
       </motion.div>
 
+      {/* Leave list */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Physio Leave History</DialogTitle>
+            <DialogDescription>
+              View all physiotherapist leaves.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto mt-4 space-y-2">
+            {leaveData.length === 0 ? (
+              <p>No leave data found</p>
+            ) : (
+              leaveData.map((leave) => (
+                <div
+                  key={leave._id}
+                  className="border p-3 rounded flex justify-between items-center"
+                >
+                  <div className="flex flex-col gap-1">
+                    <p>
+                      <strong>Physio:</strong>{" "}
+                      {leave.physioId?.physioName || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Date:</strong>{" "}
+                      {new Date(
+                        leave.LeaveDate || leave.Date,
+                      ).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <strong>Mode:</strong> {leave.LeaveMode || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card className="medical-card">
-        <CardHeader>
-          <CardTitle>Find Leave Physio & Reassign Patients</CardTitle>
-          <CardDescription>
-            Select a physiotherapist and date to view sessions and reassign
-            patients.
-          </CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <div className="flex flex-col">
+            <CardTitle>Manage Physio Leave & Reassign Patients</CardTitle>
+            <CardDescription>
+              Select a physiotherapist and date to view sessions and reassign
+              patients.
+            </CardDescription>
+          </div>
+
+          <div className="items-center gap-2">
+            <Button onClick={getLeave}>History</Button>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex items-center gap-2 w-full sm:w-auto">
