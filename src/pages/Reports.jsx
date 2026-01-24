@@ -40,6 +40,7 @@ const Reports = () => {
     lead: 0,
     patient: 0,
     monthlySessions: 0,
+    cancelledsession: 0,
     physio: 0,
     monthlyRevenue: 0,
     // physio: 0,
@@ -48,10 +49,40 @@ const Reports = () => {
     patientRecover: 0,
     sessionCompleted: 0,
   });
+  const loadDashboardData = async () => {
+    try {
+      const sessionRes = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({
+          physioId: user._id,
+        }),
+      });
+
+      processDashboardData(sessionRes);
+    } catch (err) {
+      console.error("Monthly summary load failed:", err);
+    }
+  };
+  const [summary, setSummary] = useState({
+    cancelledSessions: 0,
+  });
+  const processDashboardData = (sessionsData) => {
+    if (!Array.isArray(sessionsData)) return;
+
+    const cancelledSessions = sessionsData.filter(
+      (s) => s.sessionStatusId?.sessionStatusName === "Canceled",
+    );
+
+    setSummary({
+      cancelledSessions: cancelledSessions.length,
+    });
+  };
+  console.log("Summary", summary);
 
   useEffect(() => {
     getAllDashBoard();
     funnelmonthly();
+    loadDashboardData();
   }, []);
 
   const getAllDashBoard = async (data) => {
@@ -408,22 +439,40 @@ const Reports = () => {
           </CardContent>
         </Card>
       </div>
-      <Card className="medical-card hover:shadow-lg transition-shadow">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-gray-600">
-            Total session
-          </CardTitle>
-          <div className={`p-2 rounded-full ${stats.bgColor}`}>
-            <User className={`h-4 w-4 ${stats.color}`} />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-gray-800">
-            {stats.monthlySessions}
-          </div>
-          <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2  gap-6">
+        <Card className="medical-card hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total session(Monthly)
+            </CardTitle>
+            <div className={`p-2 rounded-full ${stats.bgColor}`}>
+              <User className={`h-4 w-4 ${stats.color}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-800">
+              {stats.monthlySessions}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
+          </CardContent>
+        </Card>
+        <Card className="medical-card hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Cancelled session(Monthly)
+            </CardTitle>
+            <div className={`p-2 rounded-full ${stats.bgColor}`}>
+              <User className={`h-4 w-4 ${stats.color}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-800">
+              {summary.cancelledSessions}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
+          </CardContent>
+        </Card>
+      </div>
       {/* Charts and Detailed Reports */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {user?.role !== "HOD" && (
@@ -500,10 +549,9 @@ const Reports = () => {
                       key={item.month}
                       className="flex items-center justify-between"
                     >
-                      {" "}
                       <span className="text-sm text-gray-600">
                         {item.month}
-                      </span>{" "}
+                      </span>
                       <div className="flex items-center space-x-2">
                         {" "}
                         <div className="w-32 bg-gray-200 rounded-full h-2.5">
