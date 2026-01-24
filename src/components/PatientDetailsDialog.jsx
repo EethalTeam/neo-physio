@@ -91,7 +91,7 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
     }
   };
 
-  console.log(patient, "patient");
+  // console.log(patient, "patient");
   if (!patient) return null;
   const user = JSON.parse(localStorage.getItem("user"));
   const reviewDateValue = (() => {

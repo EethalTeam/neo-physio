@@ -1290,9 +1290,17 @@ const PatientManagement = () => {
   };
   const [openDialog, setOpendialog] = useState(false);
   const [pendingPatient, setPendingPatient] = useState(null);
-  const handleConcernToggle = async (patient) => {
+  const handleConsentToggle = async (patient) => {
     try {
-      const newRecoveredStatus = !patient.isConcernReceived;
+      const newRecoveredStatus = patient.isConsentReceived;
+      if (newRecoveredStatus) {
+        toast({
+          title: "Error",
+          description: "Consent already received for this patient",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // const confirmActions = window.confirm(
       //   `Are you sure you want to mark ${patient.patientName} as ${
@@ -1307,7 +1315,7 @@ const PatientManagement = () => {
         body: JSON.stringify({
           _id: patient._id,
 
-          isConcernReceived: newRecoveredStatus, // ONLY THIS
+          isConsentReceived: true, // ONLY THIS
         }),
       });
 
@@ -1315,14 +1323,14 @@ const PatientManagement = () => {
         toast({
           title: "Status Updated",
           description: `${patient.patientName} is now ${
-            newRecoveredStatus ? "Concern Received" : "Not Concerned"
+            true ? "Consent Received" : "Not Consent"
           }.`,
         });
 
         setPatients((prev) =>
           prev.map((p) =>
             p._id === patient._id
-              ? { ...p, isConcernReceived: newRecoveredStatus }
+              ? { ...p, isConsentReceived: newRecoveredStatus }
               : p,
           ),
         );
@@ -1334,6 +1342,7 @@ const PatientManagement = () => {
         variant: "destructive",
       });
     }
+    getAllPatient();
   };
 
   // const renderRadioGroup = (label, name, value, id, group) => (
@@ -1604,27 +1613,25 @@ const PatientManagement = () => {
                       {/* Actions */}
                       <td className="px-3 py-2 hidden sm:table-cell">
                         <div className="flex flex-row flex-wrap gap-2 justify-center">
-                          <Button
-                            size="sm"
-                            variant={
-                              patient.isConcernReceived
-                                ? "secondary"
-                                : "default"
-                            }
-                            onClick={() => {
-                              setPendingPatient(selectedPatient);
-                              setOpendialog(true);
-                            }}
-                          >
-                            {patient.isConcernReceived ? (
+                          {patient.isConsentReceived ? (
+                            <Button size="sm" variant={"secondary"}>
                               <CheckCircle
                                 size={14}
                                 className="text-green-600"
                               />
-                            ) : (
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant={"default"}
+                              onClick={() => {
+                                setPendingPatient(patient);
+                                setOpendialog(true);
+                              }}
+                            >
                               <Circle size={14} />
-                            )}
-                          </Button>
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -1809,13 +1816,13 @@ const PatientManagement = () => {
                           <Button
                             size="sm"
                             variant={
-                              patient.isConcernReceived
+                              patient.isConsentReceived
                                 ? "secondary"
                                 : "default"
                             }
-                            onClick={() => handleConcernToggle(patient)}
+                            onClick={() => handleConsentToggle(patient)}
                           >
-                            {patient.isConcernReceived ? (
+                            {patient.isConsentReceived ? (
                               <CheckCircle
                                 size={14}
                                 className="text-green-600"
@@ -2511,12 +2518,12 @@ const PatientManagement = () => {
                       )}
                       {selectedPatient && (
                         <div className="space-y-2">
-                          <Label>Is Concern Received</Label>
+                          <Label>Is Consent Received</Label>
 
                           <Button
                             size="sm"
                             variant={
-                              selectedPatient.isConcernReceived
+                              selectedPatient.isConsentReceived
                                 ? "secondary"
                                 : "default"
                             }
@@ -2527,9 +2534,9 @@ const PatientManagement = () => {
                             }}
                             className="flex-1 ml-5"
                           >
-                            {selectedPatient.isConcernReceived
-                              ? "Mark Not Concern Received"
-                              : "Mark Concern Received"}
+                            {selectedPatient.isConsentReceived
+                              ? "Mark Not Consent Received"
+                              : "Mark Consent Received"}
                           </Button>
                         </div>
                       )}
@@ -3240,9 +3247,9 @@ const PatientManagement = () => {
             <AlertDialogDescription>
               Are you sure you want to mark{" "}
               <strong>{pendingPatient?.patientName}</strong> as{" "}
-              {!pendingPatient?.isConcernReceived
-                ? "Concern Received"
-                : "Not Concern Received"}
+              {!pendingPatient?.isConsentReceived
+                ? "Consent Received"
+                : "Not Consent Received"}
               ?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -3251,7 +3258,7 @@ const PatientManagement = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
 
             <AlertDialogAction
-              onClick={() => handleConcernToggle(pendingPatient)}
+              onClick={() => handleConsentToggle(pendingPatient)}
             >
               Confirm
             </AlertDialogAction>
