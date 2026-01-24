@@ -585,7 +585,7 @@ const MachineryMaster = () => {
 
                     <div className="space-y-2">
                       <Button
-                        onClick={() => openInventoryDialog(machine)}
+                        // onClick={() => openInventoryDialog(machine)}
                         className="w-full"
                       >
                         <Package className="mr-2 h-4 w-4" /> Manage Inventory
