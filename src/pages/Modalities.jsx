@@ -152,17 +152,37 @@ const FeesType = () => {
     try {
       const response = await apiRequest("Modalities/createModalities", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "FeesType Create successfully." });
+      if (response.message?.includes("already exists")) {
+        throw new Error(response.message);
+      }
+
+      toast({
+        title: "Success",
+        description: response.message,
+      });
+
       getModalities();
       setIsFormOpen(false);
       return response;
     } catch (error) {
       console.error("Error:", error);
-      throw error;
+
+      toast({
+        title: "Error",
+        description:
+          error?.message || "Modalities with this code or name already exists",
+        variant: "destructive",
+      });
+
+      return null;
     }
   };
+
   const updateModalities = async (data) => {
     try {
       const response = await apiRequest("Modalities/updateModalities", {

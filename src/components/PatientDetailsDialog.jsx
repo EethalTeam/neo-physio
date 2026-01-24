@@ -470,61 +470,68 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                     label="No of Days"
                     value={patient.noOfDays || patient?.patientId?.noOfDays}
                   />
-                  {/* {user?.role !== "Physio" && user?.role !== "HOD" ? (
-                    <> */}
-                  <div className="space-y-2">
-                    <Label>Short-term Goals</Label>
-                    <textarea
-                      className="w-full p-2 border rounded-md"
-                      // value={goalsForm.shortTermGoals}
-                      onChange={(e) =>
-                        setGoalsForm((p) => ({
-                          ...p,
-                          shortTermGoals: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Goal Duration</Label>
-                    <Input
-                      type="number"
-                      className="w-full p-2 border rounded-md"
-                      // value={goalsForm.shortTermGoals}
-                      onChange={(e) =>
-                        setGoalsForm((p) => ({
-                          ...p,
-                          goalDuration: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Long-term Goals</Label>
-                    <textarea
-                      className="w-full p-2 border rounded-md"
-                      // value={goalsForm.longTermGoals}
-                      onChange={(e) =>
-                        setGoalsForm((p) => ({
-                          ...p,
-                          longTermGoals: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsAssignPhysioOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={updatePatientGoals}>Save Goals</Button>
-                  {/* </>
-                  ) : null} */}
                 </DetailSection>
+                <div className="flex justify-center">
+                  <div className="space-y-6 w-full max-w-3xl">
+                    {/* GOALS BLOCK */}
+                    <div className="grid grid-cols-2 gap-4 border rounded-lg p-4">
+                      {/* Short-term Goals */}
+                      <div className="space-y-2 col-span-2">
+                        <Label>Short-term Goals</Label>
+                        <textarea
+                          className="w-full p-2 border rounded-md min-h-[80px]"
+                          onChange={(e) =>
+                            setGoalsForm((p) => ({
+                              ...p,
+                              shortTermGoals: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {/* Goal Duration */}
+                      <div className="space-y-2">
+                        <Label>Goal Duration (days)</Label>
+                        <Input
+                          type="number"
+                          className="w-full"
+                          onChange={(e) =>
+                            setGoalsForm((p) => ({
+                              ...p,
+                              goalDuration: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {/* Long-term Goals */}
+                      <div className="space-y-2 col-span-2">
+                        <Label>Long-term Goals</Label>
+                        <textarea
+                          className="w-full p-2 border rounded-md min-h-[80px]"
+                          onChange={(e) =>
+                            setGoalsForm((p) => ({
+                              ...p,
+                              longTermGoals: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* ACTION BUTTONS */}
+                    <div className="flex justify-end gap-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsAssignPhysioOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={updatePatientGoals}>Save Changes</Button>
+                    </div>
+                  </div>
+                </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>

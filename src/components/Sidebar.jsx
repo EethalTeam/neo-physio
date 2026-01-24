@@ -368,7 +368,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               />
 
               <span className="text-xl font-bold text-blue-600 hidden md:block">
-                NEO Physio
+                NEO DESK
               </span>
             </motion.div>
           ) : (

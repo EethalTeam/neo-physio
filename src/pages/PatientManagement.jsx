@@ -772,7 +772,7 @@ const PatientManagement = () => {
         });
       }
 
-      // ✅ CLOSE MODAL ONLY ON SUCCESS
+      // CLOSE MODAL ONLY ON SUCCESS
       setIsFormOpen(false);
       setEditingPatient(null);
       setPatientForm(initialFormState);
@@ -1029,7 +1029,7 @@ const PatientManagement = () => {
     setNewGoalForm(initialNewGoalState);
     setReviewForm(initialReviewState);
   };
-
+  const [openAlert, setOpenAlert] = useState(false);
   const handleScheduleReview = (patient) => {
     if (
       user?.role === "HOD" ||
@@ -1180,19 +1180,19 @@ const PatientManagement = () => {
           patientId: patient._id, // selected patient _id
         }),
       });
+      const sortedSessions = allSessions
+        .filter((s) => s.patientId?._id === patient._id)
+        .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate)); // oldest → newest
 
       // Filter sessions for this patient
-      const patientSessions = allSessions
-        .filter((s) => s.patientId?._id === patient._id) // ensure _id match
-        .map((s, index) => ({
-          type: "session",
-          date: s.sessionDate,
-          title: `Session ${index + 1}`,
-          status: s.sessionStatusId?.sessionStatusName || "N/A",
-          color: s.sessionStatusId?.sessionStatusColor,
-          feedback:
-            s.sessionFeedbackPros || "No feedback" || s.sessionFeedbackPros,
-        }));
+      const patientSessions = sortedSessions.map((s, index) => ({
+        type: "session",
+        date: s.sessionDate,
+        title: `Session ${index + 1}`,
+        status: s.sessionStatusId?.sessionStatusName || "N/A",
+        color: s.sessionStatusId?.sessionStatusColor,
+        feedback: s.sessionFeedbackPros || "No feedback",
+      }));
 
       // Count sessions
       const totalSessions = patientSessions.length;
@@ -1250,13 +1250,13 @@ const PatientManagement = () => {
     try {
       const newStatus = !patient.isRecovered;
 
-      const confirmAction = window.confirm(
-        `Are you sure you want to mark ${patient.patientName} as ${
-          newStatus ? "Recovered" : "Not Recovered"
-        }?`,
-      );
+      // const confirmAction = window.confirm(
+      //   `Are you sure you want to mark ${patient.patientName} as ${
+      //     newStatus ? "Recovered" : "Not Recovered"
+      //   }?`,
+      // );
 
-      if (!confirmAction) return;
+      // if (!confirmAction) return;
 
       const res = await apiRequest("Patient/updatePatient", {
         method: "POST",
@@ -1288,18 +1288,19 @@ const PatientManagement = () => {
       });
     }
   };
-
+  const [openDialog, setOpendialog] = useState(false);
+  const [pendingPatient, setPendingPatient] = useState(null);
   const handleConcernToggle = async (patient) => {
     try {
       const newRecoveredStatus = !patient.isConcernReceived;
 
-      const confirmActions = window.confirm(
-        `Are you sure you want to mark ${patient.patientName} as ${
-          newRecoveredStatus ? "Concerned" : "Not concerned"
-        }?`,
-      );
+      // const confirmActions = window.confirm(
+      //   `Are you sure you want to mark ${patient.patientName} as ${
+      //     newRecoveredStatus ? "Concerned" : "Not concerned"
+      //   }?`,
+      // );
 
-      if (!confirmActions) return;
+      // if (!confirmActions) return;
 
       const res = await apiRequest("Patient/updatePatient", {
         method: "POST",
@@ -1610,7 +1611,10 @@ const PatientManagement = () => {
                                 ? "secondary"
                                 : "default"
                             }
-                            onClick={() => handleConcernToggle(patient)}
+                            onClick={() => {
+                              setPendingPatient(selectedPatient);
+                              setOpendialog(true);
+                            }}
                           >
                             {patient.isConcernReceived ? (
                               <CheckCircle
@@ -2493,7 +2497,10 @@ const PatientManagement = () => {
                                 ? "secondary"
                                 : "default"
                             }
-                            onClick={() => handleToggleStatus(selectedPatient)}
+                            onClick={() => {
+                              setPendingPatient(selectedPatient);
+                              setOpenAlert(true);
+                            }}
                             className="flex-1 ml-5"
                           >
                             {selectedPatient.isRecovered
@@ -2513,7 +2520,11 @@ const PatientManagement = () => {
                                 ? "secondary"
                                 : "default"
                             }
-                            onClick={() => handleConcernToggle(selectedPatient)}
+                            onClick={() => {
+                              // handleConcernToggle(selectedPatient)
+                              setPendingPatient(selectedPatient);
+                              setOpendialog(true);
+                            }}
                             className="flex-1 ml-5"
                           >
                             {selectedPatient.isConcernReceived
@@ -3222,6 +3233,53 @@ const PatientManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={openDialog} onOpenChange={setOpendialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark{" "}
+              <strong>{pendingPatient?.patientName}</strong> as{" "}
+              {!pendingPatient?.isConcernReceived
+                ? "Concern Received"
+                : "Not Concern Received"}
+              ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={() => handleConcernToggle(pendingPatient)}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={openAlert} onOpenChange={setOpenAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark{" "}
+              <strong>{pendingPatient?.patientName}</strong> as{" "}
+              {!pendingPatient?.isRecovered ? "Recovered" : "Not Recovered"}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={() => handleToggleStatus(pendingPatient)}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

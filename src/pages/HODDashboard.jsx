@@ -1,21 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { apiRequest } from '@/components/CustomComponents/apiRequest'
-import { toast } from '@/components/ui/use-toast';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Users,
+  Calendar,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import { toast } from "@/components/ui/use-toast";
 
 const HODDashboard = () => {
   const [stats, setStats] = useState({
-
     patient: 0,
     todaysession: 0,
     alertsCount: 0,
-    pendingReviews: 0,
-    sessionCompleted: 0
+    pendingreviews: 0,
+    sessionCompleted: 0,
   });
-
 
   const [reviews, setReviews] = useState([]);
 
@@ -48,8 +58,8 @@ const HODDashboard = () => {
   // }, []);
 
   // const handleReviewAction = (reviewId, action) => {
-  //   setReviews(prev => prev.map(review => 
-  //     review.id === reviewId 
+  //   setReviews(prev => prev.map(review =>
+  //     review.id === reviewId
   //       ? { ...review, status: action }
   //       : review
   //   ));
@@ -60,65 +70,60 @@ const HODDashboard = () => {
   //   });
   // };
 
-
   useEffect(() => {
-    getAllDashBoard()
-  }, [])
+    getAllDashBoard();
+  }, []);
 
   const getAllDashBoard = async (data) => {
     try {
       const response = await apiRequest("DashBoard/getAllDashBoard", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(data),
-
       });
-      setStats(response)
-      console.log(response, "response")
+      setStats(response);
+      console.log(response, "response");
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
-
-
-
+  };
 
   const statCards = [
     {
-      title: 'Total Patients',
+      title: "Total Patients",
       value: stats.patient,
       icon: Users,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      color: "text-green-600",
+      bgColor: "bg-green-100",
     },
     {
-      title: 'Today Sessions',
+      title: "Today Sessions",
       value: stats.todaysession,
       icon: Calendar,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100'
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
     },
     {
-      title: 'Pending Reviews',
-      value: stats.pendingReviews,
+      title: "Pending Reviews",
+      value: stats.pendingreviews,
       icon: Clock,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100'
+      color: "text-orange-600",
+      bgColor: "bg-orange-100",
     },
     {
-      title: 'Completed Sessions',
+      title: "Completed Sessions",
       value: stats.sessionCompleted,
       icon: CheckCircle,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
     },
     {
-      title: 'Alerts',
+      title: "Alerts",
       value: stats.alertsCount,
       icon: AlertTriangle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100'
-    }
+      color: "text-red-600",
+      bgColor: "bg-red-100",
+    },
   ];
 
   return (
@@ -129,7 +134,9 @@ const HODDashboard = () => {
         transition={{ duration: 0.5 }}
       >
         <h1 className="text-3xl font-bold text-gray-800 mb-2">HOD Dashboard</h1>
-        <p className="text-gray-600">Department oversight and review management</p>
+        <p className="text-gray-600">
+          Department oversight and review management
+        </p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -152,7 +159,9 @@ const HODDashboard = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
+                  <div className="text-2xl font-bold text-gray-800">
+                    {stat.value}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Requires attention
                   </p>
@@ -172,30 +181,41 @@ const HODDashboard = () => {
           <Card className="medical-card">
             <CardHeader>
               <CardTitle>Pending Reviews</CardTitle>
-              <CardDescription>15-day patient reviews requiring attention</CardDescription>
+              <CardDescription>
+                15-day patient reviews requiring attention
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {reviews.map((review) => (
-                  <div key={review.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={review.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div>
-                      <p className="font-medium text-gray-800">{review.patientName}</p>
-                      <p className="text-sm text-gray-600">Review Date: {review.reviewDate}</p>
+                      <p className="font-medium text-gray-800">
+                        {review.patientName}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Review Date: {review.reviewDate}
+                      </p>
                     </div>
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleReviewAction(review.id, 'done')}
-                        disabled={review.status !== 'pending'}
+                        onClick={() => handleReviewAction(review.id, "done")}
+                        disabled={review.status !== "pending"}
                       >
                         Done
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleReviewAction(review.id, 'postponed')}
-                        disabled={review.status !== 'pending'}
+                        onClick={() =>
+                          handleReviewAction(review.id, "postponed")
+                        }
+                        disabled={review.status !== "pending"}
                       >
                         Postpone
                       </Button>
@@ -222,22 +242,34 @@ const HODDashboard = () => {
                 <div className="flex items-center space-x-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <AlertTriangle className="text-red-500" size={20} />
                   <div>
-                    <p className="font-medium text-red-800">Equipment Issue Reported</p>
-                    <p className="text-sm text-red-600">Patient: John Doe - Machine: Ultrasound Unit</p>
+                    <p className="font-medium text-red-800">
+                      Equipment Issue Reported
+                    </p>
+                    <p className="text-sm text-red-600">
+                      Patient: John Doe - Machine: Ultrasound Unit
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <AlertTriangle className="text-yellow-500" size={20} />
                   <div>
-                    <p className="font-medium text-yellow-800">Session Feedback Concern</p>
-                    <p className="text-sm text-yellow-600">Patient: Jane Smith - Discomfort reported</p>
+                    <p className="font-medium text-yellow-800">
+                      Session Feedback Concern
+                    </p>
+                    <p className="text-sm text-yellow-600">
+                      Patient: Jane Smith - Discomfort reported
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <AlertTriangle className="text-orange-500" size={20} />
                   <div>
-                    <p className="font-medium text-orange-800">Late Session Start</p>
-                    <p className="text-sm text-orange-600">Patient: Mike Johnson - 30 min delay</p>
+                    <p className="font-medium text-orange-800">
+                      Late Session Start
+                    </p>
+                    <p className="text-sm text-orange-600">
+                      Patient: Mike Johnson - 30 min delay
+                    </p>
                   </div>
                 </div>
               </div>

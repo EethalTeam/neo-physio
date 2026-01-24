@@ -76,8 +76,9 @@ const PhysioManagement = () => {
 
   const initialFormState = {
     _id: "",
-    physioCode: "",
+    // physioCode: "",
     physioName: "",
+    EmpCode: "",
     physioGenderId: "",
     genderName: "",
     // physioAge: "",
@@ -295,13 +296,21 @@ const PhysioManagement = () => {
         description: "Enter the Name",
         variant: "destructive",
       });
-    } else if (!physioForm._id && !physioForm.physioCode) {
+    } else if (!physioForm.EmpCode) {
       toast({
         title: "Alert",
-        description: "Enter the physio Code",
+        description: "Enter the Employee code",
         variant: "destructive",
       });
-    } else if (!physioForm.physioDob) {
+    }
+    // else if (!physioForm._id && !physioForm.physioCode) {
+    //   toast({
+    //     title: "Alert",
+    //     description: "Enter the physio Code",
+    //     variant: "destructive",
+    //   });
+    // }
+    else if (!physioForm.physioDob) {
       toast({
         title: "Alert",
         description: "Enter the Date of Birth",
@@ -415,6 +424,7 @@ const PhysioManagement = () => {
     setPhysioForm({
       _id: physio._id,
       physioCode: physio.physioCode,
+      EmpCode: physio.EmpCode,
       physioName: physio.physioName,
       physioGenderId: physio.physioGenderId._id,
       genderName: physio.physioGenderId.genderName,
@@ -471,20 +481,15 @@ const PhysioManagement = () => {
       console.error("Error fetching completed sessions:", error);
     }
   };
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [selectedPhysio, setSelectedPhysio] = useState(null);
 
   const handleToggleStatus = async (physio) => {
+    if (!physio) return;
+
     try {
       const newStatus = !physio.isActive;
-      console.log(newStatus, "isACtive");
-      // Confirm action
-      const confirmAction = window.confirm(
-        `Are you sure you want to ${newStatus ? "activate" : "deactivate"} ${
-          physio.physioName
-        }?`,
-      );
-      if (!confirmAction) return;
 
-      // Call backend API to toggle status
       const res = await apiRequest("Physio/updatePhysio", {
         method: "POST",
         body: JSON.stringify({
@@ -501,7 +506,6 @@ const PhysioManagement = () => {
           }.`,
         });
 
-        // Update UI instantly
         setPhysios((prev) =>
           prev.map((p) =>
             p._id === physio._id ? { ...p, isActive: newStatus } : p,
@@ -509,7 +513,6 @@ const PhysioManagement = () => {
         );
       }
     } catch (error) {
-      console.error("Error toggling status:", error);
       toast({
         title: "Error",
         description: "Failed to update physiotherapist status.",
@@ -517,6 +520,7 @@ const PhysioManagement = () => {
       });
     }
   };
+
   const renderDetailRow = (label, value, isDate = false) => (
     <div className="grid grid-cols-2 py-2 border-b">
       <p className="font-semibold text-gray-600">{label}</p>
@@ -619,6 +623,9 @@ const PhysioManagement = () => {
                           {physio.physioCode}
                         </p>
                         <p className="text-sm text-gray-600">
+                          {physio.EmpCode}
+                        </p>
+                        <p className="text-sm text-gray-600">
                           {physio.physioSpcl}
                         </p>
                         <span
@@ -684,15 +691,52 @@ const PhysioManagement = () => {
                         </Button>
                       )}
                     </div>
+                    <AlertDialog
+                      open={openStatusDialog}
+                      onOpenChange={setOpenStatusDialog}
+                    >
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to{" "}
+                            <strong>
+                              {selectedPhysio?.isActive
+                                ? "deactivate"
+                                : "activate"}
+                            </strong>{" "}
+                            <strong>{selectedPhysio?.physioName}</strong>?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                          <AlertDialogAction
+                            onClick={() => {
+                              handleToggleStatus(selectedPhysio);
+                              setOpenStatusDialog(false);
+                            }}
+                          >
+                            Confirm
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
                     <div className="flex space-x-2 mt-2">
                       <Button
                         size="sm"
                         variant={physio.isActive ? "secondary" : "default"}
-                        onClick={() => handleToggleStatus(physio)}
+                        onClick={() => {
+                          setSelectedPhysio(physio);
+                          setOpenStatusDialog(true);
+                        }}
                         className="flex-1"
                       >
                         {physio.isActive ? "Deactivate" : "Activate"}
                       </Button>
+
                       {Permissions.isDelete && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -758,17 +802,26 @@ const PhysioManagement = () => {
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <form onSubmit={handleFormSubmit} className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* {editingPhysio == true ? ( */}
+                {editingPhysio == true ? (
+                  <div className="space-y-2">
+                    <Label>Physio Code</Label>
+                    <Input
+                      name="physioCode"
+                      value={physioForm.physioCode}
+                      onChange={handleFormChange}
+                      disabled
+                    />
+                  </div>
+                ) : null}
                 <div className="space-y-2">
-                  <Label>Physio Code</Label>
+                  <Label>Emp Code</Label>
                   <Input
-                    name="physioCode"
-                    value={physioForm.physioCode}
+                    name="EmpCode"
+                    type="text"
+                    value={physioForm.EmpCode}
                     onChange={handleFormChange}
-                    // disabled
                   />
                 </div>
-                {/* ) : null} */}
                 {/* <div className="space-y-2"><Label>Physio Code</Label><Input name="physioCode" value={physioForm.physioCode} onChange={handleFormChange} required disabled/></div> */}
                 <div className="space-y-2">
                   <Label>Name</Label>

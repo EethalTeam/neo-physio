@@ -148,7 +148,7 @@ const SessionManagement = () => {
     getMachinery();
     getRedFlag();
     getModalities();
-    handleViewHistory();
+    handleViewConsultation();
   }, []);
 
   useEffect(() => {
@@ -370,67 +370,7 @@ const SessionManagement = () => {
     }
   };
   const [sessionCount, setSessionCount] = useState({ total: 0, completed: 0 });
-  const handleViewHistory = async (patient) => {
-    setHistoryPatient(patient);
-    setIsHistoryOpen(true);
 
-    console.log("Fetching history for patient:", patient.patientName);
-    console.log("Sending patientId:", patient._id);
-
-    try {
-      // Call API to get all sessions
-      const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: patient._id, // selected patient _id
-        }),
-      });
-
-      // Filter sessions for this patient
-      const patientSessions = allSessions
-        .filter((s) => s.patientId?._id === patient._id) // ensure _id match
-        .map((s, index) => ({
-          type: "session",
-          date: s.sessionDate,
-          title: `Session ${index + 1}`,
-          status: s.sessionStatusId?.sessionStatusName || "N/A",
-          color: s.sessionStatusId?.sessionStatusColor,
-          feedback:
-            s.sessionFeedbackPros || "No feedback" || s.sessionFeedbackPros,
-        }));
-
-      // Count sessions
-      const totalSessions = patientSessions.length;
-      const completedSessions = patientSessions.filter(
-        (s) => s.status?.toLowerCase() === "completed",
-      ).length;
-
-      // Map HOD goal reviews if any
-      const patientGoalLog = (patient.goalLog || []).map((log) => ({
-        type: "review",
-        date: log.date,
-        title: `HOD Review - ${log.status}`,
-        details: `Goal: ${log.goal}. Feedback: ${log.feedback || "N/A"}. Satisfaction: ${
-          log.satisfaction || "N/A"
-        }%`,
-      }));
-
-      // Combine sessions and reviews in chronological order
-      const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
-        (a, b) => new Date(b.date) - new Date(a.date),
-      );
-
-      setPatientHistory(combinedHistory);
-      setFilteredSessions({
-        total: totalSessions,
-        completed: completedSessions,
-      });
-
-      console.log("Patient sessions:", patientSessions);
-    } catch (error) {
-      console.error("Failed to fetch sessions:", error);
-    }
-  };
   const getSessionStatus = async (data) => {
     try {
       const response = await apiRequest("SessionStatus/getAllSessionStatus", {
@@ -559,7 +499,10 @@ const SessionManagement = () => {
       hour12: true,
     });
   };
-
+  const handleViewConsultation = (patient) => {
+    setViewingPatient(patient);
+    setIsDetailsOpen(true);
+  };
   // getDayName
   const getDayName = (date) => {
     const days = [
@@ -627,8 +570,10 @@ const SessionManagement = () => {
 
     // Filter by patient name
     if (searchTerm) {
-      filtered = filtered.filter((s) =>
-        s.patientId?.patientName?.toLowerCase().includes(term),
+      filtered = filtered.filter(
+        (s) =>
+          s.patientId?.patientName?.toLowerCase().includes(term) ||
+          s.physioId?.physioName?.toLowerCase().includes(term),
       );
     }
 

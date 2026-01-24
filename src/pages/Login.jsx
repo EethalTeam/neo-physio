@@ -1,27 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Stethoscope ,Eye, EyeOff  } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-import { apiRequest } from '@/components/CustomComponents/apiRequest';
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Stethoscope, Eye, EyeOff } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const Login = () => {
-  const[physio,setPhysio] = useState([])
-  console.log(physio,"physio")
-   const [showPassword, setShowPassword] = useState(false);
+  const [physio, setPhysio] = useState([]);
+  console.log(physio, "physio");
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    physioCode: '',
-    password: '',
+    physioCode: "",
+    password: "",
     // role: ''
-  }); 
+  });
   const { login } = useAuth();
-  const {getPermissionsByPath} = useAuth()
+  const { getPermissionsByPath } = useAuth();
   const navigate = useNavigate();
 
   // const roles = [
@@ -31,55 +43,49 @@ const Login = () => {
   //   { value: 'physio', label: 'Physiotherapist' }
   // ];
 
-
   //api for physio Code
 
-  useEffect(()=>{
-getPhysio()
-  },[])
+  useEffect(() => {
+    getPhysio();
+  }, []);
 
   const getPhysio = async (data) => {
     try {
       // const getcode = {
       //   physioCode:data.physioCode
       // }
-      const response = await apiRequest('Physio/getAllPhysio', 
-        { 
-          method: 'POST',
-           body: JSON.stringify({}) 
+      const response = await apiRequest("Physio/getAllPhysio", {
+        method: "POST",
+        body: JSON.stringify({}),
       });
       setPhysio(response.physios || []);
-   
     } catch (error) {
-      console.error('Error loading physios:', error);
+      console.error("Error loading physios:", error);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (!formData.physioCode || !formData.password ) {
+
+    if (!formData.physioCode || !formData.password) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    login(formData.physioCode,formData.password).then(res=>{
-         
-      console.log(res,"res")
-      if(res){
+    login(formData.physioCode, formData.password).then((res) => {
+      console.log(res, "res");
+      if (res) {
         // getPermissionsByPath()
-navigate('/dashboard');
+        navigate("/dashboard");
       }
-   
-
-    })
+    });
     toast({
       title: "Success",
-      description: "Login successful!"
+      description: "Login successful!",
     });
     // navigate('/dashboard');
   };
@@ -91,7 +97,7 @@ navigate('/dashboard');
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="w-full max-w-md">
+        <Card className="w-[350px]">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-blue-600 rounded-full">
@@ -99,22 +105,22 @@ navigate('/dashboard');
               </div>
             </div>
             <CardTitle className="text-2xl font-bold text-gray-800">
-              Physio Service Management
+              NEO DESK
             </CardTitle>
-            <CardDescription>
-              Sign in to access your dashboard
-            </CardDescription>
+            <CardDescription>Sign in to access your dashboard</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="physioCode">Employe Code</Label>
+                <Label htmlFor="physioCode">Physio Code</Label>
                 <Input
                   id="physioCode"
                   type="type"
                   placeholder="Enter your Employe Code"
                   value={formData.physioCode}
-                  onChange={(e) => setFormData({ ...formData, physioCode: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, physioCode: e.target.value })
+                  }
                 />
               </div>
 
@@ -122,18 +128,24 @@ navigate('/dashboard');
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                 />
-                  <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="relative left-60 bottom-9  transform translate-y text-gray-400 hover:text-white"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="relative left-60 bottom-9  transform translate-y text-gray-400 hover:text-white"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
 
               {/* <div className="space-y-2">

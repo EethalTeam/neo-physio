@@ -36,7 +36,7 @@ const Header = ({ toggleSidebar }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const userNotifications = notifications.filter(
-    (n) => n.toEmployeeId === user._id && n.status === "unseen"
+    (n) => n.toEmployeeId === user._id && n.status === "unseen",
   );
   const { toast } = useToast();
 
@@ -257,14 +257,19 @@ const Header = ({ toggleSidebar }) => {
                     {notification.type !== "permission-request" &&
                       notification.type !== "leave-request" &&
                       notification.type !== "task-complete" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7"
-                          onClick={() => markAsRead(notification._id)}
-                        >
-                          Mark as read
-                        </Button>
+                        <div className="flex gap-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7"
+                            onClick={() => markAsRead(notification._id)}
+                          >
+                            Mark as read
+                          </Button>
+                          <p>
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+                        </div>
                       )}
                   </div>
                 ))
