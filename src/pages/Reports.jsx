@@ -201,8 +201,21 @@ const Reports = () => {
       0,
     );
   };
-  const monthname = ["January", "Febuary", "March", "A"];
-  const month = new Date().getMonth() + 1;
+  const monthname = [
+    "January",
+    "Febuary",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const month = new Date().getMonth();
   const year = new Date().getFullYear();
   return (
     <div className="space-y-6">
@@ -408,7 +421,7 @@ const Reports = () => {
           <div className="text-2xl font-bold text-gray-800">
             {stats.monthlySessions}
           </div>
-          <p className="text-xs text-gray-500 mt-1">{`${month}-${year}`}</p>
+          <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
         </CardContent>
       </Card>
       {/* Charts and Detailed Reports */}

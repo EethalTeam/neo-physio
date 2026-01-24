@@ -96,68 +96,6 @@ const MonthlySummary = () => {
     loadDashboardData();
   }, [selectedMonth, selectedYear]);
 
-  //   useEffect(() => {
-  //     Promise.all([
-  //       fetch("/mockdata/sessions.json").then((res) => res.json()),
-  //       fetch("/mockdata/physios.json").then((res) => res.json()),
-  //       fetch("/mockdata/patients.json").then((res) => res.json()),
-  //     ])
-  //       .then(([allSessions, physios, patients]) => {
-  //         const mySessions = allSessions.filter(
-  //           (s) =>
-  //             s.physioId === currentPhysioId &&
-  //             new Date(s.sessionDate).getMonth() === selectedMonth &&
-  //             new Date(s.sessionDate).getFullYear() === selectedYear
-  //         );
-  //         const currentPhysio = physios.find((p) => p.id === currentPhysioId);
-
-  //         const completedSessions = mySessions.filter(
-  //           (s) => s.status === "completed"
-  //         );
-  //         const monthlyRevenue =
-  //           completedSessions.length * (currentPhysio?.ratePerSession || 0);
-
-  //         let totalSatisfaction = 0;
-  //         let satisfactionCount = 0;
-  //         completedSessions.forEach((s) => {
-  //           if (s.feedback && s.feedback.satisfaction) {
-  //             totalSatisfaction += s.feedback.satisfaction;
-  //             satisfactionCount++;
-  //           }
-  //         });
-  //         const averageSatisfaction =
-  //           satisfactionCount > 0
-  //             ? (totalSatisfaction / satisfactionCount).toFixed(1)
-  //             : 0;
-
-  //         const patientSessionCounts = mySessions.reduce((acc, session) => {
-  //           acc[session.patientId] = (acc[session.patientId] || 0) + 1;
-  //           return acc;
-  //         }, {});
-
-  //         let mostFrequentPatientId = null;
-  //         let maxSessions = 0;
-  //         for (const patientId in patientSessionCounts) {
-  //           if (patientSessionCounts[patientId] > maxSessions) {
-  //             maxSessions = patientSessionCounts[patientId];
-  //             mostFrequentPatientId = patientId;
-  //           }
-  //         }
-
-  //         const mostFrequentPatientName = mostFrequentPatientId
-  //           ? patients.find((p) => p.id === parseInt(mostFrequentPatientId))?.name
-  //           : "N/A";
-
-  //         setSummary({
-  //           monthlyRevenue,
-  //           completedSessions: completedSessions.length,
-  //           averageSatisfaction,
-  //           mostFrequentPatient: mostFrequentPatientName,
-  //         });
-  //       })
-  //       .catch((err) => console.error("Error loading summary data:", err));
-  //   }, [selectedMonth, selectedYear]);
-
   const months = [
     "January",
     "February",
