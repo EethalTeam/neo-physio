@@ -233,7 +233,7 @@ const Consulation = () => {
 
   useEffect(() => {
     if (Permissions.isView) {
-      getAllPatient();
+      getAllConsultation();
     }
   }, [Permissions]);
 
@@ -324,7 +324,7 @@ const Consulation = () => {
   //   }
   // // }
 
-  const getAllPatient = async () => {
+  const getAllConsultation = async () => {
     try {
       const res = await apiRequest("Consultation/getAllConsultation", {
         method: "POST",
@@ -356,7 +356,7 @@ const Consulation = () => {
           description: "Patients has been removed.",
           variant: "destructive",
         });
-        getAllPatient();
+        getAllConsultation();
 
         // setFilteredPatients(response);
         // setPhysios(response);
@@ -379,7 +379,7 @@ const Consulation = () => {
         body: JSON.stringify(data),
       });
       toast({ title: "Success", description: "Patient updated successfully." });
-      getAllPatient();
+      getAllConsultation();
       setIsFormOpen(false);
       // setFilteredPatients(response);
       // setPhysios(response);
@@ -393,14 +393,14 @@ const Consulation = () => {
 
   //api for create patients
 
-  const createPatient = async (data) => {
+  const createConsultation = async (data) => {
     try {
       const response = await apiRequest("Consultation/createConsultation", {
         method: "POST",
         body: JSON.stringify(data),
       });
       toast({ title: "Success", description: "Patient Create successfully." });
-      getAllPatient();
+      getAllConsultation();
       setIsFormOpen(false);
       return response;
     } catch (error) {
@@ -454,11 +454,12 @@ const Consulation = () => {
           description: "Physio assigned and sessions created.",
         });
       }
+      setIsAssignPhysioOpen(false);
+
+      getAllConsultation();
 
       // Wait for Patients list to refresh
-      await getAllPatient();
-
-      setIsAssignPhysioOpen(false);
+      // await getAllConsultation();
 
       // Navigate to Sessions page with sessions data
       if (response.sessions && response.sessions.length > 0) {
@@ -479,7 +480,7 @@ const Consulation = () => {
   };
 
   useEffect(() => {
-    getAllPatient();
+    getAllConsultation();
   }, []);
 
   // useEffect(() => {
@@ -583,7 +584,10 @@ const Consulation = () => {
     } else {
       // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
       // setPatients(prev => [newPatient, ...prev]);
-      createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
+      createConsultation({
+        ...patientForm,
+        MedicalHistoryAndRiskFactor: radio,
+      });
       toast({ title: "Success", description: "New patient created." });
     }
     setIsFormOpen(false);
@@ -1039,6 +1043,7 @@ const Consulation = () => {
       title: "Success",
       description: `Physio assigned and plan updated for ${assigningPatient.patientName}.`,
     });
+    getAllConsultation();
     // setIsAssignPhysioOpen(false);
     // setAssigningPatient(null);
     // setAssignForm(initialAssignState);
