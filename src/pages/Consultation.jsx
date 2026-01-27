@@ -441,7 +441,7 @@ const Consulation = () => {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
+      if (!response.success) {
         toast({
           title: "Error",
           description: response.message || "Failed to assign physio.",
@@ -456,7 +456,7 @@ const Consulation = () => {
       }
       setIsAssignPhysioOpen(false);
 
-      getAllConsultation();
+      await getAllConsultation();
 
       // Wait for Patients list to refresh
       // await getAllConsultation();

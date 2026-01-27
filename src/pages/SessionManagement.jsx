@@ -81,7 +81,7 @@ const SessionManagement = () => {
   // console.log(Modalities,"Modalities")
   const [sessionStatus, setSessionStatus] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
-  console.log(filteredSessions, "filteredSessions");
+  // console.log(filteredSessions, "filteredSessions");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState(null);
@@ -109,7 +109,7 @@ const SessionManagement = () => {
     open: false,
     sessionId: null,
   });
-  console.log(feedbackDialog, "feedbackDialog");
+  // console.log(feedbackDialog, "feedbackDialog");
   const initialFeedbackState = {
     sessionFeedbackPros: "",
     redFlags: [],
@@ -460,7 +460,7 @@ const SessionManagement = () => {
   };
 
   const SessionEnd = async (data) => {
-    console.log("SessionEnd");
+    // console.log("SessionEnd");
     try {
       const response = await apiRequest("Session/SessionEnd", {
         method: "POST",
@@ -526,43 +526,6 @@ const SessionManagement = () => {
     });
   };
 
-  // useEffect(() => {
-  //   Promise.all([
-  //     fetch('/mockdata/sessions.json').then(res => res.json()),
-  //     fetch('/mockdata/patients.json').then(res => res.json()),
-  //     fetch('/mockdata/physios.json').then(res => res.json()),
-  //     fetch('/mockdata/machines.json').then(res => res.json()),
-  //     fetch('/mockdata/redflags.json').then(res => res.json())
-  //   ]).then(([sessionsData, patientsData, physiosData, machinesData, redFlagsData]) => {
-  //     let userSessions = sessionsData;
-  //     if (user?.role === 'Physio') {
-  //       userSessions = sessionsData.filter(session => session.physioId === 1); // Mock current physio ID
-  //     }
-  //     setSessions(userSessions);
-  //     setFilteredSessions(userSessions);
-  //     setPatients(patientsData);
-  //     setPhysios(physiosData);
-  //     setMachines(machinesData);
-  //     setRedFlags(redFlagsData);
-  //   }).catch(err => console.error('Error loading data:', err));
-  // }, [user]);
-
-  // useEffect(() => {
-  //   let filtered = sessions;
-  //   if (searchTerm) {
-  //     filtered = filtered.filter(session => {  session.patientId?.patientName?.toLowerCase().includes(searchTerm.toLowerCase())
-  //       const patient = patients.find(p => p.id === session.patientId);
-  //       return patient?.name.toLowerCase().includes(searchTerm.toLowerCase());
-  //     });
-  //   }
-  //   if (statusFilter !== 'all') {
-  //     console.log(filtered, "object")
-  //     filtered = filtered.filter(session => session.sessionStatusId.sessionStatusName === statusFilter);
-  //     console.log(filtered, "filtered")
-  //   }
-  //   setFilteredSessions(filtered);
-  // }, [sessions, patients, searchTerm, statusFilter]);
-
   useEffect(() => {
     let filtered = [...sessions];
 
@@ -593,15 +556,8 @@ const SessionManagement = () => {
     setFilteredSessions(filtered);
   }, [sessions, searchTerm, statusFilter, dateFilter]);
 
-  const getPatientName = (id) =>
-    patients.find((p) => p.id === id)?.name || "Unknown";
-  const getPhysioName = (id) =>
-    physios.find((p) => p.id === id)?.name || "Unknown";
-  const getMachineName = (id) =>
-    machines.find((m) => m.id === id)?.name || "No machine";
-
   const handleSessionAction = (sessionId, action) => {
-    console.log(sessionId, "sessionId");
+    // console.log(sessionId, "sessionId");
     if (action === "Completed") {
       setFeedbackDialog({ open: true, sessionId: sessionId });
       // handleActionEnd(sessionId, action)
@@ -664,9 +620,51 @@ const SessionManagement = () => {
 
   const handleFeedbackSubmit = () => {
     const { sessionId } = feedbackDialog;
-    console.log(sessionId, "sessionId");
+
+    // Feedback text required
+    if (!feedback.sessionFeedbackPros?.trim()) {
+      toast({
+        title: "Alert",
+        description: "Enter the session feedback",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    //Mode of exercise required
+    if (!feedback.modeOfExercise) {
+      toast({
+        title: "Alert",
+        description: "Select the Mode of Exercise",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Modalities list required if modalities = yes
+    if (feedback.modalities === "yes") {
+      if (!feedback.modalitiesList?.length) {
+        toast({
+          title: "Alert",
+          description: "Select at least one modality",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!feedback.targetArea?.trim()) {
+        toast({
+          title: "Alert",
+          description: "Enter the targeted area",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    //Targeted area required
+
+    console.log("Validation passed");
     handleActionEnd(feedback, "Completed", sessionId);
-    // setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'Completed', feedback } : s));
   };
 
   const handleActionStart = (session, action) => {
@@ -808,6 +806,7 @@ const SessionManagement = () => {
   const [viewingPatient, setViewingPatient] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [modalitiesForm, setModalitiesForm] = useState(initialFormState);
 
   const getAllPatient = async () => {
     try {
@@ -1063,8 +1062,7 @@ const SessionManagement = () => {
                           )}
                           {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                             "attended" &&
-                            (user?.role === "Admin" ||
-                              user?.role === "HOD") && (
+                            user?.role !== "physio" && (
                               <Button
                                 size="sm"
                                 variant="destructive"
@@ -1082,12 +1080,37 @@ const SessionManagement = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
+                                onClick={() => {
+                                  // Pre-fill feedback with existing session data
+                                  setFeedback({
+                                    sessionFeedbackPros:
+                                      session.sessionFeedbackPros || "",
+                                    modeOfExercise:
+                                      session.modeOfExercise || "",
+                                    redFlags: session.redFlags || [],
+                                    homeExerciseAssigned:
+                                      !!session.homeExerciseAssigned,
+                                    modalities: !!session.isOccurred,
+                                    modalitiesList:
+                                      session.modalitiesList || [],
+                                    // machineId:
+                                    // session.machineId?.machineName || "",
+                                    targetArea: session.targetArea || "",
+                                    media: session.media || [],
+                                  });
+
+                                  setModalitiesForm({
+                                    modalitiestype:
+                                      session.modalitiestype ||
+                                      "Exercise Therapy", // default type
+                                  });
+
+                                  // Open the feedback dialog
                                   setFeedbackDialog({
                                     open: true,
                                     sessionId: session._id,
-                                  })
-                                }
+                                  });
+                                }}
                               >
                                 <MessageSquare size={12} />
                               </Button>
@@ -1454,12 +1477,33 @@ const SessionManagement = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() =>
+                          onClick={() => {
+                            // Pre-fill feedback with existing session data
+                            setFeedback({
+                              sessionFeedbackPros:
+                                session.sessionFeedbackPros || "",
+                              modeOfExercise: session.targetArea || "",
+                              redFlags: session.redFlags || [],
+                              homeExerciseAssigned:
+                                !!session.homeExerciseAssigned,
+                              modalities: !!session.modalities,
+                              modalitiesList: session.modalitiesList || [],
+                              machineId: session.machineId?.machineName || "",
+                              targetArea: session.targetArea || "",
+                              media: session.media || [],
+                            });
+
+                            setModalitiesForm({
+                              modalitiestype:
+                                session.modalitiestype || "Exercise Therapy", // default type
+                            });
+
+                            // Open the feedback dialog
                             setFeedbackDialog({
                               open: true,
                               sessionId: session._id,
-                            })
-                          }
+                            });
+                          }}
                         >
                           <MessageSquare size={12} />
                         </Button>
@@ -1543,9 +1587,7 @@ const SessionManagement = () => {
           <div className="flex-1 overflow-y-auto pr-6">
             <div className="space-y-6 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="sessionFeedbackPros ">
-                  Positive Feedback (Pros)
-                </Label>
+                <Label htmlFor="sessionFeedbackPros ">Update Feedback </Label>
                 <textarea
                   id="sessionFeedbackPros "
                   className="w-full p-2 border rounded-md"
@@ -1674,50 +1716,94 @@ const SessionManagement = () => {
               </div>
 
               {feedback.modalities === "yes" && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="space-y-2 pl-4"
-                >
-                  <Label>List of Modalities</Label>
-                  <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
-                    {Modalities.map((mod) => (
-                      <div
-                        key={mod._id}
-                        className="flex items-center space-x-2"
-                      >
-                        <Checkbox
-                          id={`mod-${mod._id}`}
-                          onCheckedChange={(checked) => {
-                            setFeedback((prev) =>
-                              checked
-                                ? {
-                                    ...prev,
-                                    modalitiesList: [
-                                      ...prev.modalitiesList,
-                                      { modalityId: mod._id, isOccurred: true },
-                                    ],
-                                  }
-                                : {
-                                    ...prev,
-                                    modalitiesList: prev.modalitiesList.filter(
-                                      (m) => m.modalityId !== mod._id,
-                                    ),
-                                  },
-                            );
-                          }}
-                        />
-                        <Label
-                          htmlFor={`rf-${mod._id}`}
-                          className="text-sm font-normal"
-                        >
-                          {mod.modalitiesName}
-                        </Label>
+                <div className="space-y-2">
+                  <Label htmlFor="modalitiestype">Modalities Type</Label>
+
+                  <Select
+                    value={modalitiesForm.modalitiestype}
+                    onValueChange={(val) =>
+                      setModalitiesForm((prev) => ({
+                        ...prev,
+                        modalitiestype: val,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Modalities Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Exercise Therapy">
+                        Exercise Therapy
+                      </SelectItem>
+                      <SelectItem value="Electrotherapy">
+                        Electrotherapy
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {modalitiesForm.modalitiestype && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="space-y-2 pl-4"
+                    >
+                      <Label>List of Modalities</Label>
+                      <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
+                        {Modalities.filter(
+                          (mod) =>
+                            mod.modalitiestype ===
+                            modalitiesForm.modalitiestype,
+                        ).map((mod) => {
+                          const isChecked = feedback.modalitiesList.some(
+                            (m) => m.modalityId === mod._id && m.isOccurred,
+                          );
+
+                          return (
+                            <div
+                              key={mod._id}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={`mod-${mod._id}`}
+                                checked={isChecked} // prefill checkbox
+                                onCheckedChange={(checked) => {
+                                  setFeedback((prev) =>
+                                    checked
+                                      ? {
+                                          ...prev,
+                                          modalitiesList: [
+                                            ...prev.modalitiesList,
+                                            {
+                                              modalityId: mod._id,
+                                              isOccurred: true,
+                                            },
+                                          ],
+                                        }
+                                      : {
+                                          ...prev,
+                                          modalitiesList:
+                                            prev.modalitiesList.filter(
+                                              (m) => m.modalityId !== mod._id,
+                                            ),
+                                        },
+                                  );
+                                }}
+                              />
+                              <Label
+                                htmlFor={`mod-${mod._id}`}
+                                className="text-sm font-normal"
+                              >
+                                {mod.modalitiesName}
+                              </Label>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
+                    </motion.div>
+                  )}
+                </div>
               )}
+
               <div className="space-y-2">
                 <Label>Machine Used</Label>
                 <Select

@@ -187,7 +187,9 @@ const ReviewMasterForm = () => {
       method: "POST",
       body: JSON.stringify({}),
     });
+
     setPatients(res?.data || res || []);
+    console.log(patients, "patient shortterm");
   };
 
   const getPhysios = async () => {
@@ -340,6 +342,7 @@ const ReviewMasterForm = () => {
 
       const payload = {
         patientId: data.patientId,
+        Satisfaction: data.Satisfaction,
         physioId: data.physioId || user._id,
         reviewDate: new Date(data.sessionDate).toISOString(),
         // reviewTime: data.sessionTime || new Date().toLocaleTimeString(),
@@ -377,6 +380,9 @@ const ReviewMasterForm = () => {
       physioId: parseInt(sessionForm.physioId),
       reviewDate: sessionForm.reviewDate,
       reviewStatusId: sessionForm.reviewStatusId,
+      Satisfaction: sessionForm.Satisfaction,
+
+      // shortterm: sessionForm.shortTermGoal,
       reviewStatusName: sessionForm.reviewStatusName,
     };
     if (editingReview) {
@@ -391,6 +397,7 @@ const ReviewMasterForm = () => {
     setEditingReview(null);
     setSessionForm(initialFormState);
   };
+  console.log(sessionForm, "Session form");
 
   const UpdateReview = async (data) => {
     try {
@@ -436,6 +443,8 @@ const ReviewMasterForm = () => {
       reviewTypeId: review.reviewTypeId?._id || "",
       reviewStatusId: review.reviewStatusId ? review.reviewStatusId._id : "",
       redFlags: review.redFlags || [],
+      feedback: review.feedback || "",
+      Satisfaction: review.Satisfaction || "",
     });
 
     setIsFormOpen(true);
@@ -450,7 +459,32 @@ const ReviewMasterForm = () => {
       variant: "destructive",
     });
   };
+  const handleEditSession = (session) => {
+    // setEditingSession(session);
+    setSessionForm({
+      ...session,
+      // patientId: session.patientId.toString(),
+      // physioId: session.physioId.toString(),
+      // machineId: session.machineId ? session.machineId.toString() : '',
+      // sessionDate: new Date(session.sessionDate),
 
+      sessionCode: session.sessionCode ? session.sessionCode : "",
+      patientId: session.patientId ? session.patientId._id : "",
+      physioId: session.physioId ? session.physioId._id : "",
+      sessionDate: session.sessionDate ? new Date(session.sessionDate) : "",
+      sessionDay: session.sessionDay ? session.sessionDay : "",
+      sessionTime: session.sessionTime ? session.sessionTime : "",
+      sessionFromTime: session.sessionFromTime ? session.sessionFromTime : "",
+      feedback: session.feedback ? session.feedback : " ",
+      sessionToTime: session.sessionToTime ? session.sessionToTime : "",
+      Satisfaction: session.Satisfaction ? session.Satisfaction : "",
+      // machineId: session.machineId?session.machineId._id:'',
+      sessionStatusId: session.sessionStatusId
+        ? session.sessionStatusId._id
+        : "",
+    });
+    setIsFormOpen(true);
+  };
   const getReviewStatus = async (data) => {
     try {
       const response = await apiRequest("ReviewStatus/getAllReviewStatus", {
@@ -464,6 +498,7 @@ const ReviewMasterForm = () => {
       console.log(error, "error from frontend get All Review Status");
     }
   };
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   return (
     <div className="md:space-y-6 space-y-10">
@@ -845,7 +880,7 @@ const ReviewMasterForm = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleEditSession(session)}
+                        onClick={() => handleEditReview(session)}
                       >
                         <Edit size={12} />
                       </Button>
@@ -1242,6 +1277,13 @@ const ReviewMasterForm = () => {
                 </SelectContent>
               </Select>
             </div>{" "}
+            <div>
+              <Label className="font-semibold">Current Goal</Label>
+              <p className="text-sm text-gray-700 p-2 bg-gray-100 rounded-md mt-1">
+                {filteredReviews?.patientId?.shortTermGoals ||
+                  "No current goal set."}
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>Feedback</Label>
               {/* <Select
@@ -1268,6 +1310,26 @@ const ReviewMasterForm = () => {
                 }
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Satisfaction (%)</Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((p) => (
+                  <Button
+                    key={p}
+                    type="button"
+                    variant={
+                      sessionForm.Satisfaction === p ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() =>
+                      setSessionForm((f) => ({ ...f, Satisfaction: p }))
+                    }
+                  >
+                    {p}%
+                  </Button>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Review Status</Label>

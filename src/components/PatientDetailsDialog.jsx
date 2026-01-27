@@ -15,9 +15,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format } from "date-fns";
+import format from "date-fns/format";
+import getMonth from "date-fns/getMonth";
+import isMonday from "date-fns/isMonday";
+
 import { toast } from "./ui/use-toast";
 import { Input } from "./ui/input";
+import { isValid, parseISO } from "date-fns";
 
 const DetailItem = ({ label, value }) =>
   value ? (
@@ -145,18 +149,12 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                     <>
                       <DetailItem
                         label="Consultation Date"
-                        value={
-                          patient.consultationDate
-                            ? format(new Date(patient.consultationDate), "PPP")
-                            : "N/A" || patient?.patientId?.consultationDate
-                              ? format(
-                                  new Date(
-                                    patient?.patientId?.consultationDate,
-                                  ),
-                                  "PPP",
-                                )
-                              : "N/A"
-                        }
+                        value={(() => {
+                          const date =
+                            patient?.consultationDate ||
+                            patient?.patientId?.consultationDate;
+                          return date ? format(new Date(date), "PPP") : "N/A";
+                        })()}
                       />
                     </>
                   ) : null}
@@ -225,18 +223,19 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                     <>
                       <DetailItem
                         label="Session Start Date"
-                        value={
-                          patient.sessionStartDate
-                            ? format(new Date(patient.sessionStartDate), "PPP")
-                            : "N/A" || patient?.patientId?.sessionStartDate
-                              ? format(
-                                  new Date(
-                                    patient?.patientId?.sessionStartDate,
-                                  ),
-                                  "PPP",
-                                )
-                              : "N/A"
-                        }
+                        value={(() => {
+                          // pick the first valid date
+                          const dateString =
+                            patient?.sessionStartDate ||
+                            patient?.patientId?.sessionStartDate;
+
+                          if (!dateString) return "N/A"; // no date
+                          const date =
+                            typeof dateString === "string"
+                              ? parseISO(dateString)
+                              : new Date(dateString);
+                          return isValid(date) ? format(date, "PPP") : "N/A"; // only format valid dates
+                        })()}
                       />
                       <DetailItem
                         label=" Total Session Days"
@@ -326,35 +325,51 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                   <DetailItem
                     label="History of Surgery"
                     value={
-                      `${patient.historyOfSurgery} ${
-                        patient.historyOfSurgery === "yes"
-                          ? `(${patient.historyOfSurgeryDetails})`
-                          : ""
-                      }` || patient?.patientId?.historyOfSurgery
+                      (patient.historyOfSurgery !== undefined
+                        ? patient.historyOfSurgery
+                          ? "Yes"
+                          : "No"
+                        : patient?.patientId?.historyOfSurgery
+                          ? "Yes"
+                          : "No") +
+                      (patient.historyOfSurgery &&
+                      patient.historyOfSurgeryDetails
+                        ? ` (${patient.historyOfSurgeryDetails})`
+                        : "")
                     }
                   />
+
                   <DetailItem
                     label="History of Fall"
                     value={
-                      `${patient.historyOfFall} ${
-                        patient.historyOfFall === "yes"
-                          ? `(${patient.historyOfFallDetails})`
-                          : ""
-                      }` || patient?.patientId?.historyOfFall
+                      (patient.historyOfFall !== undefined
+                        ? patient.historyOfFall
+                          ? "Yes"
+                          : "No"
+                        : patient?.patientId?.historyOfFall
+                          ? "Yes"
+                          : "No") +
+                      (patient.historyOfFall && patient.historyOfFallDetails
+                        ? ` (${patient.historyOfFallDetails})`
+                        : "")
                     }
                   />
+
                   <DetailItem
                     label="Other Medical Conditions"
                     value={
                       patient.otherMedicalConditions ||
-                      patient?.patientId?.otherMedicalConditions
+                      patient?.patientId?.otherMedicalConditions ||
+                      "-"
                     }
                   />
+
                   <DetailItem
                     label="Current Medications"
                     value={
                       patient.currentMedications ||
-                      patient?.patientId?.currentMedications
+                      patient?.patientId?.currentMedications ||
+                      "-"
                     }
                   />
                 </div>
@@ -448,18 +463,34 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                   <DetailItem
                     label="Modalities"
                     value={
-                      `${patient.modalities} ${
-                        patient.modalities === "yes"
-                          ? `(${patient.modalityList?.join(", ")})`
-                          : ""
-                      }` ||
-                      `${patient?.patientId?.modalities} ${
-                        patient?.patientId?.modalities === "yes"
-                          ? `(${patient?.patientId?.modalityList?.join(", ")})`
-                          : ""
-                      }`
+                      // Determine Yes/No
+                      (patient.modalities !== undefined
+                        ? patient.modalities
+                          ? "Yes"
+                          : "No"
+                        : patient?.patientId?.historyOfSurgery
+                          ? "Yes"
+                          : "No") +
+                      // Append modality name only if it exists
+                      (patient?.modalitiesList?.modalityId?.modalitiesName
+                        ? ` (${patient.modalitiesList.modalityId.modalitiesName})`
+                        : "")
                     }
                   />
+
+                  {/* // value={ */}
+                  {/* //   `${patient.modalities} ${ */}
+                  {/* //     patient.modalities === "yes" */}
+                  {/* //       ? `(${patient.modalityList?.join(", ")})` */}
+                  {/* //       : "" */}
+                  {/* //   }` || */}
+                  {/* //   `${patient?.patientId?.modalities} ${ */}
+                  {/* //     patient?.patientId?.modalities === "yes" */}
+                  {/* //       ? `(${patient?.patientId?.modalityList?.join(", ")})` */}
+                  {/* //       : "" */}
+                  {/* //   }` */}
+                  {/* // } */}
+                  {/* // /> */}
                   <DetailItem
                     label="Targeted Area"
                     value={

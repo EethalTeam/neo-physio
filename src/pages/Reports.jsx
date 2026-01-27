@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+// import DateRangePicker from "@/components/DateRangePicker";
+
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -36,6 +38,96 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getMonth } from "date-fns";
 
 const Reports = () => {
+  const [expensesData, setExpensesData] = useState([]);
+
+  const handlePeriodChange = async (ranges) => {
+    if (!ranges?.selection) return;
+
+    const normalizeDate = (date) => {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0); // remove time
+      return d;
+    };
+
+    const start = normalizeDate(ranges.selection.startDate);
+    const end = normalizeDate(ranges.selection.endDate);
+
+    setSelectedRange({ startDate: start, endDate: end, key: "selection" });
+
+    try {
+      // Fetch sessions for selected range
+      const sessionsRes = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({
+          physioId: user._id,
+          startDate: selectedRange.startDate,
+          endDate: selectedRange.endDate,
+        }),
+      });
+
+      const expensesRes = await apiRequest("Expense/getAllExpense", {
+        method: "POST",
+        body: JSON.stringify({
+          startDate,
+          endDate,
+        }),
+      });
+
+      // Update states
+      setSessions(sessionsRes || []);
+      setExpensesData(expensesRes || []);
+
+      // Calculate stats
+      const totalPatients = sessionsRes.reduce(
+        (sum, s) => sum + (s.patientCount || 1),
+        0,
+      );
+      const totalPhysio = new Set(sessionsRes.map((s) => s.physioId)).size;
+      const completedSessions = sessionsRes.filter(
+        (s) => s.sessionStatusId?.sessionStatusName === "Completed",
+      ).length;
+      const cancelledSessions = sessionsRes.filter(
+        (s) => s.sessionStatusId?.sessionStatusName === "Canceled",
+      ).length;
+
+      setStats((prev) => ({
+        ...prev,
+        patient: totalPatients,
+        physio: totalPhysio,
+        sessionCompleted: completedSessions,
+        cancelledSessions,
+      }));
+
+      // Update funnel
+      const newEnquiries = sessionsRes.filter(
+        (s) => s.type === "Enquiry",
+      ).length;
+      const newConsultations = sessionsRes.filter(
+        (s) => s.type === "Consultation",
+      ).length;
+      const newPatients = sessionsRes.filter(
+        (s) => s.type === "Patient",
+      ).length;
+      const conversionRate =
+        newEnquiries > 0 ? ((newPatients / newEnquiries) * 100).toFixed(2) : 0;
+
+      setFunnel({
+        newEnquiries,
+        newConsultations,
+        newPatients,
+        conversionRate,
+      });
+    } catch (err) {
+      console.error("Error loading reports for selected period:", err);
+    }
+  };
+
+  // const [selectedRange, setSelectedRange] = useState({
+  //   startDate: new Date(),
+  //   endDate: new Date(),
+  //   key: "selection",
+  // });
+
   const [stats, setStats] = useState({
     lead: 0,
     patient: 0,
@@ -43,6 +135,7 @@ const Reports = () => {
     cancelledsession: 0,
     physio: 0,
     monthlyRevenue: 0,
+    monthlyExpenses: 0,
     // physio: 0,
     completedReview: 0,
     cancelledSessions: 0,
@@ -77,14 +170,51 @@ const Reports = () => {
       cancelledSessions: cancelledSessions.length,
     });
   };
-  console.log("Summary", summary);
+  // console.log("Summary", summary);
 
   useEffect(() => {
     getAllDashBoard();
     funnelmonthly();
     loadDashboardData();
+    getSession();
+    getAllExpenses();
   }, []);
+  const [sessions, setSessions] = useState([]);
 
+  const [todaySessionCount, setTodaySessionCount] = useState(0);
+
+  const getSession = async () => {
+    try {
+      const storedRole = localStorage.getItem("userRole");
+
+      const response = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({
+          physioId: user._id,
+          storedRole,
+        }),
+      });
+
+      if (!Array.isArray(response)) return;
+
+      setSessions(response);
+
+      const today = new Date().toISOString().split("T")[0];
+
+      const todaySessions = response.filter((s) => {
+        if (!s.sessionDate) return false;
+
+        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
+        // console.log(sessionDay, "sessionDay" + today, "Today");
+
+        return sessionDay === today;
+      });
+      // setFilteredSessions(todaySessions);
+      setTodaySessionCount(todaySessions.length);
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    }
+  };
   const getAllDashBoard = async (data) => {
     try {
       const response = await apiRequest("DashBoard/getAllDashBoard", {
@@ -158,6 +288,15 @@ const Reports = () => {
   //   cancelledSessions: 0,
   // });
   const [selectedPeriod, setSelectedPeriod] = useState("monthly");
+
+  const handleCustomRangeChange = ([startDate, endDate]) => {
+    if (!startDate || !endDate) return;
+
+    setSelectedRange({
+      startDate,
+      endDate,
+    });
+  };
 
   const handleExportCSV = () => {
     toast({
@@ -246,8 +385,125 @@ const Reports = () => {
     "November",
     "December",
   ];
+  const getDateRange = (period) => {
+    const now = new Date();
+    let startDate;
+    let endDate = new Date();
+
+    switch (period) {
+      case "weekly":
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 6);
+        break;
+
+      case "monthly":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+
+      case "quarterly":
+        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+        startDate = new Date(now.getFullYear(), quarterStart, 1);
+        break;
+
+      case "yearly":
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    return { startDate, endDate };
+  };
+  const [selectedRange, setSelectedRange] = useState(() =>
+    getDateRange("monthly"),
+  );
+  useEffect(() => {
+    if (!sessions.length) return;
+
+    const revenue = calculateRevenueByPeriod(sessions, selectedRange);
+    const expenses = calculateExpensesByPeriod(expensesData, selectedRange);
+
+    setStats((prev) => ({
+      ...prev,
+      monthlyRevenue: revenue,
+      monthlyExpenses: expenses,
+    }));
+  }, [selectedRange, sessions, expensesData]);
+
+  useEffect(() => {
+    if (selectedPeriod === "custom") return;
+
+    const range = getDateRange(selectedPeriod);
+    setSelectedRange(range);
+  }, [selectedPeriod]);
+
+  const calculateRevenueByPeriod = (sessions, periodOrRange) => {
+    let startDate, endDate;
+
+    if (periodOrRange.startDate && periodOrRange.endDate) {
+      // Custom range selected
+      startDate = periodOrRange.startDate;
+      endDate = periodOrRange.endDate;
+    } else {
+      // Fallback to predefined periods
+      ({ startDate, endDate } = getDateRange(periodOrRange));
+    }
+
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    return sessions.reduce((revenue, s) => {
+      if (s.sessionStatusId?.sessionStatusName !== "Completed") return revenue;
+
+      const sessionDate = new Date(s.sessionDate);
+      sessionDate.setHours(0, 0, 0, 0);
+
+      if (sessionDate < startDate || sessionDate > endDate) return revenue;
+
+      if (s.feeType === "PerSession") revenue += Number(s.feeAmount || 0);
+      else if (s.feeType === "PerMonth") revenue += Number(s.monthlyFee || 0);
+
+      return revenue;
+    }, 0);
+  };
+
+  const getAllExpenses = async () => {
+    try {
+      const res = await apiRequest("Expense/getAllExpense", {
+        method: "POST", // or GET if you set up GET endpoint
+      });
+
+      if (Array.isArray(res)) {
+        setExpensesData(res);
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+    }
+  };
+
+  const calculateExpensesByPeriod = (expenses, period) => {
+    const { startDate, endDate } = getDateRange(period);
+
+    return expenses.reduce((total, exp) => {
+      const d = new Date(exp.expenseDate);
+      if (d >= startDate && d <= endDate) {
+        total += Number(exp.expenseAmount || 0); // use expenseAmount from your schema
+      }
+      return total;
+    }, 0);
+  };
+
   const month = new Date().getMonth();
   const year = new Date().getFullYear();
+  const avgPatient =
+    stats.physio > 0 ? (stats.patient / stats.physio).toFixed(1) : 0;
+
+  console.log(avgPatient, "Average Patients per Physiotherapist");
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -278,6 +534,13 @@ const Reports = () => {
               <SelectItem value="yearly">Yearly</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex items-center space-x-4">
+            {/* <DateRangePicker
+              period={selectedPeriod}
+              onPeriodChange={setSelectedPeriod}
+              onRangeChange={handleCustomRangeChange}
+            /> */}
+          </div>
 
           <div className="flex space-x-2">
             <Button variant="outline" onClick={handleExportCSV}>
@@ -291,9 +554,8 @@ const Reports = () => {
           </div>
         </div>
       </motion.div>
-
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2  gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -317,7 +579,7 @@ const Reports = () => {
                     {stat.value}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Updated in real-time
+                    Updated for selected date
                   </p>
                 </CardContent>
               </Card>
@@ -325,6 +587,7 @@ const Reports = () => {
           );
         })}
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-6">
         <Card className="medical-card hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -439,7 +702,7 @@ const Reports = () => {
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2  gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-6">
         <Card className="medical-card hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -470,6 +733,36 @@ const Reports = () => {
               {summary.cancelledSessions}
             </div>
             <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
+          </CardContent>
+        </Card>
+        <Card className="medical-card hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Today Session Count
+            </CardTitle>
+            <div className={`p-2 rounded-full ${stats.bgColor}`}>
+              <User className={`h-4 w-4 ${stats.color}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-800">
+              {todaySessionCount}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
+          </CardContent>
+        </Card>{" "}
+        <Card className="medical-card hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Average Patient per Physiotherapist
+            </CardTitle>
+            <div className={`p-2 rounded-full ${stats.bgColor}`}>
+              <User className={`h-4 w-4 ${stats.color}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-gray-800">{avgPatient}</div>
+            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
           </CardContent>
         </Card>
       </div>
