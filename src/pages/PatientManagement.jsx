@@ -223,7 +223,7 @@ const PatientManagement = () => {
     getAllRisk();
     getAllpshyio();
     getAllGender();
-
+    getModalities();
     getFeesType();
     getReference();
   }, []);
@@ -771,7 +771,24 @@ const PatientManagement = () => {
           description: "Patient details updated.",
         });
       }
-
+      if (patientForm.Modalities === "yes") {
+        if (!patientForm.modalityList?.length) {
+          toast({
+            title: "Alert",
+            description: "Select at least one modality",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!patientForm.targetedArea?.trim()) {
+          toast({
+            title: "Alert",
+            description: "Enter the targeted area",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       // CLOSE MODAL ONLY ON SUCCESS
       setIsFormOpen(false);
       setEditingPatient(null);
@@ -1245,7 +1262,25 @@ const PatientManagement = () => {
       </RadioGroup>
     </div>
   );
-
+  const [modalities, setModalities] = useState([]);
+  const [modalityForm, setModalityForm] = useState({
+    Modalities: false,
+    modalitiestype: "",
+    modalityList: [],
+    modalityType: {}, // to store Type of Modality for each checked modality
+  });
+  console.log(modalities, "modalities modalities");
+  const getModalities = async (data) => {
+    try {
+      const response = await apiRequest("Modalities/getAllModalities", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setModalities(response);
+    } catch (error) {
+      console.log(error, "error from frontend get All Modalities");
+    }
+  };
   const handleToggleStatus = async (patient) => {
     try {
       const newStatus = !patient.isRecovered;
@@ -1292,30 +1327,13 @@ const PatientManagement = () => {
   const [pendingPatient, setPendingPatient] = useState(null);
   const handleConsentToggle = async (patient) => {
     try {
-      const newRecoveredStatus = patient.isConsentReceived;
-      if (newRecoveredStatus) {
-        toast({
-          title: "Error",
-          description: "Consent already received for this patient",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // const confirmActions = window.confirm(
-      //   `Are you sure you want to mark ${patient.patientName} as ${
-      //     newRecoveredStatus ? "Concerned" : "Not concerned"
-      //   }?`,
-      // );
-
-      // if (!confirmActions) return;
+      const newStatus = !patient.isConsentReceived;
 
       const res = await apiRequest("Patient/updatePatient", {
         method: "POST",
         body: JSON.stringify({
           _id: patient._id,
-
-          isConsentReceived: true, // ONLY THIS
+          isConsentReceived: newStatus,
         }),
       });
 
@@ -1323,26 +1341,23 @@ const PatientManagement = () => {
         toast({
           title: "Status Updated",
           description: `${patient.patientName} is now ${
-            true ? "Consent Received" : "Not Consent"
+            newStatus ? "Consent Received" : "Not Consent Received"
           }.`,
         });
 
         setPatients((prev) =>
           prev.map((p) =>
-            p._id === patient._id
-              ? { ...p, isConsentReceived: newRecoveredStatus }
-              : p,
+            p._id === patient._id ? { ...p, isConsentReceived: newStatus } : p,
           ),
         );
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update recovery status.",
+        description: "Failed to update patient status.",
         variant: "destructive",
       });
     }
-    getAllPatient();
   };
 
   // const renderRadioGroup = (label, name, value, id, group) => (
@@ -1355,6 +1370,7 @@ const PatientManagement = () => {
   //   </div>
 
   // );
+  console.log("patientForm", patientForm);
   const [selectedPhysioId, setSelectedPhysioId] = useState("ALL");
   useEffect(() => {
     const filtered = patients.filter((patient) => {
@@ -1530,25 +1546,31 @@ const PatientManagement = () => {
                 <thead className="bg-gray-100 text-gray-700">
                   <tr>
                     <th className="px-3 py-2 text-left">Patient</th>
-                    <th className="px-3 py-2 text-left  sm:table-cell">
-                      Age / Gender
-                    </th>
-                    <th className="px-3 py-2 text-left hidden md:table-cell">
-                      Contact
-                    </th>
-                    {user?.role === "HOD" && (
-                      <>
-                        <th className="px-3 py-2 text-left hidden md:table-cell">
-                          No of Sessions
-                        </th>
-                        <th className="px-3 py-2 text-left hidden md:table-cell">
-                          Condition
-                        </th>
-                      </>
+                    {user?.role !== "HOD" && (
+                      <th className="px-3 py-2 text-left  sm:table-cell">
+                        Age / Gender
+                      </th>
                     )}
-                    <th className="px-3 py-2 text-left hidden lg:table-cell">
-                      Consultation
-                    </th>
+                    {user?.role !== "HOD" && (
+                      <th className="px-3 py-2 text-left hidden md:table-cell">
+                        Contact
+                      </th>
+                    )}
+                    {/* {user?.role === "HOD" && ( */}
+                    <>
+                      <th className="px-3 py-2 text-left hidden md:table-cell">
+                        No of Sessions
+                      </th>
+                      <th className="px-3 py-2 text-left hidden md:table-cell">
+                        Condition
+                      </th>
+                    </>
+                    {/* )} */}
+                    {user?.role !== "HOD" && (
+                      <th className="px-3 py-2 text-left hidden lg:table-cell">
+                        Consultation
+                      </th>
+                    )}
                     <th className="px-3 py-2 text-left hidden lg:table-cell">
                       Review
                     </th>
@@ -1573,30 +1595,36 @@ const PatientManagement = () => {
                         </div>
                       </td>
                       {/* Age / Gender */}
-                      <td className="px-3 py-2  sm:table-cell">
-                        {patient.patientAge} /{" "}
-                        {patient.patientGenderId.genderName}
-                      </td>
-                      {/* Contact */}
-                      <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
-                        {patient.patientNumber}
-                      </td>
-                      {user?.role === "HOD" && (
+                      {user?.role !== "HOD" && (
                         <>
-                          <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
-                            {patient.totalSessionDays || 0}
+                          <td className="px-3 py-2  sm:table-cell">
+                            {patient.patientAge} /{" "}
+                            {patient.patientGenderId.genderName}
                           </td>
+
                           <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
-                            {patient.patientCondition}
+                            {patient.patientNumber}
                           </td>
                         </>
                       )}
+                      {/* {user?.role === "HOD" && ( */}
+                      <>
+                        <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                          {patient.totalSessionDays || 0}
+                        </td>
+                        <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                          {patient.patientCondition}
+                        </td>
+                      </>
+                      {/* )} */}
                       {/* Consultation */}
-                      <td className="px-3 py-2 hidden lg:table-cell max-w-full">
-                        {patient.consultationDate
-                          ? format(new Date(patient.consultationDate), "PP")
-                          : "Not set"}
-                      </td>
+                      {user?.role !== "HOD" && (
+                        <td className="px-3 py-2 hidden lg:table-cell max-w-full">
+                          {patient.consultationDate
+                            ? format(new Date(patient.consultationDate), "PP")
+                            : "Not set"}
+                        </td>
+                      )}
                       {/* Review */}
                       <td className="px-3 py-2 hidden lg:table-cell">
                         {patient.reviewDate
@@ -1614,24 +1642,35 @@ const PatientManagement = () => {
                       <td className="px-3 py-2 hidden sm:table-cell">
                         <div className="flex flex-row flex-wrap gap-2 justify-center">
                           {patient.isConsentReceived ? (
-                            <Button size="sm" variant={"secondary"}>
-                              <CheckCircle
-                                size={14}
-                                className="text-green-600"
-                              />
-                            </Button>
-                          ) : (
                             <Button
                               size="sm"
-                              variant={"default"}
+                              variant="secondary"
                               onClick={() => {
                                 setPendingPatient(patient);
                                 setOpendialog(true);
                               }}
                             >
-                              <Circle size={14} />
+                              <CheckCircle
+                                size={14}
+                                className="text-green-600 pointer-events-none"
+                              />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => {
+                                setPendingPatient(patient);
+                                setOpendialog(true);
+                              }}
+                            >
+                              <Circle
+                                size={14}
+                                className="pointer-events-none"
+                              />
                             </Button>
                           )}
+
                           <Button
                             size="sm"
                             variant="outline"
@@ -1813,24 +1852,35 @@ const PatientManagement = () => {
                           </div>
                         </div>
                         <div className="mt-2 flex flex-row flex-wrap gap-2 sm:hidden">
-                          <Button
-                            size="sm"
-                            variant={
-                              patient.isConsentReceived
-                                ? "secondary"
-                                : "default"
-                            }
-                            onClick={() => handleConsentToggle(patient)}
-                          >
-                            {patient.isConsentReceived ? (
+                          {patient.isConsentReceived ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                setPendingPatient(patient);
+                                setOpendialog(true);
+                              }}
+                            >
                               <CheckCircle
                                 size={14}
-                                className="text-green-600"
+                                className="text-green-600 pointer-events-none"
                               />
-                            ) : (
-                              <Circle size={14} />
-                            )}
-                          </Button>{" "}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => {
+                                setPendingPatient(patient);
+                                setOpendialog(true);
+                              }}
+                            >
+                              <Circle
+                                size={14}
+                                className="pointer-events-none"
+                              />
+                            </Button>
+                          )}
                           {(user?.role === "HOD" ||
                             user?.role === "Admin" ||
                             user?.role === "SuperAdmin") && (
@@ -2528,7 +2578,6 @@ const PatientManagement = () => {
                                 : "default"
                             }
                             onClick={() => {
-                              // handleConcernToggle(selectedPatient)
                               setPendingPatient(selectedPatient);
                               setOpendialog(true);
                             }}
@@ -2860,43 +2909,91 @@ const PatientManagement = () => {
                       )}
                     </div>
                     {patientForm.Modalities === true && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="space-y-2 pl-4"
-                      >
-                        <Label>List of Modalities</Label>
-                        <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
-                          {modalitiesOptions.map((mod) => (
-                            <div
-                              key={mod}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`mod-${mod}`}
-                                checked={patientForm.modalityList.includes(mod)}
-                                onCheckedChange={(checked) => {
-                                  setPatientForm((prev) => ({
-                                    ...prev,
-                                    modalityList: checked
-                                      ? [...prev.modalityList, mod]
-                                      : prev.modalityList.filter(
-                                          (m) => m !== mod,
-                                        ),
-                                  }));
-                                }}
-                              />
-                              <Label
-                                htmlFor={`mod-${mod}`}
-                                className="text-sm font-normal"
-                              >
-                                {mod}
-                              </Label>
+                      <div className="space-y-2">
+                        {/* Step 1: Modalities Type */}
+                        <Label htmlFor="modalitiestype">Modalities Type</Label>
+                        <Select
+                          value={patientForm.modalitiestype} // store selected type here
+                          onValueChange={(val) =>
+                            setPatientForm((prev) => ({
+                              ...prev,
+                              modalitiestype: val,
+                              modalityList: [], // reset selected modalities when type changes
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select Modalities Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Exercise Therapy">
+                              Exercise Therapy
+                            </SelectItem>
+                            <SelectItem value="Electrotherapy">
+                              Electrotherapy
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {/* Step 2: Show list of modalities filtered by selected type */}
+                        {patientForm.modalitiestype && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="space-y-2 pl-4"
+                          >
+                            <Label>List of Modalities</Label>
+                            <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
+                              {Array.isArray(modalities) &&
+                                modalities
+                                  .filter(
+                                    (mod) =>
+                                      mod.modalitiestype ===
+                                      patientForm.modalitiestype,
+                                  )
+                                  .map((mod) => {
+                                    const isChecked =
+                                      patientForm.modalityList.includes(
+                                        mod._id,
+                                      );
+
+                                    return (
+                                      <div
+                                        key={mod._id}
+                                        className="flex items-center space-x-2"
+                                      >
+                                        <Checkbox
+                                          id={`mod-${mod._id}`}
+                                          checked={isChecked}
+                                          onCheckedChange={(checked) => {
+                                            setPatientForm((prev) => ({
+                                              ...prev,
+                                              modalityList: checked
+                                                ? [
+                                                    ...prev.modalityList,
+                                                    mod._id,
+                                                  ]
+                                                : prev.modalityList.filter(
+                                                    (m) => m !== mod._id,
+                                                  ),
+                                            }));
+                                          }}
+                                        />
+                                        <Label
+                                          htmlFor={`mod-${mod._id}`}
+                                          className="text-sm font-normal"
+                                        >
+                                          {mod.modalitiesName}
+                                        </Label>
+                                      </div>
+                                    );
+                                  })}
                             </div>
-                          ))}
-                        </div>
-                      </motion.div>
+                          </motion.div>
+                        )}
+                      </div>
                     )}
+
                     <div className="space-y-2">
                       <Label>Targeted Area</Label>
                       <Input

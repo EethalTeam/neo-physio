@@ -421,9 +421,9 @@ const SessionManagement = () => {
     }
   };
 
-  const SessionStock = async (data) => {
+  const SessionStop = async (data) => {
     try {
-      const response = await apiRequest("Session/SessionStock", {
+      const response = await apiRequest("Session/SessionStop", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -594,7 +594,7 @@ const SessionManagement = () => {
 
     // START SESSION
     handleActionStart(sessionId, action);
-    handlesessionStock(sessionId, action);
+    handlesessionStop(sessionId, action);
 
     setSessions((prev) =>
       prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
@@ -704,8 +704,8 @@ const SessionManagement = () => {
       action: action,
     });
   };
-  const handlesessionStock = (session, action) => {
-    SessionStock({
+  const handlesessionStop = (session, action) => {
+    SessionStop({
       _id: session,
       action: action,
     });
@@ -1846,7 +1846,7 @@ const SessionManagement = () => {
                 </div>
               )}
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Machine Used</Label>
                 <Select
                   onValueChange={(v) =>
@@ -1865,7 +1865,7 @@ const SessionManagement = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
 
               <div className="space-y-2">
                 <Label htmlFor="targetArea">Targeted Area</Label>

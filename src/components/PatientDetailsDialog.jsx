@@ -319,7 +319,7 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                         .map((rev) => (
                           <div
                             key={rev._id}
-                            className="w-full border rounded-lg mt-5 p-6 mb-4 shadow-md bg-white"
+                            className="w-full border rounded-lg mt-5 p-6 mb-4 shadow-md bg-sky-200"
                           >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <DetailItem

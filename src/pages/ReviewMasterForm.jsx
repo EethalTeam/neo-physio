@@ -174,9 +174,13 @@ const ReviewMasterForm = () => {
         (review) =>
           Array.isArray(review.redFlags) && review.redFlags.length > 0,
       );
-      setReviews(response);
-      setFilteredReviews(response);
-      console.log(response, "reviews from frontend");
+      const completedReviews = response.filter(
+        (review) => review.reviewStatusId?.reviewStatusName === "Pending",
+      );
+
+      setReviews(completedReviews);
+      setFilteredReviews(completedReviews);
+      console.log(completedReviews, "reviews from frontend");
     } catch (error) {
       console.log(error, "error from frontend get All Session");
     }
