@@ -226,6 +226,7 @@ const SessionManagement = () => {
   //   }
   // };
   const [sessionCountMap, setSessionCountMap] = useState({});
+  console.log(sessionCountMap, "sessionCountMap");
   const getSession = async () => {
     try {
       const storedRole = localStorage.getItem("userRole");
@@ -1021,7 +1022,12 @@ const SessionManagement = () => {
                             : ""}
                         </span>
                       </td>
-                      <td className="p-2">{getNthSession(session)}</td>
+                      <td className="p-2">
+                        {getNthSession(session)}
+                        {/* {sessionCountMap[
+                          `${session?.patientId?._id}-${session?.physioId?._id}`
+                        ]?.completed + 1} */}
+                      </td>
 
                       <td className="p-2">
                         <div className="text-xs space-y-1">
@@ -1379,6 +1385,11 @@ const SessionManagement = () => {
                     Session
                     <span className="font-medium text-gray-800 ml-1">
                       {getNthSession(session) || "-"}
+                      {/* {
+                        sessionCountMap[
+                          `${session?.patientId?._id}-${session?.physioId?._id}`
+                        ]?.completed
+                      } */}
                     </span>
                   </p>
 

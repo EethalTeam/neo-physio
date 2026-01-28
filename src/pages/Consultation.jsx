@@ -982,22 +982,22 @@ const Consulation = () => {
       });
       return false;
     }
-    if (!assignForm.InitialShorttermGoal) {
-      toast({
-        title: "Alert",
-        description: "Please Enter Initial Short term Goal.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    if (!assignForm.goalDuration) {
-      toast({
-        title: "Alert",
-        description: "Please Enter Goal Duration.",
-        variant: "destructive",
-      });
-      return false;
-    }
+    // if (!assignForm.InitialShorttermGoal) {
+    //   toast({
+    //     title: "Alert",
+    //     description: "Please Enter Initial Short term Goal.",
+    //     variant: "destructive",
+    //   });
+    //   return false;
+    // }
+    // if (!assignForm.goalDuration) {
+    //   toast({
+    //     title: "Alert",
+    //     description: "Please Enter Goal Duration.",
+    //     variant: "destructive",
+    //   });
+    //   return false;
+    // }
     if (!assignForm.visitOrder) {
       toast({
         title: "Alert",
@@ -1804,7 +1804,7 @@ const Consulation = () => {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
+                    {/* <div className="space-y-2">
                       <Label htmlFor="InitialShorttermGoal">
                         Initial Short-term Goal
                       </Label>
@@ -1819,8 +1819,8 @@ const Consulation = () => {
                           }))
                         }
                       />
-                    </div>
-                    <div className="space-y-2">
+                    </div> */}
+                    {/* <div className="space-y-2">
                       <Label htmlFor="goalDuration">
                         Goal Duration (in days)
                       </Label>
@@ -1836,8 +1836,8 @@ const Consulation = () => {
                           }))
                         }
                       />
-                    </div>
-                    <div className="space-y-2">
+                    </div> */}
+                    {/* <div className="space-y-2">
                       <Label htmlFor="goalDescription">Goal Description</Label>
                       <textarea
                         id="goalDescription"
@@ -1851,7 +1851,7 @@ const Consulation = () => {
                           }))
                         }
                       />
-                    </div>
+                    </div> */}
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="travel">
