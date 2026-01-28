@@ -55,6 +55,25 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
     // KmsfLPatienttoHub: "",
     // kmsFromPrevious: "",
   };
+  const [reviews, setReviews] = useState([]);
+  const getReviewById = async (patientId) => {
+    try {
+      const response = await apiRequest("Review/getSingleReview", {
+        method: "POST",
+        body: JSON.stringify({ patientId }),
+      });
+      setReviews(response);
+      console.log(response, "Patient reviews");
+    } catch (error) {
+      console.log(error, "Error fetching patient reviews");
+    }
+  };
+
+  useEffect(() => {
+    console.log("Patient Passes to Dialog", patient);
+    if (patient?._id) getReviewById(patient._id);
+  }, [patient]);
+
   const [assignForm, setAssignForm] = useState(initialAssignState);
   const [goalsForm, setGoalsForm] = useState({
     shortTermGoals:
@@ -62,6 +81,7 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
     longTermGoals:
       patient?.longTermGoals || patient?.patientId?.longTermGoals || "",
   });
+
   useEffect(() => {
     setGoalsForm({
       shortTermGoals:
@@ -95,7 +115,7 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
     }
   };
 
-  // console.log(patient, "patient");
+  console.log(patient, "patient");
   if (!patient) return null;
   const user = JSON.parse(localStorage.getItem("user"));
   const reviewDateValue = (() => {
@@ -217,7 +237,6 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                       />
                     </>
                   ) : null}
-                  <DetailItem label="Review Date" value={reviewDateValue} />
 
                   {user?.role !== "Physio" && user?.role !== "HOD" ? (
                     <>
@@ -286,6 +305,51 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                       patient?.patientId?.patientCondition
                     }
                   />
+                </DetailSection>
+                <DetailSection>
+                  {user?.role !== "physio" &&
+                    user?.role !== "HOD" &&
+                    (reviews.length > 0 ? (
+                      reviews
+                        .filter(
+                          (rev) =>
+                            rev.reviewStatusId?.reviewStatusName ===
+                            "Completed",
+                        )
+                        .map((rev) => (
+                          <div
+                            key={rev._id}
+                            className="w-full border rounded-lg mt-5 p-6 mb-4 shadow-md bg-white"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <DetailItem
+                                label="Review Date"
+                                value={new Date(
+                                  rev.reviewDate,
+                                ).toLocaleDateString()}
+                              />
+                              <DetailItem
+                                label="Review Status"
+                                value={rev.reviewStatusId?.reviewStatusName}
+                              />
+                              <DetailItem
+                                label="Review Type"
+                                value={rev.reviewTypeId?.reviewTypeName}
+                              />
+                              <DetailItem
+                                label="Review Satisfaction"
+                                value={`${rev.Satisfaction}%`}
+                              />
+                              <DetailItem
+                                label="Review Feedback"
+                                value={rev.feedback || "N/A"}
+                              />
+                            </div>
+                          </div>
+                        ))
+                    ) : (
+                      <DetailItem label="Review Date" value="N/A" />
+                    ))}
                 </DetailSection>
               </AccordionContent>
             </AccordionItem>
@@ -452,29 +516,36 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                   <DetailItem
                     label="Review Frequency"
                     value={
-                      `${patient?.patientId?.reviewFrequency} Per Week` ||
-                      `${patient.reviewFrequency} Per Week`
+                      patient?.patientId?.reviewFrequency
+                        ? `${patient.patientId.reviewFrequency} Per Week`
+                        : patient?.reviewFrequency
+                          ? `${patient.reviewFrequency} Per Week`
+                          : "-"
                     }
                   />
+
                   <DetailItem
                     label="Duration"
                     value={patient.Duration || patient?.patientId?.Duration}
                   />
                   <DetailItem
                     label="Modalities"
+                    value={(() => {
+                      const names = (patient?.modalitiesList || [])
+                        .filter((item) => item?.isOccurred === true)
+                        .map((item) => item?.modalityId?.modalitiesName)
+                        .filter(Boolean)
+                        .join(", ");
+
+                      return names ? `Yes (${names})` : "No";
+                    })()}
+                  />
+
+                  <DetailItem
+                    label="Machine Name"
                     value={
-                      // Determine Yes/No
-                      (patient.modalities !== undefined
-                        ? patient.modalities
-                          ? "Yes"
-                          : "No"
-                        : patient?.patientId?.historyOfSurgery
-                          ? "Yes"
-                          : "No") +
-                      // Append modality name only if it exists
-                      (patient?.modalitiesList?.modalityId?.modalitiesName
-                        ? ` (${patient.modalitiesList.modalityId.modalitiesName})`
-                        : "")
+                      patient.machineId?.machineName ||
+                      patient?.patientId?.machineId?.machineName
                     }
                   />
 

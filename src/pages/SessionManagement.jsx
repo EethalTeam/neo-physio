@@ -555,25 +555,54 @@ const SessionManagement = () => {
 
     setFilteredSessions(filtered);
   }, [sessions, searchTerm, statusFilter, dateFilter]);
+  const canStartByPreviousIndex = (sessions, sessionId) => {
+    if (!Array.isArray(sessions) || sessions.length === 0) return true;
+
+    const currentIndex = sessions.findIndex(
+      (s) => s._id === sessionId || s.id === sessionId,
+    );
+    if (currentIndex === -1) return true;
+    if (currentIndex === 0) return true;
+    const previousSession = sessions[currentIndex - 1];
+    if (!previousSession || !previousSession.sessionStatusId) return true;
+
+    const prevStatus = previousSession.sessionStatusId.sessionStatusName;
+
+    return prevStatus === "Completed" || prevStatus === "Canceled";
+  };
 
   const handleSessionAction = (sessionId, action) => {
-    // console.log(sessionId, "sessionId");
     if (action === "Completed") {
-      setFeedbackDialog({ open: true, sessionId: sessionId });
-      // handleActionEnd(sessionId, action)
-    } else if (action === "Canceled") {
-      setCancelDialog({ open: true, sessionId: sessionId });
-    } else {
-      handleActionStart(sessionId, action);
-      handlesessionStock(sessionId, action);
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
-      );
-      toast({
-        title: "Session Updated",
-        description: `Session has been marked as ${action}`,
-      });
+      setFeedbackDialog({ open: true, sessionId });
+      return;
     }
+
+    if (action === "Canceled") {
+      setCancelDialog({ open: true, sessionId });
+      return;
+    }
+
+    if (!canStartByPreviousIndex(sessions, sessionId)) {
+      toast({
+        title: "Action blocked",
+        description: "Please complete or cancel the previous session first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // START SESSION
+    handleActionStart(sessionId, action);
+    handlesessionStock(sessionId, action);
+
+    setSessions((prev) =>
+      prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
+    );
+
+    toast({
+      title: "Session Updated",
+      description: `Session has been marked as ${action}`,
+    });
   };
 
   const handleCancelSubmit = () => {
@@ -1033,7 +1062,9 @@ const SessionManagement = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleViewConsultation(session)}
+                            onClick={() =>
+                              handleViewConsultation(session.patientId)
+                            }
                           >
                             <FileText size={14} />
                           </Button>
@@ -1428,7 +1459,7 @@ const SessionManagement = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleViewConsultation(session)}
+                      onClick={() => handleViewConsultation(session.patientId)}
                     >
                       <FileText size={14} />
                     </Button>

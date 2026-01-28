@@ -134,7 +134,7 @@ const ReviewMasterForm = () => {
     if (res) setPermissions(res);
     else navigate("/dashboard");
   };
-
+  console.log(filteredReviews, "filteredReviewsfilteredReviews");
   const getAllData = async () => {
     await Promise.all([
       getReviews(),
@@ -365,6 +365,9 @@ const ReviewMasterForm = () => {
       console.error(error, "Error creating review");
     }
   };
+  const selectedPatientObj = patients.find(
+    (p) => p._id === sessionForm.patientId,
+  );
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
@@ -499,7 +502,6 @@ const ReviewMasterForm = () => {
     }
   };
   const [selectedPatient, setSelectedPatient] = useState(null);
-
   return (
     <div className="md:space-y-6 space-y-10">
       <motion.div
@@ -1280,27 +1282,13 @@ const ReviewMasterForm = () => {
             <div>
               <Label className="font-semibold">Current Goal</Label>
               <p className="text-sm text-gray-700 p-2 bg-gray-100 rounded-md mt-1">
-                {filteredReviews?.patientId?.shortTermGoals ||
+                {selectedPatientObj?.shortTermGoals ||
+                  selectedPatientObj?.patientId?.shortTermGoals ||
                   "No current goal set."}
               </p>
             </div>
             <div className="space-y-2">
               <Label>Feedback</Label>
-              {/* <Select
-          value={sessionForm.feedback}
-          onValueChange={(v) => setSessionForm(p => ({ ...p, feedback: v }))}
-          required
-        > */}
-              {/* <SelectTrigger>
-            <SelectValue placeholder="Select a feedback type" />
-          </SelectTrigger> */}
-              {/* <SelectContent>
-            {reviewTypes.map(rt => (
-              <SelectItem key={rt._id} value={rt._id}>{rt.reviewTypeName}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select> */}
-              {/* <Input name="leadContactNo" value={leadForm.leadContactNo} onChange={handleFormChange} required /> */}
               <Input
                 name="feedback"
                 type="text"
