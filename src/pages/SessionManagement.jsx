@@ -1093,7 +1093,7 @@ const SessionManagement = () => {
                           )}
                           {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                             "attended" &&
-                            user?.role !== "physio" && (
+                            user?.role !== "Physio" && (
                               <Button
                                 size="sm"
                                 variant="destructive"
