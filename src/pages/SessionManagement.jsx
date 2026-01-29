@@ -227,59 +227,7 @@ const SessionManagement = () => {
   // };
   const [sessionCountMap, setSessionCountMap] = useState({});
   console.log(sessionCountMap, "sessionCountMap");
-  const getSession = async () => {
-    try {
-      const storedRole = localStorage.getItem("userRole");
 
-      const response = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({
-          physioId: user._id,
-          storedRole,
-        }),
-      });
-
-      if (!Array.isArray(response)) return;
-
-      setSessions(response);
-
-      //Build session count map
-      const countMap = {};
-
-      response.forEach((s) => {
-        const pid = s.patientId?._id;
-        const physioId = s.physioId?._id;
-        if (!pid || !physioId) return;
-
-        const key = `${pid}-${physioId}`;
-
-        if (!countMap[key]) {
-          countMap[key] = { total: 0, completed: 0 };
-        }
-
-        countMap[key].total += 1;
-
-        if (s.sessionStatusId?.sessionStatusName === "Completed") {
-          countMap[key].completed += 1;
-        }
-      });
-
-      setSessionCountMap(countMap);
-      const today = new Date().toISOString().split("T")[0];
-
-      const todaySessions = response.filter((s) => {
-        if (!s.sessionDate) return false;
-
-        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
-
-        return sessionDay === today;
-      });
-
-      setFilteredSessions(todaySessions);
-    } catch (error) {
-      console.error("Error fetching sessions:", error);
-    }
-  };
   const getNthSession = (currentSession) => {
     if (!sessions?.length) return "-";
     const relatedSessions = sessions
@@ -556,20 +504,112 @@ const SessionManagement = () => {
 
     setFilteredSessions(filtered);
   }, [sessions, searchTerm, statusFilter, dateFilter]);
-  const canStartByPreviousIndex = (sessions, sessionId) => {
-    if (!Array.isArray(sessions) || sessions.length === 0) return true;
+  const buildSessionDateTime = (session) => {
+    if (!session.sessionDate || !session.sessionTime) return null;
 
-    const currentIndex = sessions.findIndex(
-      (s) => s._id === sessionId || s.id === sessionId,
-    );
-    if (currentIndex === -1) return true;
-    if (currentIndex === 0) return true;
-    const previousSession = sessions[currentIndex - 1];
-    if (!previousSession || !previousSession.sessionStatusId) return true;
+    const date = new Date(session.sessionDate);
+    let time = session.sessionTime.toString().trim().toLowerCase();
 
-    const prevStatus = previousSession.sessionStatusId.sessionStatusName;
+    let hours = 0;
+    let minutes = 0;
+
+    if (time.includes("am") || time.includes("pm")) {
+      const [t, meridian] = time.split(" ");
+      let [h, m] = t.split(":").map(Number);
+
+      if (meridian === "pm" && h !== 12) h += 12;
+      if (meridian === "am" && h === 12) h = 0;
+
+      hours = h;
+      minutes = m;
+    }
+    // Handle 24-hour format
+    else {
+      const [h, m] = time.split(":").map(Number);
+      hours = h;
+      minutes = m;
+    }
+
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+  const canStartByPreviousIndex = (sessions, session) => {
+    const currentTime = buildSessionDateTime(session);
+
+    const previousSessions = sessions
+      .filter((s) => {
+        const t = buildSessionDateTime(s);
+        return t < currentTime;
+      })
+      .sort((a, b) => buildSessionDateTime(b) - buildSessionDateTime(a));
+
+    if (previousSessions.length === 0) return true;
+
+    const prevStatus = previousSessions[0]?.sessionStatusId?.sessionStatusName;
 
     return prevStatus === "Completed" || prevStatus === "Canceled";
+  };
+
+  const getSession = async () => {
+    try {
+      const storedRole = localStorage.getItem("userRole");
+
+      const response = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({
+          physioId: user._id,
+          storedRole,
+        }),
+      });
+      console.log(response, "response response");
+      if (!Array.isArray(response)) return;
+
+      setSessions(response);
+
+      //Build session count map
+      const countMap = {};
+
+      response.forEach((s) => {
+        const pid = s.patientId?._id;
+        const physioId = s.physioId?._id;
+        if (!pid || !physioId) return;
+
+        const key = `${pid}-${physioId}`;
+
+        if (!countMap[key]) {
+          countMap[key] = { total: 0, completed: 0 };
+        }
+
+        countMap[key].total += 1;
+
+        if (s.sessionStatusId?.sessionStatusName === "Completed") {
+          countMap[key].completed += 1;
+        }
+      });
+
+      setSessionCountMap(countMap);
+      const today = new Date().toISOString().split("T")[0];
+
+      const todaySessions = response
+        .filter((s) => {
+          if (!s.sessionDate || !s.sessionTime) return false;
+
+          const sessionDay = new Date(s.sessionDate)
+            .toISOString()
+            .split("T")[0];
+
+          return sessionDay === today;
+        })
+        .sort((a, b) => {
+          const aTime = buildSessionDateTime(a);
+          const bTime = buildSessionDateTime(b);
+          return aTime - bTime;
+        });
+
+      setFilteredSessions(todaySessions);
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    }
   };
 
   const handleSessionAction = (sessionId, action) => {
@@ -583,21 +623,54 @@ const SessionManagement = () => {
       return;
     }
 
-    if (!canStartByPreviousIndex(sessions, sessionId)) {
-      toast({
-        title: "Action blocked",
-        description: "Please complete or cancel the previous session first",
-        variant: "destructive",
-      });
-      return;
+    // Validate ONLY when starting (Attended)
+    if (action === "Attended") {
+      const session = filteredSessions.find((s) => s._id === sessionId);
+      if (!session) return;
+
+      if (!canStartByPreviousIndex(filteredSessions, session)) {
+        toast({
+          title: "Action blocked",
+          description: "Please complete or cancel the previous session first",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      handleActionStart(sessionId, action);
     }
 
-    // START SESSION
-    handleActionStart(sessionId, action);
-    handlesessionStop(sessionId, action);
+    // Stop / revert
+    if (action === "Scheduled") {
+      handlesessionStop(sessionId, action);
+    }
 
+    // Update UI
     setSessions((prev) =>
-      prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
+      prev.map((s) =>
+        s._id === sessionId
+          ? {
+              ...s,
+              sessionStatusId: {
+                ...s.sessionStatusId,
+                sessionStatusName: action,
+              },
+            }
+          : s,
+      ),
+    );
+    setFilteredSessions((prev) =>
+      prev.map((s) =>
+        s._id === sessionId
+          ? {
+              ...s,
+              sessionStatusId: {
+                ...s.sessionStatusId,
+                sessionStatusName: action,
+              },
+            }
+          : s,
+      ),
     );
 
     toast({
