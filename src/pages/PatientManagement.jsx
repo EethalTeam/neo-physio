@@ -174,7 +174,8 @@ const PatientManagement = () => {
     RecomTherapy: "",
     Frequency: "",
     Duration: "",
-    Modalities: false,
+    modalities: false,
+    modalitiestype: "",
     modalityList: [],
     targetedArea: "",
     noOfDays: "",
@@ -771,7 +772,7 @@ const PatientManagement = () => {
           description: "Patient details updated.",
         });
       }
-      if (patientForm.Modalities === "yes") {
+      if (patientForm.modalities === "yes") {
         if (!patientForm.modalityList?.length) {
           toast({
             title: "Alert",
@@ -883,7 +884,8 @@ const PatientManagement = () => {
         RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
         Frequency: patient.Frequency ? patient.Frequency : null,
         Duration: patient.Duration ? patient.Duration : null,
-        Modalities: patient.Modalities ? patient.Modalities : false,
+        modalities: patient.modalities ? patient.modalities : false,
+        modalitiestype: patient.modalitiestype ? patient.modalitiestype : null,
         modalityList: patient.modalityList ? patient.modalityList : [],
         targetedArea: patient.targetedArea ? patient.targetedArea : null,
         noOfDays: patient.noOfDays ? patient.noOfDays : null,
@@ -1264,7 +1266,7 @@ const PatientManagement = () => {
   );
   const [modalities, setModalities] = useState([]);
   const [modalityForm, setModalityForm] = useState({
-    Modalities: false,
+    modalities: false,
     modalitiestype: "",
     modalityList: [],
     modalityType: {}, // to store Type of Modality for each checked modality
@@ -2903,12 +2905,12 @@ const PatientManagement = () => {
                       {renderRadioGroup(
                         "Modalities",
                         "Modalities",
-                        patientForm.Modalities,
+                        patientForm.modalities,
                         "",
                         true,
                       )}
                     </div>
-                    {patientForm.Modalities === true && (
+                    {patientForm.modalities === true && (
                       <div className="space-y-2">
                         {/* Step 1: Modalities Type */}
                         <Label htmlFor="modalitiestype">Modalities Type</Label>

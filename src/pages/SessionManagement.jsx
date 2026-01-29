@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { m, motion } from "framer-motion";
 import {
   Card,
   CardContent,
@@ -115,13 +115,14 @@ const SessionManagement = () => {
     redFlags: [],
     media: [],
     modeOfExercise: "",
-    homeExerciseAssigned: "",
-    modalities: "",
+    homeExerciseAssigned: false,
     modalitiesList: [],
     targetArea: "",
     machineId: "",
+    modalities: "no",
   };
   const [feedback, setFeedback] = useState(initialFeedbackState);
+  console.log(feedback, "feedback");
   const fileInputRef = useRef(null);
 
   const [cancelDialog, setCancelDialog] = useState({
@@ -226,7 +227,7 @@ const SessionManagement = () => {
   //   }
   // };
   const [sessionCountMap, setSessionCountMap] = useState({});
-  console.log(sessionCountMap, "sessionCountMap");
+  // console.log(sessionCountMap, "sessionCountMap");
 
   const getNthSession = (currentSession) => {
     if (!sessions?.length) return "-";
@@ -400,7 +401,7 @@ const SessionManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      console.log(data, "data of cancel");
+      // console.log(data, "data of cancel");
       getSession();
       return response;
     } catch (error) {
@@ -411,10 +412,15 @@ const SessionManagement = () => {
   const SessionEnd = async (data) => {
     // console.log("SessionEnd");
     try {
+      const payload = {
+        ...data,
+        modalities: data.modalities,
+      };
       const response = await apiRequest("Session/SessionEnd", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
+      // console.log(data.modalities, "data.modalities ");
 
       if (response) {
         if (feedback.redFlags.length > 0) {
@@ -561,7 +567,7 @@ const SessionManagement = () => {
           storedRole,
         }),
       });
-      console.log(response, "response response");
+      // console.log(response, "response response");
       if (!Array.isArray(response)) return;
 
       setSessions(response);
@@ -745,7 +751,7 @@ const SessionManagement = () => {
     }
 
     // Modalities list required if modalities = yes
-    if (feedback.modalities === "yes") {
+    if (feedback.modalities) {
       if (!feedback.modalitiesList?.length) {
         toast({
           title: "Alert",
@@ -766,7 +772,7 @@ const SessionManagement = () => {
 
     //Targeted area required
 
-    console.log("Validation passed");
+    console.log(feedback, "Validation passed");
     handleActionEnd(feedback, "Completed", sessionId);
   };
 
@@ -797,17 +803,43 @@ const SessionManagement = () => {
     });
   };
 
+  // const handleActionEnd = (session, action, id) => {
+  //   SessionEnd({
+  //     _id: id,
+  //     sessionToTime: CovertTdyTim(),
+  //     action: action,
+  //     modeOfExercise: feedback.modeOfExercise,
+  //     // machineId: session.machineId,
+  //     sessionFeedbackPros: session.sessionFeedbackPros,
+  //     redFlags: session.redFlags,
+  //     targetArea: session.targetArea,
+  //     modalitiesList: session.modalitiesList,
+  //     modalities: feedback.modalities,
+  //   });
+  // };
   const handleActionEnd = (session, action, id) => {
     SessionEnd({
       _id: id,
       sessionToTime: CovertTdyTim(),
       action: action,
-      machineId: session.machineId,
-      sessionFeedbackPros: session.sessionFeedbackPros,
-      redFlags: session.redFlags,
-      targetArea: session.targetArea,
-      modalitiesList: session.modalitiesList,
-      modalities: feedback.modalities === "yes" ? true : false,
+      modeOfExercise: feedback.modeOfExercise || "",
+      machineId: session.machineId?._id || session.machineId || undefined,
+      sessionFeedbackPros: session.sessionFeedbackPros || "",
+      redFlags: (session.redFlags || [])
+        .filter((r) => r.redFlagId)
+        .map((r) => ({
+          redFlagId: r.redFlagId,
+          isOccurred: r.isOccurred || false,
+        })),
+      targetArea: session.targetArea || "",
+      modalitiesList: (session.modalitiesList || [])
+        .filter((m) => m.modalityId)
+        .map((m) => ({
+          modalityId: m.modalityId,
+          isOccurred: m.isOccurred || false,
+        })),
+      homeExerciseAssigned: feedback.homeExerciseAssigned,
+      modalities: feedback.modalities,
     });
   };
 
@@ -1200,13 +1232,18 @@ const SessionManagement = () => {
                                     redFlags: session.redFlags || [],
                                     homeExerciseAssigned:
                                       !!session.homeExerciseAssigned,
-                                    modalities: !!session.isOccurred,
                                     modalitiesList:
-                                      session.modalitiesList || [],
+                                      session.modalitiesList.map((m) => {
+                                        return {
+                                          modalityId: m.modalityId?._id,
+                                          isOccurred: m.isOccurred,
+                                        };
+                                      }) || [],
                                     // machineId:
                                     // session.machineId?.machineName || "",
                                     targetArea: session.targetArea || "",
                                     media: session.media || [],
+                                    modalities: !!session.modalities,
                                   });
 
                                   setModalitiesForm({
@@ -1597,7 +1634,7 @@ const SessionManagement = () => {
                             setFeedback({
                               sessionFeedbackPros:
                                 session.sessionFeedbackPros || "",
-                              modeOfExercise: session.targetArea || "",
+                              modeOfExercise: session.modeOfExercise || "",
                               redFlags: session.redFlags || [],
                               homeExerciseAssigned:
                                 !!session.homeExerciseAssigned,
@@ -1741,43 +1778,59 @@ const SessionManagement = () => {
 
               <div className="space-y-2">
                 <Label>Red Flags</Label>
+
                 <div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                  {redFlags.map((flag) => (
-                    <div key={flag._id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`rf-${flag._id}`}
-                        onCheckedChange={(checked) => {
-                          setFeedback((prev) =>
-                            checked
-                              ? {
-                                  ...prev,
-                                  redFlags: [
-                                    ...prev.redFlags,
+                  {redFlags.map((flag) => {
+                    const isChecked = feedback.redFlags?.some(
+                      (f) => f.redFlagId?._id === flag.RedflagIDPK,
+                    );
+
+                    return (
+                      <div
+                        key={flag.RedflagIDPK}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={`rf-${flag.RedflagIDPK}`}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            setFeedback((prev) => ({
+                              ...prev,
+                              redFlags: checked
+                                ? [
+                                    // remove duplicates first
+                                    ...prev.redFlags.filter(
+                                      (f) =>
+                                        f.redFlagId?._id !== flag.RedflagIDPK,
+                                    ),
                                     {
-                                      redFlagId: flag.RedflagIDPK,
+                                      redFlagId: {
+                                        _id: flag.RedflagIDPK,
+                                        redflagName: flag.redflagName,
+                                      },
                                       isOccurred: true,
                                     },
-                                  ],
-                                }
-                              : {
-                                  ...prev,
-                                  redFlags: prev.redFlags.filter(
-                                    (f) => f.redFlagId !== flag.RedflagIDPK,
+                                  ]
+                                : prev.redFlags.filter(
+                                    (f) =>
+                                      f.redFlagId?._id !== flag.RedflagIDPK,
                                   ),
-                                },
-                          );
-                        }}
-                      />
-                      <Label
-                        htmlFor={`rf-${flag.RedflagIDPK}`}
-                        className="text-sm font-normal"
-                      >
-                        {flag.redflagName}
-                      </Label>
-                    </div>
-                  ))}
+                            }));
+                          }}
+                        />
+
+                        <Label
+                          htmlFor={`rf-${flag.RedflagIDPK}`}
+                          className="text-sm font-normal"
+                        >
+                          {flag.redflagName}
+                        </Label>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+
               {/* <div className="space-y-2"><Label>Red Flags</Label>
               <div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                 {  
@@ -1794,17 +1847,18 @@ const SessionManagement = () => {
                 <Label>Home Exercise Program Assigned</Label>
                 <RadioGroup
                   value={feedback.homeExerciseAssigned}
-                  onValueChange={(v) =>
-                    setFeedback({ ...feedback, homeExerciseAssigned: v })
-                  }
+                  onValueChange={(v) => {
+                    console.log(v, "v in home exercise");
+                    setFeedback({ ...feedback, homeExerciseAssigned: v });
+                  }}
                   className="flex gap-4"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="he-yes" />
+                    <RadioGroupItem value={true} id="he-yes" />
                     <Label htmlFor="he-yes">Yes</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="he-no" />
+                    <RadioGroupItem value={false} id="he-no" />
                     <Label htmlFor="he-no">No</Label>
                   </div>
                 </RadioGroup>
@@ -1813,16 +1867,21 @@ const SessionManagement = () => {
               <div className="space-y-2">
                 <Label>Modalities</Label>
                 <RadioGroup
-                  value={feedback.modalities}
-                  onValueChange={(v) =>
-                    setFeedback({ ...feedback, modalities: v })
-                  }
+                  value={feedback.modalities ? "yes" : "no"}
+                  onValueChange={(v) => {
+                    setFeedback((prev) => ({
+                      ...prev,
+                      modalities: v === "yes",
+                      modalitiesList: v === "no" ? [] : prev.modalitiesList,
+                    }));
+                  }}
                   className="flex gap-4"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="yes" id="mod-yes" />
                     <Label htmlFor="mod-yes">Yes</Label>
                   </div>
+
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="no" id="mod-no" />
                     <Label htmlFor="mod-no">No</Label>
@@ -1830,23 +1889,32 @@ const SessionManagement = () => {
                 </RadioGroup>
               </div>
 
-              {feedback.modalities === "yes" && (
+              {feedback.modalities === true && (
                 <div className="space-y-2">
                   <Label htmlFor="modalitiestype">Modalities Type</Label>
 
                   <Select
-                    value={modalitiesForm.modalitiestype}
-                    onValueChange={(val) =>
+                    value={modalitiesForm.modalitiestype || ""}
+                    onValueChange={(val) => {
                       setModalitiesForm((prev) => ({
                         ...prev,
                         modalitiestype: val,
-                      }))
-                    }
+                      }));
+
+                      setFeedback((prev) => ({
+                        ...prev,
+                        modalitiesList: prev.modalitiesList.filter(
+                          (m) =>
+                            Modalities.find((mod) => mod._id === m.modalityId)
+                              ?.modalitiestype === val,
+                        ),
+                      }));
+                    }}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select Modalities Type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent value={feedback.modalitiestype}>
                       <SelectItem value="Exercise Therapy">
                         Exercise Therapy
                       </SelectItem>
@@ -1870,7 +1938,12 @@ const SessionManagement = () => {
                             modalitiesForm.modalitiestype,
                         ).map((mod) => {
                           const isChecked = feedback.modalitiesList.some(
-                            (m) => m.modalityId === mod._id && m.isOccurred,
+                            (m) => m.modalityId === mod._id,
+                          );
+                          console.log(
+                            isChecked,
+                            feedback.modalitiesList,
+                            "isChecked",
                           );
 
                           return (
@@ -1880,8 +1953,9 @@ const SessionManagement = () => {
                             >
                               <Checkbox
                                 id={`mod-${mod._id}`}
-                                checked={isChecked} // prefill checkbox
+                                checked={isChecked}
                                 onCheckedChange={(checked) => {
+                                  console.log(checked, "checked");
                                   setFeedback((prev) =>
                                     checked
                                       ? {

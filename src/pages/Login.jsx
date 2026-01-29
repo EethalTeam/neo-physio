@@ -62,6 +62,10 @@ const Login = () => {
     } catch (error) {
       console.error("Error loading physios:", error);
     }
+    toast({
+      title: "Success",
+      description: "Login successful!",
+    });
   };
 
   const handleSubmit = (e) => {
@@ -83,10 +87,7 @@ const Login = () => {
         navigate("/dashboard");
       }
     });
-    toast({
-      title: "Success",
-      description: "Login successful!",
-    });
+
     // navigate('/dashboard');
   };
 
