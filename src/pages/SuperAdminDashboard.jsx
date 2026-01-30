@@ -1,19 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserPlus, Calendar, DollarSign, TrendingUp, Activity } from 'lucide-react';
-import { apiRequest } from '@/components/CustomComponents/apiRequest'
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Users,
+  UserPlus,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Activity,
+} from "lucide-react";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import { useNavigate } from "react-router-dom";
 
 const SuperAdminDashboard = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     lead: 0,
     patient: 0,
-    session: 0,
+    monthlySessions: 0,
     monthlyRevenue: 0,
     physio: 0,
-    sessionCompleted: 0
+    sessionCompleted: 0,
   });
 
   // useEffect(() => {
@@ -40,75 +53,68 @@ const SuperAdminDashboard = () => {
   //     });
   //   }).catch(err => console.error('Error loading dashboard data:', err));
   // }, []);
-  
-  
-useEffect(()=>{
-getAllDashBoard()
-},[])
 
-  const getAllDashBoard = async(data) => {
+  useEffect(() => {
+    getAllDashBoard();
+  }, []);
+
+  const getAllDashBoard = async (data) => {
     try {
       const response = await apiRequest("DashBoard/getAllDashBoard", {
-             method: 'POST',
-             body: JSON.stringify(data),
-            
-           });
-           setStats(response)
-            console.log(response,"response")
-   } catch (error) {
-      console.error('Error:', error);
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setStats(response);
+      console.log(response, "response");
+    } catch (error) {
+      console.error("Error:", error);
       throw error;
     }
-  }
-   
-   
-
-
-
+  };
 
   const statCards = [
     {
-      title: 'Total Leads',
+      title: "Total Leads",
       value: stats.lead,
       icon: UserPlus,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
     },
     {
-      title: 'Total Patients',
+      title: "Total Patients",
       value: stats.patient,
       icon: Users,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      color: "text-green-600",
+      bgColor: "bg-green-100",
     },
     {
-      title: 'Total Sessions',
-      value: stats.session,
+      title: "Total Sessions",
+      value: stats.monthlySessions,
       icon: Calendar,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100'
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
     },
     {
-      title: 'Monthly Revenue',
+      title: "Monthly Revenue",
       value: `₹${stats.monthlyRevenue}`,
       icon: DollarSign,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100'
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
     },
     {
-      title: 'Active Physios',
+      title: "Active Physios",
       value: stats.physio,
       icon: Activity,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100'
+      color: "text-orange-600",
+      bgColor: "bg-orange-100",
     },
     {
-      title: 'Completed Sessions',
+      title: "Completed Sessions",
       value: stats.sessionCompleted,
       icon: TrendingUp,
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-100'
-    }
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-100",
+    },
   ];
 
   return (
@@ -118,8 +124,12 @@ getAllDashBoard()
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">SuperAdmin Dashboard</h1>
-        <p className="text-gray-600">Complete overview of your physiotherapy service management</p>
+        <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">
+          SuperAdmin Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Complete overview of your physiotherapy service management
+        </p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -142,7 +152,9 @@ getAllDashBoard()
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
+                  <div className="text-2xl font-bold text-gray-800">
+                    {stat.value}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Updated in real-time
                   </p>
@@ -162,25 +174,35 @@ getAllDashBoard()
           <Card className="medical-card">
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest updates across the system</CardDescription>
+              <CardDescription>
+                Latest updates across the system
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">New patient registered: John Doe</p>
+                  <p className="text-sm text-gray-600">
+                    New patient registered: John Doe
+                  </p>
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">Session completed by Dr. Smith</p>
+                  <p className="text-sm text-gray-600">
+                    Session completed by Dr. Smith
+                  </p>
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">Lead qualified: Jane Wilson</p>
+                  <p className="text-sm text-gray-600">
+                    Lead qualified: Jane Wilson
+                  </p>
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">Review scheduled for tomorrow</p>
+                  <p className="text-sm text-gray-600">
+                    Review scheduled for tomorrow
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -199,19 +221,31 @@ getAllDashBoard()
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
-                <button onClick={()=> navigate('/leads')}  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => navigate("/leads")}
+                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <UserPlus className="text-blue-600 mb-2" size={20} />
                   <p className="text-sm font-medium">Add New Lead</p>
                 </button>
-                <button onClick={()=> navigate('/sessions')}  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => navigate("/sessions")}
+                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <Calendar className="text-green-600 mb-2" size={20} />
                   <p className="text-sm font-medium">Schedule Session</p>
                 </button>
-                <button  onClick={()=> navigate('/physios')}  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => navigate("/physios")}
+                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <Users className="text-purple-600 mb-2" size={20} />
                   <p className="text-sm font-medium">Manage Physios</p>
                 </button>
-                <button  onClick={()=> navigate('/reports')} className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={() => navigate("/reports")}
+                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <TrendingUp className="text-orange-600 mb-2" size={20} />
                   <p className="text-sm font-medium">View Reports</p>
                 </button>

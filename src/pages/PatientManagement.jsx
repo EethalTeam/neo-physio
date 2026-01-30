@@ -548,6 +548,8 @@ const PatientManagement = () => {
       });
     }
   };
+  const [recoveredType, setRecoveredType] = useState("");
+  const [otherReason, setOtherReason] = useState("");
 
   // const handleFormSubmit = (e) => {
   //   e.preventDefault();
@@ -1283,37 +1285,36 @@ const PatientManagement = () => {
       console.log(error, "error from frontend get All Modalities");
     }
   };
-  const handleToggleStatus = async (patient) => {
+  const handleToggleStatus = async (payload) => {
     try {
-      const newStatus = !patient.isRecovered;
-
-      // const confirmAction = window.confirm(
-      //   `Are you sure you want to mark ${patient.patientName} as ${
-      //     newStatus ? "Recovered" : "Not Recovered"
-      //   }?`,
-      // );
-
-      // if (!confirmAction) return;
-
       const res = await apiRequest("Patient/updatePatient", {
         method: "POST",
         body: JSON.stringify({
-          _id: patient._id,
-          isRecovered: newStatus,
+          _id: payload.patientId || payload._id,
+          isRecovered: payload.isRecovered,
+          recoveredType: payload.recoveredType || null,
+          stopReason: payload.stopReason || null,
         }),
       });
 
       if (res) {
         toast({
           title: "Status Updated",
-          description: `${patient.patientName} is now ${
-            newStatus ? "Recovered" : "Not Recovered"
+          description: `${payload.patientName || "Patient"} is now ${
+            payload.isRecovered ? "Recovered" : "Not Recovered"
           }.`,
         });
 
         setPatients((prev) =>
           prev.map((p) =>
-            p._id === patient._id ? { ...p, isRecovered: newStatus } : p,
+            p._id === payload._id
+              ? {
+                  ...p,
+                  isRecovered: payload.isRecovered,
+                  recoveredType: payload.recoveredType || null,
+                  stopReason: payload.stopReason || null,
+                }
+              : p,
           ),
         );
       }
@@ -1325,6 +1326,7 @@ const PatientManagement = () => {
       });
     }
   };
+
   const [openDialog, setOpendialog] = useState(false);
   const [pendingPatient, setPendingPatient] = useState(null);
   const handleConsentToggle = async (patient) => {
@@ -3142,9 +3144,9 @@ const PatientManagement = () => {
                                 }))
                               }
                               initialFocus
-                              disabled={(date) =>
-                                date < new Date(new Date().setHours(0, 0, 0, 0))
-                              }
+                              // disabled={(date) =>
+                              //   date < new Date(new Date().setHours(0, 0, 0, 0))
+                              // }
                             />
                           </PopoverContent>
                         </Popover>
@@ -3368,18 +3370,94 @@ const PatientManagement = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to mark{" "}
-              <strong>{pendingPatient?.patientName}</strong> as{" "}
-              {!pendingPatient?.isRecovered ? "Recovered" : "Not Recovered"}?
+
+            <AlertDialogDescription className="space-y-3">
+              <div>
+                Are you sure you want to mark{" "}
+                <strong>{pendingPatient?.patientName}</strong> as{" "}
+                {!pendingPatient?.isRecovered ? "Recovered" : "Not Recovered"}?
+              </div>
+
+              {/* Show ONLY when marking as Recovered */}
+              {!pendingPatient?.isRecovered && (
+                <>
+                  {/* Dropdown */}
+                  <div className="space-y-1">
+                    <Label>Recovered Type</Label>
+
+                    <Select
+                      value={recoveredType}
+                      onValueChange={(value) => setRecoveredType(value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectItem value="Patient Recovered">
+                          Patient Recovered
+                        </SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Input shown only if Other */}
+                  {recoveredType === "Other" && (
+                    <div className="space-y-1">
+                      <Label>Specify Reason</Label>
+                      <Input
+                        type="text"
+                        className="w-full border rounded px-2 py-1"
+                        placeholder="Enter reason"
+                        value={otherReason}
+                        onChange={(e) => setOtherReason(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setRecoveredType("");
+                setOtherReason("");
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
 
             <AlertDialogAction
-              onClick={() => handleToggleStatus(pendingPatient)}
+              disabled={
+                !pendingPatient?.isRecovered &&
+                (!recoveredType || (recoveredType === "Other" && !otherReason))
+              }
+              onClick={() => {
+                const payload = {
+                  patientId: pendingPatient._id,
+                  isRecovered: !pendingPatient.isRecovered,
+                  recoveredType,
+                  otherReason: recoveredType === "Other" ? otherReason : "",
+                };
+
+                console.log("Payload:", payload);
+
+                handleToggleStatus({
+                  _id: pendingPatient._id,
+                  patientName: pendingPatient.patientName,
+                  isRecovered: !pendingPatient.isRecovered,
+                  recoveredType: !pendingPatient.isRecovered
+                    ? recoveredType
+                    : null,
+                  stopReason: recoveredType === "Other" ? otherReason : null,
+                });
+
+                setRecoveredType("");
+                setOtherReason("");
+              }}
             >
               Confirm
             </AlertDialogAction>

@@ -604,8 +604,19 @@ const SessionManagement = () => {
             .toISOString()
             .split("T")[0];
 
+          // if patient is recovered
+          if (s.patientId?.isRecovered) {
+            const recoveredDay = new Date(s.patientId.recoveredAt)
+              .toISOString()
+              .split("T")[0];
+
+            //recovered before today → hide today session
+            if (recoveredDay < today) return false;
+          }
+
           return sessionDay === today;
         })
+
         .sort((a, b) => {
           const aTime = buildSessionDateTime(a);
           const bTime = buildSessionDateTime(b);

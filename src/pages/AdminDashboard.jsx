@@ -26,7 +26,7 @@ const AdminDashboard = () => {
     // physio: 0,
     sessionCompleted: 0,
   });
-
+  console.log(stats, "Stats");
   useEffect(() => {
     getAllDashBoard();
   }, []);
@@ -62,7 +62,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Total Sessions",
-      value: stats.session,
+      value: stats.monthlySessions,
       icon: Calendar,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
