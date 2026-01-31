@@ -559,11 +559,13 @@ const SessionManagement = () => {
   const getSession = async () => {
     try {
       const storedRole = localStorage.getItem("userRole");
+      const today = new Date().toISOString().split("T")[0];
 
       const response = await apiRequest("Session/getAllSession", {
         method: "POST",
         body: JSON.stringify({
           physioId: user._id,
+          today,
           storedRole,
         }),
       });
@@ -594,7 +596,6 @@ const SessionManagement = () => {
       });
 
       setSessionCountMap(countMap);
-      const today = new Date().toISOString().split("T")[0];
 
       const todaySessions = response
         .filter((s) => {
@@ -657,7 +658,7 @@ const SessionManagement = () => {
       handleActionStart(sessionId, action);
     }
 
-    // Stop / revert
+    // stop
     if (action === "Scheduled") {
       handlesessionStop(sessionId, action);
     }
