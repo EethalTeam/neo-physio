@@ -81,7 +81,7 @@ const SessionManagement = () => {
   // console.log(Modalities,"Modalities")
   const [sessionStatus, setSessionStatus] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
-  // console.log(filteredSessions, "filteredSessions");
+  console.log(filteredSessions, "filteredSessions");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState(null);
@@ -481,35 +481,35 @@ const SessionManagement = () => {
     });
   };
 
-  useEffect(() => {
-    let filtered = [...sessions];
+  // useEffect(() => {
+  //   let filtered = [...sessions];
 
-    const term = searchTerm.toLowerCase();
+  //   const term = searchTerm.toLowerCase();
 
-    // Filter by patient name
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (s) =>
-          s.patientId?.patientName?.toLowerCase().includes(term) ||
-          s.physioId?.physioName?.toLowerCase().includes(term),
-      );
-    }
+  //   // Filter by patient name
+  //   if (searchTerm) {
+  //     filtered = filtered.filter(
+  //       (s) =>
+  //         s.patientId?.patientName?.toLowerCase().includes(term) ||
+  //         s.physioId?.physioName?.toLowerCase().includes(term),
+  //     );
+  //   }
 
-    // Filter by status
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(
-        (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
-      );
-    }
+  //   // Filter by status
+  //   if (statusFilter !== "all") {
+  //     filtered = filtered.filter(
+  //       (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
+  //     );
+  //   }
 
-    // Filter by date
-    const filterDate = dateFilter || new Date().toISOString().slice(0, 10);
-    filtered = filtered.filter(
-      (s) => s.sessionDate?.slice(0, 10) === filterDate,
-    );
+  //   // Filter by date
+  //   const filterDate = dateFilter || new Date().toISOString().slice(0, 10);
+  //   filtered = filtered.filter(
+  //     (s) => s.sessionDate?.slice(0, 10) === filterDate,
+  //   );
 
-    setFilteredSessions(filtered);
-  }, [sessions, searchTerm, statusFilter, dateFilter]);
+  //   setFilteredSessions(filtered);
+  // }, [sessions, searchTerm, statusFilter, dateFilter]);
   const buildSessionDateTime = (session) => {
     if (!session.sessionDate || !session.sessionTime) return null;
 
@@ -556,28 +556,37 @@ const SessionManagement = () => {
     return prevStatus === "Completed" || prevStatus === "Canceled";
   };
 
-  const getSession = async () => {
+  const getSession = async (date) => {
     try {
       const storedRole = localStorage.getItem("userRole");
       const today = new Date().toISOString().split("T")[0];
-
+      let Today;
+      if (date) {
+        Today = date;
+      } else {
+        Today = today;
+      }
       const response = await apiRequest("Session/getAllSession", {
         method: "POST",
         body: JSON.stringify({
           physioId: user._id,
-          today,
+          Today,
           storedRole,
         }),
       });
       // console.log(response, "response response");
-      if (!Array.isArray(response)) return;
+      // if (!Array.isArray(response)) return;
+      console.log(response, "response");
 
-      setSessions(response);
+      const Data = response.incompleteData || response || [];
+      console.log(Data, "Data");
+      setSessions(Data);
+      setFilteredSessions(Data);
 
       //Build session count map
       const countMap = {};
 
-      response.forEach((s) => {
+      Data.forEach((s) => {
         const pid = s.patientId?._id;
         const physioId = s.physioId?._id;
         if (!pid || !physioId) return;
@@ -597,34 +606,30 @@ const SessionManagement = () => {
 
       setSessionCountMap(countMap);
 
-      const todaySessions = response
-        .filter((s) => {
-          if (!s.sessionDate || !s.sessionTime) return false;
+      const todaySessions = Data.filter((s) => {
+        if (!s.sessionDate || !s.sessionTime) return false;
 
-          const sessionDay = new Date(s.sessionDate)
+        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
+
+        // if patient is recovered
+        if (s.patientId?.isRecovered) {
+          const recoveredDay = new Date(s.patientId.recoveredAt)
             .toISOString()
             .split("T")[0];
 
-          // if patient is recovered
-          if (s.patientId?.isRecovered) {
-            const recoveredDay = new Date(s.patientId.recoveredAt)
-              .toISOString()
-              .split("T")[0];
+          //recovered before today → hide today session
+          if (recoveredDay < today) return false;
+        }
 
-            //recovered before today → hide today session
-            if (recoveredDay < today) return false;
-          }
-
-          return sessionDay === today;
-        })
+        return sessionDay === today;
+      })
 
         .sort((a, b) => {
           const aTime = buildSessionDateTime(a);
           const bTime = buildSessionDateTime(b);
           return aTime - bTime;
         });
-
-      setFilteredSessions(todaySessions);
+      console.log(todaySessions, "todaySessions");
     } catch (error) {
       console.error("Error fetching sessions:", error);
     }
@@ -1027,7 +1032,10 @@ const SessionManagement = () => {
               <Input
                 type="date"
                 value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  getSession(e.target.value);
+                }}
                 className="w-full"
               />
             </div>
