@@ -62,13 +62,9 @@ const Login = () => {
     } catch (error) {
       console.error("Error loading physios:", error);
     }
-    toast({
-      title: "Success",
-      description: "Login successful!",
-    });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.physioCode || !formData.password) {
@@ -79,16 +75,28 @@ const Login = () => {
       });
       return;
     }
-
-    login(formData.physioCode, formData.password).then((res) => {
-      console.log(res, "res");
-      if (res) {
-        // getPermissionsByPath()
+    try {
+      const res = await login(formData.physioCode, formData.password);
+      if (res?.success) {
+        toast({
+          title: "Success",
+          description: "Login successful!",
+        });
         navigate("/dashboard");
+      } else {
+        toast({
+          title: "Login Failed",
+          description: res?.message || "Invalid physio code or password",
+          variant: "destructive",
+        });
       }
-    });
-
-    // navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

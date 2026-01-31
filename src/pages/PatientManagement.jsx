@@ -768,11 +768,6 @@ const PatientManagement = () => {
           ...patientForm,
           MedicalHistoryAndRiskFactor: radio,
         });
-
-        toast({
-          title: "Success",
-          description: "Patient details updated.",
-        });
       }
       if (patientForm.modalities === "yes") {
         if (!patientForm.modalityList?.length) {
@@ -805,6 +800,10 @@ const PatientManagement = () => {
         variant: "destructive",
       });
     }
+    toast({
+      title: "Success",
+      description: "Patient details updated.",
+    });
   };
 
   const handleEditPatient = (patient) => {
@@ -2552,6 +2551,7 @@ const PatientManagement = () => {
                           <Label>Is Recovered</Label>
 
                           <Button
+                            type="button"
                             size="sm"
                             variant={
                               selectedPatient.isRecovered
@@ -2575,6 +2575,7 @@ const PatientManagement = () => {
                           <Label>Is Consent Received</Label>
 
                           <Button
+                            type="button"
                             size="sm"
                             variant={
                               selectedPatient.isConsentReceived

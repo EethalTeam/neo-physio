@@ -127,7 +127,6 @@ const Header = ({ toggleSidebar }) => {
     }
   };
   const [physioData, setPhysioData] = useState(null);
-
   const handleUserClick = async () => {
     try {
       const res = await apiRequest("Physio/getAllPhysio", {
