@@ -70,6 +70,7 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import PatientDetailsDialog from "../components/PatientDetailsDialog";
 
 const SessionManagement = () => {
+  const [cancelledReasonType, setCancelledReasonType] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
@@ -295,6 +296,23 @@ const SessionManagement = () => {
       console.log(error, "error   Session delete");
     }
   };
+  const deleteDuplicateSession = async (patientId, physioId, sessionTime) => {
+    try {
+      const response = await apiRequest("Session/deleteDuplicateSession", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId,
+          physioId,
+          sessionTime,
+        }),
+      });
+
+      console.log(response);
+      getSession();
+    } catch (error) {
+      console.log(error, "error Session delete");
+    }
+  };
 
   const getPatient = async (data) => {
     try {
@@ -481,35 +499,35 @@ const SessionManagement = () => {
     });
   };
 
-  // useEffect(() => {
-  //   let filtered = [...sessions];
+  useEffect(() => {
+    let filtered = [...sessions];
 
-  //   const term = searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase();
 
-  //   // Filter by patient name
-  //   if (searchTerm) {
-  //     filtered = filtered.filter(
-  //       (s) =>
-  //         s.patientId?.patientName?.toLowerCase().includes(term) ||
-  //         s.physioId?.physioName?.toLowerCase().includes(term),
-  //     );
-  //   }
+    // Filter by patient name
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (s) =>
+          s.patientId?.patientName?.toLowerCase().includes(term) ||
+          s.physioId?.physioName?.toLowerCase().includes(term),
+      );
+    }
 
-  //   // Filter by status
-  //   if (statusFilter !== "all") {
-  //     filtered = filtered.filter(
-  //       (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
-  //     );
-  //   }
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(
+        (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
+      );
+    }
 
-  //   // Filter by date
-  //   const filterDate = dateFilter || new Date().toISOString().slice(0, 10);
-  //   filtered = filtered.filter(
-  //     (s) => s.sessionDate?.slice(0, 10) === filterDate,
-  //   );
-
-  //   setFilteredSessions(filtered);
-  // }, [sessions, searchTerm, statusFilter, dateFilter]);
+    // Filter by date
+    const filterDate = dateFilter || new Date().toISOString().slice(0, 10);
+    filtered = filtered.filter(
+      (s) => s.sessionDate?.slice(0, 10) === filterDate,
+    );
+    setFilteredSessions(filtered);
+    // setSearchTerm("");
+  }, [sessions, searchTerm, statusFilter, dateFilter]);
   const buildSessionDateTime = (session) => {
     if (!session.sessionDate || !session.sessionTime) return null;
 
@@ -556,6 +574,7 @@ const SessionManagement = () => {
     return prevStatus === "Completed" || prevStatus === "Canceled";
   };
 
+  const [msg, setMsg] = useState("");
   const getSession = async (date) => {
     try {
       const storedRole = localStorage.getItem("userRole");
@@ -577,12 +596,12 @@ const SessionManagement = () => {
       // console.log(response, "response response");
       // if (!Array.isArray(response)) return;
       console.log(response, "response");
-
+      const msgs = response.message;
+      setMsg(msgs);
       const Data = response.incompleteData || response || [];
       console.log(Data, "Data");
       setSessions(Data);
       setFilteredSessions(Data);
-
       //Build session count map
       const countMap = {};
 
@@ -931,12 +950,22 @@ const SessionManagement = () => {
       variant: "destructive",
     });
   };
+  // const handleDuplicateSession = (patientId, physioId, sessionTime) => {
+  //   deleteDuplicateSession(patientId, physioId, sessionTime);
+
+  //   toast({
+  //     title: "Deleted",
+  //     description: "Duplicate sessions have been removed.",
+  //     variant: "destructive",
+  //   });
+  // };
 
   const openNewSessionDialog = () => {
     setEditingSession(null);
     setSessionForm(initialFormState);
     setIsFormOpen(true);
   };
+  const Today = new Date().toISOString().split("T")[0];
 
   // const handleRadio = (name,value) => {
   //   setRadio(prev =>[...prev, { redFlagIdID: RedflagIDPK, isOccurred: value }] )
@@ -996,13 +1025,12 @@ const SessionManagement = () => {
               : "Manage all patient sessions and track progress"}
           </p>
         </div>
-        {user?.role !== "physio" && Permissions.isAdd && (
+        {user?.role !== "Physio" && Permissions.isAdd && (
           <Button onClick={openNewSessionDialog}>
             <PlusCircle className="mr-2 h-4 w-4" /> Schedule Session
           </Button>
         )}
       </motion.div>
-
       <Card className="medical-card max-w-fit md:max-w-full  ">
         <CardHeader>
           <CardTitle>Search & Filter</CardTitle>
@@ -1028,19 +1056,20 @@ const SessionManagement = () => {
                   <Input type="Date" value={sessionForm.sessionDate} />
                 </SelectContent>
               </Select> */}
-            <div className="w-48">
-              <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => {
-                  setDateFilter(e.target.value);
-                  getSession(e.target.value);
-                }}
-                className="w-full"
-              />
-            </div>
+            {user?.role !== "Physio" && (
+              <div className="w-48">
+                <Input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    getSession(e.target.value);
+                  }}
+                  className="w-full"
+                />
+              </div>
+            )}
 
-            {/* </div> */}
             <div className="w-48">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -1058,7 +1087,17 @@ const SessionManagement = () => {
           </div>
         </CardContent>
       </Card>
-
+      {user?.role === "Physio" && (
+        <Card className="medical-card max-w-fit md:max-w-full  ">
+          <CardContent>
+            <div className="flex md:flex-row m-5 mb-0 flex-col items-center gap-4 text-center md:space-x-4  ">
+              <div className="flex-1 relative">
+                <h5>{msg}</h5>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1306,7 +1345,7 @@ const SessionManagement = () => {
                               <Edit size={12} />
                             </Button>
                           )}
-                          {user?.role !== "physio" && Permissions.isDelete && (
+                          {user?.role !== "Physio" && Permissions.isDelete && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button size="sm" variant="destructive">
@@ -1331,6 +1370,17 @@ const SessionManagement = () => {
                                   >
                                     Delete
                                   </AlertDialogAction>
+                                  {/* <AlertDialogAction
+                                    onClick={() =>
+                                      handleDuplicateSession(
+                                        session.patientId._id,
+                                        session.physioId._id,
+                                        session.sessionTime,
+                                      )
+                                    }
+                                  >
+                                    Delete
+                                  </AlertDialogAction> */}
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -1744,7 +1794,6 @@ const SessionManagement = () => {
           </CardContent>
         </Card>
       </motion.div>
-
       <Dialog
         open={feedbackDialog.open}
         onOpenChange={(open) => setFeedbackDialog({ open, sessionId: null })}
@@ -2091,7 +2140,6 @@ const SessionManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog
         open={cancelDialog.open}
         onOpenChange={(open) => setCancelDialog({ open, sessionId: null })}
@@ -2119,16 +2167,49 @@ const SessionManagement = () => {
               </p>
             </div>
           )}
+
           <div className="space-y-4 pt-4">
-            <Label htmlFor="cancelledKms">Cancel Reason</Label>
-            <Input
+            <Label htmlFor="cancelledReason">Cancel Reason</Label>
+
+            <Select
+              value={cancelledReasonType}
+              onValueChange={(val) => {
+                setCancelledReasonType(val);
+                if (val !== "Other") {
+                  setCancelledReason(val);
+                } else {
+                  setCancelledReason("");
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Cancel Reason" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="LUP">LUP</SelectItem>
+                <SelectItem value="LUO">LUO</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {cancelledReasonType === "Other" && (
+              <Input
+                id="cancelledReason"
+                type="text"
+                value={cancelledReason}
+                onChange={(e) => setCancelledReason(e.target.value)}
+                placeholder="Enter reason for cancelling this session..."
+                required
+              />
+            )}
+            {/* <Input
               id="cancelledReason"
               type="text"
               value={cancelledReason}
               onChange={(e) => setCancelledReason(e.target.value)}
               placeholder="Enter reason for cancelling this session..."
               required
-            />
+            /> */}
             {/* <p className="text-xs text-gray-500">
               This amount will be deducted from the physio's daily total.
             </p> */}
@@ -2145,7 +2226,6 @@ const SessionManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
