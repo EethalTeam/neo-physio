@@ -93,8 +93,8 @@ const Login = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
+        description: res?.message,
+        variant: "alert",
       });
     }
   };
