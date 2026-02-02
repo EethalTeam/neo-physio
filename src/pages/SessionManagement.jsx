@@ -73,6 +73,8 @@ const SessionManagement = () => {
   const [cancelledReasonType, setCancelledReasonType] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [getPhysioCounts, setgetphyioCounts] = useState("");
+
   const [sessions, setSessions] = useState([]);
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
@@ -145,15 +147,14 @@ const SessionManagement = () => {
 
   useEffect(() => {
     getPhysio();
+    getAllPatient();
+    getPhysioCount();
     getPatient();
     getSessionStatus();
     getMachinery();
     getRedFlag();
     getModalities();
     handleViewConsultation();
-  }, []);
-
-  useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
         setPermissions(res);
@@ -528,6 +529,7 @@ const SessionManagement = () => {
     setFilteredSessions(filtered);
     // setSearchTerm("");
   }, [sessions, searchTerm, statusFilter, dateFilter]);
+
   const buildSessionDateTime = (session) => {
     if (!session.sessionDate || !session.sessionTime) return null;
 
@@ -649,6 +651,19 @@ const SessionManagement = () => {
           return aTime - bTime;
         });
       console.log(todaySessions, "todaySessions");
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    }
+  };
+  const getPhysioCount = async () => {
+    try {
+      const response = await apiRequest("Patient/getPhysioPatientCounts", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+
+      console.log(response, "getphysiocount response");
+      setgetphyioCounts(response.data);
     } catch (error) {
       console.error("Error fetching sessions:", error);
     }
@@ -941,6 +956,36 @@ const SessionManagement = () => {
     setIsFormOpen(true);
   };
 
+  const renderPhysioBadge = (physioId) => {
+    // 1. Find the physio object from your state array
+    const physio = getPhysioCounts.find((p) => p.physioId === physioId);
+
+    // 2. Handle case where physio might not be found
+    if (!physio) return <span>Physio not found</span>;
+
+    // 3. Define the background color logic
+    const bgColor =
+      physio.activePatientCount > 6
+        ? "green"
+        : physio.activePatientCount > 3
+          ? "orange"
+          : "red";
+
+    // 4. Return the styled response
+    return (
+      <span
+        style={{
+          backgroundColor: bgColor,
+          color: "white",
+          padding: "2px 8px",
+          borderRadius: "4px",
+        }}
+      >
+        {physio.physioName}
+      </span>
+    );
+  };
+
   const handleDeleteSession = (id) => {
     // setSessions(prev => prev.filter(s => s.id !== sessionId));
     deleteSession({ _id: id });
@@ -1003,9 +1048,6 @@ const SessionManagement = () => {
       throw error;
     }
   };
-  useEffect(() => {
-    getAllPatient();
-  }, []);
 
   return (
     <div className="md:space-y-6  space-y-10">
@@ -1087,7 +1129,7 @@ const SessionManagement = () => {
           </div>
         </CardContent>
       </Card>
-      {user?.role === "Physio" && (
+      {msg && user?.role === "Physio" && (
         <Card className="medical-card max-w-fit md:max-w-full  ">
           <CardContent>
             <div className="flex md:flex-row m-5 mb-0 flex-col items-center gap-4 text-center md:space-x-4  ">
@@ -1142,9 +1184,10 @@ const SessionManagement = () => {
                           
                       </td> */}
 
-                      {user?.role !== "physio" && (
+                      {user?.role !== "Physio" && (
                         <td className="p-2">
-                          {session.physioId?.physioName || "-"}
+                          {renderPhysioBadge(session.physioId._id)}
+                          {/* {session.physioId?.physioName || "-"} */}
                         </td>
                       )}
                       {/* {user?.role !== 'physio' && <td className="p-2">{session.physioId.physioName}</td>} */}

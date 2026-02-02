@@ -76,6 +76,8 @@ import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const PatientManagement = () => {
+  const [dateFilter, setDateFilter] = useState(new Date());
+
   const navigate = useNavigate();
   const { user } = useAuth();
   const [patients, setPatients] = useState([]);
@@ -323,7 +325,9 @@ const PatientManagement = () => {
     try {
       const res = await apiRequest("Patient/getAllPatient", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          targetDate: dateFilter,
+        }),
       });
 
       setFilteredPatients(res);
@@ -332,6 +336,7 @@ const PatientManagement = () => {
       console.error("Error:", error);
       throw error;
     }
+    console.log("dateFilter", dateFilter);
   };
 
   //api call and delete Patients
@@ -471,12 +476,17 @@ const PatientManagement = () => {
             .includes(searchTerm.toLowerCase()) ||
           patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
-
       setFilteredPatients(filtered);
     } else {
       setFilteredPatients(patients);
     }
   }, [patients, searchTerm]);
+
+  useEffect(() => {
+    if (dateFilter) {
+      getAllPatient(dateFilter);
+    }
+  }, [dateFilter]);
 
   useEffect(() => {
     if (isFormOpen && !editingPatient) {
@@ -1440,6 +1450,18 @@ const PatientManagement = () => {
                 className="pl-10"
               />
             </div>
+            {user?.role !== "Physio" && (
+              <div className="w-48">
+                <Input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                  }}
+                  className="w-full"
+                />
+              </div>
+            )}
 
             {/* Physio Filter Column */}
             <Select
