@@ -102,6 +102,7 @@ const PhysioManagement = () => {
     roleId: "",
   };
   const [physioForm, setPhysioForm] = useState(initialFormState);
+  const [physioPic, setPhysioPic] = useState(null)
   console.log(physioForm, "physioForm");
   const { getPermissionsByPath } = useAuth();
   const [Permissions, setPermissions] = useState({
@@ -183,37 +184,64 @@ const PhysioManagement = () => {
     }
   };
 
-  // Create Physio
-  const createPhysio = async (data) => {
-    try {
-      await apiRequest("Physio/createPhysio", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      toast({ title: "Success", description: "Physio created successfully." });
-      getPhysio();
-      setIsFormOpen(false);
-    } catch (error) {
-      console.error("Error creating physio:", error);
-    }
-  };
+const updatePhysio = async (data) => {
+  try {
+    // 1. Initialize FormData
+    const formData = new FormData();
 
-  //  Update Physio
-  const updatePhysio = async (data) => {
-    try {
-      await apiRequest("Physio/updatePhysio", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      console.log(data, "data");
+    // 2. Append all text data from your object
+    Object.keys(data).forEach((key) => {
+      // Skip appending if the value is the file object, we handle it below
+      if (key !== "physioPic") {
+        formData.append(key, data[key]);
+      }
+    });
 
-      toast({ title: "Updated", description: "Physio updated successfully." });
-      getPhysio();
-      setIsFormOpen(false);
-    } catch (error) {
-      console.error("Error updating physio:", error);
+    // 3. Append the actual File object (stored in your state)
+    if (physioPic) {
+      formData.append("physioPic", physioPic);
     }
-  };
+
+    // 4. Send request (Do NOT stringify body and DO NOT set Content-Type header manually)
+    await apiRequest("Physio/updatePhysio", {
+      method: "POST",
+      body: formData, 
+    });
+
+    toast({ title: "Updated", description: "Physio updated successfully." });
+    getPhysio();
+    setIsFormOpen(false);
+  } catch (error) {
+    console.error("Error updating physio:", error);
+  }
+};
+
+const createPhysio = async (data) => {
+  try {
+    const formData = new FormData();
+
+    Object.keys(data).forEach((key) => {
+      if (key !== "physioPic") {
+        formData.append(key, data[key]);
+      }
+    });
+
+    if (physioPic) {
+      formData.append("physioPic", physioPic);
+    }
+
+    await apiRequest("Physio/createPhysio", {
+      method: "POST",
+      body: formData,
+    });
+
+    toast({ title: "Success", description: "Physio created successfully." });
+    getPhysio();
+    setIsFormOpen(false);
+  } catch (error) {
+    console.error("Error creating physio:", error);
+  }
+};
 
   // Delete Physio
   const deletePhysio = async (id) => {
@@ -822,15 +850,18 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Physio Pic</Label>
-                  <Input
-                    name="physioPic"
-                    type="file"
-                    value={physioForm.physioPic}
-                    onChange={(e) => handleFormChange}
-                  />
-                </div>
+               <div className="space-y-2">
+  <Label>Physio Pic</Label>
+  <Input
+    name="physioPic"
+    type="file"
+    onChange={(e) => {
+      const file = e.target.files[0]; // Get the actual file object
+      setPhysioPic(file); 
+      console.log("Selected file:", file.name);
+    }}
+  />
+</div>
                 {/* <div className="space-y-2"><Label>Physio Code</Label><Input name="physioCode" value={physioForm.physioCode} onChange={handleFormChange} required disabled/></div> */}
                 <div className="space-y-2">
                   <Label>Name</Label>

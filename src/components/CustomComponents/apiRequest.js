@@ -10,33 +10,32 @@ function handleLogout() {
 }
 
 export async function apiRequest(endpoint, options = {}) {
-  const userId = localStorage.getItem("userId"); // stored when user logs in
-  // const storedUser = JSON.parse(localStorage.getItem('hrms_user'));
+  const userId = localStorage.getItem("userId");
+
+  // 1. Prepare headers
+  const headers = {
+    ...options.headers,
+  };
+
+  // 2. ONLY add application/json if the body is NOT FormData
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const finalOptions = {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-      //   "x-user-id": storedUser["_id"] || "", // attach userId on every request
-    },
+    headers: headers,
   };
+
   try {
     const response = await fetch(config.Api + "/api/" + endpoint, finalOptions);
+    
     if (response.status === 401) {
-      // backend says user not logged in
       handleLogout();
       return;
     }
-    //     if (!response.ok) {
-    //       const errorText=await response.text();
-    //       console.error("API Error Response:", errorText);
-    //   throw new Error('Failed to get datas');
-    // }
-    const result = await response.json();
 
-    if (!response.ok) {
-      return result;
-    }
+    const result = await response.json();
     return result;
   } catch (error) {
     console.error("API Error:", error);
