@@ -97,7 +97,7 @@ const SessionManagement = () => {
     //  sessionDate: null,
     //  sessionTime: '',
     //  machineId: ''
-
+    sessionCount: "",
     sessionCode: "",
     patientId: "",
     physioId: "",
@@ -231,21 +231,21 @@ const SessionManagement = () => {
   const [sessionCountMap, setSessionCountMap] = useState({});
   // console.log(sessionCountMap, "sessionCountMap");
 
-  const getNthSession = (currentSession) => {
-    if (!sessions?.length) return "-";
-    const relatedSessions = sessions
-      .filter(
-        (s) =>
-          s.patientId?._id === currentSession.patientId?._id &&
-          s.physioId?._id === currentSession.physioId?._id,
-      )
-      .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
-    const index = relatedSessions.findIndex(
-      (s) => s._id === currentSession._id,
-    );
+  // const getNthSession = (currentSession) => {
+  //   if (!sessions?.length) return "-";
+  //   const relatedSessions = sessions
+  //     .filter(
+  //       (s) =>
+  //         s.patientId?._id === currentSession.patientId?._id &&
+  //         s.physioId?._id === currentSession.physioId?._id,
+  //     )
+  //     .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
+  //   const index = relatedSessions.findIndex(
+  //     (s) => s._id === currentSession._id,
+  //   );
 
-    return index !== -1 ? index + 1 : "-";
-  };
+  //   return index !== -1 ? index + 1 : "-";
+  // };
 
   const getCreateSession = async (data) => {
     try {
@@ -263,6 +263,7 @@ const SessionManagement = () => {
         sessionDate: new Date(date1).toISOString(),
         sessionTime: data.sessionTime,
         sessionDay: data.sessionDay,
+        sessionCount: data.sessionCount,
       };
       const response = await apiRequest("Session/createSession", {
         method: "POST",
@@ -948,6 +949,7 @@ const SessionManagement = () => {
       sessionTime: session.sessionTime ? session.sessionTime : "",
       sessionFromTime: session.sessionFromTime ? session.sessionFromTime : "",
       sessionToTime: session.sessionToTime ? session.sessionToTime : "",
+      sessionCount: session.sessionCount ? session.sessionCount : "",
       // machineId: session.machineId?session.machineId._id:'',
       sessionStatusId: session.sessionStatusId
         ? session.sessionStatusId._id
@@ -1230,7 +1232,7 @@ const SessionManagement = () => {
                         </span>
                       </td>
                       <td className="p-2">
-                        {getNthSession(session)}
+                        {session.sessionCount}
                         {/* {sessionCountMap[
                           `${session?.patientId?._id}-${session?.physioId?._id}`
                         ]?.completed + 1} */}
@@ -1607,7 +1609,9 @@ const SessionManagement = () => {
                   <p className="text-sm text-gray-500">
                     Session
                     <span className="font-medium text-gray-800 ml-1">
-                      {getNthSession(session) || "-"}
+                      {/* {getNthSession(session) || "-"}
+                       */}
+                      {session.sessionCount}
                       {/* {
                         sessionCountMap[
                           `${session?.patientId?._id}-${session?.physioId?._id}`
@@ -2384,7 +2388,21 @@ const SessionManagement = () => {
                   setSessionForm((p) => ({ ...p, sessionTime: e.target.value }))
                 }
               />
-            </div>
+            </div>{" "}
+            {/* <div className="space-y-2">
+              <Label htmlFor="sessionTime">Session Count</Label>
+              <Input
+                id="sessionCount"
+                type="text"
+                value={sessionForm.sessionCount}
+                onChange={(e) =>
+                  setSessionForm((p) => ({
+                    ...p,
+                    sessionCount: e.target.value,
+                  }))
+                }
+              />
+            </div> */}
             {/* <div className="space-y-2"><Label>Machine Used (Optional)</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, machineId: v }))} value={sessionForm.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div> */}
             <DialogFooter>
               <Button
