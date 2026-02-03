@@ -2403,6 +2403,20 @@ const SessionManagement = () => {
                 }
               />
             </div> */}
+            {/* <div className="space-y-2">
+              <Label htmlFor="sessionTime">Session Code</Label>
+              <Input
+                id="sessionCode"
+                type="text"
+                value={sessionForm.sessionCode}
+                onChange={(e) =>
+                  setSessionForm((p) => ({
+                    ...p,
+                    sessionCode: e.target.value,
+                  }))
+                }
+              />
+            </div> */}
             {/* <div className="space-y-2"><Label>Machine Used (Optional)</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, machineId: v }))} value={sessionForm.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div> */}
             <DialogFooter>
               <Button
