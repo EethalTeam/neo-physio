@@ -822,6 +822,15 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Physio Pic</Label>
+                  <Input
+                    name="physioPic"
+                    type="file"
+                    value={physioForm.physioPic}
+                    onChange={(e) => handleFormChange}
+                  />
+                </div>
                 {/* <div className="space-y-2"><Label>Physio Code</Label><Input name="physioCode" value={physioForm.physioCode} onChange={handleFormChange} required disabled/></div> */}
                 <div className="space-y-2">
                   <Label>Name</Label>
