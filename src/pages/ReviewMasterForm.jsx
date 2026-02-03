@@ -540,7 +540,7 @@ const ReviewMasterForm = () => {
           <div className="flex md:flex-row flex-col items-center gap-4">
             <div className="flex-1 relative">
               <Input
-                placeholder="Search by patient name..."
+                placeholder="Search by Patient Name & Physio Name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />

@@ -40,53 +40,71 @@ const MonthlySummary = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const currentPhysioId = 1;
-
   const loadDashboardData = async () => {
     try {
-      const sessionRes = await apiRequest("Session/getAllSession", {
+      const now = new Date();
+
+      const month = now.getMonth() + 1; // 1–12
+      const year = now.getFullYear();
+
+      const sessionRes = await apiRequest("Session/getMonthlySummary", {
         method: "POST",
         body: JSON.stringify({
           physioId: user._id,
+          month: selectedMonth + 1,
+          year: selectedYear,
         }),
       });
-
+      console.log(sessionRes, "sessionRes");
       processDashboardData(sessionRes);
+      setSummary(sessionRes);
     } catch (err) {
       console.error("Monthly summary load failed:", err);
     }
   };
+  const processDashboardData = (data) => {
+    if (!data) return;
 
-  const processDashboardData = (sessions = []) => {
-    if (!Array.isArray(sessions)) return;
-
-    let totalSessions = 0;
-    let completedSessions = 0;
-    let cancelledSessions = 0;
-    const uniquePatients = new Set();
-
-    sessions.forEach((s) => {
-      // ONLY count sessions of this physio
-      if (s.physioId?._id !== user._id) return;
-
-      totalSessions += 1;
-
-      if (s.patientId?._id) {
-        uniquePatients.add(s.patientId._id);
-      }
-
-      const status = s.sessionStatusId?.sessionStatusName;
-
-      if (status === "Completed") completedSessions += 1;
-      if (status === "Canceled") cancelledSessions += 1;
-    });
-
+    // If backend already returns summary object
     setSummary((prev) => ({
       ...prev,
-      totalSessions,
-      completedSessions,
-      cancelledSessions,
+      totalSessions: data.totalSessions,
+      completedSessions: data.completedSessions,
+      cancelledSessions: data.cancelledSessions,
     }));
   };
+
+  // const processDashboardData = (sessions = []) => {
+  //   if (!Array.isArray(sessions)) return;
+
+  //   let totalSessions = 0;
+  //   let completedSessions = 0;
+  //   let cancelledSessions = 0;
+  //   const uniquePatients = new Set();
+
+  //   sessions.forEach((s) => {
+  //     // ONLY count sessions of this physio
+  //     if (s.physioId?._id !== user._id) return;
+
+  //     totalSessions += 1;
+
+  //     if (s.patientId?._id) {
+  //       uniquePatients.add(s.patientId._id);
+  //     }
+
+  //     const status = s.sessionStatusId?.sessionStatusName;
+
+  //     if (status === "Completed") completedSessions += 1;
+  //     if (status === "Canceled") cancelledSessions += 1;
+  //   });
+
+  //   setSummary((prev) => ({
+  //     ...prev,
+  //     totalSessions,
+  //     completedSessions,
+  //     cancelledSessions,
+  //   }));
+  // };
 
   useEffect(() => {
     loadDashboardData();

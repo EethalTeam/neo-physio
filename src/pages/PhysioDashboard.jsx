@@ -47,7 +47,7 @@ const PhysioDashboard = () => {
       const sessionRes = await apiRequest("Session/getAllSession", {
         method: "POST",
         body: JSON.stringify({
-          sessionDate: startDate,
+          Today: startDate,
           nextDate: endDate,
           physioId: user._id,
           storedRole,
@@ -173,7 +173,7 @@ const PhysioDashboard = () => {
       bgColor: "bg-green-100",
     },
     {
-      title: "Not Concerned Patients",
+      title: "Not Consent Patients",
       value: stats.notConcered,
       icon: CheckCircle,
       color: "text-green-600",

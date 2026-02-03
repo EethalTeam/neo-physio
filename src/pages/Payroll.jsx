@@ -476,9 +476,7 @@ const Payroll = () => {
                     <h2 className="text-2xl font-bold text-blue-600">
                       NEO Physio
                     </h2>
-                    <p className="text-sm text-gray-500">
-                      123 Health St, Wellness City
-                    </p>
+                    <p className="text-sm text-gray-500">Coimbatore</p>
                   </div>
                   <div className="text-right">
                     <h3 className="text-lg font-semibold">Payslip</h3>

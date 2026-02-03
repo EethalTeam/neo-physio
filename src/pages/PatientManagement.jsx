@@ -1198,7 +1198,7 @@ const PatientManagement = () => {
   const handleViewHistory = async (patient) => {
     setHistoryPatient(patient);
     setIsHistoryOpen(true);
-
+    console.log(historyPatient, "History patinet");
     console.log("Fetching history for patient:", patient.patientName);
     console.log("Sending patientId:", patient._id);
 
@@ -1221,7 +1221,11 @@ const PatientManagement = () => {
         title: `Session ${index + 1}`,
         status: s.sessionStatusId?.sessionStatusName || "N/A",
         color: s.sessionStatusId?.sessionStatusColor,
-        feedback: s.sessionFeedbackPros || "No feedback",
+        feedback:
+          s.sessionFeedbackPros ||
+          s.sessionCancelReason ||
+          s.sessionFeedbackCons ||
+          "No feedback",
       }));
 
       // Count sessions
@@ -1247,7 +1251,6 @@ const PatientManagement = () => {
 
       setPatientHistory(combinedHistory);
       setSessionCount({ total: totalSessions, completed: completedSessions });
-
       console.log("Patient sessions:", patientSessions);
     } catch (error) {
       console.error("Failed to fetch sessions:", error);
@@ -2209,7 +2212,9 @@ const PatientManagement = () => {
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="md:max-w-2xl max-h-[90vh] flex flex-col max-w-sm">
           <DialogHeader>
-            <DialogTitle>Patient History: {historyPatient?.name}</DialogTitle>
+            <DialogTitle>
+              Patient History: {historyPatient?.patientName || "Unknown"}
+            </DialogTitle>
             <DialogDescription>
               Chronological log of all sessions and reviews.
             </DialogDescription>
@@ -2217,12 +2222,13 @@ const PatientManagement = () => {
 
           <div className="flex-1 overflow-y-auto pr-6 -mr-6 mt-4">
             <div className="relative pl-6">
+              {/* Timeline vertical line */}
               <div
                 className="absolute left-0 top-0 h-full w-0.5 bg-gray-200"
                 style={{ transform: "translateX(2.5px)" }}
               ></div>
 
-              {patientHistory.length > 0 ? (
+              {patientHistory && patientHistory.length > 0 ? (
                 patientHistory.map((item, index) => (
                   <div key={index} className="mb-8 relative">
                     <div className="pl-6">
@@ -2234,22 +2240,18 @@ const PatientManagement = () => {
                       {/* Title */}
                       <h4 className="font-semibold text-md">{item.title}</h4>
 
-                      {/* Status and Feedback for sessions */}
+                      {/* Session status and feedback */}
                       {item.type === "session" && (
                         <p className="text-sm text-gray-600">
                           Status: {item.status} <br />
-                          Feedback:
-                          <span
-                            className="text-sm text-gray-600"
-                            style={{ color: item.color }}
-                          >
-                            {" "}
-                            {item.feedback}
+                          Feedback:{" "}
+                          <span style={{ color: item.color || "#4B5563" }}>
+                            {item.feedback || item.sessionCancelReason || "N/A"}
                           </span>
                         </p>
                       )}
 
-                      {/* Reviews */}
+                      {/* Review details */}
                       {item.type === "review" && (
                         <p className="text-sm text-gray-600">{item.details}</p>
                       )}
