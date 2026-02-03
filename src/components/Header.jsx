@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Bell, User, LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { config } from "./CustomComponents/config";
+import profile from "../Assets/images/profile.png";
 import NotificationPanel from "@/components/NotificationPanel";
 // import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import {
@@ -31,7 +33,7 @@ import {
 import { apiRequest } from "../components/CustomComponents/apiRequest";
 const Header = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
-  const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState([]);
+  const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
   const [assignForm, setAssignForm] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -149,6 +151,14 @@ const Header = ({ toggleSidebar }) => {
       console.error(error);
     }
   };
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  useEffect(() => {
+    if (physioData?.physioPic) {
+      const url = `${config.Api}/${physioData.physioPic.replace(/\\/g, "/")}`;
+      setPreviewUrl(url);
+    }
+  }, [physioData]);
 
   return (
     <motion.header
@@ -311,6 +321,21 @@ const Header = ({ toggleSidebar }) => {
                   <h2 className="text-lg font-semibold mb-4">
                     Personal Information
                   </h2>
+                  <div className="flex-1 flex items-center justify-center overflow-hidden p-2">
+                    {previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt="Physio"
+                        className="w-32 h-32 rounded-full object-cover border shadow transition-transform duration-200 hover:scale-110 hover:shadow-xl"
+                      />
+                    ) : (
+                      <img
+                        src={profile}
+                        alt="Physio"
+                        className="w-32 h-32 rounded-full object-cover border shadow "
+                      />
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col">
