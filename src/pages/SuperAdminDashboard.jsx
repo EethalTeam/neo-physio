@@ -19,6 +19,11 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { useNavigate } from "react-router-dom";
 
 const SuperAdminDashboard = () => {
+  const [dateFilter, setDateFilter] = useState({
+    fromDate: "",
+    toDate: "",
+  });
+
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     lead: 0,
@@ -55,15 +60,16 @@ const SuperAdminDashboard = () => {
   // }, []);
 
   useEffect(() => {
-    getAllDashBoard();
-  }, []);
+    getAllDashBoard(dateFilter);
+  }, [dateFilter]);
 
-  const getAllDashBoard = async (data) => {
+  const getAllDashBoard = async (filterData = {}) => {
     try {
       const response = await apiRequest("DashBoard/getAllDashBoard", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(filterData),
       });
+
       setStats(response);
       console.log(response, "response");
     } catch (error) {
@@ -71,7 +77,16 @@ const SuperAdminDashboard = () => {
       throw error;
     }
   };
+  const applyDateFilter = () => {
+    let payload = { ...dateFilter };
 
+    // If only fromDate is selected, use same date as toDate
+    if (payload.fromDate && !payload.toDate) {
+      payload.toDate = payload.fromDate;
+    }
+
+    getAllDashBoard(payload);
+  };
   const statCards = [
     {
       title: "Total Leads",
@@ -131,6 +146,52 @@ const SuperAdminDashboard = () => {
           Complete overview of your physiotherapy service management
         </p>
       </motion.div>
+      <Card className="medical-card">
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex flex-col">
+              <label className="text-sm text-gray-600 mb-1">From Date</label>
+              <input
+                type="date"
+                className="border rounded-md px-3 py-2 text-sm"
+                value={dateFilter.fromDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, fromDate: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-sm text-gray-600 mb-1">To Date</label>
+              <input
+                type="date"
+                className="border rounded-md px-3 py-2 text-sm"
+                value={dateFilter.toDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, toDate: e.target.value })
+                }
+              />
+            </div>
+
+            <button
+              onClick={applyDateFilter}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+            >
+              Apply Filter
+            </button>
+
+            <button
+              onClick={() => {
+                setDateFilter({ fromDate: "", toDate: "" });
+                getAllDashBoard();
+              }}
+              className="px-6 py-2 border rounded-md hover:bg-gray-50 transition"
+            >
+              Reset
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((stat, index) => {
