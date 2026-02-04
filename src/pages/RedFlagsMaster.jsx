@@ -99,6 +99,7 @@ const RedFlagsMaster = () => {
         console.log(error);
       }
     };
+    console.log(redFlags, "redflags");
 
     if (editingFlag) {
       updateRedflag(flagName);
@@ -156,8 +157,8 @@ const RedFlagsMaster = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      const result = await res.json();
-      setRedFlags(result);
+      // const result = await res.json();
+      setRedFlags(res);
     } catch (error) {
       console.log(error);
     }
@@ -170,7 +171,7 @@ const RedFlagsMaster = () => {
     try {
       const response = await apiRequest("Redflag/updateRedflag", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+
         body: JSON.stringify({
           redflagName: flagName.redflagName,
           isActive: true,
