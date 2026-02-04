@@ -52,6 +52,7 @@ import {
   User,
   CircleDotDashedIcon,
   StopCircle,
+  XCircleIcon,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -402,6 +403,20 @@ const SessionManagement = () => {
       console.log(error, "error from frontend get All Session Start");
     }
   };
+  const SessionCancelRevert = async (sessionId) => {
+    try {
+      const response = await apiRequest("Session/SessionCancelRevert", {
+        method: "POST",
+        body: JSON.stringify({ sessionId }),
+      });
+
+      getSession();
+      return response;
+    } catch (error) {
+      console.log("Cancel revert error", error);
+    }
+  };
+
   const SessionStart = async (data) => {
     try {
       const response = await apiRequest("Session/SessionStart", {
@@ -702,7 +717,9 @@ const SessionManagement = () => {
     if (action === "Scheduled") {
       handlesessionStop(sessionId, action);
     }
-
+    if (action === "Canceled") {
+      handleSessionCancleRevert(sessionId, action);
+    }
     // Update UI
     setSessions((prev) =>
       prev.map((s) =>
@@ -838,6 +855,13 @@ const SessionManagement = () => {
   const handlesessionStop = (session, action) => {
     SessionStop({
       _id: session,
+      action: action,
+    });
+  };
+  const handleSessionCancleRevert = (session, action) => {
+    SessionCancelRevert({
+      _id: session,
+
       action: action,
     });
   };
@@ -1380,6 +1404,19 @@ const SessionManagement = () => {
                               <XCircle size={12} />
                             </Button>
                           )}
+                          {session.sessionStatusId?.sessionStatusName ===
+                            "Canceled" && (
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() =>
+                                handleSessionCancleRevert(session._id)
+                              }
+                            >
+                              <XCircleIcon size={12} />
+                            </Button>
+                          )}
+
                           {user?.role !== "physio" && Permissions.isEdit && (
                             // <>
                             <Button

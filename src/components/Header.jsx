@@ -152,6 +152,7 @@ const Header = ({ toggleSidebar }) => {
     }
   };
   const [previewUrl, setPreviewUrl] = useState(null);
+  console.log(previewUrl, "previewUrl");
 
   useEffect(() => {
     if (physioData?.physioPic) {

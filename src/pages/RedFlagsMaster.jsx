@@ -99,8 +99,6 @@ const RedFlagsMaster = () => {
         console.log(error);
       }
     };
-    console.log(redFlags, "redflags");
-
     if (editingFlag) {
       updateRedflag(flagName);
       setRedFlags((prev) =>

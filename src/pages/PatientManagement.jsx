@@ -1442,36 +1442,36 @@ const PatientManagement = () => {
         </CardHeader>
 
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
             {/* Search Column */}
-            <div className="relative">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search by name, contact or Patient ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 w-full"
               />
             </div>
+
+            {/* Date Filter */}
             {user?.role !== "Physio" && (
-              <div className="w-48">
+              <div className="w-full">
                 <Input
                   type="date"
                   value={dateFilter}
-                  onChange={(e) => {
-                    setDateFilter(e.target.value);
-                  }}
+                  onChange={(e) => setDateFilter(e.target.value)}
                   className="w-full"
                 />
               </div>
             )}
 
-            {/* Physio Filter Column */}
+            {/* Physio Filter */}
             <Select
               value={selectedPhysioId}
               onValueChange={(v) => setSelectedPhysioId(v)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filter by Physiotherapist" />
               </SelectTrigger>
               <SelectContent>
