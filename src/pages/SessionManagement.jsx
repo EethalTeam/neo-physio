@@ -75,7 +75,10 @@ const SessionManagement = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [getPhysioCounts, setgetphyioCounts] = useState("");
-
+  const userRole = localStorage.getItem("userRole");
+  const physioName = user?.physioName;
+  console.log(userRole, "userRole");
+  console.log(user?.physioName, "physioName");
   const [sessions, setSessions] = useState([]);
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
@@ -874,6 +877,9 @@ const SessionManagement = () => {
     SessionCancel({
       _id: session,
       action: action,
+      physioId: user?._id,
+      userRole: userRole,
+      physioName: physioName,
       cancelledKms: cancelledKms,
       cancelledReason: cancelledReason,
     });
@@ -2427,7 +2433,7 @@ const SessionManagement = () => {
                 }
               />
             </div>{" "}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="sessionTime">Session Count</Label>
               <Input
                 id="sessionCount"
@@ -2440,7 +2446,7 @@ const SessionManagement = () => {
                   }))
                 }
               />
-            </div>
+            </div> */}
             {/* <div className="space-y-2">
               <Label htmlFor="sessionTime">Session Code</Label>
               <Input
