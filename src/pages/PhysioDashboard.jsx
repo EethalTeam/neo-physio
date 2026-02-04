@@ -19,7 +19,7 @@ const PhysioDashboard = () => {
     completedSessions: 0,
     upcomingSessions: 0,
     activePatients: 0,
-    notConcered: 0,
+    notConsent: 0,
     cancelledSessions: 0,
   });
   const Navigate = useNavigate();
@@ -66,7 +66,12 @@ const PhysioDashboard = () => {
     }
   };
   const processDashboardData = (sessionsData, patientsData) => {
+    const physioPatients = patientsData.filter(
+      (patient) => patient.physioId?._id?.toString() === user._id?.toString(),
+    );
+
     const todayStr = new Date().toISOString().split("T")[0];
+    console.log(physioPatients, "patientsData");
 
     const todaySessions = sessionsData.filter((s) =>
       s.sessionDate?.startsWith(todayStr),
@@ -105,13 +110,12 @@ const PhysioDashboard = () => {
           status: session.sessionStatusId?.sessionStatusName?.toLowerCase(),
         };
       });
-    const notConceredPatients = (physioId) => {
-      return patientsData.filter(
-        (patient) =>
-          patient.physioId?._id === physioId &&
-          patient.isConcernReceived === false,
+    const notConsentPatients = () => {
+      return physioPatients.filter(
+        (patient) => patient.isConsentReceived === false,
       ).length;
     };
+
     const todayDate = new Date().toISOString().split("T")[0];
     const todaycancelledSessions = sessionsData.filter(
       (s) =>
@@ -123,9 +127,10 @@ const PhysioDashboard = () => {
     setStats({
       todaySessions: todaySessions.length,
       completedSessions: completedSessions.length,
+      totalPatient: physioPatients.length,
       upcomingSessions: upcomingSessions.length,
       activePatients: activePatientIds.size,
-      notConcered: notConceredPatients(user._id),
+      notConsent: notConsentPatients(user._id),
       cancelledSessions: todaycancelledSessions.length,
     });
 
@@ -173,8 +178,15 @@ const PhysioDashboard = () => {
       bgColor: "bg-green-100",
     },
     {
+      title: "Total Patients",
+      value: stats.totalPatient,
+      icon: Users,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
       title: "Not Consent Patients",
-      value: stats.notConcered,
+      value: stats.notConsent,
       icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-100",

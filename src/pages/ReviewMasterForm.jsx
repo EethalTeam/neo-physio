@@ -353,6 +353,7 @@ const ReviewMasterForm = () => {
         reviewTypeId: data.reviewTypeId,
         redflagId: data.redflagId || "694e1fc2212f38083803642a",
         feedback: data.feedback || "",
+        reviewStatusId: data.reviewStatusId || "",
       };
 
       const response = await apiRequest("Review/createReview", {
@@ -425,7 +426,8 @@ const ReviewMasterForm = () => {
       console.log(error, "error from frontend update  Review");
     }
   };
-
+  console.log(reviews, "Reviews");
+  console.log(filteredReviews, "Filtered reviews");
   const deleteReview = async (data) => {
     try {
       const response = await apiRequest("Review/deleteReview", {
@@ -524,11 +526,11 @@ const ReviewMasterForm = () => {
               : "Manage all patient reviews and track progress"}
           </p>
         </div>
-        {/* {user?.role !== "physio" && permissions.isAdd && (
+        {user?.role !== "Physio" && permissions.isAdd && (
           <Button onClick={() => setIsFormOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" /> Schedule Review
           </Button>
-        )} */}
+        )}
       </motion.div>
 
       {/* Filter Card */}

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Logo from "../Assets/images/logo_png.png";
 import {
   Select,
   SelectContent,
@@ -108,9 +109,9 @@ const Login = () => {
       >
         <Card className="w-[350px]">
           <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-blue-600 rounded-full">
-                <Stethoscope className="text-white" size={32} />
+            <div className="flex justify-center">
+              <div className="p-3 rounded-full">
+                <img src={Logo} className=" w-24" />
               </div>
             </div>
             <CardTitle className="text-2xl font-bold text-gray-800">

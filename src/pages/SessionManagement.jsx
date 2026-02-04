@@ -1404,18 +1404,19 @@ const SessionManagement = () => {
                               <XCircle size={12} />
                             </Button>
                           )}
-                          {session.sessionStatusId?.sessionStatusName ===
-                            "Canceled" && (
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              onClick={() =>
-                                handleSessionCancleRevert(session._id)
-                              }
-                            >
-                              <XCircleIcon size={12} />
-                            </Button>
-                          )}
+                          {user?.role !== "Physio" &&
+                            session.sessionStatusId?.sessionStatusName ===
+                              "Canceled" && (
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() =>
+                                  handleSessionCancleRevert(session._id)
+                                }
+                              >
+                                <XCircleIcon size={12} />
+                              </Button>
+                            )}
 
                           {user?.role !== "physio" && Permissions.isEdit && (
                             // <>
@@ -2426,7 +2427,7 @@ const SessionManagement = () => {
                 }
               />
             </div>{" "}
-            {/* <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="sessionTime">Session Count</Label>
               <Input
                 id="sessionCount"
@@ -2439,7 +2440,7 @@ const SessionManagement = () => {
                   }))
                 }
               />
-            </div> */}
+            </div>
             {/* <div className="space-y-2">
               <Label htmlFor="sessionTime">Session Code</Label>
               <Input
