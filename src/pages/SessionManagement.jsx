@@ -1189,7 +1189,7 @@ const SessionManagement = () => {
                     <th className="text-left p-2">Session Code</th>
 
                     <th className="text-left p-2">Patient</th>
-                    {user?.role !== "physio" && (
+                    {user?.role !== "Physio" && (
                       <th className="text-left p-2">Physiotherapist</th>
                     )}
                     <th className="text-left p-2">Date & Time</th>
