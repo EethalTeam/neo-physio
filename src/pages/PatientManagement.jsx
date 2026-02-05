@@ -1638,7 +1638,7 @@ const PatientManagement = () => {
                       {/* {user?.role === "HOD" && ( */}
                       <>
                         <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
-                          {patient.totalSessionDays || 0}
+                          {patient.sessionCount || 0}
                         </td>
                         <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
                           {patient.patientCondition}
