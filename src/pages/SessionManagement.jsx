@@ -2433,7 +2433,7 @@ const SessionManagement = () => {
                 }
               />
             </div>{" "}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="sessionTime">Session Count</Label>
               <Input
                 id="sessionCount"
@@ -2446,7 +2446,7 @@ const SessionManagement = () => {
                   }))
                 }
               />
-            </div>
+            </div> */}
             {/* <div className="space-y-2">
               <Label htmlFor="sessionTime">Session Code</Label>
               <Input
