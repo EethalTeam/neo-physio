@@ -1450,7 +1450,7 @@ const SessionManagement = () => {
                               </AlertDialog>
                             )}
 
-                          {user?.role !== "physio" && Permissions.isEdit && (
+                          {user?.role !== "Physio" && Permissions.isEdit && (
                             // <>
                             <Button
                               size="sm"

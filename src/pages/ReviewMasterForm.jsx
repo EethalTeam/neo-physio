@@ -607,13 +607,16 @@ const ReviewMasterForm = () => {
                         <td className="p-2">
                           <div>
                             <p className="text-sm">
-                              {session.reviewDate
+                              {new Date(session.reviewDate).toLocaleDateString(
+                                "en-IN",
+                              )}
+                              {/* {session.reviewDate
                                 ? session.reviewDate
                                     .split("T")[0]
                                     .split("-")
                                     .reverse()
                                     .join("-")
-                                : "-"}
+                                : "-"} */}
                             </p>
                             <p className="text-xs text-gray-600"></p>
                           </div>
