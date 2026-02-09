@@ -1410,18 +1410,44 @@ const SessionManagement = () => {
                               <XCircle size={12} />
                             </Button>
                           )}
+
                           {user?.role !== "Physio" &&
                             session.sessionStatusId?.sessionStatusName ===
                               "Canceled" && (
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                                onClick={() =>
-                                  handleSessionCancleRevert(session._id)
-                                }
-                              >
-                                <XCircleIcon size={12} />
-                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <XCircleIcon size={12} />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Are you sure?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will Changed the Cancelled session to
+                                      Scheduled.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleSessionCancleRevert(session._id)
+                                      }
+                                    >
+                                      Revert Cancel
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
 
                           {user?.role !== "physio" && Permissions.isEdit && (
@@ -1851,7 +1877,7 @@ const SessionManagement = () => {
                         >
                           <Edit size={12} />
                         </Button> */}
-                    {user?.role !== "physio" && Permissions.isDelete && (
+                    {user?.role !== "Physio" && Permissions.isDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button size="sm" variant="destructive">

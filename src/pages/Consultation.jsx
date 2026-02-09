@@ -1254,10 +1254,19 @@ const Consulation = () => {
                         user?.role === "Admin" ||
                         user?.role === "SuperAdmin") && (
                         <>
-                          {/* {
-                        Permissions.isEdit && 
-                         <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span className="hidden md:inline lg:inline">Edit</span></Button>
-                       } */}
+                          {Permissions.isEdit && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditPatient(patient)}
+                              className="flex-1"
+                            >
+                              <Edit size={14} />
+                              <span className="hidden md:inline lg:inline">
+                                Edit
+                              </span>
+                            </Button>
+                          )}
                         </>
                       )}
                       {(user?.role === "Admin" ||
@@ -1503,171 +1512,704 @@ const Consulation = () => {
         </DialogContent>
       </Dialog> */}
 
-      {/* <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
-          <DialogHeader><DialogTitle>{editingPatient ? 'Edit Patient' : 'Create New Patient'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              {editingPatient ? "Edit Patient" : "Create New Patient"}
+            </DialogTitle>
+          </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <form onSubmit={handleFormSubmit} className="space-y-4">
-              <Accordion type="multiple" defaultValue={['item-1']} className="w-full">
-                <AccordionItem value="item-1"><AccordionTrigger>Patient Details</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Patient ID</Label><Input name="patientCode" value={patientForm.patientCode} onChange={handleFormChange} required disabled /></div>
-                    <div className="space-y-2"><Label>Consultation Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.consultationDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.consultationDate ? format(patientForm.consultationDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.consultationDate} onSelect={(d) => handleDateChange('consultationDate', d)} initialFocus  disabled={(date)=>date<new Date(new Date().setHours(0,0,0,0))} /></PopoverContent></Popover></div>
-                    <div className="space-y-2"><Label>Name</Label><Input name="patientName" value={patientForm.patientName} onChange={handleFormChange} required /></div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Age</Label><Input name="patientAge" type="number" value={patientForm.patientAge} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2">
-                      <Label>Gender</Label>
-                      <Select value={patientForm.patientGenderId} onValueChange={(v) => handleSelectChange('patientGenderId', v)}>
-                        <SelectTrigger><SelectValue placeholder="Select Gender" /></SelectTrigger>
-                        <SelectContent>
-                          {gender.map((g) => (
-                            <SelectItem key={g.GenderIDPK} value={g.GenderIDPK}>{g.genderName}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2"><Label>Bystander Name</Label><Input name="byStandar" value={patientForm.byStandar} onChange={handleFormChange} /></div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Relation With Patient</Label><Input name="Relation" value={patientForm.Relation} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>Mobile No.</Label><Input name="patientNumber" value={patientForm.patientNumber} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2"><Label>Alt. Mobile No.</Label><Input name="patientAltNum" value={patientForm.patientAltNum} onChange={handleFormChange} /></div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Address</Label><Input name="patientAddress" value={patientForm.patientAddress} onChange={handleFormChange} required /></div>
-                    <div className="space-y-2"><Label>PIN Code</Label><Input name="patientPinCode" value={patientForm.patientPinCode} onChange={handleFormChange} required /></div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Fees Type</Label>
-                      <Select
-                        value={JSON.stringify({ id: patientForm.FeesTypeId, name: patientForm.FeesTypeName })}
-                        onValueChange={(v) => {
-                          const selected = JSON.parse(v);
-                          handleSelectChange('FeesTypeId', selected.id);
-                          handleSelectChange('FeesTypeName', selected.name);
-                        }}
-                      >                      <SelectTrigger><SelectValue placeholder="Select Fees" /></SelectTrigger>
-                        <SelectContent>
-                          {feesType.map((fee) => (
-                            <SelectItem
-                              key={fee._id}
-                              value={JSON.stringify({ id: fee._id, name: fee.feesTypeName })}
-                            >{fee.feesTypeName}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2"><Label>Fees Amount ({patientForm.FeesTypeName == 'PerSession' ? 'PerSession' : 'PerMonth'})</Label>
-                      <Input name="feeAmount" value={patientForm.feeAmount} onChange={handleFormChange} placeholder={patientForm.FeesTypeName == 'PerSession' ? 'PerSession' : 'PerMonth'} />
-
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Diagnosis / Condition</Label><Input name="patientCondition" value={patientForm.patientCondition} onChange={handleFormChange} /></div> */}
-      {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
-      {/* <div className="space-y-2"><Label>Review Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !patientForm.reviewDate && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{patientForm.reviewDate ? format(patientForm.reviewDate, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={patientForm.reviewDate} onSelect={(d) => handleDateChange('reviewDate', d)} initialFocus disabled={(date)=>date<new Date().setHours(0,0,0,0)} /></PopoverContent></Popover></div>
-                   
+              <Accordion
+                type="multiple"
+                defaultValue={["item-1"]}
+                className="w-full"
+              >
+                <AccordionItem value="item-1">
+                  <AccordionTrigger>Patient Details</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                      <Label>Reference</Label>
-                      <Select
-                        value={JSON.stringify({ id: patientForm.ReferenceId, name: patientForm.sourceName })}
-                        onValueChange={(v) => {
-                          const selected = JSON.parse(v);
-                          handleSelectChange('ReferenceId', selected.id);
-                          handleSelectChange('sourceName', selected.name);
-                        }}
-                      >  <SelectTrigger><SelectValue placeholder="Select Reference" /></SelectTrigger>
-                        <SelectContent>
-                          {reference.map((ref) => (
-                            <SelectItem
-                              key={ref._id}
-                              value={JSON.stringify({ id: ref._id, name: ref.sourceName })}
-                            >{ref.sourceName}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Label>Patient ID</Label>
+                        <Input
+                          name="patientCode"
+                          value={patientForm.patientCode}
+                          onChange={handleFormChange}
+                          required
+                          disabled
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Consultation Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !patientForm.consultationDate &&
+                                  "text-muted-foreground",
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {patientForm.consultationDate ? (
+                                format(patientForm.consultationDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={patientForm.consultationDate}
+                              onSelect={(d) =>
+                                handleDateChange("consultationDate", d)
+                              }
+                              initialFocus
+                              disabled={(date) =>
+                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Name</Label>
+                        <Input
+                          name="patientName"
+                          value={patientForm.patientName}
+                          onChange={handleFormChange}
+                          required
+                        />
+                      </div>
                     </div>
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Age</Label>
+                        <Input
+                          name="patientAge"
+                          type="number"
+                          value={patientForm.patientAge}
+                          onChange={handleFormChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Gender</Label>
+                        <Select
+                          value={patientForm.patientGenderId}
+                          onValueChange={(v) =>
+                            handleSelectChange("patientGenderId", v)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {gender.map((g) => (
+                              <SelectItem
+                                key={g.GenderIDPK}
+                                value={g.GenderIDPK}
+                              >
+                                {g.genderName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Bystander Name</Label>
+                        <Input
+                          name="byStandar"
+                          value={patientForm.byStandar}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Relation With Patient</Label>
+                        <Input
+                          name="Relation"
+                          value={patientForm.Relation}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Mobile No.</Label>
+                        <Input
+                          name="patientNumber"
+                          value={patientForm.patientNumber}
+                          onChange={handleFormChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alt. Mobile No.</Label>
+                        <Input
+                          name="patientAltNum"
+                          value={patientForm.patientAltNum}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Address</Label>
+                        <Input
+                          name="patientAddress"
+                          value={patientForm.patientAddress}
+                          onChange={handleFormChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>PIN Code</Label>
+                        <Input
+                          name="patientPinCode"
+                          value={patientForm.patientPinCode}
+                          onChange={handleFormChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Fees Type</Label>
+                        <Select
+                          value={JSON.stringify({
+                            id: patientForm.FeesTypeId,
+                            name: patientForm.FeesTypeName,
+                          })}
+                          onValueChange={(v) => {
+                            const selected = JSON.parse(v);
+                            handleSelectChange("FeesTypeId", selected.id);
+                            handleSelectChange("FeesTypeName", selected.name);
+                          }}
+                        >
+                          {" "}
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Fees" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {feesType.map((fee) => (
+                              <SelectItem
+                                key={fee._id}
+                                value={JSON.stringify({
+                                  id: fee._id,
+                                  name: fee.feesTypeName,
+                                })}
+                              >
+                                {fee.feesTypeName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>
+                          Fees Amount (
+                          {patientForm.FeesTypeName == "PerSession"
+                            ? "PerSession"
+                            : "PerMonth"}
+                          )
+                        </Label>
+                        <Input
+                          name="feeAmount"
+                          value={patientForm.feeAmount}
+                          onChange={handleFormChange}
+                          placeholder={
+                            patientForm.FeesTypeName == "PerSession"
+                              ? "PerSession"
+                              : "PerMonth"
+                          }
+                        />
+                      </div>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Diagnosis / Condition</Label>
+                        <Input
+                          name="patientCondition"
+                          value={patientForm.patientCondition}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Physiotherapist Assigned</Label>
+                        <Select
+                          onValueChange={(v) =>
+                            handleSelectChange("Physiotherapist", v)
+                          }
+                          value={patientForm.Physiotherapist}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Physio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {physios.map((p) => (
+                              <SelectItem key={p._id} value={p._id.toString()}>
+                                {p.physioName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Review Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !patientForm.reviewDate &&
+                                  "text-muted-foreground",
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {patientForm.reviewDate ? (
+                                format(patientForm.reviewDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={patientForm.reviewDate}
+                              onSelect={(d) =>
+                                handleDateChange("reviewDate", d)
+                              }
+                              initialFocus
+                              disabled={(date) =>
+                                date < new Date().setHours(0, 0, 0, 0)
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-                </AccordionContent></AccordionItem>
+                      <div className="space-y-2">
+                        <Label>Reference</Label>
+                        <Select
+                          value={JSON.stringify({
+                            id: patientForm.ReferenceId,
+                            name: patientForm.sourceName,
+                          })}
+                          onValueChange={(v) => {
+                            const selected = JSON.parse(v);
+                            handleSelectChange("ReferenceId", selected.id);
+                            handleSelectChange("sourceName", selected.name);
+                          }}
+                        >
+                          {" "}
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Reference" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {reference.map((ref) => (
+                              <SelectItem
+                                key={ref._id}
+                                value={JSON.stringify({
+                                  id: ref._id,
+                                  name: ref.sourceName,
+                                })}
+                              >
+                                {ref.sourceName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                <AccordionItem value="item-2"><AccordionTrigger>Medical History & Risk Factors</AccordionTrigger><AccordionContent className="space-y-4"> */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
-                    {
-                      risk.map((risk) => (
+                <AccordionItem value="item-2">
+                  <AccordionTrigger>
+                    Medical History & Risk Factors
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {risk.map((risk) => (
                         <div key={risk.RiskFactorIDPK}>
-                          {renderRadioGroup(risk.RiskFactorName, risk.RiskFactorName.toLowerCase(), patientForm[risk.RiskFactorName.toLowerCase()], risk.RiskFactorIDPK, true, true)}
-
+                          {renderRadioGroup(
+                            risk.RiskFactorName,
+                            risk.RiskFactorName.toLowerCase(),
+                            patientForm[risk.RiskFactorName.toLowerCase()],
+                            risk.RiskFactorIDPK,
+                            true,
+                            true,
+                          )}
                         </div>
                       ))}
+                    </div>
+                    <div className="space-y-2">
+                      {renderRadioGroup(
+                        "History of Surgery",
+                        "historyOfSurgery",
+                        patientForm.historyOfSurgery,
+                      )}
+                    </div>
+                    {patientForm.historyOfSurgery === "yes" && (
+                      <div className="space-y-2">
+                        <Label>Details</Label>
+                        <textarea
+                          name="historyOfSurgeryDetails"
+                          rows={2}
+                          className="w-full p-2 border rounded-md"
+                          value={patientForm.historyOfSurgeryDetails}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      {renderRadioGroup(
+                        "History of Fall",
+                        "historyOfFall",
+                        patientForm.historyOfFall,
+                      )}
+                    </div>
+                    {patientForm.historyOfFall === "yes" && (
+                      <div className="space-y-2">
+                        <Label>Details</Label>
+                        <textarea
+                          name="historyOfFallDetails"
+                          rows={2}
+                          className="w-full p-2 border rounded-md"
+                          value={patientForm.historyOfFallDetails}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Other Medical Conditions</Label>
+                      <textarea
+                        name="otherMedCon"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.otherMedCon}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Current Medications</Label>
+                      <textarea
+                        name="currMed"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.currMed}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
+                <AccordionItem value="item-3">
+                  <AccordionTrigger>Lifestyle Information</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Type of Lifestyle</Label>
+                      <RadioGroup
+                        value={patientForm.typesOfLifeStyle}
+                        onValueChange={(v) =>
+                          handleRadioChange("typesOfLifeStyle", v)
+                        }
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sedentary" id="ls-sedentary" />
+                          <Label htmlFor="ls-sedentary">Sedentary</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="moderate" id="ls-moderate" />
+                          <Label htmlFor="ls-moderate">Moderate</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="active" id="ls-active" />
+                          <Label htmlFor="ls-active">Active</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    <div className="space-y-2">
+                      {renderRadioGroup(
+                        "Smoking / Alcohol",
+                        "smokingOrAlcohol",
+                        patientForm.smokingOrAlcohol,
+                        "",
+                        true,
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Dietary Habits</Label>
+                      <textarea
+                        name="dietaryHabits"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.dietaryHabits}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                  </div>
-                  <div className="space-y-2">{renderRadioGroup('History of Surgery', 'historyOfSurgery', patientForm.historyOfSurgery)}</div>
-                  {patientForm.historyOfSurgery === 'yes' && <div className="space-y-2"><Label>Details</Label><textarea name="historyOfSurgeryDetails" rows={2} className="w-full p-2 border rounded-md" value={patientForm.historyOfSurgeryDetails} onChange={handleFormChange} /></div>}
-                  <div className="space-y-2">{renderRadioGroup('History of Fall', 'historyOfFall', patientForm.historyOfFall)}</div>
-                  {patientForm.historyOfFall === 'yes' && <div className="space-y-2"><Label>Details</Label><textarea name="historyOfFallDetails" rows={2} className="w-full p-2 border rounded-md" value={patientForm.historyOfFallDetails} onChange={handleFormChange} /></div>}
-                  <div className="space-y-2"><Label>Other Medical Conditions</Label><textarea name="otherMedCon" rows={2} className="w-full p-2 border rounded-md" value={patientForm.otherMedCon} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>Current Medications</Label><textarea name="currMed" rows={2} className="w-full p-2 border rounded-md" value={patientForm.currMed} onChange={handleFormChange} /></div>
-                </AccordionContent></AccordionItem>
+                <AccordionItem value="item-4">
+                  <AccordionTrigger>Contraindications</AccordionTrigger>
+                  <AccordionContent>
+                    <textarea
+                      name="Contraindications"
+                      rows={3}
+                      className="w-full p-2 border rounded-md"
+                      value={patientForm.Contraindications}
+                      onChange={handleFormChange}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
 
-                <AccordionItem value="item-3"><AccordionTrigger>Lifestyle Information</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="space-y-2"><Label>Type of Lifestyle</Label><RadioGroup value={patientForm.typesOfLifeStyle} onValueChange={(v) => handleRadioChange('typesOfLifeStyle', v)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="sedentary" id="ls-sedentary" /><Label htmlFor="ls-sedentary">Sedentary</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="moderate" id="ls-moderate" /><Label htmlFor="ls-moderate">Moderate</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="active" id="ls-active" /><Label htmlFor="ls-active">Active</Label></div></RadioGroup></div>
-                  <div className="space-y-2">{renderRadioGroup('Smoking / Alcohol', 'smokingOrAlcohol', patientForm.smokingOrAlcohol, '', true)}</div>
-                  <div className="space-y-2"><Label>Dietary Habits</Label><textarea name="dietaryHabits" rows={2} className="w-full p-2 border rounded-md" value={patientForm.dietaryHabits} onChange={handleFormChange} /></div>
-                </AccordionContent></AccordionItem>
+                <AccordionItem value="item-5">
+                  <AccordionTrigger>Assessment Parameters</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Pain Level (0-10)</Label>
+                        <Input
+                          name="painLevel"
+                          type="number"
+                          value={patientForm.painLevel}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Range of Motion</Label>
+                        <Input
+                          name="rangeOfMotion"
+                          value={patientForm.rangeOfMotion}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Muscle Strength (0-5)</Label>
+                        <Input
+                          name="muscleStrength"
+                          type="number"
+                          value={patientForm.muscleStrength}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Posture / Gait Analysis</Label>
+                      <textarea
+                        name="postureOrGaitAnalysis"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.postureOrGaitAnalysis}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Functional Limitations</Label>
+                      <textarea
+                        name="functionalLimitations"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.functionalLimitations}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>ADL Ability</Label>
+                      <textarea
+                        name="ADLAbility"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.ADLAbility}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                <AccordionItem value="item-4"><AccordionTrigger>Contraindications</AccordionTrigger><AccordionContent><textarea name="Contraindications" rows={3} className="w-full p-2 border rounded-md" value={patientForm.Contraindications} onChange={handleFormChange} /></AccordionContent></AccordionItem>
+                <AccordionItem value="item-6">
+                  <AccordionTrigger>Treatment Plan</AccordionTrigger>
+                  <AccordionContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Short-term Goals</Label>
+                      <textarea
+                        name="shortTermGoals"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.shortTermGoals}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Long-term Goals</Label>
+                      <textarea
+                        name="longTermGoals"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.longTermGoals}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Recommended Therapy</Label>
+                      <textarea
+                        name="RecomTherapy"
+                        rows={2}
+                        className="w-full p-2 border rounded-md"
+                        value={patientForm.RecomTherapy}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Frequency (per week)</Label>
+                        <Input
+                          name="Frequency"
+                          type="number"
+                          value={patientForm.Frequency}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Duration (weeks/months)</Label>
+                        <Input
+                          name="Duration"
+                          value={patientForm.Duration}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>No of Days</Label>
+                        <Input
+                          name="noOfDays"
+                          type="number"
+                          value={patientForm.noOfDays}
+                          onChange={handleFormChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {renderRadioGroup(
+                        "Modalities",
+                        "Modalities",
+                        patientForm.Modalities,
+                        "",
+                        true,
+                      )}
+                    </div>
+                    {patientForm.Modalities === true && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="space-y-2 pl-4"
+                      >
+                        <Label>List of Modalities</Label>
+                        <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
+                          {modalitiesOptions.map((mod) => (
+                            <div
+                              key={mod}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={`mod-${mod}`}
+                                checked={patientForm.modalityList.includes(mod)}
+                                onCheckedChange={(checked) => {
+                                  setPatientForm((prev) => ({
+                                    ...prev,
+                                    modalityList: checked
+                                      ? [...prev.modalityList, mod]
+                                      : prev.modalityList.filter(
+                                          (m) => m !== mod,
+                                        ),
+                                  }));
+                                }}
+                              />
+                              <Label
+                                htmlFor={`mod-${mod}`}
+                                className="text-sm font-normal"
+                              >
+                                {mod}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Targeted Area</Label>
+                      <Input
+                        name="targetedArea"
+                        value={patientForm.targetedArea}
+                        onChange={handleFormChange}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-                <AccordionItem value="item-5"><AccordionTrigger>Assessment Parameters</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Pain Level (0-10)</Label><Input name="painLevel" type="number" value={patientForm.painLevel} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>Range of Motion</Label><Input name="rangeOfMotion" value={patientForm.rangeOfMotion} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>Muscle Strength (0-5)</Label><Input name="muscleStrength" type="number" value={patientForm.muscleStrength} onChange={handleFormChange} /></div>
-                  </div>
-                  <div className="space-y-2"><Label>Posture / Gait Analysis</Label><textarea name="postureOrGaitAnalysis" rows={2} className="w-full p-2 border rounded-md" value={patientForm.postureOrGaitAnalysis} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>Functional Limitations</Label><textarea name="functionalLimitations" rows={2} className="w-full p-2 border rounded-md" value={patientForm.functionalLimitations} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>ADL Ability</Label><textarea name="ADLAbility" rows={2} className="w-full p-2 border rounded-md" value={patientForm.ADLAbility} onChange={handleFormChange} /></div>
-                </AccordionContent></AccordionItem>
-
-                <AccordionItem value="item-6"><AccordionTrigger>Treatment Plan</AccordionTrigger><AccordionContent className="space-y-4">
-                  <div className="space-y-2"><Label>Short-term Goals</Label><textarea name="shortTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.shortTermGoals} onChange={handleFormChange} /></div>
-                  <div className="space-y-2"><Label>Long-term Goals</Label><textarea name="longTermGoals" rows={2} className="w-full p-2 border rounded-md" value={patientForm.longTermGoals} onChange={handleFormChange} /></div> */}
-      {/* <div className="space-y-2"><Label>Recommended Therapy</Label><textarea name="RecomTherapy" rows={2} className="w-full p-2 border rounded-md" value={patientForm.RecomTherapy} onChange={handleFormChange} /></div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2"><Label>Frequency (per week)</Label><Input name="Frequency" type="number" value={patientForm.Frequency} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>Duration (weeks/months)</Label><Input name="Duration" value={patientForm.Duration} onChange={handleFormChange} /></div>
-                    <div className="space-y-2"><Label>No of Days</Label><Input name="noOfDays" type="number" value={patientForm.noOfDays} onChange={handleFormChange} /></div>
-                  </div>
-                  <div className="space-y-2">{renderRadioGroup('Modalities', 'Modalities', patientForm.Modalities, '', true)}</div>
-                  {patientForm.Modalities === true && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2 pl-4"><Label>List of Modalities</Label><div className="p-3 border rounded-md grid grid-cols-3 gap-2">{modalitiesOptions.map(mod => (<div key={mod} className="flex items-center space-x-2"><Checkbox id={`mod-${mod}`} checked={patientForm.modalityList.includes(mod)} onCheckedChange={(checked) => { setPatientForm(prev => ({ ...prev, modalityList: checked ? [...prev.modalityList, mod] : prev.modalityList.filter(m => m !== mod) })) }} /><Label htmlFor={`mod-${mod}`} className="text-sm font-normal">{mod}</Label></div>))}</div></motion.div>}
-                  <div className="space-y-2"><Label>Targeted Area</Label><Input name="targetedArea" value={patientForm.targetedArea} onChange={handleFormChange} /></div>
-                </AccordionContent></AccordionItem>
-
-                <AccordionItem value="item-7"><AccordionTrigger>HOD Notes</AccordionTrigger><AccordionContent><textarea name="hodNotes" rows={3} className="w-full p-2 border rounded-md" value={patientForm.hodNotes} onChange={handleFormChange} /></AccordionContent></AccordionItem>
+                <AccordionItem value="item-7">
+                  <AccordionTrigger>HOD Notes</AccordionTrigger>
+                  <AccordionContent>
+                    <textarea
+                      name="hodNotes"
+                      rows={3}
+                      className="w-full p-2 border rounded-md"
+                      value={patientForm.hodNotes}
+                      onChange={handleFormChange}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
 
               <div className="space-y-2 pt-4">
                 <Label>Upload Documents</Label>
-                <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current.click()}><Upload size={16} className="mr-2" /> Attach File</Button>
+                <Input
+                  type="file"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current.click()}
+                >
+                  <Upload size={16} className="mr-2" /> Attach File
+                </Button>
                 <div className="mt-2 space-y-1">
                   {patientForm.documents.map((doc, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm text-gray-600"><Paperclip size={14} /> {doc}</div>
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-sm text-gray-600"
+                    >
+                      <Paperclip size={14} /> {doc}
+                    </div>
                   ))}
                 </div>
               </div>
-              <DialogFooter className="pt-4"><Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button type="submit">{editingPatient ? 'Save Changes' : 'Create Patient'}</Button></DialogFooter>
+              <DialogFooter className="pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingPatient ? "Save Changes" : "Create Patient"}
+                </Button>
+              </DialogFooter>
             </form>
           </div>
         </DialogContent>
-      </Dialog> */}
-
+      </Dialog>
       <Dialog open={isAssignPhysioOpen} onOpenChange={setIsAssignPhysioOpen}>
         <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
           <DialogHeader>
