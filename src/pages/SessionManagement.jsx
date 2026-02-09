@@ -1287,7 +1287,7 @@ const SessionManagement = () => {
                             ? session.redFlags.map(
                                 (flag) =>
                                   flag.isOccurred && (
-                                    <p key={flag._id} className="tet-red-600">
+                                    <p key={flag._id} className="text-red-600">
                                       ⚠ {flag.redFlagId?.redflagName}
                                     </p>
                                   ),
@@ -1727,39 +1727,34 @@ const SessionManagement = () => {
                   </div>
 
                   {/* Feedback */}
-                  <div className="text-xs mb-3">
-                    {/* {session.sessionFeedbackPros ||
-                    session.sessionFeedbackCons ||
-                    session.redFlags.length > 0 ? ( */}
-                    <>
-                      {session.sessionFeedbackPros && (
-                        <p className="text-green-600">
-                          ✓ {session.sessionFeedbackPros}
-                        </p>
-                      )}
-                      {session.sessionFeedbackCons && (
-                        <p className="text-yellow-600">
-                          {session.sessionFeedbackCons}
-                        </p>
-                      )}
-                      {session.redFlags?.length > 0 && (
-                        <p className="text-red-600">
-                          ⚠ {session.redFlags.join(", ")}
-                        </p>
-                      )}
-                      {/* {session.feedback.media?.length > 0 && (
-                          <p className="text-blue-600">
-                            <Paperclip
-                              size={12}
-                              className="inline-block mr-1"
-                            />
-                            {session.feedback.media.join(", ")}
-                          </p>
-                        )} */}
-                    </>
-                    {/* ) : (
-                      <p className="text-gray-400">No feedback</p>
-                    )} */}
+                  <div className="text-xs space-y-1">
+                    {/* Session Feedback Pros */}
+                    {session.sessionFeedbackPros && (
+                      <p className="text-green-600">
+                        ✓ {session.sessionFeedbackPros}
+                      </p>
+                    )}
+                    {session.sessionFeedbackCons && (
+                      <p className="text-yellow-600">
+                        {session.sessionFeedbackCons}
+                      </p>
+                    )}
+
+                    {/* Red Flags */}
+                    {session.redFlags?.length > 0
+                      ? session.redFlags.map(
+                          (flag) =>
+                            flag.isOccurred && (
+                              <p key={flag._id} className="text-red-600">
+                                ⚠ {flag.redFlagId?.redflagName}
+                              </p>
+                            ),
+                        )
+                      : !session.sessionFeedbackPros &&
+                        !session.sessionFeedbackCons &&
+                        !session.redFlags.length && (
+                          <span className="text-gray-400">No feedback</span>
+                        )}
                   </div>
 
                   {/* Actions */}
@@ -1862,8 +1857,42 @@ const SessionManagement = () => {
                         <XCircle size={12} />
                       </Button>
                     )}
+                    {user?.role !== "Physio" &&
+                      session.sessionStatusId?.sessionStatusName ===
+                        "Canceled" && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <XCircleIcon size={12} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will Changed the Cancelled session to
+                                Scheduled.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  handleSessionCancleRevert(session._id)
+                                }
+                              >
+                                Revert Cancel
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
 
-                    {user?.role !== "physio" && Permissions.isEdit && (
+                    {user?.role !== "Physio" && Permissions.isEdit && (
                       <Button onClick={() => handleEditSession(session)}>
                         <Edit size={12} />
                       </Button>
