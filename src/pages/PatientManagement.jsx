@@ -122,7 +122,8 @@ const PatientManagement = () => {
   const initialNewGoalState = {
     newShortTermGoal: "",
     newGoalDuration: "",
-    nextReviewDate: null,
+    // nextReviewDate: null,
+    newGoalDuration: "",
   };
   const [newGoalForm, setNewGoalForm] = useState(initialNewGoalState);
   const [sessionHistory, setSessionHistory] = useState([]);
@@ -192,6 +193,7 @@ const PatientManagement = () => {
     sourceName: "",
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
+  console.log(patientForm, "patientForm");
   console.log(patientForm.FeesTypeId, "FeesTypeId");
   console.log(patientForm.ReferenceId, "ReferenceId");
 
@@ -532,6 +534,7 @@ const PatientManagement = () => {
   };
 
   const handleRadioChange = (name, value) => {
+    console.log(name, "Name", value, "Value");
     setPatientForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -970,95 +973,178 @@ const PatientManagement = () => {
     setIsDetailsOpen(true);
   };
 
-  const handleUpdateFeedback = () => {
-    setPatients((prev) =>
-      prev.map((p) => {
-        if (p.id === reviewingPatient.id) {
-          const newGoalLog = [...(p.goalLog || [])];
-          const lastLogIndex = newGoalLog.length - 1;
+  const handleUpdateFeedback = async () => {
+    if (!reviewingPatient) return;
 
-          if (
-            lastLogIndex >= 0 &&
-            newGoalLog[lastLogIndex].goal === p.shortTermGoals
-          ) {
-            newGoalLog[lastLogIndex] = {
-              ...newGoalLog[lastLogIndex],
-              feedback: reviewForm.feedback,
-              satisfaction: reviewForm.satisfaction,
-              status: "Feedback Updated",
-            };
-          } else {
-            newGoalLog.push({
-              goal: p.shortTermGoals || "Initial Goal",
-              date: new Date().toISOString().split("T")[0],
-              status: "Feedback Updated",
-              feedback: reviewForm.feedback,
-              satisfaction: reviewForm.satisfaction,
-            });
-          }
-          return { ...p, goalLog: newGoalLog };
-        }
-        return p;
-      }),
-    );
-    toast({
-      title: "Feedback Updated",
-      description: `Feedback for ${reviewingPatient.name} has been saved.`,
-    });
-    setIsReviewOpen(false);
-    setReviewForm(initialReviewState);
+    try {
+      await apiRequest("Patient/updatePatientFeedbacks", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: reviewingPatient._id,
+          Feedback: reviewForm.feedback,
+          Satisfaction: reviewForm.satisfaction,
+        }),
+      });
+
+      // update local state ONLY for UI
+      setPatients((prev) =>
+        prev.map((p) =>
+          p._id === reviewingPatient._id
+            ? {
+                ...p,
+                Feedback: reviewForm.feedback,
+                Satisfaction: reviewForm.satisfaction,
+              }
+            : p,
+        ),
+      );
+
+      toast({
+        title: "Feedback Updated",
+        description: `Feedback for ${reviewingPatient.patientName} saved.`,
+      });
+      setIsReviewOpen(false);
+      // setReviewForm(initialReviewState);
+    } catch (err) {
+      console.error("Failed to save feedback", err);
+      toast({
+        title: "Error",
+        description: "Failed to save feedback",
+        variant: "destructive",
+      });
+    }
   };
+  console.log(reviewingPatient, "reviewingPatient");
+  useEffect(() => {
+    if (!isReviewOpen || !reviewingPatient) return;
 
-  const handleLogAndOpenNewGoal = () => {
-    setPatients((prev) =>
-      prev.map((p) => {
-        if (p.id === reviewingPatient.id) {
-          const newGoalLog = [...(p.goalLog || [])];
-          if (p.shortTermGoals) {
-            newGoalLog.push({
-              goal: p.shortTermGoals,
-              date: new Date().toISOString().split("T")[0],
-              status: "Reviewed & Completed",
-              feedback: reviewForm.feedback,
-              satisfaction: reviewForm.satisfaction,
-            });
-          }
-          return { ...p, goalLog: newGoalLog };
-        }
-        return p;
-      }),
-    );
+    setReviewForm({
+      feedback: reviewingPatient?.Feedback || "",
+      satisfaction: reviewingPatient?.Satisfaction || null,
+    });
+  }, [isReviewOpen, reviewingPatient]);
+
+  const handleLogAndOpenNewGoal = async (e) => {
+    e.preventDefault();
+    // setPatients((prev) =>
+    //   prev.map((p) => {
+    //     if (p._id === reviewingPatient._id) {
+    //       const newGoalLog = [...(p.goalLog || [])];
+    //       if (p.shortTermGoals) {
+    //         newGoalLog.push({
+    //           goal: p.shortTermGoals,
+    //           date: new Date().toISOString().split("T")[0],
+    //           status: "Reviewed & Completed",
+    //           feedback: reviewingPatient.Feedback,
+    //           satisfaction: reviewingPatient.Satisfaction,
+    //         });
+    //       }
+    //       return { ...p, goalLog: newGoalLog };
+    //     }
+    //     return p;
+    //   }),
+    // );
     toast({
       title: "Goal Logged",
       description: "Current goal has been logged. Now set the next goal.",
     });
     setIsReviewOpen(false);
     setIsNewGoalOpen(true);
-  };
+    try {
+      await apiRequest("Patient/updatePatientFeedbacks", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: reviewingPatient._id,
+          Feedback: reviewForm.feedback,
+          Satisfaction: reviewForm.satisfaction,
+        }),
+      });
 
-  const handleNewGoalSubmit = (e) => {
-    e.preventDefault();
-    setPatients((prev) =>
-      prev.map((p) => {
-        if (p.id === reviewingPatient.id) {
-          return {
-            ...p,
-            shortTermGoals: newGoalForm.newShortTermGoal,
-            goalDuration: newGoalForm.newGoalDuration,
-            reviewDate: newGoalForm.nextReviewDate,
-          };
-        }
-        return p;
-      }),
-    );
+      // update local state ONLY for UI
+      setPatients((prev) =>
+        prev.map((p) =>
+          p._id === reviewingPatient._id
+            ? {
+                ...p,
+                Feedback: reviewForm.feedback,
+                Satisfaction: reviewForm.satisfaction,
+              }
+            : p,
+        ),
+      );
+
+      toast({
+        title: "Feedback Updated",
+        description: `Feedback for ${reviewingPatient.patientName} saved.`,
+      });
+
+      setIsReviewOpen(false);
+      setReviewForm(initialReviewState);
+    } catch (err) {
+      console.error("Failed to save feedback", err);
+      toast({
+        title: "Error",
+        description: "Failed to save feedback",
+        variant: "destructive",
+      });
+    }
     toast({
-      title: "New Goal Set!",
-      description: `A new goal has been set for ${reviewingPatient.name}.`,
+      title: "Feedback Updated",
+      description: `Feedback for ${reviewingPatient.patientName} has been saved.`,
     });
-    setIsNewGoalOpen(false);
-    setNewGoalForm(initialNewGoalState);
-    setReviewForm(initialReviewState);
+    // } catch (errr) {
+    //   console.error("Failed to save feedback", err);
+    //   toast({
+    //     title: "Error",
+    //     description: "Failed to save feedback",
+    //     variant: "destructive",
+    //   });
+    //   // }
+    //   // toast({
+    //   //   title: "Goal Logged",
+    //   //   description: "Current goal has been logged. Now set the next goal.",
+    //   // });
+    //   setIsReviewOpen(false);
+    //   setIsNewGoalOpen(true);
   };
+  // };
+
+  const handleNewGoalSubmit = async (e, review) => {
+    e.preventDefault();
+    console.log(review, "reviewForm");
+    if (!reviewingPatient?._id) return;
+
+    try {
+      await apiRequest("Patient/updatePatientGoals", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: reviewingPatient._id,
+          shortTermGoals: newGoalForm.newShortTermGoal,
+          goalDuration: newGoalForm.newGoalDuration,
+          feedback: reviewForm.feedback,
+          satisfaction: reviewForm.satisfaction,
+        }),
+      });
+
+      toast({
+        title: "New Goal Set!",
+        description: "Previous goal archived and new goal assigned.",
+      });
+
+      setIsNewGoalOpen(false);
+      setNewGoalForm(initialNewGoalState);
+      setReviewForm(initialReviewState);
+      getAllPatient();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to save new goal",
+        variant: "destructive",
+      });
+    }
+  };
+  console.log(reviewForm.feedback, "reviewForm.feedbackreviewForm.feedback");
   const [openAlert, setOpenAlert] = useState(false);
   const handleScheduleReview = (patient) => {
     if (
@@ -1218,7 +1304,7 @@ const PatientManagement = () => {
       const patientSessions = sortedSessions.map((s, index) => ({
         type: "session",
         date: s.sessionDate,
-        title: `Session ${index + 1}`,
+        title: `Session ${s.sessionCount}`,
         status: s.sessionStatusId?.sessionStatusName || "N/A",
         color: s.sessionStatusId?.sessionStatusColor,
         feedback:
@@ -1250,6 +1336,7 @@ const PatientManagement = () => {
       );
 
       setPatientHistory(combinedHistory);
+      console.log("setPatientHistory", combinedHistory);
       setSessionCount({ total: totalSessions, completed: completedSessions });
       console.log("Patient sessions:", patientSessions);
     } catch (error) {
@@ -2092,7 +2179,10 @@ const PatientManagement = () => {
               Define the next short-term goal and review date.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleNewGoalSubmit} className="space-y-4 pt-4">
+          <form
+            onSubmit={(e) => handleNewGoalSubmit(e, reviewForm)}
+            className="space-y-4 pt-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="newShortTermGoal">New Short-term Goal</Label>
               <Input
@@ -2123,7 +2213,7 @@ const PatientManagement = () => {
                   }
                 />
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label>Next Review Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -2153,7 +2243,7 @@ const PatientManagement = () => {
                     />
                   </PopoverContent>
                 </Popover>
-              </div>
+              </div> */}
             </div>
             <DialogFooter>
               <Button
@@ -2931,7 +3021,7 @@ const PatientManagement = () => {
                     <div className="space-y-2">
                       {renderRadioGroup(
                         "Modalities",
-                        "Modalities",
+                        "modalities",
                         patientForm.modalities,
                         "",
                         true,
