@@ -256,10 +256,17 @@ const SessionManagement = () => {
       if (!data.sessionDate) {
         return;
       }
-      let [month, date, year] = data.sessionDate
-        .toLocaleDateString()
-        .split("/");
+      const year = data.sessionDate.getFullYear();
+      const month = (data.sessionDate.getMonth() + 1)
+        .toString()
+        .padStart(2, "0");
+      // Pad the date with a leading zero if necessary
+      const date = data.sessionDate.getDate().toString().padStart(2, "0");
+      // let [month, date, year] = data.sessionDate
+      // .toLocaleDateString()
+      // .split("/");
       let date1 = `${year}-${month}-${date}`;
+      console.log(date1);
       const create = {
         sessionStatusId: data.sessionStatusId,
         patientId: data.patientId,
