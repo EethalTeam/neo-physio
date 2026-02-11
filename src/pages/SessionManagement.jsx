@@ -603,6 +603,7 @@ const SessionManagement = () => {
   };
 
   const [msg, setMsg] = useState("");
+  const [data, setData] = useState("");
   const getSession = async (date) => {
     try {
       const storedRole = localStorage.getItem("userRole");
@@ -627,6 +628,7 @@ const SessionManagement = () => {
       const msgs = response.message;
       setMsg(msgs);
       const Data = response.incompleteData || response || [];
+      setData(Data);
       console.log(Data, "Data");
       setSessions(Data);
       setFilteredSessions(Data);
@@ -1209,6 +1211,12 @@ const SessionManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* {data.map((s) => (
+                    <tr key={s._id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">{s.sessionCode}</td>
+                      <td className="p-2">{s.patientId?.patientName}</td>
+                    </tr>
+                  ))} */}
                   {filteredSessions.map((session) => (
                     <tr key={session._id} className="border-b hover:bg-gray-50">
                       <td className="p-2">{session.sessionCode}</td>

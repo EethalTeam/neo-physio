@@ -221,7 +221,7 @@ const PhysioManagement = () => {
       const formData = new FormData();
 
       Object.keys(data).forEach((key) => {
-        if (key !== "physioPic") {
+        if (key !== "physioPic" && key !== "_id") {
           formData.append(key, data[key]);
         }
       });
@@ -913,89 +913,89 @@ const PhysioManagement = () => {
                     pattern="[0-9]{10}"
                   />
                 </div>
-                {editingPhysio && (
-                  <>
-                    {/* Alt No 1 */}
-                    <div className="space-y-2">
-                      <Label>Alt No</Label>
-                      <Input
-                        type="tel"
-                        name="physioAltno"
-                        value={physioForm.physioAltno}
-                        maxLength={10}
-                        required
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          if (value.length <= 10) {
-                            setPhysioForm({
-                              ...physioForm,
-                              physioAltno: value,
-                            });
-                          }
-                        }}
-                        placeholder="Enter 10-digit number"
-                      />
-                    </div>
-
-                    {/* Relation Alt No 1 */}
-                    <div className="space-y-2">
-                      <Label>Relation with Alt No</Label>
-                      <Input
-                        type="text"
-                        name="physiorelationAltno"
-                        value={physioForm.physiorelationAltno}
-                        required
-                        onChange={(e) =>
+                {/* {editingPhysio && ( */}
+                <>
+                  {/* Alt No 1 */}
+                  <div className="space-y-2">
+                    <Label>Alt No</Label>
+                    <Input
+                      type="tel"
+                      name="physioAltno"
+                      value={physioForm.physioAltno}
+                      maxLength={10}
+                      required
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 10) {
                           setPhysioForm({
                             ...physioForm,
-                            physiorelationAltno: e.target.value,
-                          })
+                            physioAltno: value,
+                          });
                         }
-                        placeholder="Enter relation (Father, Mother, etc.)"
-                      />
-                    </div>
+                      }}
+                      placeholder="Enter 10-digit number"
+                    />
+                  </div>
 
-                    {/* Alt No 2 */}
-                    <div className="space-y-2">
-                      <Label>Alt No 2</Label>
-                      <Input
-                        type="tel"
-                        name="physioAltno2"
-                        value={physioForm.physioAltno2}
-                        maxLength={10}
-                        required
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          if (value.length <= 10) {
-                            setPhysioForm({
-                              ...physioForm,
-                              physioAltno2: value,
-                            });
-                          }
-                        }}
-                        placeholder="Enter 10-digit number"
-                      />
-                    </div>
+                  {/* Relation Alt No 1 */}
+                  <div className="space-y-2">
+                    <Label>Relation with Alt No</Label>
+                    <Input
+                      type="text"
+                      name="physiorelationAltno"
+                      value={physioForm.physiorelationAltno}
+                      required
+                      onChange={(e) =>
+                        setPhysioForm({
+                          ...physioForm,
+                          physiorelationAltno: e.target.value,
+                        })
+                      }
+                      placeholder="Enter relation (Father, Mother, etc.)"
+                    />
+                  </div>
 
-                    {/* Relation Alt No 2 */}
-                    <div className="space-y-2">
-                      <Label>Relation with Alt No 2</Label>
-                      <Input
-                        type="text"
-                        name="physiorelationAltno2"
-                        value={physioForm.physiorelationAltno2}
-                        required
-                        onChange={(e) =>
+                  {/* Alt No 2 */}
+                  <div className="space-y-2">
+                    <Label>Alt No 2</Label>
+                    <Input
+                      type="tel"
+                      name="physioAltno2"
+                      value={physioForm.physioAltno2}
+                      maxLength={10}
+                      required
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 10) {
                           setPhysioForm({
                             ...physioForm,
-                            physiorelationAltno2: e.target.value,
-                          })
+                            physioAltno2: value,
+                          });
                         }
-                        placeholder="Enter relation"
-                      />
-                    </div>
-                  </>
-                )}
+                      }}
+                      placeholder="Enter 10-digit number"
+                    />
+                  </div>
+
+                  {/* Relation Alt No 2 */}
+                  <div className="space-y-2">
+                    <Label>Relation with Alt No 2</Label>
+                    <Input
+                      type="text"
+                      name="physiorelationAltno2"
+                      value={physioForm.physiorelationAltno2}
+                      required
+                      onChange={(e) =>
+                        setPhysioForm({
+                          ...physioForm,
+                          physiorelationAltno2: e.target.value,
+                        })
+                      }
+                      placeholder="Enter relation"
+                    />
+                  </div>
+                </>
+                {/* )} */}
 
                 <div className="space-y-2">
                   <Label>Password</Label>

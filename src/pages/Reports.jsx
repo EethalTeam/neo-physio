@@ -137,6 +137,8 @@ const Reports = () => {
     monthlyRevenue: 0,
     monthlyExpenses: 0,
     // physio: 0,
+    patientRecovered: 0,
+    patientRecoveredOthers: 0,
     completedReview: 0,
     cancelledSessions: 0,
     patientRecover: 0,
@@ -674,16 +676,46 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Patients Recovered
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.patientRecover}
+        <Card className="medical-card hover:shadow-lg transition-shadow p-4">
+          <CardContent className="p-0">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="border-r border-gray-100 pr-4">
+                <p className="text-sm font-medium text-gray-600 mb-4">
+                  Total Recovered Patients
+                </p>
+                <div className="text-center py-2">
+                  <div className="text-2xl font-bold text-gray-800">
+                    {stats.patientRecover}
+                  </div>
+                  <div className="text-xs text-gray-500">Total Patients</div>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-4">
+                  Recovered Type
+                </p>
+                <div className="flex justify-between items-center text-center">
+                  <div className="flex-1">
+                    <div className="text-xl font-bold text-gray-800">
+                      {stats.patientRecovered}
+                    </div>
+                    <div className="text-sm font-medium text-gray-600">
+                      Fully Recovered
+                    </div>
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="text-xl font-bold text-gray-800">
+                      {stats.patientRecoveredOthers}
+                    </div>
+                    <div className="text-sm font-medium text-gray-600">
+                      Others
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
             <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
           </CardContent>
         </Card>
