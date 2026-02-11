@@ -50,6 +50,7 @@ import {
   PackageSearch,
   Users,
   Wrench as Tool,
+  PackageMinus,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,16 +60,16 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 const MachineryMaster = () => {
   const navigate = useNavigate();
   const [machines, setMachines] = useState([]);
-  // const [physios, setPhysios] = useState([]);
+  const [physios, setPhysios] = useState([]);
   const [filteredMachines, setFilteredMachines] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState(null);
   const [managingMachine, setManagingMachine] = useState(null);
-
+  console.log(managingMachine, "managingMachine");
   const initialFormState = {
-    _id: "",
+    // _id: "",
     machineName: "",
     machineDescription: "",
     machineCategoryID: "",
@@ -76,6 +77,7 @@ const MachineryMaster = () => {
     machineModel: "",
     TotalStockCount: "",
     // physioName: '',
+    modalityId: "",
     categoryName: "",
   };
   const [machineForm, setMachineForm] = useState(initialFormState);
@@ -111,6 +113,8 @@ const MachineryMaster = () => {
   }, [Permissions]);
 
   useEffect(() => {
+    getModalities();
+    getAllPhysio();
     MachineCategory();
   }, []);
   //get all All Machine
@@ -131,6 +135,10 @@ const MachineryMaster = () => {
 
   const createMachine = async (data) => {
     try {
+      if (!data.machineCategoryID) {
+        delete data.machineCategoryID;
+      }
+
       const res = await apiRequest("Machinery/createMachinery", {
         method: "POST",
         body: JSON.stringify(data),
@@ -141,18 +149,18 @@ const MachineryMaster = () => {
     }
   };
 
-  // update the Machine
-
   const updateMachine = async (data) => {
-    try {
-      const res = await apiRequest("Machinery/updateMachinery", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      getAllMachine();
-    } catch (error) {
-      console.error("not able to update Machine:", error);
-    }
+    if (!editingMachine?._id) return;
+
+    await apiRequest("Machinery/updateMachinery", {
+      method: "POST",
+      body: JSON.stringify({
+        _id: editingMachine._id,
+        ...data,
+      }),
+    });
+
+    getAllMachine();
   };
 
   //api for delete
@@ -192,18 +200,19 @@ const MachineryMaster = () => {
 
   //api for phsio
 
-  // const getAllPhysio = async (data) => {
-  //   try {
-  //     const res = await apiRequest("Physio/getAllPhysio", {
-  //       method: 'POST',
-  //       body: JSON.stringify(data)
-  //     })
-  //     setPhysios(res)
-  //   } catch (error) {
-  //     console.error('Error:', error);
-  //     throw error;
-  //   }
-  // }
+  const getAllPhysio = async (data) => {
+    try {
+      const res = await apiRequest("Physio/getAllPhysio", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setPhysios(res.physios);
+      console.log(physios, "Physios");
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     let filtered = machines;
@@ -227,13 +236,34 @@ const MachineryMaster = () => {
     const { name, value } = e.target;
     setMachineForm((prev) => ({ ...prev, [name]: value }));
   };
-
+  const [modalities, setModalities] = useState([]);
   const handleSelectChange = (name, value) => {
     setMachineForm((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleSelectChangeModalities = (name, value) => {
+    setMachineForm((prev) => ({ ...prev, [name]: value }));
+  };
+  const getModalities = async (data) => {
+    try {
+      const response = await apiRequest("Modalities/getAllModalities", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setModalities(response);
+      console.log("Modalities value:", response);
+      console.log("Is array?", Array.isArray(modalities));
+
+      console.log(response, "response from modality");
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
   };
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    console.log("Form Submitted");
+    console.log("Editing Machine:", editingMachine);
     if (editingMachine) {
       updateMachine(machineForm);
       // setMachines(prev => prev.map(m => {
@@ -275,9 +305,10 @@ const MachineryMaster = () => {
   };
 
   const handleEditMachine = (machine) => {
-    setEditingMachine(true);
+    console.log("Editing machine:", machine);
+    setEditingMachine(machine);
     setMachineForm({
-      _id: machine._id ? machine._id : null,
+      // _id: machine._id ? machine._id : null,
       machineName: machine.machineName ? machine.machineName : null,
       machineDescription: machine.machineDescription
         ? machine.machineDescription
@@ -285,6 +316,7 @@ const MachineryMaster = () => {
       machineCategoryID: machine.machineCategoryID
         ? machine.machineCategoryID
         : null,
+      modalityId: machine.modalityId?._id || machine.modalityId || null,
       Manufacturer: machine.Manufacturer ? machine.Manufacturer : null,
       machineModel: machine.machineModel ? machine.machineModel : null,
       TotalStockCount: machine.TotalStockCount ? machine.TotalStockCount : null,
@@ -311,58 +343,205 @@ const MachineryMaster = () => {
 
   const openInventoryDialog = (machine) => {
     setManagingMachine(machine);
+    setMachineForm(machine);
     setIsInventoryOpen(true);
   };
 
-  const handleAssignToPhysio = () => {
-    if (!assignPhysioId || assignCount <= 0) {
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  console.log(machineForm?.modalityId._id, "machineForm?.modalityId._id");
+
+  const handleAssignToPhysio = async () => {
+    try {
+      // Check if this physio already has this machine
+      const physioAlreadyAssigned = (managingMachine.Assignedto || []).some(
+        (item) => item.physioId === assignPhysioId,
+      );
+
+      if (physioAlreadyAssigned) {
+        return toast({
+          title: "Cannot Assign",
+          description: "This physio already has this machine assigned.",
+          variant: "destructive",
+        });
+      }
+      if (!assignPhysioId || assignCount <= 0) {
+        return toast({
+          title: "Invalid Input",
+          description: "Select a physio and enter a valid count.",
+          variant: "destructive",
+        });
+      }
+
+      // Calculate available to assign
+      const assignedTotal = (managingMachine.Assignedto || []).reduce(
+        (acc, item) => acc + item.count,
+        0,
+      );
+
+      const availableToAssign = managingMachine.TotalStockCount - assignedTotal;
+
+      if (assignCount > availableToAssign) {
+        return toast({
+          title: "Not enough stock",
+          description: `Only ${availableToAssign} units available.`,
+          variant: "destructive",
+        });
+      }
+
+      // Merge assignment if physio already exists
+      const updatedAssignedTo = [...(managingMachine.Assignedto || [])];
+      const existingIndex = updatedAssignedTo.findIndex(
+        (item) => item.physioId === assignPhysioId,
+      );
+
+      if (existingIndex >= 0) {
+        updatedAssignedTo[existingIndex].count += assignCount;
+      } else {
+        updatedAssignedTo.push({
+          physioId: assignPhysioId,
+          count: assignCount,
+        });
+      }
+
+      const updatedAvailable =
+        managingMachine.TotalStockCount -
+        updatedAssignedTo.reduce((acc, item) => acc + item.count, 0);
+
+      // API call
+      await apiRequest("Machinery/assignMachine", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: managingMachine._id,
+          Assignedto: updatedAssignedTo,
+          AvailableToAssign: updatedAvailable,
+        }),
+      });
+
+      toast({ title: "Success", description: "Equipment assigned to physio." });
+
+      // Update local state
+      setMachines((prev) =>
+        prev.map((m) =>
+          m._id === managingMachine._id
+            ? {
+                ...m,
+                Assignedto: updatedAssignedTo,
+                AvailableToAssign: updatedAvailable,
+              }
+            : m,
+        ),
+      );
+
+      setAssignPhysioId("");
+      setAssignCount(1);
+      setIsInventoryOpen(false);
+    } catch (err) {
+      console.error(err);
       toast({
-        title: "Invalid Input",
-        description: "Please select a physio and enter a valid count.",
+        title: "Error",
+        description: "Failed to assign machine.",
         variant: "destructive",
       });
-      return;
     }
-
-    setMachines((prev) =>
-      prev.map((m) => {
-        if (m.id === managingMachine.id) {
-          if (m.inventory.available < assignCount) {
-            toast({
-              title: "Not enough stock",
-              description: `Only ${m.inventory.available} units available.`,
-              variant: "destructive",
-            });
-            return m;
-          }
-
-          // const newInUse = [...m.inventory.inUse];
-          // const physioIndex = newInUse.findIndex(item => item.physioId === parseInt(assignPhysioId));
-
-          // if (physioIndex > -1) {
-          //   newInUse[physioIndex].count += parseInt(assignCount);
-          // } else {
-          //   newInUse.push({ physioId: parseInt(assignPhysioId), count: parseInt(assignCount) });
-          // }
-
-          // const updatedMachine = {
-          //   ...m,
-          //   inventory: {
-          //     ...m.inventory,
-          //     available: m.inventory.available - parseInt(assignCount),
-          //     inUse: newInUse,
-          //   }
-          // };
-          // setManagingMachine(updatedMachine); // Update the dialog state
-          // return updatedMachine;
-        }
-        return m;
-      }),
-    );
-    toast({ title: "Success", description: "Equipment assigned to physio." });
-    setAssignPhysioId("");
-    setAssignCount(1);
   };
+  const handleReturnFromPhysio = async () => {
+    try {
+      if (!assignPhysioId || assignCount <= 0) {
+        return toast({
+          title: "Invalid Input",
+          description: "Select a physio and enter a valid count to return.",
+          variant: "destructive",
+        });
+      }
+
+      // Filter all assignments for the selected physio
+      const physioAssignments = (managingMachine.Assignedto || []).filter(
+        (item) => item.physioId === assignPhysioId,
+      );
+
+      // Sum total assigned count for this physio
+      const totalAssigned = physioAssignments.reduce(
+        (acc, item) => acc + item.count,
+        0,
+      );
+
+      if (totalAssigned === 0) {
+        return toast({
+          title: "Invalid Count",
+          description: "This physio has 0 units to return.",
+          variant: "destructive",
+        });
+      }
+
+      if (assignCount > totalAssigned) {
+        return toast({
+          title: "Invalid Count",
+          description: `This physio only has ${totalAssigned} units.`,
+          variant: "destructive",
+        });
+      }
+
+      // Subtract the return count from the assignments
+      let remainingToReturn = assignCount;
+      const updatedAssignedTo = (managingMachine.Assignedto || [])
+        .map((item) => {
+          if (item.physioId === assignPhysioId && remainingToReturn > 0) {
+            const deduct = Math.min(item.count, remainingToReturn);
+            remainingToReturn -= deduct;
+            return { ...item, count: item.count - deduct };
+          }
+          return item;
+        })
+        // Remove any physio entries that now have 0 count
+        .filter((item) => item.count > 0);
+
+      // Recalculate available machines
+      const updatedAvailable =
+        managingMachine.TotalStockCount -
+        updatedAssignedTo.reduce((acc, item) => acc + item.count, 0);
+
+      // API call
+      await apiRequest("Machinery/assignMachine", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: managingMachine._id,
+          Assignedto: updatedAssignedTo,
+          AvailableToAssign: updatedAvailable,
+        }),
+      });
+
+      toast({
+        title: "Success",
+        description: "Machines returned from physio.",
+      });
+
+      // Update frontend state
+      setMachines((prev) =>
+        prev.map((m) =>
+          m._id === managingMachine._id
+            ? {
+                ...m,
+                Assignedto: updatedAssignedTo,
+                AvailableToAssign: updatedAvailable,
+              }
+            : m,
+        ),
+      );
+
+      setAssignPhysioId("");
+      setAssignCount(1);
+      setIsInventoryOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to return machines.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  console.log(machines, "Machines");
 
   // const handleReturnFromPhysio = (physioId, returnCount) => {
   //   setMachines(prev => prev.map(m => {
@@ -401,10 +580,10 @@ const MachineryMaster = () => {
     setMachines((prev) =>
       prev.map((m) => {
         if (m.id === managingMachine.id) {
-          if (m.inventory.available < count) {
+          if (m.inventory?.available < count) {
             toast({
               title: "Not enough stock",
-              description: `Only ${m.inventory.available} units available for maintenance.`,
+              description: `Only ${m.inventory?.available} units available for maintenance.`,
               variant: "destructive",
             });
             return m;
@@ -413,8 +592,8 @@ const MachineryMaster = () => {
             ...m,
             inventory: {
               ...m.inventory,
-              available: m.inventory.available - count,
-              underMaintenance: m.inventory.underMaintenance + count,
+              available: m.inventory?.available - count,
+              underMaintenance: m.inventory?.underMaintenance + count,
             },
           };
           setManagingMachine(updatedMachine);
@@ -428,22 +607,22 @@ const MachineryMaster = () => {
       description: `${count} unit(s) moved to maintenance.`,
     });
   };
-
+  const [selectedMachine, setSelectedMachine] = useState(null);
   const handleReturnFromMaintenance = (count) => {
     setMachines((prev) =>
       prev.map((m) => {
         if (m.id === managingMachine.id) {
           const actualReturnCount = Math.min(
             count,
-            m.inventory.underMaintenance,
+            m.inventory?.underMaintenance,
           );
           const updatedMachine = {
             ...m,
             inventory: {
               ...m.inventory,
-              available: m.inventory.available + actualReturnCount,
+              available: m.inventory?.available + actualReturnCount,
               underMaintenance:
-                m.inventory.underMaintenance - actualReturnCount,
+                m.inventory?.underMaintenance - actualReturnCount,
             },
           };
           setManagingMachine(updatedMachine);
@@ -456,6 +635,47 @@ const MachineryMaster = () => {
       title: "Success",
       description: `${count} unit(s) returned from maintenance.`,
     });
+  };
+  {
+    managingMachine?.Assignedto?.map((item) => {
+      const physio = physios.find((p) => p._id === item.physioId);
+    });
+  }
+  const handleToggleStatus = async (machine) => {
+    if (!machine) return;
+
+    try {
+      const newStatus = !machine.isActive;
+
+      const res = await apiRequest("Machinery/updateMachinery", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: machine._id,
+          isActive: newStatus,
+        }),
+      });
+
+      if (res) {
+        toast({
+          title: "Status Updated",
+          description: `${machine.machineName} is now ${
+            newStatus ? "Active" : "Inactive"
+          }.`,
+        });
+
+        setMachines((prev) =>
+          prev.map((m) =>
+            m._id === machine._id ? { ...m, isActive: newStatus } : m,
+          ),
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update machine status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getCategoryIcon = (category) => {
@@ -472,6 +692,17 @@ const MachineryMaster = () => {
         return <Settings className="text-gray-600" size={20} />;
     }
   };
+
+  const groupedAssigned = Object.values(
+    (managingMachine?.Assignedto || []).reduce((acc, curr) => {
+      if (!acc[curr.physioId]) {
+        acc[curr.physioId] = { ...curr };
+      } else {
+        acc[curr.physioId].count += curr.count;
+      }
+      return acc;
+    }, {}),
+  );
 
   return (
     <div className="space-y-6 ">
@@ -549,7 +780,8 @@ const MachineryMaster = () => {
                       </div>
                       <div className="flex-1 space-y-3 ">
                         <h3 className="font-bold md:text-lg text-sm mt-5 md:mt-0 text-gray-800">
-                          {machine.machineName}
+                          {machine.machineName ||
+                            machine.modalityId.modalitiesName}
                         </h3>
                         <p className="text-sm text-gray-500">
                           {machine.Manufacturer} {machine.machineModel}
@@ -585,11 +817,75 @@ const MachineryMaster = () => {
 
                     <div className="space-y-2">
                       <Button
-                        // onClick={() => openInventoryDialog(machine)}
+                        onClick={() => openInventoryDialog(machine)}
                         className="w-full"
                       >
                         <Package className="mr-2 h-4 w-4" /> Manage Inventory
                       </Button>
+                      <AlertDialog
+                        open={openStatusDialog}
+                        onOpenChange={setOpenStatusDialog}
+                      >
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to{" "}
+                              <strong>
+                                {machineForm.machineName?.isActive
+                                  ? "deactivate"
+                                  : "activate"}
+                              </strong>{" "}
+                              <strong>
+                                {machineForm.machineName?.physioName}
+                              </strong>
+                              ?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                            <AlertDialogAction
+                              onClick={() => {
+                                handleToggleStatus(selectedMachine); // use the selected machine
+                                setOpenStatusDialog(false);
+                              }}
+                            >
+                              Confirm
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <div className="flex space-x-2 mt-2">
+                        <Button
+                          size="sm"
+                          // Use 'destructive' for deactivating and 'default' (or a custom success color) for activating
+                          variant={
+                            machineForm?.machineName?.isActive
+                              ? "outline"
+                              : "default"
+                          }
+                          onClick={() => {
+                            setSelectedMachine(machineForm?.machineName);
+                            setOpenStatusDialog(true);
+                          }}
+                          className={`flex-1 transition-all ${
+                            machineForm?.machineName?.isActive
+                              ? "hover:bg-red-50 hover:text-red-600 border-red-200"
+                              : "bg-green-600 hover:bg-green-700"
+                          }`}
+                        >
+                          {/* Dynamic Icon adds a nice touch */}
+                          {machineForm?.machineName?.isActive ? (
+                            <span className="flex items-center">
+                              Deactivate
+                            </span>
+                          ) : (
+                            <span className="flex items-center">Activate</span>
+                          )}
+                        </Button>
+                      </div>
                       <div className="flex space-x-2">
                         {Permissions.isEdit && (
                           <Button
@@ -601,6 +897,7 @@ const MachineryMaster = () => {
                             <Edit size={14} className="mr-1" /> Edit
                           </Button>
                         )}
+
                         {Permissions.isDelete && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -653,19 +950,19 @@ const MachineryMaster = () => {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 gap-4">
+              {/* <div className="space-y-1">
                 <Label>Name</Label>
                 <Input
                   name="machineName"
                   value={machineForm.machineName}
                   onChange={handleFormChange}
-                  required
+                  // required
                 />
-              </div>
+              </div> */}
               {/* <div className="space-y-1"><Label>Category</Label><Select onValueChange={(v) => handleSelectChange('machineCategoryID', v)} value={machineForm.machineCategoryID}><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent><SelectItem value="therapy">Therapy</SelectItem><SelectItem value="exercise">Exercise</SelectItem><SelectItem value="pain_management">Pain Management</SelectItem><SelectItem value="mobility">Mobility</SelectItem></SelectContent></Select></div> */}
-              <div>
+              {/* <div>
                 <Label>Category</Label>
                 <Select
                   value={machineForm.machineCategoryID}
@@ -686,6 +983,25 @@ const MachineryMaster = () => {
                           {category.categoryName}
                         </SelectItem>
                       ))}
+                  </SelectContent>
+                </Select>
+              </div> */}
+              <div>
+                <Label>Modalities</Label>
+                <Select
+                  value={machineForm.modalityId || "-"}
+                  onValueChange={(v) => handleSelectChange("modalityId", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Modality" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* {modalities.length > 0 && */}
+                    {modalities?.map((category) => (
+                      <SelectItem key={category._id} value={category._id}>
+                        {category.modalitiesName}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -761,7 +1077,7 @@ const MachineryMaster = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {managingMachine.inventory.inUse.length > 0 ? (
+                  {managingMachine.inventory?.inUse?.length > 0 ? (
                     <ul className="space-y-2">
                       {managingMachine.inventory.inUse.map((item) => {
                         const physio = physios.find(
@@ -802,7 +1118,6 @@ const MachineryMaster = () => {
                   )}
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -814,7 +1129,12 @@ const MachineryMaster = () => {
                   <p>
                     Available to assign:{" "}
                     <span className="font-bold text-green-600">
-                      {managingMachine.inventory.available}
+                      {machineForm?.AvailableToAssign ??
+                        machineForm?.TotalStockCount -
+                          (machineForm?.Assignedto?.reduce(
+                            (acc, item) => acc + item.count,
+                            0,
+                          ) || 0)}
                     </span>
                   </p>
                   <div className="flex items-end gap-2">
@@ -829,8 +1149,8 @@ const MachineryMaster = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {physios.map((p) => (
-                            <SelectItem key={p.id} value={p.id.toString()}>
-                              {p.name}
+                            <SelectItem key={p._id} value={p._id}>
+                              {p.physioName}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -841,16 +1161,94 @@ const MachineryMaster = () => {
                       <Input
                         type="number"
                         min="1"
-                        max={managingMachine.inventory.available}
+                        max={machineForm.TotalStockCount}
                         value={assignCount}
-                        onChange={(e) => setAssignCount(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Allow empty string while typing
+                          if (value === "") {
+                            setAssignCount("");
+                            return;
+                          }
+
+                          const numberValue = Number(value);
+
+                          // Only allow valid numbers within range
+                          if (
+                            numberValue > 0 &&
+                            numberValue <= machineForm.TotalStockCount
+                          ) {
+                            setAssignCount(numberValue);
+                          }
+                        }}
                       />
                     </div>
-                    <Button onClick={handleAssignToPhysio}>Assign</Button>
+                    <Button type="button" onClick={handleAssignToPhysio}>
+                      Assign
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PackageMinus />
+                    Return from Physio
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* <p>
+                    Available Machine:{" "}
+                    <span className="font-bold text-green-600">
+                      {machineForm.TotalStockCount}
+                    </span>
+                  </p> */}
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Label>Physiotherapist</Label>
+                      <Select
+                        value={assignPhysioId}
+                        onValueChange={setAssignPhysioId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a physio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groupedAssigned.map((a) => {
+                            const physio = physios.find(
+                              (p) => p._id.toString() === a.physioId.toString(),
+                            );
 
+                            return (
+                              <SelectItem key={a.physioId} value={a.physioId}>
+                                {physio?.physioName} ({a.count})
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-24">
+                      <Label>Count</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={machineForm.TotalStockCount}
+                        value={assignCount}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          if (value <= machineForm.TotalStockCount) {
+                            setAssignCount(value);
+                          }
+                        }}
+                      />
+                    </div>
+                    <Button type="button" onClick={handleReturnFromPhysio}>
+                      Return
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -862,14 +1260,14 @@ const MachineryMaster = () => {
                   <p>
                     Currently in maintenance:{" "}
                     <span className="font-bold text-red-600">
-                      {managingMachine.inventory.underMaintenance}
+                      {managingMachine.inventory?.underMaintenance}
                     </span>
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
                       onClick={() => handleSetMaintenance(1)}
-                      disabled={managingMachine.inventory.available < 1}
+                      disabled={managingMachine.inventory?.available < 1}
                     >
                       Move 1 to Maintenance
                     </Button>
@@ -877,7 +1275,7 @@ const MachineryMaster = () => {
                       size="sm"
                       variant="secondary"
                       onClick={() => handleReturnFromMaintenance(1)}
-                      disabled={managingMachine.inventory.underMaintenance < 1}
+                      disabled={managingMachine.inventory?.underMaintenance < 1}
                     >
                       Return 1 from Maintenance
                     </Button>
