@@ -348,7 +348,7 @@ const MachineryMaster = () => {
   };
 
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
-  console.log(machineForm?.modalityId._id, "machineForm?.modalityId._id");
+  // console.log(machineForm?.modalityId._id, "machineForm?.modalityId._id");
 
   const handleAssignToPhysio = async () => {
     try {
@@ -378,7 +378,10 @@ const MachineryMaster = () => {
         0,
       );
 
-      const availableToAssign = managingMachine.TotalStockCount - assignedTotal;
+      const availableToAssign =
+        managingMachine.TotalStockCount -
+        assignedTotal -
+        (managingMachine.StockInMaintanance || 0);
 
       if (assignCount > availableToAssign) {
         return toast({
@@ -498,7 +501,8 @@ const MachineryMaster = () => {
       // Recalculate available machines
       const updatedAvailable =
         managingMachine.TotalStockCount -
-        updatedAssignedTo.reduce((acc, item) => acc + item.count, 0);
+        updatedAssignedTo.reduce((acc, item) => acc + item.count, 0) -
+        (managingMachine.StockInMaintanance || 0);
 
       // API call
       await apiRequest("Machinery/assignMachine", {
@@ -540,8 +544,121 @@ const MachineryMaster = () => {
       });
     }
   };
+  const handleUnderMaintanace = async (count = 1) => {
+    try {
+      if (count <= 0) {
+        return toast({
+          title: "Invalid Input",
+          description: "Enter a valid count to move to maintenance.",
+          variant: "destructive",
+        });
+      }
 
-  console.log(machines, "Machines");
+      const available =
+        managingMachine.AvailableToAssign !== undefined
+          ? managingMachine.AvailableToAssign
+          : (managingMachine.TotalStockCount || 0) -
+            (managingMachine.StockInMaintanance || 0);
+
+      if (count > available) {
+        return toast({
+          title: "Invalid Count",
+          description: `Only ${available} machines are available to move.`,
+          variant: "destructive",
+        });
+      }
+
+      const updatedAvailable = available - count;
+      const updatedMaintenance =
+        (managingMachine.StockInMaintanance || 0) + count;
+
+      // API call
+      await apiRequest("Machinery/updateMachinery", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: managingMachine._id,
+          AvailableToAssign: updatedAvailable,
+          StockInMaintanance: updatedMaintenance,
+        }),
+      });
+
+      toast({
+        title: "Success",
+        description: `${count} machine(s) moved to maintenance.`,
+      });
+
+      // Update frontend state
+      setMachines((prev) =>
+        prev.map((m) =>
+          m._id === managingMachine._id
+            ? {
+                ...m,
+                AvailableToAssign: updatedAvailable,
+                StockInMaintanance: updatedMaintenance,
+              }
+            : m,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to move machines to maintenance.",
+        variant: "destructive",
+      });
+    }
+    setIsInventoryOpen(false);
+  };
+  const handleReturnFromMaintenance = async (count = 1) => {
+    try {
+      const inMaintenance = managingMachine.StockInMaintanance || 0;
+      if (count <= 0 || count > inMaintenance) {
+        return toast({
+          title: "Invalid Count",
+          description: `Only ${inMaintenance} machines are in maintenance.`,
+          variant: "destructive",
+        });
+      }
+
+      const updatedAvailable = (managingMachine.AvailableToAssign || 0) + count;
+      const updatedMaintenance = inMaintenance - count;
+
+      await apiRequest("Machinery/updateMachinery", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: managingMachine._id,
+          AvailableToAssign: updatedAvailable,
+          StockInMaintanance: updatedMaintenance,
+        }),
+      });
+
+      toast({
+        title: "Success",
+        description: `${count} machine(s) returned from maintenance.`,
+      });
+
+      setMachines((prev) =>
+        prev.map((m) =>
+          m._id === managingMachine._id
+            ? {
+                ...m,
+                AvailableToAssign: updatedAvailable,
+                StockInMaintanance: updatedMaintenance,
+              }
+            : m,
+        ),
+      );
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to return machines from maintenance.",
+        variant: "destructive",
+      });
+    }
+
+    setIsInventoryOpen(false);
+  };
 
   // const handleReturnFromPhysio = (physioId, returnCount) => {
   //   setMachines(prev => prev.map(m => {
@@ -576,66 +693,66 @@ const MachineryMaster = () => {
   //   toast({ title: "Success", description: "Equipment returned to stock." });
   // };
 
-  const handleSetMaintenance = (count) => {
-    setMachines((prev) =>
-      prev.map((m) => {
-        if (m.id === managingMachine.id) {
-          if (m.inventory?.available < count) {
-            toast({
-              title: "Not enough stock",
-              description: `Only ${m.inventory?.available} units available for maintenance.`,
-              variant: "destructive",
-            });
-            return m;
-          }
-          const updatedMachine = {
-            ...m,
-            inventory: {
-              ...m.inventory,
-              available: m.inventory?.available - count,
-              underMaintenance: m.inventory?.underMaintenance + count,
-            },
-          };
-          setManagingMachine(updatedMachine);
-          return updatedMachine;
-        }
-        return m;
-      }),
-    );
-    toast({
-      title: "Success",
-      description: `${count} unit(s) moved to maintenance.`,
-    });
-  };
+  // const handleSetMaintenance = (count) => {
+  //   setMachines((prev) =>
+  //     prev.map((m) => {
+  //       if (m.id === managingMachine.id) {
+  //         if (m.inventory?.available < count) {
+  //           toast({
+  //             title: "Not enough stock",
+  //             description: `Only ${m.inventory?.available} units available for maintenance.`,
+  //             variant: "destructive",
+  //           });
+  //           return m;
+  //         }
+  //         const updatedMachine = {
+  //           ...m,
+  //           inventory: {
+  //             ...m.inventory,
+  //             available: m.inventory?.available - count,
+  //             underMaintenance: m.inventory?.underMaintenance + count,
+  //           },
+  //         };
+  //         setManagingMachine(updatedMachine);
+  //         return updatedMachine;
+  //       }
+  //       return m;
+  //     }),
+  //   );
+  //   toast({
+  //     title: "Success",
+  //     description: `${count} unit(s) moved to maintenance.`,
+  //   });
+  // };
   const [selectedMachine, setSelectedMachine] = useState(null);
-  const handleReturnFromMaintenance = (count) => {
-    setMachines((prev) =>
-      prev.map((m) => {
-        if (m.id === managingMachine.id) {
-          const actualReturnCount = Math.min(
-            count,
-            m.inventory?.underMaintenance,
-          );
-          const updatedMachine = {
-            ...m,
-            inventory: {
-              ...m.inventory,
-              available: m.inventory?.available + actualReturnCount,
-              underMaintenance:
-                m.inventory?.underMaintenance - actualReturnCount,
-            },
-          };
-          setManagingMachine(updatedMachine);
-          return updatedMachine;
-        }
-        return m;
-      }),
-    );
-    toast({
-      title: "Success",
-      description: `${count} unit(s) returned from maintenance.`,
-    });
-  };
+  // const handleReturnFromMaintenance = (count) => {
+  //   setMachines((prev) =>
+  //     prev.map((m) => {
+  //       if (m.id === managingMachine.id) {
+  //         const actualReturnCount = Math.min(
+  //           count,
+  //           m.inventory?.underMaintenance,
+  //         );
+  //         const updatedMachine = {
+  //           ...m,
+  //           inventory: {
+  //             ...m.inventory,
+  //             available: m.inventory?.available + actualReturnCount,
+  //             underMaintenance:
+  //               m.inventory?.underMaintenance - actualReturnCount,
+  //           },
+  //         };
+  //         setManagingMachine(updatedMachine);
+  //         return updatedMachine;
+  //       }
+  //       return m;
+  //     }),
+  //   );
+  //   toast({
+  //     title: "Success",
+  //     description: `${count} unit(s) returned from maintenance.`,
+  //   });
+  // };
   {
     managingMachine?.Assignedto?.map((item) => {
       const physio = physios.find((p) => p._id === item.physioId);
@@ -658,7 +775,7 @@ const MachineryMaster = () => {
       if (res) {
         toast({
           title: "Status Updated",
-          description: `${machine.machineName} is now ${
+          description: `${machine?.machineName || machine.modalityId.modalitiesName} is now ${
             newStatus ? "Active" : "Inactive"
           }.`,
         });
@@ -787,9 +904,9 @@ const MachineryMaster = () => {
                           {machine.Manufacturer} {machine.machineModel}
                         </p>
                         <span
-                          className={`px-2 py-1 text-xs rounded-full font-semibold ${machine.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                          className={`px-2 py-1 text-xs rounded-full font-semibold ${machine.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                         >
-                          {machine.active ? "Active" : "Inactive"}
+                          {machine.isActive ? "Active" : "Inactive"}
                         </span>
                       </div>
                     </div>
@@ -822,6 +939,25 @@ const MachineryMaster = () => {
                       >
                         <Package className="mr-2 h-4 w-4" /> Manage Inventory
                       </Button>
+
+                      <div className="flex space-x-2 mt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedMachine(machine); // full machine object
+                            setOpenStatusDialog(true);
+                          }}
+                          className={`w-full flex-1 transition-all ${
+                            machine.isActive
+                              ? "border border-red-400 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              : "bg-green-600 text-white hover:bg-green-700"
+                          }`}
+                          variant={machine.isActive ? "outline" : "default"} // optional if using variant prop
+                        >
+                          {machine.isActive ? "Deactivate" : "Activate"}
+                        </Button>
+                      </div>
+
                       <AlertDialog
                         open={openStatusDialog}
                         onOpenChange={setOpenStatusDialog}
@@ -832,14 +968,11 @@ const MachineryMaster = () => {
                             <AlertDialogDescription>
                               Are you sure you want to{" "}
                               <strong>
-                                {machineForm.machineName?.isActive
+                                {selectedMachine?.isActive
                                   ? "deactivate"
                                   : "activate"}
                               </strong>{" "}
-                              <strong>
-                                {machineForm.machineName?.physioName}
-                              </strong>
-                              ?
+                              <strong>{selectedMachine?.machineName}</strong>?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
 
@@ -848,7 +981,7 @@ const MachineryMaster = () => {
 
                             <AlertDialogAction
                               onClick={() => {
-                                handleToggleStatus(selectedMachine); // use the selected machine
+                                handleToggleStatus(selectedMachine);
                                 setOpenStatusDialog(false);
                               }}
                             >
@@ -857,35 +990,7 @@ const MachineryMaster = () => {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                      <div className="flex space-x-2 mt-2">
-                        <Button
-                          size="sm"
-                          // Use 'destructive' for deactivating and 'default' (or a custom success color) for activating
-                          variant={
-                            machineForm?.machineName?.isActive
-                              ? "outline"
-                              : "default"
-                          }
-                          onClick={() => {
-                            setSelectedMachine(machineForm?.machineName);
-                            setOpenStatusDialog(true);
-                          }}
-                          className={`flex-1 transition-all ${
-                            machineForm?.machineName?.isActive
-                              ? "hover:bg-red-50 hover:text-red-600 border-red-200"
-                              : "bg-green-600 hover:bg-green-700"
-                          }`}
-                        >
-                          {/* Dynamic Icon adds a nice touch */}
-                          {machineForm?.machineName?.isActive ? (
-                            <span className="flex items-center">
-                              Deactivate
-                            </span>
-                          ) : (
-                            <span className="flex items-center">Activate</span>
-                          )}
-                        </Button>
-                      </div>
+
                       <div className="flex space-x-2">
                         {Permissions.isEdit && (
                           <Button
@@ -1259,14 +1364,16 @@ const MachineryMaster = () => {
                 <CardContent className="space-y-4">
                   <p>
                     Currently in maintenance:{" "}
-                    <span className="font-bold text-red-600">
-                      {managingMachine.inventory?.underMaintenance}
+                    <span className="font-bold text-green-600">
+                      {machineForm?.StockInMaintanance
+                        ? machineForm?.StockInMaintanance
+                        : 0}
                     </span>
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      onClick={() => handleSetMaintenance(1)}
+                      onClick={() => handleUnderMaintanace(1)}
                       disabled={managingMachine.inventory?.available < 1}
                     >
                       Move 1 to Maintenance

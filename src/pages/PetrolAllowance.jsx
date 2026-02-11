@@ -205,20 +205,26 @@ const PetrolAllowance = () => {
     Object.values(dailyTravel).forEach((physioVisitsByDate) => {
       Object.values(physioVisitsByDate).forEach((dayData) => {
         dayData.visits.sort(
-          (a, b) => a.travelDetails.visitOrder - b.travelDetails.visitOrder
+          (a, b) => a.travelDetails.visitOrder - b.travelDetails.visitOrder,
         );
 
         let attendedCompletedKms = 0;
 
         dayData.visits.forEach((visit) => {
+          let travelKm = 0;
+
+          if (visit.travelDetails.visitOrder === 1) {
+            travelKm = visit.travelDetails.kmsFromHub || 0;
+          } else {
+            travelKm = visit.travelDetails.kmsFromPrevious || 0;
+          }
+
           if (visit.status === "attended" || visit.status === "completed") {
-            if (visit.travelDetails.visitOrder === 1) {
-              attendedCompletedKms += visit.travelDetails.kmsFromHub || 0;
-            } else {
-              attendedCompletedKms += visit.travelDetails.kmsFromPrevious || 0;
-            }
-          } else if (visit.status === "canceled") {
-            dayData.cancelledKms += visit.cancelledKms || 0;
+            attendedCompletedKms += travelKm;
+          }
+
+          if (visit.status === "canceled") {
+            dayData.cancelledKms += travelKm;
           }
         });
 
@@ -246,7 +252,7 @@ const PetrolAllowance = () => {
         {
           method: "POST",
           body: JSON.stringify(data),
-        }
+        },
       );
       setDailyData(response);
     } catch (error) {
@@ -268,7 +274,7 @@ const PetrolAllowance = () => {
         if (d.date === date && d.physioId === physioId) {
           const newAdjustment = d.manualKms + amount;
           logAuditEvent(
-            `Manual adjustment of ${amount}km for ${physioId.physioName} on ${date}.`
+            `Manual adjustment of ${amount}km for ${physioId.physioName} on ${date}.`,
           );
           return {
             ...d,
@@ -277,7 +283,7 @@ const PetrolAllowance = () => {
           };
         }
         return d;
-      })
+      }),
     );
   };
 
@@ -289,15 +295,15 @@ const PetrolAllowance = () => {
 
         const totalAttendedCompletedKms = physioData.reduce(
           (sum, day) => sum + day.attendedCompletedKms,
-          0
+          0,
         );
         const totalCancelledKms = physioData.reduce(
           (sum, day) => sum + day.cancelledKms,
-          0
+          0,
         );
         const totalManualAdjustment = physioData.reduce(
           (sum, day) => sum + day.manualAdjustment,
-          0
+          0,
         );
         const finalKms =
           totalAttendedCompletedKms - totalCancelledKms + totalManualAdjustment;
@@ -317,7 +323,7 @@ const PetrolAllowance = () => {
         (r) =>
           r.finalKms !== 0 ||
           r.totalAttendedCompletedKms !== 0 ||
-          r.totalCancelledKms !== 0
+          r.totalCancelledKms !== 0,
       );
 
     setMonthlyReport(summary);
@@ -325,8 +331,8 @@ const PetrolAllowance = () => {
     logAuditEvent(
       `Generated petrol allowance report for ${format(
         dateRange.from,
-        "MMM-yyyy"
-      )} with rate ₹${ratePerKm}/km.`
+        "MMM-yyyy",
+      )} with rate ₹${ratePerKm}/km.`,
     );
     toast({
       title: "Report Generated",
@@ -378,7 +384,7 @@ const PetrolAllowance = () => {
                   variant={"outline"}
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !dateRange.from && "text-muted-foreground"
+                    !dateRange.from && "text-muted-foreground",
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -386,7 +392,7 @@ const PetrolAllowance = () => {
                     dateRange.to ? (
                       `${format(dateRange.from, "LLL dd, y")} - ${format(
                         dateRange.to,
-                        "LLL dd, y"
+                        "LLL dd, y",
                       )}`
                     ) : (
                       format(dateRange.from, "LLL dd, y")
@@ -502,7 +508,7 @@ const PetrolAllowance = () => {
                               className={cn(
                                 "font-medium w-12 text-center",
                                 item.manualKms > 0 && "text-blue-600",
-                                item.manualKms < 0 && "text-orange-600"
+                                item.manualKms < 0 && "text-orange-600",
                               )}
                             >
                               {item.manualKms.toFixed(2)}
@@ -613,7 +619,7 @@ const PetrolAllowance = () => {
                             className={cn(
                               "font-medium text-lg",
                               item.manualKms > 0 && "text-blue-600",
-                              item.manualKms < 0 && "text-orange-600"
+                              item.manualKms < 0 && "text-orange-600",
                             )}
                           >
                             {item.manualKms.toFixed(2)} km

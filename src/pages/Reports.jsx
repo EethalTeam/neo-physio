@@ -688,16 +688,15 @@ const Reports = () => {
 
         <Card className="medical-card hover:shadow-lg transition-shadow p-4">
           <CardContent className="p-0">
-            {/* Grid: 1 col on mobile, 2 cols on desktop (md and up) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Left Column: Total Count */}
+              {/* Left Column: Total Count (always show) */}
               <div className="border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0 md:pr-4">
                 <p className="text-sm font-medium text-gray-600">
                   Total Recovered
                 </p>
                 <div className="text-center md:text-left lg:text-center">
                   <div className="text-2xl font-bold text-gray-800">
-                    {stats.patientRecover}
+                    {stats.patientRecover ?? 0}
                   </div>
                   <div className="text-sm font-medium text-gray-600">
                     Total Patients
@@ -705,31 +704,33 @@ const Reports = () => {
                 </div>
               </div>
 
-              {/* Right Column: Recovered Type Breakdown */}
-              <div className="pt-2 md:pt-0">
-                <p className="text-sm font-medium text-gray-600">
-                  Recovered Type
-                </p>
-                <div className="flex justify-between items-end text-center">
-                  <div className="flex-1">
-                    <div className="text-lg font-bold text-gray-800">
-                      {stats.patientRecovered}
+              {/* Right Column: Recovered Type Breakdown (only if patientRecovered > 0) */}
+              {stats.patientRecovered > 0 && (
+                <div className="pt-2 md:pt-0">
+                  <p className="text-sm font-medium text-gray-600">
+                    Recovered Type
+                  </p>
+                  <div className="flex justify-between items-end text-center">
+                    <div className="flex-1">
+                      <div className="text-lg font-bold text-gray-800">
+                        {stats.patientRecovered}
+                      </div>
+                      <div className="text-sm font-medium text-gray-600">
+                        Fully
+                      </div>
                     </div>
-                    <div className="text-sm font-medium text-gray-600">
-                      Fully
-                    </div>
-                  </div>
 
-                  <div className="flex-1 border-l border-gray-50">
-                    <div className="text-lg font-bold text-gray-700">
-                      {stats.patientRecoveredOthers}
-                    </div>
-                    <div className="text-sm font-medium text-gray-800">
-                      Others
+                    <div className="flex-1 border-l border-gray-50">
+                      <div className="text-lg font-bold text-gray-700">
+                        {stats.patientRecoveredOthers ?? 0}
+                      </div>
+                      <div className="text-sm font-medium text-gray-800">
+                        Others
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
