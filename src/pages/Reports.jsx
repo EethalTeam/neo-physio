@@ -502,30 +502,32 @@ const Reports = () => {
   const month = new Date().getMonth();
   const year = new Date().getFullYear();
   const avgPatient =
-    stats.physio > 0 ? (stats.patient / stats.physio).toFixed(1) : 0;
+    stats.physio > 0
+      ? Math.floor((stats.patient / stats.physio).toFixed(1))
+      : 0;
 
   console.log(avgPatient, "Average Patients per Physiotherapist");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-2 md:p-0">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex justify-between items-center"
+        className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">
             Reports & Analytics
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm md:text-base text-gray-600">
             Comprehensive insights and performance metrics
           </p>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-3">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full md:w-40">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
@@ -536,7 +538,7 @@ const Reports = () => {
               <SelectItem value="yearly">Yearly</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex items-center space-x-4">
+          <div className="flex w-full md:w-auto space-x-2">
             {/* <DateRangePicker
               period={selectedPeriod}
               onPeriodChange={setSelectedPeriod}
@@ -544,12 +546,20 @@ const Reports = () => {
             /> */}
           </div>
 
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={handleExportCSV}>
+          <div className="flex w-full md:w-auto space-x-2">
+            <Button
+              variant="outline"
+              className="flex-1 md:flex-none"
+              onClick={handleExportCSV}
+            >
               <Download className="h-4 w-4 mr-2" />
               CSV
             </Button>
-            <Button variant="outline" onClick={handleExportPDF}>
+            <Button
+              variant="outline"
+              className="flex-1 md:flex-none"
+              onClick={handleExportPDF}
+            >
               <Download className="h-4 w-4 mr-2" />
               PDF
             </Button>
@@ -557,7 +567,7 @@ const Reports = () => {
         </div>
       </motion.div>
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -678,37 +688,43 @@ const Reports = () => {
 
         <Card className="medical-card hover:shadow-lg transition-shadow p-4">
           <CardContent className="p-0">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="border-r border-gray-100 pr-4">
-                <p className="text-sm font-medium text-gray-600 mb-4">
-                  Total Recovered Patients
+            {/* Grid: 1 col on mobile, 2 cols on desktop (md and up) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left Column: Total Count */}
+              <div className="border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0 md:pr-4">
+                <p className="text-sm font-medium text-gray-600">
+                  Total Recovered
                 </p>
-                <div className="text-center py-2">
+                <div className="text-center md:text-left lg:text-center">
                   <div className="text-2xl font-bold text-gray-800">
                     {stats.patientRecover}
                   </div>
-                  <div className="text-xs text-gray-500">Total Patients</div>
+                  <div className="text-sm font-medium text-gray-600">
+                    Total Patients
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-4">
+
+              {/* Right Column: Recovered Type Breakdown */}
+              <div className="pt-2 md:pt-0">
+                <p className="text-sm font-medium text-gray-600">
                   Recovered Type
                 </p>
-                <div className="flex justify-between items-center text-center">
+                <div className="flex justify-between items-end text-center">
                   <div className="flex-1">
-                    <div className="text-xl font-bold text-gray-800">
+                    <div className="text-lg font-bold text-gray-800">
                       {stats.patientRecovered}
                     </div>
                     <div className="text-sm font-medium text-gray-600">
-                      Fully Recovered
+                      Fully
                     </div>
                   </div>
 
-                  <div className="flex-1">
-                    <div className="text-xl font-bold text-gray-800">
+                  <div className="flex-1 border-l border-gray-50">
+                    <div className="text-lg font-bold text-gray-700">
                       {stats.patientRecoveredOthers}
                     </div>
-                    <div className="text-sm font-medium text-gray-600">
+                    <div className="text-sm font-medium text-gray-800">
                       Others
                     </div>
                   </div>
