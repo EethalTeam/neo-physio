@@ -60,21 +60,21 @@ const PetrolAllowance = () => {
   const [patients, setPatients] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [dailyData, setDailyData] = useState([]);
-
   const initialState = {
     physioId: "",
     date: "",
-    completedKms: "",
-    canceledKms: "",
-    manualKms: "",
-    finalDailyKms: "",
-    amountPerKm: "",
-    totalAmount: "",
+    completedKms: 0,
+    canceledKms: 0,
+    manualKms: 0,
+    finalDailyKms: 0,
+    amountPerKm: 0,
+    totalAmount: 0,
     status: "",
     notes: "",
   };
+
   const [filteredData, setFilteredData] = useState(initialState);
-  console.log(filteredData, "filteredData");
+  console.log(filteredData, "filteredData  from petrol");
 
   const [dateRange, setDateRange] = useState({
     from: startOfMonth(new Date()),
@@ -487,11 +487,12 @@ const PetrolAllowance = () => {
                           </div>
                         </td>
                         <td className="p-3 text-center text-green-600 font-medium">
-                          {item.completedKms.toFixed(2)}
+                          {(item.completedKms || 0).toFixed(2)}
                         </td>
                         <td className="p-3 text-center text-red-600 font-medium">
-                          {item.canceledKms.toFixed(2)}
+                          {(item.cancelledKms || 0).toFixed(2)}
                         </td>
+
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Button

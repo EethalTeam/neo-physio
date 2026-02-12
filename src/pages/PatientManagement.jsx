@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -196,6 +196,7 @@ const PatientManagement = () => {
   console.log(patientForm, "patientForm");
   console.log(patientForm.FeesTypeId, "FeesTypeId");
   console.log(patientForm.ReferenceId, "ReferenceId");
+  const assignedPhysioId = patientForm.physioId;
 
   const modalitiesOptions = [
     "TENS",
@@ -231,8 +232,9 @@ const PatientManagement = () => {
     getModalities();
     getFeesType();
     getReference();
+    getAllMachine();
   }, []);
-
+  const [machines, setMachines] = useState([]);
   // console.log(Permissions,"Permissions")
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
@@ -424,6 +426,7 @@ const PatientManagement = () => {
   //   AssignPhysio()
   // }, [])
   //api for Assign physio
+
   const AssignPhysio = async (data) => {
     try {
       const response = await apiRequest("Patient/AssignPhysio", {
@@ -854,6 +857,7 @@ const PatientManagement = () => {
         Physiotherapist: patient.Physiotherapist
           ? patient.Physiotherapist
           : null,
+        physioId: patient?.physioId?._id ?? patient?.physioId ?? "",
         reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
         historyOfSurgery: patient.historyOfSurgery
           ? patient.historyOfSurgery
@@ -1495,6 +1499,51 @@ const PatientManagement = () => {
 
     setFilteredPatients(filtered);
   }, [patients, searchTerm, selectedPhysioId]);
+
+  const assignedPhysioIds =
+    typeof patientForm.physioId === "object"
+      ? patientForm.physioId?._id
+      : patientForm.physioId;
+
+  const physioModalityIds = useMemo(() => {
+    if (!assignedPhysioIds || !Array.isArray(machines)) return [];
+
+    const set = new Set();
+
+    machines.forEach((m) => {
+      const isAssigned =
+        Array.isArray(m.Assignedto) &&
+        m.Assignedto.some(
+          (a) =>
+            String(a.physioId) === String(assignedPhysioIds) &&
+            Number(a.count || 0) > 0,
+        );
+
+      const modId = m.modalityId?._id ?? m.modalityId; // object or string
+
+      if (isAssigned && modId) set.add(String(modId));
+    });
+
+    return Array.from(set);
+  }, [machines, assignedPhysioIds]);
+  console.log("machines", machines.length);
+  console.log("assignedPhysioId", assignedPhysioId);
+  console.log("physioModalityIds", physioModalityIds);
+
+  const getAllMachine = async (data) => {
+    try {
+      const res = await apiRequest("Machinery/getAllMachinery", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      // depending on response shape
+      const list = res?.machines ?? res ?? [];
+      setMachines(list);
+    } catch (error) {
+      console.error("not able to getall Machine", error);
+    }
+  };
 
   return (
     <div className="space-y-6 ">
@@ -3068,13 +3117,15 @@ const PatientManagement = () => {
                                   .filter(
                                     (mod) =>
                                       mod.modalitiestype ===
-                                      patientForm.modalitiestype,
+                                        patientForm.modalitiestype &&
+                                      physioModalityIds.includes(
+                                        String(mod._id),
+                                      ),
                                   )
                                   .map((mod) => {
-                                    const isChecked =
-                                      patientForm.modalityList.includes(
-                                        mod._id,
-                                      );
+                                    const isChecked = patientForm.modalityList
+                                      .map((id) => String(id))
+                                      .includes(String(mod._id));
 
                                     return (
                                       <div
@@ -3085,17 +3136,24 @@ const PatientManagement = () => {
                                           id={`mod-${mod._id}`}
                                           checked={isChecked}
                                           onCheckedChange={(checked) => {
-                                            setPatientForm((prev) => ({
-                                              ...prev,
-                                              modalityList: checked
-                                                ? [
-                                                    ...prev.modalityList,
-                                                    mod._id,
-                                                  ]
-                                                : prev.modalityList.filter(
-                                                    (m) => m !== mod._id,
-                                                  ),
-                                            }));
+                                            const id = String(mod._id);
+
+                                            setPatientForm((prev) => {
+                                              const list = (
+                                                prev.modalityList || []
+                                              ).map((x) => String(x));
+
+                                              return {
+                                                ...prev,
+                                                modalityList: checked
+                                                  ? Array.from(
+                                                      new Set([...list, id]),
+                                                    )
+                                                  : list.filter(
+                                                      (m) => m !== id,
+                                                    ),
+                                              };
+                                            });
                                           }}
                                         />
                                         <Label
@@ -3104,6 +3162,11 @@ const PatientManagement = () => {
                                         >
                                           {mod.modalitiesName}
                                         </Label>
+                                        {/* {filteredMods.length === 0 && (
+                                          <p className="text-sm text-gray-500">
+                                            No modalities assigned.
+                                          </p>
+                                        )} */}
                                       </div>
                                     );
                                   })}
@@ -3386,23 +3449,23 @@ const PatientManagement = () => {
                         }
                       />
                     </div>
-                    {assignForm.visitOrder == 1 && (
-                      <div className="space-y-2">
-                        <Label htmlFor="KmsfromHub">Kms from Hub</Label>
-                        <Input
-                          id="KmsfromHub"
-                          type="number"
-                          placeholder="Distance from hub to first patient"
-                          value={assignForm.KmsfromHub}
-                          onChange={(e) =>
-                            setAssignForm((p) => ({
-                              ...p,
-                              KmsfromHub: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
+                    {/* {assignForm.visitOrder == 1 && ( */}
+                    <div className="space-y-2">
+                      <Label htmlFor="KmsfromHub">Kms from Hub</Label>
+                      <Input
+                        id="KmsfromHub"
+                        type="number"
+                        placeholder="Distance from hub to first patient"
+                        value={assignForm.KmsfromHub}
+                        onChange={(e) =>
+                          setAssignForm((p) => ({
+                            ...p,
+                            KmsfromHub: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    {/* )} */}
                     {assignForm.visitOrder > 1 && (
                       <div className="space-y-2">
                         <Label htmlFor="kmsFromPrevious">

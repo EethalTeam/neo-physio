@@ -113,12 +113,13 @@ const AdminDashboard = () => {
       </motion.div>
       <Card className="medical-card">
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* From Date */}
             <div className="flex flex-col">
               <label className="text-sm text-gray-600 mb-1">From Date</label>
               <input
                 type="date"
-                className="border rounded-md px-3 py-2 text-sm"
+                className="border rounded-md px-3 py-2 text-sm w-full"
                 value={dateFilter.fromDate}
                 onChange={(e) =>
                   setDateFilter({ ...dateFilter, fromDate: e.target.value })
@@ -126,11 +127,12 @@ const AdminDashboard = () => {
               />
             </div>
 
+            {/* To Date */}
             <div className="flex flex-col">
               <label className="text-sm text-gray-600 mb-1">To Date</label>
               <input
                 type="date"
-                className="border rounded-md px-3 py-2 text-sm"
+                className="border rounded-md px-3 py-2 text-sm w-full"
                 value={dateFilter.toDate}
                 onChange={(e) =>
                   setDateFilter({ ...dateFilter, toDate: e.target.value })
@@ -138,25 +140,32 @@ const AdminDashboard = () => {
               />
             </div>
 
-            <button
-              onClick={applyDateFilter}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-            >
-              Apply Filter
-            </button>
+            {/* Apply */}
+            <div className="flex items-end">
+              <button
+                onClick={applyDateFilter}
+                className="w-full px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              >
+                Apply Filter
+              </button>
+            </div>
 
-            <button
-              onClick={() => {
-                setDateFilter({ fromDate: "", toDate: "" });
-                getAllDashBoard();
-              }}
-              className="px-6 py-2 border rounded-md hover:bg-gray-50 transition"
-            >
-              Reset
-            </button>
+            {/* Reset */}
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setDateFilter({ fromDate: "", toDate: "" });
+                  getAllDashBoard();
+                }}
+                className="w-full px-6 py-2 border rounded-md hover:bg-gray-50 transition"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;

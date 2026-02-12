@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { m, motion } from "framer-motion";
 import {
   Card,
@@ -69,6 +69,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import PatientDetailsDialog from "../components/PatientDetailsDialog";
+import PetrolAllowance from "./PetrolAllowance";
 
 const SessionManagement = () => {
   const [cancelledReasonType, setCancelledReasonType] = useState("");
@@ -111,6 +112,7 @@ const SessionManagement = () => {
     sessionStatusId: "691ecb36b87c5c57dead47a7",
     // machineId:''
   };
+
   const [sessionForm, setSessionForm] = useState(initialFormState);
   const [feedbackDialog, setFeedbackDialog] = useState({
     open: false,
@@ -139,6 +141,7 @@ const SessionManagement = () => {
   const [cancelledReason, setCancelledReason] = useState("");
   const [cancelledKms, setCancelledKms] = useState("");
   const [radio, setRadio] = useState([]);
+  const [claimPetrol, setClaimPetrol] = useState(true);
   const { getPermissionsByPath } = useAuth();
   const [Permissions, setPermissions] = useState({
     isAdd: false,
@@ -155,9 +158,10 @@ const SessionManagement = () => {
     getPhysioCount();
     getPatient();
     getSessionStatus();
-    getMachinery();
+    // getMachinery();
     getRedFlag();
     getModalities();
+    getAllMachine();
     handleViewConsultation();
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
@@ -167,6 +171,9 @@ const SessionManagement = () => {
       }
     });
   }, []);
+  const handleCheckboxChange = () => {
+    setClaimPetrol((prev) => !prev);
+  };
 
   useEffect(() => {
     if (Permissions.isView) {
@@ -365,18 +372,6 @@ const SessionManagement = () => {
     }
   };
 
-  const getMachinery = async (data) => {
-    try {
-      const response = await apiRequest("Machinery/getAllMachinery", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setMachines(response);
-    } catch (error) {
-      console.log(error, "error from frontend get All Machinery");
-    }
-  };
-
   const getRedFlag = async (data) => {
     try {
       const response = await apiRequest("Redflag/getAllRedflag", {
@@ -398,6 +393,52 @@ const SessionManagement = () => {
       setModalities(response);
     } catch (error) {
       console.log(error, "error from frontend get All Modalities");
+    }
+  };
+  // const assignedPhysioIds =
+  //   typeof sessionForm.physioId === "object"
+  //     ? sessionForm.physioId?._id
+  //     : sessionForm.physioId;
+  const assignedPhysioIds = feedbackDialog?.physioId ?? "";
+
+  const physioModalityIds = useMemo(() => {
+    if (!assignedPhysioIds || !Array.isArray(machines)) return [];
+
+    const set = new Set();
+
+    machines.forEach((m) => {
+      const isAssigned =
+        Array.isArray(m.Assignedto) &&
+        m.Assignedto.some(
+          (a) =>
+            String(a.physioId) === String(assignedPhysioIds) &&
+            Number(a.count || 0) > 0,
+        );
+
+      const modId = m.modalityId?._id ?? m.modalityId; // object or string
+
+      if (isAssigned && modId) set.add(String(modId));
+    });
+
+    return Array.from(set);
+  }, [machines, assignedPhysioIds]);
+
+  console.log("machines", machines.length);
+  console.log("assignedPhysioId", assignedPhysioIds);
+  console.log("physioModalityIds", physioModalityIds);
+
+  const getAllMachine = async (data) => {
+    try {
+      const res = await apiRequest("Machinery/getAllMachinery", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      // depending on response shape
+      const list = res?.machines ?? res ?? [];
+      setMachines(list);
+    } catch (error) {
+      console.error("not able to getall Machine", error);
     }
   };
 
@@ -730,7 +771,7 @@ const SessionManagement = () => {
       handlesessionStop(sessionId, action);
     }
     if (action === "Canceled") {
-      handleSessionCancleRevert(sessionId, action);
+      handleSessionCancelRevert(sessionId, action);
     }
     // Update UI
     setSessions((prev) =>
@@ -776,7 +817,13 @@ const SessionManagement = () => {
       return;
     }
     const { sessionId } = cancelDialog;
-    handleActionCancel(sessionId, "Canceled", cancelledKms, cancelledReason);
+    handleActionCancel(
+      sessionId,
+      "Canceled",
+      cancelledKms,
+      cancelledReason,
+      claimPetrol,
+    );
     setSessions((prev) =>
       prev.map((s) =>
         s._id === sessionId
@@ -784,6 +831,7 @@ const SessionManagement = () => {
               ...s,
               status: "Canceled",
               cancelledKms: parseFloat(cancelledKms) || 0,
+              petrolAllowanceClaimed: claimPetrol,
             }
           : s,
       ),
@@ -795,6 +843,7 @@ const SessionManagement = () => {
     setCancelDialog({ open: false, sessionId: null });
     setCancelledKms("");
     setCancelledReason("");
+    setClaimPetrol(true);
   };
 
   const handleFeedbackUpload = (e) => {
@@ -870,7 +919,7 @@ const SessionManagement = () => {
       action: action,
     });
   };
-  const handleSessionCancleRevert = (session, action) => {
+  const handleSessionCancelRevert = (session, action) => {
     SessionCancelRevert({
       _id: session,
 
@@ -882,6 +931,7 @@ const SessionManagement = () => {
     action,
     cancelledKms,
     cancelledReason,
+    claimPetrol,
   ) => {
     SessionCancel({
       _id: session,
@@ -891,6 +941,7 @@ const SessionManagement = () => {
       physioName: physioName,
       cancelledKms: cancelledKms,
       cancelledReason: cancelledReason,
+      petrolAllowanceClaimed: claimPetrol,
     });
   };
 
@@ -1381,13 +1432,25 @@ const SessionManagement = () => {
                                     redFlags: session.redFlags || [],
                                     homeExerciseAssigned:
                                       !!session.homeExerciseAssigned,
-                                    modalitiesList:
-                                      session.modalitiesList.map((m) => {
-                                        return {
-                                          modalityId: m.modalityId?._id,
-                                          isOccurred: m.isOccurred,
-                                        };
-                                      }) || [],
+                                    // modalitiesList:
+                                    //   session.modalitiesList.map((m) => {
+                                    //     return {
+                                    //       modalityId: m.modalityId?._id,
+                                    //       isOccurred: m.isOccurred,
+                                    //     };
+                                    //   }) || [],
+                                    modalitiesList: Array.isArray(
+                                      session.modalitiesList,
+                                    )
+                                      ? session.modalitiesList
+                                          .map((m) =>
+                                            String(
+                                              m.modalityId?._id ?? m.modalityId,
+                                            ),
+                                          )
+                                          .filter(Boolean)
+                                      : [],
+
                                     // machineId:
                                     // session.machineId?.machineName || "",
                                     targetArea: session.targetArea || "",
@@ -1405,6 +1468,10 @@ const SessionManagement = () => {
                                   setFeedbackDialog({
                                     open: true,
                                     sessionId: session._id,
+                                    physioId:
+                                      session?.physioId?._id ??
+                                      session?.physioId ??
+                                      "",
                                   });
                                 }}
                               >
@@ -1455,7 +1522,7 @@ const SessionManagement = () => {
                                     </AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() =>
-                                        handleSessionCancleRevert(session._id)
+                                        handleSessionCancelRevert(session._id)
                                       }
                                     >
                                       Revert Cancel
@@ -1897,7 +1964,7 @@ const SessionManagement = () => {
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() =>
-                                  handleSessionCancleRevert(session._id)
+                                  handleSessionCancelRevert(session._id)
                                 }
                               >
                                 Revert Cancel
@@ -2093,16 +2160,16 @@ const SessionManagement = () => {
                   </div>
                 </RadioGroup>
               </div>
-
               <div className="space-y-2">
                 <Label>Modalities</Label>
                 <RadioGroup
-                  value={feedback.modalities ? "yes" : "no"}
+                  value={sessionForm.modalities ? "yes" : "no"}
                   onValueChange={(v) => {
-                    setFeedback((prev) => ({
+                    setSessionForm((prev) => ({
                       ...prev,
                       modalities: v === "yes",
-                      modalitiesList: v === "no" ? [] : prev.modalitiesList,
+                      modalitiestype: v === "no" ? "" : prev.modalitiestype,
+                      modalityList: v === "no" ? [] : prev.modalityList,
                     }));
                   }}
                   className="flex gap-4"
@@ -2119,32 +2186,24 @@ const SessionManagement = () => {
                 </RadioGroup>
               </div>
 
-              {feedback.modalities === true && (
+              {sessionForm.modalities === true && (
                 <div className="space-y-2">
                   <Label htmlFor="modalitiestype">Modalities Type</Label>
 
                   <Select
-                    value={modalitiesForm.modalitiestype || ""}
-                    onValueChange={(val) => {
-                      setModalitiesForm((prev) => ({
+                    value={sessionForm.modalitiestype}
+                    onValueChange={(val) =>
+                      setSessionForm((prev) => ({
                         ...prev,
                         modalitiestype: val,
-                      }));
-
-                      setFeedback((prev) => ({
-                        ...prev,
-                        modalitiesList: prev.modalitiesList.filter(
-                          (m) =>
-                            Modalities.find((mod) => mod._id === m.modalityId)
-                              ?.modalitiestype === val,
-                        ),
-                      }));
-                    }}
+                        modalityList: [],
+                      }))
+                    }
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select Modalities Type" />
                     </SelectTrigger>
-                    <SelectContent value={feedback.modalitiestype}>
+                    <SelectContent>
                       <SelectItem value="Exercise Therapy">
                         Exercise Therapy
                       </SelectItem>
@@ -2154,70 +2213,78 @@ const SessionManagement = () => {
                     </SelectContent>
                   </Select>
 
-                  {modalitiesForm.modalitiestype && (
+                  {sessionForm.modalitiestype && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       className="space-y-2 pl-4"
                     >
                       <Label>List of Modalities</Label>
-                      <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
-                        {Modalities.filter(
-                          (mod) =>
-                            mod.modalitiestype ===
-                            modalitiesForm.modalitiestype,
-                        ).map((mod) => {
-                          const isChecked = feedback.modalitiesList.some(
-                            (m) => m.modalityId === mod._id,
-                          );
-                          console.log(
-                            isChecked,
-                            feedback.modalitiesList,
-                            "isChecked",
+
+                      {Array.isArray(Modalities) &&
+                        (() => {
+                          const list = Modalities.filter(
+                            (mod) =>
+                              mod.modalitiestype ===
+                                sessionForm.modalitiestype &&
+                              physioModalityIds.includes(String(mod._id)),
                           );
 
+                          if (list.length === 0) {
+                            return (
+                              <div className="p-3 border rounded-md text-sm text-red-500">
+                                This Physio does not have any assigned
+                                modalities.
+                              </div>
+                            );
+                          }
+
                           return (
-                            <div
-                              key={mod._id}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                id={`mod-${mod._id}`}
-                                checked={isChecked}
-                                onCheckedChange={(checked) => {
-                                  console.log(checked, "checked");
-                                  setFeedback((prev) =>
-                                    checked
-                                      ? {
-                                          ...prev,
-                                          modalitiesList: [
-                                            ...prev.modalitiesList,
-                                            {
-                                              modalityId: mod._id,
-                                              isOccurred: true,
-                                            },
-                                          ],
-                                        }
-                                      : {
-                                          ...prev,
-                                          modalitiesList:
-                                            prev.modalitiesList.filter(
-                                              (m) => m.modalityId !== mod._id,
-                                            ),
-                                        },
-                                  );
-                                }}
-                              />
-                              <Label
-                                htmlFor={`mod-${mod._id}`}
-                                className="text-sm font-normal"
-                              >
-                                {mod.modalitiesName}
-                              </Label>
+                            <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
+                              {list.map((mod) => {
+                                const id = String(mod._id);
+                                const isChecked = (
+                                  sessionForm.modalityList || []
+                                )
+                                  .map(String)
+                                  .includes(id);
+
+                                return (
+                                  <div
+                                    key={id}
+                                    className="flex items-center space-x-2"
+                                  >
+                                    <Checkbox
+                                      id={`mod-${id}`}
+                                      checked={isChecked}
+                                      onCheckedChange={(checked) => {
+                                        setSessionForm((prev) => {
+                                          const list = (
+                                            prev.modalityList || []
+                                          ).map(String);
+                                          return {
+                                            ...prev,
+                                            modalityList: checked
+                                              ? Array.from(
+                                                  new Set([...list, id]),
+                                                )
+                                              : list.filter((m) => m !== id),
+                                          };
+                                        });
+                                      }}
+                                    />
+                                    <Label
+                                      htmlFor={`mod-${id}`}
+                                      className="text-sm font-normal"
+                                    >
+                                      {mod.modalitiesName}
+                                    </Label>
+                                  </div>
+                                );
+                              })}
                             </div>
                           );
-                        })}
-                      </div>
+                        })()}
                     </motion.div>
                   )}
                 </div>
@@ -2363,6 +2430,17 @@ const SessionManagement = () => {
                 required
               />
             )}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="claimPetrol"
+                checked={claimPetrol}
+                onChange={handleCheckboxChange}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="claimPetrol">Claim Petrol</Label>
+            </div>
+
             {/* <Input
               id="cancelledReason"
               type="text"
