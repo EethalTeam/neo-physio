@@ -83,7 +83,7 @@ const Income = () => {
         };
       });
 
-      setPatients(patientsWithIncome);
+      setPatients(patientsRes);
     } catch (err) {
       console.error(err);
     } finally {
@@ -204,7 +204,7 @@ const Income = () => {
   //   }
   // };
   const totalMonthlyIncome = patients.reduce(
-    (sum, p) => sum + (p.totalIncome || 0),
+    (sum, p) => sum + Math.round(p.totalIncome || 0),
     0,
   );
 
@@ -218,7 +218,7 @@ const Income = () => {
           <div className="flex flex-wrap justify-between items-center w-full gap-4">
             {/* Left: Total Income */}
             <h3 className="text-lg font-semibold">
-              Total Income: ₹{totalMonthlyIncome}
+              Total Income: ₹{totalMonthlyIncome.toFixed(0)}
             </h3>
 
             {/* Right: Month, Year, Refresh */}
@@ -275,7 +275,7 @@ const Income = () => {
               </thead>
 
               <tbody>
-                {patients.map((p) => (
+                {patients.filter((p) => p.totalCompletedSessions > 0).map((p) => (
                   <tr
                     key={p._id}
                     className="hover:bg-gray-50 text-sm md:text-base"
@@ -293,7 +293,7 @@ const Income = () => {
                     </td>
 
                     <td className="p-2 border text-center font-semibold whitespace-nowrap">
-                      ₹{p.totalIncome || 0}
+                      ₹{(p.totalIncome).toFixed(0) || 0}
                     </td>
                   </tr>
                 ))}
