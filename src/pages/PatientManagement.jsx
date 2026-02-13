@@ -921,6 +921,7 @@ const PatientManagement = () => {
         ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
         sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
       };
+      console.log(formData, "formData");
       if (patient.consultationDate)
         formData.consultationDate = new Date(patient.consultationDate);
       if (patient.reviewDate)
@@ -1166,7 +1167,10 @@ const PatientManagement = () => {
       });
     }
   };
-
+  const FeesType =
+    patientForm?.FeesTypeId?.feesTypeName || patientForm?.feesTypeName || "";
+  const isPerSession =
+    FeesType.replace(/\s+/g, "").toLowerCase() === "persession";
   const openAssignPhysioDialog = (patient) => {
     if (
       user?.role === "HOD" ||
@@ -2574,33 +2578,26 @@ const PatientManagement = () => {
                       <div className="space-y-2">
                         <Label>Fees Type</Label>
                         <Select
-                          value={JSON.stringify({
-                            id: patientForm.FeesTypeId,
-                            name: patientForm.FeesTypeName,
-                          })}
-                          onValueChange={(v) => {
-                            if (!v) return;
-                            try {
-                              const selected = JSON.parse(v);
-                              handleSelectChange("FeesTypeId", selected.id);
-                              handleSelectChange("FeesTypeName", selected.name);
-                            } catch (err) {
-                              console.error("Failed to Parse JSON", v, err);
-                            }
+                          value={patientForm?.FeesTypeId || ""}
+                          onValueChange={(id) => {
+                            console.log(id, "id");
+
+                            const selected = feesType.find((f) => f._id === id);
+                            console.log(selected, "selected");
+                            handleSelectChange("FeesTypeId", selected._id); // store whole object
+                            handleSelectChange(
+                              "FeesTypeName",
+                              selected?.feesTypeName || "",
+                            );
                           }}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select Fees" />
                           </SelectTrigger>
+
                           <SelectContent>
                             {feesType.map((fee) => (
-                              <SelectItem
-                                key={fee._id}
-                                value={JSON.stringify({
-                                  id: fee._id,
-                                  name: fee.feesTypeName,
-                                })}
-                              >
+                              <SelectItem key={fee._id} value={fee._id}>
                                 {fee.feesTypeName}
                               </SelectItem>
                             ))}
@@ -2610,20 +2607,13 @@ const PatientManagement = () => {
                       <div className="space-y-2">
                         <Label>
                           Fees Amount (
-                          {patientForm.FeesTypeName == "PerSession"
-                            ? "PerSession"
-                            : "PerMonth"}
-                          )
+                          {isPerSession ? "PerSession" : "PerMonth"})
                         </Label>
                         <Input
                           name="feeAmount"
                           value={patientForm.feeAmount}
                           onChange={handleFormChange}
-                          placeholder={
-                            patientForm.FeesTypeName == "PerSession"
-                              ? "PerSession"
-                              : "PerMonth"
-                          }
+                          placeholder={isPerSession ? "PerSession" : "PerMonth"}
                         />
                       </div>
                     </div>
