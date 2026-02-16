@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Bitcoin, InboxIcon } from "lucide-react";
 
 const Income = () => {
   const [patients, setPatients] = useState([]);
@@ -83,7 +84,8 @@ const Income = () => {
         };
       });
 
-      setPatients(patientsRes);
+      setPatients(patientsWithIncome);
+      setSessions(sessionsRes);
     } catch (err) {
       console.error(err);
     } finally {
@@ -207,154 +209,236 @@ const Income = () => {
     (sum, p) => sum + Math.round(p.totalIncome || 0),
     0,
   );
+  const [activeTab, setActiveTab] = useState("income");
+
+  const TabButton = ({ id, label, icon: Icon }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all rounded-md ${
+        activeTab === id
+          ? "bg-blue-600 text-white shadow-md"
+          : "text-slate-400 hover:text-white hover:bg-blue-900"
+      }`}
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {label}
+
+      {activeTab === id && (
+        <motion.div
+          layoutId="activetabincome"
+          className="absolute inset-0 rounded-md bg-blue-600 -z-10"
+        />
+      )}
+    </button>
+  );
+
+  const filteredPatients =
+    activeTab === "bill"
+      ? patients.filter(
+          (p) =>
+            (p.totalCompletedSessions || 0) > 0 && (p.totalIncome || 0) > 0,
+        )
+      : patients;
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   return (
     <div className="p-4 space-y-4 flex flex-col">
-      <Card>
-        <CardHeader>
-          <CardTitle>Income Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap justify-between items-center w-full gap-4">
-            {/* Left: Total Income */}
-            <h3 className="text-lg font-semibold">
-              Total Income: ₹{totalMonthlyIncome.toFixed(0)}
-            </h3>
+      <div className="w-full flex justify-center">
+        <div className="flex items-center gap-2 p-1 rounded-lg border border-slate-800 overflow-x-auto max-w-full">
+          <TabButton id="income" label="INCOME" icon={InboxIcon} />
+          <TabButton id="bill" label="BILL GENERATE" icon={Bitcoin} />
+        </div>
+      </div>
 
-            {/* Right: Month, Year, Refresh */}
-            <div className="flex items-center gap-2">
-              <Select
-                onValueChange={(val) => setSelectedMonth(Number(val))}
-                value={selectedMonth}
-              >
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Select Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((m, idx) => (
-                    <SelectItem key={idx} value={idx + 1}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {activeTab === "income" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Income Dashboard</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap justify-between items-center w-full gap-4">
+                {/* Left: Total Income */}
+                <h3 className="text-lg font-semibold">
+                  Total Income: ₹{totalMonthlyIncome.toFixed(0)}
+                </h3>
 
-              <Select
-                onValueChange={(val) => setSelectedYear(Number(val))}
-                value={selectedYear}
-              >
-                <SelectTrigger className="w-full sm:w-28">
-                  <SelectValue placeholder="Select Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[2026, 2025, 2024].map((y) => (
-                    <SelectItem key={y} value={y}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* <Button onClick={fetchData}>Refresh</Button> */}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="medical-card hidden md:block ">
-        <CardContent>
-          <div className="hidden md:block overflow-x-auto mt-5">
-            <table className="min-w-full text-sm border rounded-lg">
-              <thead className="bg-gray-100 text-gray-700">
-                <tr>
-                  <th className="px-3 py-2 text-left">Patient Name</th>
-                  <th className="px-3 py-2 text-left">Completed Sessions</th>
-                  <th className="px-3 py-2 text-left">Fees</th>
-                  <th className="px-3 py-2 text-left">Total Income</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {patients.filter((p) => p.totalCompletedSessions > 0).map((p) => (
-                  <tr
-                    key={p._id}
-                    className="hover:bg-gray-50 text-sm md:text-base"
+                {/* Right: Month, Year, Refresh */}
+                <div className="flex items-center gap-2">
+                  <Select
+                    onValueChange={(val) => setSelectedMonth(Number(val))}
+                    value={selectedMonth}
                   >
-                    <td className="p-2 border whitespace-nowrap">
-                      {p.patientName}
-                    </td>
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue placeholder="Select Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((m, idx) => (
+                        <SelectItem key={idx} value={idx + 1}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                    <td className="p-2 border text-center">
-                      {p.totalCompletedSessions}
-                    </td>
+                  <Select
+                    onValueChange={(val) => setSelectedYear(Number(val))}
+                    value={selectedYear}
+                  >
+                    <SelectTrigger className="w-full sm:w-28">
+                      <SelectValue placeholder="Select Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2026, 2025, 2024].map((y) => (
+                        <SelectItem key={y} value={y}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                    <td className="p-2 border text-center whitespace-nowrap">
-                      ₹{p.feePerSession || 0} ({p.feeType || "N/A"})
-                    </td>
+                  {/* <Button onClick={fetchData}>Refresh</Button> */}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                    <td className="p-2 border text-center font-semibold whitespace-nowrap">
-                      ₹{(p.totalIncome).toFixed(0) || 0}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-      {/* <motion.div
+          <Card className="medical-card hidden md:block ">
+            <CardContent>
+              <div className="hidden md:block overflow-x-auto mt-5">
+                <table className="min-w-full text-sm border rounded-lg">
+                  <thead className="bg-gray-100 text-gray-700">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Patient Name</th>
+                      <th className="px-3 py-2 text-left">
+                        Completed Sessions
+                      </th>
+                      <th className="px-3 py-2 text-left">Fees</th>
+                      <th className="px-3 py-2 text-left">Total Income</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filteredPatients
+                      .filter((p) => p.totalCompletedSessions > 0)
+                      .map((p) => (
+                        <tr
+                          key={p._id}
+                          className="hover:bg-gray-50 text-sm md:text-base"
+                        >
+                          <td className="p-2 border whitespace-nowrap">
+                            {p.patientName}
+                          </td>
+
+                          <td className="p-2 border text-center">
+                            {p.totalCompletedSessions}
+                          </td>
+
+                          <td className="p-2 border text-center whitespace-nowrap">
+                            ₹{p.feePerSession || 0} ({p.feeType || "N/A"})
+                          </td>
+
+                          <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                            ₹{Number(p.totalIncome || 0).toFixed(0)}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+          {/* <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       > */}
-      <Card className="medical-card block sm:hidden">
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {patients.map((patient) => (
-              <motion.div
-                key={patient._id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
-                className="border mt-4 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
-              >
-                <div className="flex items-center space-x-3 mb-3">
-                  <div>
-                    <h3 className="text-sm font-medium">
-                      Patient Name:
-                      <span className="font-semibold">
-                        {patient.patientName}
-                      </span>
-                    </h3>
-                    <p className="text-sm text-gray-400">
-                      Completed Session :
-                      <span className="font-medium">
-                        {patient.totalCompletedSessions}
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      Fees:
-                      <span className="text-sm text-gray-600">
-                        ₹{patient.feePerSession || 0} (
-                        {patient.feeType || "N/A"})
-                      </span>
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      Total Income:
-                      <span className="font-semibold">
-                        ₹{patient.totalIncome || 0}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-      {/* </motion.div> */}
+          <Card className="medical-card block sm:hidden">
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {patients.map((patient) => (
+                  <motion.div
+                    key={patient._id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="border mt-4 rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+                  >
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div>
+                        <h3 className="text-sm font-medium">
+                          Patient Name:
+                          <span className="font-semibold">
+                            {patient.patientName}
+                          </span>
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          Completed Session :
+                          <span className="font-medium">
+                            {patient.totalCompletedSessions}
+                          </span>
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Fees:
+                          <span className="text-sm text-gray-600">
+                            ₹{patient.feePerSession || 0} (
+                            {patient.feeType || "N/A"})
+                          </span>
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          Total Income:
+                          <span className="font-semibold">
+                            ₹{patient.totalIncome || 0}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          {/* </motion.div> */}
 
-      {/* )} */}
+          {/* )} */}
+        </>
+      )}
+      {activeTab === "bill" && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Bill Generate Dashboard</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap justify-between items-center w-full gap-4">
+                {/* Left: Total Income */}
+                <h3 className="text-lg font-semibold">
+                  Total Bill Generate Count :
+                </h3>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="date"
+                    className="border rounded-md px-3 py-2 text-sm"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                  />
+
+                  <input
+                    type="date"
+                    className="border rounded-md px-3 py-2 text-sm"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                  />
+
+                  <Button onClick={fetchData}>Apply</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 };

@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ChevronRight, ChevronDown } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-dropdown-menu";
 
@@ -46,10 +48,11 @@ const LeavephysioManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [assignForm, setAssignForm] = useState({
-    leavePhysioId: "",
+    physioId: "",
     newPhysioId: "",
     LeaveMode: "",
   });
+  const [leaveSessionPlan, setLeaveSessionPlan] = useState([]);
 
   useEffect(() => {
     let filtered = [...sessions];
@@ -71,11 +74,16 @@ const LeavephysioManagement = () => {
 
     setFilteredSessions(filtered);
   }, [sessions, searchTerm, dateFilter]);
+  const [patients, setPatients] = useState([]);
+  const [openRowId, setOpenRowId] = useState(null);
 
   useEffect(() => {
     console.log("Calling APIs...");
     getPhysio();
-    getSessions();
+    // getAllPatient();
+    getSessionStatus();
+    // getSessions();
+    getLeave();
   }, []);
 
   const getPhysio = async () => {
@@ -94,23 +102,23 @@ const LeavephysioManagement = () => {
       setEmployees([]);
     }
   };
-  const getSessions = async () => {
-    try {
-      const response = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+  // const getSessions = async () => {
+  //   try {
+  //     const response = await apiRequest("Session/getAllSession", {
+  //       method: "POST",
+  //       body: JSON.stringify({}),
+  //     });
 
-      if (Array.isArray(response)) {
-        setSessions(response);
-      } else {
-        setSessions([]);
-      }
-    } catch (error) {
-      console.error("Error loading sessions:", error);
-      setSessions([]);
-    }
-  };
+  //     if (Array.isArray(response)) {
+  //       setSessions(response);
+  //     } else {
+  //       setSessions([]);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error loading sessions:", error);
+  //     setSessions([]);
+  //   }
+  // };
   const [leaveData, setLeaveData] = useState([]);
   const [showModal, setShowModal] = useState(false); // controls popup visibility
 
@@ -148,83 +156,129 @@ const LeavephysioManagement = () => {
   const selectedDate = dateFilter || new Date().toISOString().slice(0, 10);
 
   const [leavePhysioSessions, setLeavePhysioSessions] = useState([]);
-
   useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+
     const filtered =
       assignForm.physioId && dateFilter
         ? sessions.filter((s) => {
-            // protect against null physioId
             const physioId =
-              s.physioId && typeof s.physioId === "object"
-                ? s.physioId._id
-                : s.physioId;
-            // extract YYYY-MM-DD from ISO date
-            const sessionDateOnly = s.sessionDate?.split("T")[0];
+              typeof s.physioId === "object" ? s.physioId?._id : s.physioId;
+
+            const sessionDateOnly = (s.sessionDate || "").split("T")[0];
+            const statusName = (
+              s.sessionStatusId?.sessionStatusName || ""
+            ).toLowerCase();
+
+            const isSameDate = sessionDateOnly === dateFilter;
+            const isFutureOrToday = dateFilter >= today;
+            const isScheduled = statusName === "scheduled";
+
             return (
-              physioId === assignForm.physioId && sessionDateOnly === dateFilter
+              physioId === assignForm.physioId &&
+              isSameDate &&
+              isFutureOrToday &&
+              isScheduled
             );
           })
         : [];
+
     setLeavePhysioSessions(filtered);
   }, [assignForm.physioId, dateFilter, sessions]);
+  useEffect(() => {
+    if (!assignForm.physioId || !dateFilter) return;
 
-  //   const getAllPatient = async () => {
-  //     try {
-  //       const res = await apiRequest("Patient/getAllPatient", {
-  //         method: "POST",
-  //         body: JSON.stringify({}),
-  //       });
+    getAllPatient(assignForm.physioId, dateFilter);
+  }, [assignForm.physioId, dateFilter]);
 
-  //       //   setLeavePhysioSessions(res);
-  //       //   setPatients(res);
-  //     } catch (error) {
-  //       console.error("Error:", error);
-  //       throw error;
-  //     }
-  //   };
-  const AssignPhysio = async (data) => {
+  // useEffect(() => {
+  //   const filtered =
+  //     assignForm.physioId && dateFilter
+  //       ? sessions.filter((s) => {
+  //           // protect against null physioId
+  //           const physioId =
+  //             s.physioId && typeof s.physioId === "object"
+  //               ? s.physioId._id
+  //               : s.physioId;
+  //           // extract YYYY-MM-DD from ISO date
+  //           const sessionDateOnly = s.sessionDate?.split("T")[0];
+  //           return (
+  //             physioId === assignForm.physioId && sessionDateOnly === dateFilter
+  //           );
+  //         })
+  //       : [];
+  //   setLeavePhysioSessions(filtered);
+  // }, [assignForm.physioId, dateFilter, sessions]);
+  const getAllPatient = async () => {
     try {
-      const response = await apiRequest("Patient/sessionassignphysio", {
+      const res = await apiRequest("Patient/getAllPatientsByPhysioAndDate", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          physioId: assignForm.physioId,
+          targetDate: selectedDate,
+        }),
       });
-      console.log("AssignPhysio Response:", response);
-      toast({ title: "Success", description: "Assign updated successfully." });
-      //   getAllPatient();
 
-      return response;
+      const list = Array.isArray(res) ? res : res?.patients || [];
+      setPatients(list);
     } catch (error) {
       console.error("Error:", error);
-      throw error;
+      setPatients([]);
     }
   };
-  const handleAssignPhysio = async (physioId, physioName, sessionCode) => {
-    if (!physioId || !physioName) return;
 
-    const data = {
-      sessionCode,
-      newPhysioId: physioId,
-      newPhysioName: physioName,
-    };
+  const assignedPatients = patients.filter((p) => {
+    const pid =
+      p.physioId && typeof p.physioId === "object"
+        ? p.physioId._id
+        : p.physioId;
 
-    try {
-      const res = await AssignPhysio(data);
+    return pid === assignForm.physioId;
+  });
 
-      toast({ title: "Success", description: "Physio assigned successfully." });
+  // const AssignPhysio = async (data) => {
+  //   try {
+  //     const response = await apiRequest("Patient/sessionassignphysio", {
+  //       method: "POST",
+  //       body: JSON.stringify(data),
+  //     });
+  //     console.log("AssignPhysio Response:", response);
+  //     toast({ title: "Success", description: "Assign updated successfully." });
+  //     //   getAllPatient();
 
-      // update local state so table reflects the change immediately
-      setLeavePhysioSessions((prev) =>
-        prev.map((s) =>
-          s.sessionCode === sessionCode
-            ? { ...s, physioId: { _id: physioId, physioName }, physioName }
-            : s,
-        ),
-      );
-    } catch (err) {
-      console.error("Error assigning physio:", err);
-      toast({ title: "Error", description: "Failed to assign physio." });
-    }
-  };
+  //     return response;
+  //   } catch (error) {
+  //     console.error("Error:", error);
+  //     throw error;
+  //   }
+  // };
+  // const handleAssignPhysio = async (physioId, physioName, sessionCode) => {
+  //   if (!physioId || !physioName) return;
+
+  //   const data = {
+  //     sessionCode,
+  //     newPhysioId: physioId,
+  //     newPhysioName: physioName,
+  //   };
+
+  //   try {
+  //     const res = await AssignPhysio(data);
+
+  //     toast({ title: "Success", description: "Physio assigned successfully." });
+
+  //     // update local state so table reflects the change immediately
+  //     setLeavePhysioSessions((prev) =>
+  //       prev.map((s) =>
+  //         s.sessionCode === sessionCode
+  //           ? { ...s, physioId: { _id: physioId, physioName }, physioName }
+  //           : s,
+  //       ),
+  //     );
+  //   } catch (err) {
+  //     console.error("Error assigning physio:", err);
+  //     toast({ title: "Error", description: "Failed to assign physio." });
+  //   }
+  // };
 
   const handleLeave = async () => {
     if (!assignForm.physioId || !dateFilter || !assignForm.LeaveMode) {
@@ -270,8 +324,12 @@ const LeavephysioManagement = () => {
   };
   const [cancelDialog, setCancelDialog] = useState({
     open: false,
+    type: "session",
     sessionId: null,
+    patientId: null,
+    patientName: "",
   });
+
   const [cancelledReason, setCancelledReason] = useState("");
   const [cancelledKms, setCancelledKms] = useState("");
   const [sessionStatus, setSessionStatus] = useState([]);
@@ -335,22 +393,44 @@ const LeavephysioManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      // setSessionStatus(response)
-      setSessionStatus(response.sessionStatuses);
+
+      // ALWAYS force array
+      setSessionStatus(
+        Array.isArray(response?.sessionStatuses)
+          ? response.sessionStatuses
+          : [],
+      );
     } catch (error) {
       console.log(error, "error from frontend get All Session Status");
+      setSessionStatus([]); // never allow undefined
     }
   };
+  const handlePlanCancelClick = (patientId, patientName) => {
+    setCancelDialog({
+      open: true,
+      type: "plan",
+      sessionId: null,
+      patientId,
+      patientName,
+    });
+  };
+
   const handleSessionAction = (sessionId, action) => {
     console.log(sessionId, "sessionId");
     if (action === "Completed") {
       setFeedbackDialog({ open: true, sessionId: sessionId });
       // handleActionEnd(sessionId, action)
     } else if (action === "Canceled") {
-      setCancelDialog({ open: true, sessionId: sessionId });
+      setCancelDialog({
+        open: true,
+        type: "session",
+        sessionId,
+        patientId: null,
+        patientName: "",
+      });
     } else {
-      handleActionStart(sessionId, action);
-      handlesessionStock(sessionId, action);
+      // handleActionStart(sessionId, action);
+      // handlesessionStock(sessionId, action);
       setSessions((prev) =>
         prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
       );
@@ -417,6 +497,122 @@ const LeavephysioManagement = () => {
       console.log(error, "error from frontend get All Session Cancel");
     }
   };
+  const today = new Date().toISOString().split("T")[0];
+  const isFutureSelected = !!dateFilter && dateFilter > today;
+
+  const handleSaveSession = async () => {
+    if (!assignForm.physioId || !dateFilter) {
+      toast({
+        title: "Alert",
+        description: "Select Physio And Date First",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ✅ Only rows that user planned (has Re_Assign)
+    const planned = leaveSessionPlan
+      .filter((x) => x.patientId && x.Re_Assign)
+      .map((x) => ({
+        ...x,
+        date: dateFilter, // optional, but good for backend
+        sessionTime: x.sessionTime || "09:00",
+      }));
+
+    if (planned.length === 0) {
+      toast({
+        title: "Alert",
+        description: "No planned Sessions to save",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ✅ Validate only planned rows
+    const invalid = planned.find((x) => !x.sessionTime || !x.Re_Assign);
+    if (invalid) {
+      toast({
+        title: "Error",
+        description: "Please set Time and Re-Assign for selected patients",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const res = await apiRequest("Physio/saveLeavePlan", {
+        method: "POST",
+        body: JSON.stringify({
+          physioId: assignForm.physioId,
+          LeaveDate: dateFilter,
+          LeaveMode: assignForm.LeaveMode,
+          SessionGenerateForLeave: planned, // ✅ send only planned
+        }),
+      });
+
+      if (res?.success) {
+        toast({
+          title: "Saved",
+          description: "Future session plan saved in DB",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: res?.message || "Save failed",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to save plan",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [reAssignPhysioId, setReAssignPhysioId] = useState("");
+  const selectedPatient = patients.find((p) => p._id === selectedPatientId);
+  useEffect(() => {
+    if (!patients?.length) return;
+
+    setLeaveSessionPlan((prev) => {
+      const prevMap = new Map(prev.map((x) => [x.patientId, x]));
+
+      return patients.map((p) => {
+        const existing = prevMap.get(p._id);
+
+        return {
+          patientId: p._id,
+          sessionTime: existing?.sessionTime || p.sessionTime || "09:00",
+          Re_Assign: existing?.Re_Assign || "",
+        };
+      });
+    });
+  }, [patients]);
+  console.log(selectedPatientId, "setSelectedPatientId");
+  const upsertPlan = (patientId, patch) => {
+    setLeaveSessionPlan((prev) => {
+      const index = prev.findIndex((x) => x.patientId === patientId);
+
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], ...patch };
+        return updated;
+      }
+
+      return [
+        ...prev,
+        {
+          patientId,
+          sessionTime: "09:00",
+          Re_Assign: "",
+          ...patch,
+        },
+      ];
+    });
+  };
 
   return (
     <div className="space-y-6 overflow-x-hidden">
@@ -424,13 +620,14 @@ const LeavephysioManagement = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex justify-between items-center"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-800 leading-tight">
             Leave Management
           </h1>
-          <p className="text-gray-600 text-sm md:text-xs">
+
+          <p className="mt-1 text-xs sm:text-sm text-gray-600 leading-snug break-words">
             Manage physiotherapist leave and reassign patients to available
             physiotherapists.
           </p>
@@ -438,7 +635,7 @@ const LeavephysioManagement = () => {
       </motion.div>
 
       {/* Leave list */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      {/* <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Physio Leave History</DialogTitle>
@@ -476,8 +673,7 @@ const LeavephysioManagement = () => {
             )}
           </div>
         </DialogContent>
-      </Dialog>
-
+      </Dialog> */}
       <Card className="medical-card">
         <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex flex-col">
@@ -488,12 +684,12 @@ const LeavephysioManagement = () => {
             </CardDescription>
           </div>
 
-          <div className="items-center gap-2">
+          {/* <div className="items-center gap-2">
             <Button onClick={getLeave}>History</Button>
-          </div>
+          </div> */}
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             <User className="h-5 w-5 text-gray-500" />
             <Select
               onValueChange={(v) =>
@@ -537,9 +733,103 @@ const LeavephysioManagement = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button onClick={handleLeave}>Mark as Leave</Button>
+          <Button className="w-full sm:w-auto" onClick={handleLeave}>
+            Mark as Leave
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="medical-card">
+        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <div className="flex flex-col">
+            <CardTitle>Reassign Patients to the Physios</CardTitle>
+            <CardDescription>
+              Select a patient and set time + reassign physio.
+            </CardDescription>
           </div>
+        </CardHeader>
+
+        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+            <User className="h-5 w-5 text-gray-500" />
+
+            <Select
+              value={selectedPatientId}
+              onValueChange={setSelectedPatientId}
+            >
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="Select Patient" />
+              </SelectTrigger>
+              <SelectContent>
+                {patients.map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.patientName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="time"
+              className="w-full sm:w-36"
+              disabled={!selectedPatientId}
+              value={
+                leaveSessionPlan.find((x) => x.patientId === selectedPatientId)
+                  ?.sessionTime || "09:00"
+              }
+              onChange={(e) => {
+                upsertPlan(selectedPatientId, { sessionTime: e.target.value });
+              }}
+            />
+
+            <Select
+              disabled={!selectedPatientId}
+              value={
+                leaveSessionPlan.find((x) => x.patientId === selectedPatientId)
+                  ?.Re_Assign || ""
+              }
+              onValueChange={(physioId) => {
+                upsertPlan(selectedPatientId, { Re_Assign: physioId });
+
+                const selectedPhysio = employees.find(
+                  (x) => x._id === physioId,
+                );
+                toast({
+                  title: "Planned",
+                  description: `Planned reassignment for ${selectedPatient?.patientName || ""} → ${
+                    selectedPhysio?.physioName || ""
+                  }`,
+                });
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Select Physio" />
+              </SelectTrigger>
+
+              <SelectContent>
+                {employees
+                  .filter((x) => x._id !== assignForm.physioId)
+                  .map((x) => (
+                    <SelectItem key={x._id} value={x._id}>
+                      {x.physioName}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* date */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Input
+              type="date"
+              value={dateFilter || ""}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full sm:w-48"
+            />
+          </div>
+
+          <Button className="w-full sm:w-auto" onClick={handleSaveSession}>
+            Save Session
+          </Button>
         </CardContent>
       </Card>
 
@@ -552,150 +842,173 @@ const LeavephysioManagement = () => {
       >
         <Card className="medical-card">
           <CardHeader>
-            <CardTitle>
+            {/* <CardTitle>
               Sessions on {dateFilter || "Selected Date"} for{" "}
               {assignForm.physioId
                 ? employees.find((p) => p._id === assignForm.physioId)
                     ?.physioName
                 : "Selected Physio"}
-            </CardTitle>
+            </CardTitle> */}
           </CardHeader>
-          <CardContent>
+          <div className="mb-4 rounded-lg border">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50">
+              <div>
+                <p className="font-semibold text-gray-800">Leave History</p>
+                <p className="text-xs text-gray-500">Recent leaves</p>
+              </div>
+
+              <Button size="sm" variant="outline" onClick={getLeave}>
+                Refresh
+              </Button>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b">
+                  <tr className="border-b bg-gray-50">
+                    <th className="w-10"></th> {/* chevron column */}
                     <th className="text-left p-3 font-semibold text-gray-600">
-                      Patient
+                      Physio
                     </th>
                     <th className="text-left p-3 font-semibold text-gray-600">
-                      Session Time
+                      Leave Date
                     </th>
                     <th className="text-left p-3 font-semibold text-gray-600">
-                      Leave Physio
+                      Leave Mode
                     </th>
                     <th className="text-left p-3 font-semibold text-gray-600">
-                      Session Status
-                    </th>
-                    <th className="text-left p-3 font-semibold text-gray-600">
-                      Re-Assign To
+                      Sessions
                     </th>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {leavePhysioSessions.length === 0 ? (
+                  {leaveData.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center p-4 text-gray-500">
-                        No sessions found for selected physio and date
+                      <td colSpan={5} className="p-4 text-center text-gray-500">
+                        No leave data found
                       </td>
                     </tr>
                   ) : (
-                    leavePhysioSessions.map((s) => (
-                      <tr key={s._id} className="border-b hover:bg-gray-50/50">
-                        <td className="p-3 font-medium text-gray-800">
-                          {s.patientId?.patientName}
-                        </td>
-                        <td className="p-3">{s.sessionTime}</td>
-                        <td className="p-3 text-gray-600 font-medium">
-                          {s.physioId?.physioName}
-                        </td>
-                        <td className="p-3 text-gray-600 font-medium">
-                          {s.sessionStatusId?.sessionStatusName}
-                        </td>
-                        <td className="p-3 flex gap-3">
-                          <Select
-                            value={s.newPhysioId || ""}
-                            disabled={
-                              s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                                "canceled" ||
-                              s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                                "attended" ||
-                              s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                                "completed"
+                    leaveData.map((leave) => {
+                      const isOpen = openRowId === leave._id;
+                      const sessions = leave.SessionGenerateForLeave || [];
+
+                      return (
+                        <React.Fragment key={leave._id}>
+                          <tr
+                            className="border-b hover:bg-gray-50 cursor-pointer"
+                            onClick={() =>
+                              setOpenRowId(isOpen ? null : leave._id)
                             }
-                            onValueChange={(physioId) => {
-                              const selectedPhysio = employees.find(
-                                (p) => p._id === physioId,
-                              );
-                              if (!selectedPhysio) return;
-
-                              setAssignForm((prev) => ({
-                                ...prev,
-                                newPhysioId: selectedPhysio._id,
-                                newPhysioName: selectedPhysio.physioName,
-                              }));
-
-                              handleAssignPhysio(
-                                selectedPhysio._id,
-                                selectedPhysio.physioName,
-                                s.sessionCode,
-                              );
-                            }}
                           >
-                            <SelectTrigger className="w-48">
-                              <SelectValue
-                                placeholder={
-                                  s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                                  "cancelled"
-                                    ? "Session Cancelled"
-                                    : assignForm.physioId
-                                      ? "Select Physio"
-                                      : "Select top physio first"
-                                }
-                              />
-                            </SelectTrigger>
+                            <td className="p-3 text-gray-600">
+                              {isOpen ? (
+                                <ChevronDown size={16} />
+                              ) : (
+                                <ChevronRight size={16} />
+                              )}
+                            </td>
 
-                            <SelectContent>
-                              {employees
-                                .filter((p) => p._id !== s.physioId?._id)
-                                .map((p) => (
-                                  <SelectItem key={p._id} value={p._id}>
-                                    {p.physioName}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                            <td className="p-3 font-medium text-gray-800">
+                              {leave.physioId?.physioName || "N/A"}
+                            </td>
 
-                          {
-                            // (
-                            s.sessionStatusId.sessionStatusName.toLowerCase() ===
-                              "scheduled" && (
-                              //  ||
-                              // s.sessionStatusId.sessionStatusName ===
-                              //   "Attended")
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() =>
-                                  handleSessionAction(s._id, "Canceled")
-                                }
-                              >
-                                <XCircle size={12} />
-                              </Button>
-                            )
-                          }
-                        </td>
-                      </tr>
-                    ))
+                            <td className="p-3 text-gray-700">
+                              {new Date(
+                                leave.LeaveDate || leave.Date,
+                              ).toLocaleDateString()}
+                            </td>
+
+                            <td className="p-3 text-gray-700">
+                              {leave.LeaveMode || "N/A"}
+                            </td>
+
+                            <td className="p-3 text-gray-700">
+                              {sessions.length}
+                            </td>
+                          </tr>
+
+                          {isOpen && (
+                            <tr className="bg-blue-50">
+                              <td colSpan={5} className="p-3">
+                                {sessions.length === 0 ? (
+                                  <p className="text-sm text-gray-500">
+                                    No planned sessions
+                                  </p>
+                                ) : (
+                                  <table className="w-full text-sm border">
+                                    <thead>
+                                      <tr className="border-b bg-blue-100">
+                                        <th className="p-2 text-left">
+                                          Patient ID
+                                        </th>
+                                        <th className="p-2 text-left">
+                                          Session Time
+                                        </th>
+                                        <th className="p-2 text-left">
+                                          Re-Assign Physio
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {sessions.map((s) => (
+                                        <tr key={s._id} className="border-b">
+                                          <td className="p-2">
+                                            {s.patientId?.patientName}
+                                          </td>
+                                          <td className="p-2">
+                                            {s.sessionTime}
+                                          </td>
+                                          <td className="p-2">
+                                            {s.Re_Assign?.physioName}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </motion.div>
       <Dialog
         open={cancelDialog.open}
-        onOpenChange={(open) => setCancelDialog({ open, sessionId: null })}
+        onOpenChange={(open) =>
+          setCancelDialog({
+            open,
+            type: "session",
+            sessionId: null,
+            patientId: null,
+            patientName: "",
+          })
+        }
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancel Session</DialogTitle>
+            <DialogTitle>
+              {cancelDialog.type === "plan"
+                ? "Remove Planned Patient"
+                : "Cancel Session"}
+            </DialogTitle>
+
             <DialogDescription>
-              Enter the below details before cancellation, if any.
-              {/* Enter the kilometers travelled before cancellation, if any. */}
+              {cancelDialog.type === "plan"
+                ? `This will remove ${cancelDialog.patientName || "this patient"} from the leave plan.`
+                : "Enter the below details before cancellation, if any."}
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 pt-4">
             <Label htmlFor="cancelledKms">Cancelled Kms</Label>
             <Input
@@ -709,6 +1022,7 @@ const LeavephysioManagement = () => {
               This amount will be deducted from the physio's daily total.
             </p>
           </div>
+
           <div className="space-y-4 pt-4">
             <Label htmlFor="cancelledKms">Cancel Reason</Label>
             <Input
@@ -727,7 +1041,15 @@ const LeavephysioManagement = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setCancelDialog({ open: false, sessionId: null })}
+              onClick={() =>
+                setCancelDialog({
+                  open: false,
+                  type: "session",
+                  sessionId: null,
+                  patientId: null,
+                  patientName: "",
+                })
+              }
             >
               Back
             </Button>
@@ -743,80 +1065,108 @@ const LeavephysioManagement = () => {
         className="sm:hidden"
       >
         <Card className="medical-card">
-          <CardHeader>
-            <CardTitle>Sessions on {dateFilter || "Selected Date"}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {leavePhysioSessions.length === 0 ? (
-              <p className="text-center text-sm text-gray-500">
-                No sessions found for selected physio and date
-              </p>
-            ) : (
-              leavePhysioSessions.map((s) => (
-                <Card key={s._id} className="border rounded-xl">
-                  <CardContent className="p-4 space-y-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        {s.patientId?.patientName}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Session Time: {s.sessionTime}
-                      </p>
-                    </div>
+          <div className="border rounded-lg overflow-hidden">
+            {/* Header (same like desktop) */}
+            <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50">
+              <div>
+                <p className="font-semibold text-gray-800">Leave History</p>
+                <p className="text-xs text-gray-500">Recent leaves</p>
+              </div>
 
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Leave Physio</span>
-                      <span className="text-red-600 font-medium">
-                        {s.physioId?.physioName}
-                      </span>
-                    </div>
+              <Button size="sm" variant="outline" onClick={getLeave}>
+                Refresh
+              </Button>
+            </div>
 
-                    <Select
-                      value={s.newPhysioId || ""}
-                      onValueChange={(physioId) => {
-                        const selectedPhysio = employees.find(
-                          (p) => p._id === physioId,
-                        );
-                        if (!selectedPhysio) return;
+            <CardContent className="p-0">
+              {leaveData.length === 0 ? (
+                <p className="p-4 text-center text-sm text-gray-500">
+                  No leave data found
+                </p>
+              ) : (
+                <div className="divide-y">
+                  {leaveData.map((leave) => {
+                    const isOpen = openRowId === leave._id;
+                    const sessions = leave.SessionGenerateForLeave || [];
 
-                        setAssignForm((prev) => ({
-                          ...prev,
-                          newPhysioId: selectedPhysio._id,
-                          newPhysioName: selectedPhysio.physioName,
-                        }));
-
-                        handleAssignPhysio(
-                          selectedPhysio._id,
-                          selectedPhysio.physioName,
-                          s.sessionCode,
-                        );
-                      }}
-                      disabled={!assignForm.physioId}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue
-                          placeholder={
-                            assignForm.physioId
-                              ? "Select Physio"
-                              : "Select top physio first"
+                    return (
+                      <div key={leave._id} className="bg-white">
+                        {/* MAIN ROW (click to expand) */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenRowId(isOpen ? null : leave._id)
                           }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employees
-                          .filter((p) => p._id !== s.physioId?._id)
-                          .map((p) => (
-                            <SelectItem key={p._id} value={p._id}>
-                              {p.physioName}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </CardContent>
+                          className="w-full text-left px-3 py-3 flex items-start justify-between gap-3 hover:bg-gray-50"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate">
+                              {leave.physioId?.physioName || "N/A"}
+                            </p>
+
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(
+                                leave.LeaveDate || leave.Date,
+                              ).toLocaleDateString()}
+                              {" • "}
+                              {leave.LeaveMode || "N/A"}
+                            </p>
+
+                            <p className="text-xs text-gray-600 mt-1">
+                              Sessions:{" "}
+                              <span className="font-medium">
+                                {sessions.length}
+                              </span>
+                            </p>
+                          </div>
+
+                          <div className="pt-1 text-gray-600">
+                            {isOpen ? (
+                              <ChevronDown size={18} />
+                            ) : (
+                              <ChevronRight size={18} />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* EXPANDED CONTENT */}
+                        {isOpen && (
+                          <div className="bg-green-50 px-3 pb-3">
+                            {sessions.length === 0 ? (
+                              <p className="text-sm text-gray-500 pt-2">
+                                No planned sessions
+                              </p>
+                            ) : (
+                              <div className="mt-2 space-y-2">
+                                {sessions.map((s) => (
+                                  <div
+                                    key={s._id}
+                                    className="rounded border bg-white px-3 py-2"
+                                  >
+                                    <p className="text-sm font-medium text-gray-800">
+                                      {s.patientId?.patientName || "N/A"}
+                                    </p>
+
+                                    <div className="mt-1 flex justify-between text-xs text-gray-600">
+                                      <span>Time: {s.sessionTime || "-"}</span>
+                                      <span>
+                                        Re-Assign:{" "}
+                                        {s.Re_Assign?.physioName || "-"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </div>
         </Card>
       </motion.div>
     </div>
