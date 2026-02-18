@@ -19,16 +19,33 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { useNavigate } from "react-router-dom";
 
 const SuperAdminDashboard = () => {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const navigate = useNavigate();
+
   const [patients, setPatients] = useState([]);
 
   const [dateFilter, setDateFilter] = useState({
     fromDate: "",
     toDate: "",
   });
+  const [todayRevenue, setTodayRevenue] = useState(0);
 
-  const navigate = useNavigate();
+  const fetchTodayRevenue = async () => {
+    try {
+      const res = await apiRequest("DashBoard/getTodayIncome", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+
+      setTodayRevenue(Number(res.totalCompletedAmount || 0));
+    } catch (err) {
+      console.error("fetchTodayRevenue error:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodayRevenue();
+  }, []);
+
   const [stats, setStats] = useState({
     lead: 0,
     patient: 0,
@@ -38,36 +55,6 @@ const SuperAdminDashboard = () => {
     sessionCompleted: 0,
   });
 
-  // useEffect(() => {
-  //   // Load mock data and calculate stats
-  //   Promise.all([
-  //     fetch('/mockdata/leads.json').then(res => res.json()),
-  //     fetch('/mockdata/patients.json').then(res => res.json()),
-  //     fetch('/mockdata/sessions.json').then(res => res.json()),
-  //     fetch('/mockdata/physios.json').then(res => res.json())
-  //   ]).then(([leads, patients, sessions, physios]) => {
-  //     const completedSessions = sessions.filter(s => s.status === 'completed');
-  //     const monthlyRevenue = completedSessions.reduce((sum, session) => {
-  //       const physio = physios.find(p => p.id === session.physioId);
-  //       return sum + (physio?.ratePerSession || 0);
-  //     }, 0);
-
-  //     setStats({
-  //       totalLeads: leads.length,
-  //       totalPatients: patients.length,
-  //       totalSessions: sessions.length,
-  //       monthlyRevenue,
-  //       activePhysios: physios.filter(p => p.active).length,
-  //       completedSessions: completedSessions.length
-  //     });
-  //   }).catch(err => console.error('Error loading dashboard data:', err));
-  // }, []);
-
-  useEffect(() => {
-    getAllDashBoard(dateFilter);
-    fetchIncomeByDate(dateFilter);
-  }, [dateFilter]);
-
   const getAllDashBoard = async (filterData = {}) => {
     try {
       const response = await apiRequest("DashBoard/getAllDashBoard", {
@@ -76,39 +63,11 @@ const SuperAdminDashboard = () => {
       });
 
       setStats((prev) => ({ ...prev, ...response }));
-
-      console.log(response, "response");
     } catch (error) {
-      console.error("Error:", error);
-      throw error;
+      console.error("getAllDashBoard error:", error);
     }
   };
-  const fetchData = async () => {
-    try {
-      const patientsRes = await apiRequest("Patient/getAllPatientsIncome", {
-        method: "POST",
-        body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
-      });
 
-      // keep API result as it is
-      setPatients(patientsRes);
-
-      // calculate revenue from API totalIncome
-      const monthlyRevenue = (patientsRes || []).reduce(
-        (sum, p) => sum + Number(p.totalIncome || 0),
-        0,
-      );
-
-      setStats((prev) => ({
-        ...prev,
-        monthlyRevenue: Number(monthlyRevenue.toFixed(2)),
-      }));
-
-      console.log("Monthly Revenue:", monthlyRevenue);
-    } catch (err) {
-      console.error("fetchData error:", err);
-    }
-  };
   const fetchIncomeByDate = async (filter = {}) => {
     try {
       const payload = { ...filter };
@@ -120,29 +79,38 @@ const SuperAdminDashboard = () => {
         body: JSON.stringify(payload),
       });
 
-      setPatients(res.patients || []);
-
       setStats((prev) => ({
         ...prev,
-        monthlyRevenue: res.totalIncome || 0,
+        monthlyRevenue: Number(res.totalCompletedAmount || 0),
+        avgPricePerSession: Number(res.avgPricePerSession || 0),
       }));
 
-      console.log("Dashboard Income:", res.totalIncome);
+      setPatients(res.patients || []);
+      console.log(" Completed Revenue:", res.totalCompletedAmount);
     } catch (err) {
       console.error("fetchIncomeByDate error:", err);
     }
   };
 
-  const applyDateFilter = () => {
-    let payload = { ...dateFilter };
-
-    // If only fromDate is selected, use same date as toDate
-    if (payload.fromDate && !payload.toDate) {
-      payload.toDate = payload.fromDate;
-    }
+  useEffect(() => {
+    const payload = { ...dateFilter };
+    if (payload.fromDate && !payload.toDate) payload.toDate = payload.fromDate;
 
     getAllDashBoard(payload);
+    fetchIncomeByDate(payload);
+  }, [dateFilter]);
+
+  const applyDateFilter = () => {
+    const payload = { ...dateFilter };
+    if (payload.fromDate && !payload.toDate) payload.toDate = payload.fromDate;
+
+    setDateFilter(payload);
   };
+
+  const resetFilter = () => {
+    setDateFilter({ fromDate: "", toDate: "" });
+  };
+
   const statCards = [
     {
       title: "Total Leads",
@@ -166,11 +134,25 @@ const SuperAdminDashboard = () => {
       bgColor: "bg-purple-100",
     },
     {
-      title: "Monthly Revenue",
-      value: `₹${stats.monthlyRevenue || 0}`,
+      title: "Completed Revenue",
+      value: `₹${Number(stats.monthlyRevenue || 0).toFixed(2)}`,
       icon: DollarSign,
       color: "text-emerald-600",
       bgColor: "bg-emerald-100",
+    },
+    {
+      title: "Today Revenue",
+      value: `₹${Number(todayRevenue || 0).toFixed(2)}`,
+      icon: DollarSign,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
+    },
+    {
+      title: "Avg / Session",
+      value: `₹${Number(stats.avgPricePerSession || 0).toFixed(2)}`,
+      icon: DollarSign,
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-100",
     },
     {
       title: "Active Physios",
@@ -179,6 +161,7 @@ const SuperAdminDashboard = () => {
       color: "text-orange-600",
       bgColor: "bg-orange-100",
     },
+
     {
       title: "Completed Sessions",
       value: stats.sessionCompleted,
@@ -189,7 +172,7 @@ const SuperAdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6  ">
+    <div className="space-y-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -202,10 +185,11 @@ const SuperAdminDashboard = () => {
           Complete overview of your physiotherapy service management
         </p>
       </motion.div>
+
+      {/* Date Filter */}
       <Card className="medical-card">
         <CardContent className="pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* From Date */}
             <div className="flex flex-col">
               <label className="text-sm text-gray-600 mb-1">From Date</label>
               <input
@@ -213,12 +197,14 @@ const SuperAdminDashboard = () => {
                 className="border rounded-md px-3 py-2 text-sm w-full"
                 value={dateFilter.fromDate}
                 onChange={(e) =>
-                  setDateFilter({ ...dateFilter, fromDate: e.target.value })
+                  setDateFilter((prev) => ({
+                    ...prev,
+                    fromDate: e.target.value,
+                  }))
                 }
               />
             </div>
 
-            {/* To Date */}
             <div className="flex flex-col">
               <label className="text-sm text-gray-600 mb-1">To Date</label>
               <input
@@ -226,12 +212,11 @@ const SuperAdminDashboard = () => {
                 className="border rounded-md px-3 py-2 text-sm w-full"
                 value={dateFilter.toDate}
                 onChange={(e) =>
-                  setDateFilter({ ...dateFilter, toDate: e.target.value })
+                  setDateFilter((prev) => ({ ...prev, toDate: e.target.value }))
                 }
               />
             </div>
 
-            {/* Apply */}
             <div className="flex items-end">
               <button
                 onClick={applyDateFilter}
@@ -241,13 +226,9 @@ const SuperAdminDashboard = () => {
               </button>
             </div>
 
-            {/* Reset */}
             <div className="flex items-end">
               <button
-                onClick={() => {
-                  setDateFilter({ fromDate: "", toDate: "" });
-                  getAllDashBoard();
-                }}
+                onClick={resetFilter}
                 className="w-full px-6 py-2 border rounded-md hover:bg-gray-50 transition"
               >
                 Reset
@@ -257,6 +238,7 @@ const SuperAdminDashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
@@ -290,94 +272,64 @@ const SuperAdminDashboard = () => {
         })}
       </div>
 
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Card className="medical-card">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Latest updates across the system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">
-                    New patient registered: John Doe
-                  </p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">
-                    Session completed by Dr. Smith
-                  </p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">
-                    Lead qualified: Jane Wilson
-                  </p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <p className="text-sm text-gray-600">
-                    Review scheduled for tomorrow
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Card className="medical-card">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Frequently used operations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => navigate("/leads")}
+                className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <UserPlus className="text-blue-600 mb-2" size={20} />
+                <p className="text-sm font-medium">Add New Lead</p>
+              </button>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-        >
-          <Card className="medical-card">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Frequently used operations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => navigate("/leads")}
-                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <UserPlus className="text-blue-600 mb-2" size={20} />
-                  <p className="text-sm font-medium">Add New Lead</p>
-                </button>
-                <button
-                  onClick={() => navigate("/sessions")}
-                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Calendar className="text-green-600 mb-2" size={20} />
-                  <p className="text-sm font-medium">Schedule Session</p>
-                </button>
-                <button
-                  onClick={() => navigate("/physios")}
-                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Users className="text-purple-600 mb-2" size={20} />
-                  <p className="text-sm font-medium">Manage Physios</p>
-                </button>
-                <button
-                  onClick={() => navigate("/reports")}
-                  className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <TrendingUp className="text-orange-600 mb-2" size={20} />
-                  <p className="text-sm font-medium">View Reports</p>
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              <button
+                onClick={() => navigate("/sessions")}
+                className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Calendar className="text-green-600 mb-2" size={20} />
+                <p className="text-sm font-medium">Schedule Session</p>
+              </button>
+
+              <button
+                onClick={() => navigate("/physios")}
+                className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Users className="text-purple-600 mb-2" size={20} />
+                <p className="text-sm font-medium">Manage Physios</p>
+              </button>
+
+              <button
+                onClick={() => navigate("/reports")}
+                className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <TrendingUp className="text-orange-600 mb-2" size={20} />
+                <p className="text-sm font-medium">View Reports</p>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Optional: show list of patients revenue (if you want later) */}
+        <Card className="medical-card">
+          <CardHeader>
+            <CardTitle>Revenue Patients Count</CardTitle>
+            <CardDescription>
+              Patients in selected date range: {patients.length}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600">
+              (If you want, we can show top 5 income patients here.)
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
