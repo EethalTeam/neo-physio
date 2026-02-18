@@ -1568,9 +1568,9 @@ const Consulation = () => {
                                 handleDateChange("consultationDate", d)
                               }
                               initialFocus
-                              disabled={(date) =>
-                                date < new Date(new Date().setHours(0, 0, 0, 0))
-                              }
+                              // disabled={(date) =>
+                              //   date < new Date(new Date().setHours(0, 0, 0, 0))
+                              // }
                             />
                           </PopoverContent>
                         </Popover>

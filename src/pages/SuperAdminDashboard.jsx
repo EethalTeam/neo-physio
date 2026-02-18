@@ -65,11 +65,8 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     getAllDashBoard(dateFilter);
+    fetchIncomeByDate(dateFilter);
   }, [dateFilter]);
-
-  useEffect(() => {
-    fetchData();
-  }, [selectedMonth, selectedYear]);
 
   const getAllDashBoard = async (filterData = {}) => {
     try {
@@ -78,7 +75,8 @@ const SuperAdminDashboard = () => {
         body: JSON.stringify(filterData),
       });
 
-      setStats(response);
+      setStats((prev) => ({ ...prev, ...response }));
+
       console.log(response, "response");
     } catch (error) {
       console.error("Error:", error);
@@ -86,85 +84,55 @@ const SuperAdminDashboard = () => {
     }
   };
   const fetchData = async () => {
-    // setLoading(true);
     try {
-      // Get patient base data (fee type & fee)
       const patientsRes = await apiRequest("Patient/getAllPatientsIncome", {
         method: "POST",
         body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
       });
 
+      // keep API result as it is
       setPatients(patientsRes);
 
-      // total monthly revenue from patient list
-      const monthlyRevenue = patientsRes.reduce(
-        (sum, p) => sum + (p.totalIncome || 0),
+      // calculate revenue from API totalIncome
+      const monthlyRevenue = (patientsRes || []).reduce(
+        (sum, p) => sum + Number(p.totalIncome || 0),
         0,
       );
 
-      setStats((prev) => ({ ...prev, monthlyRevenue }));
+      setStats((prev) => ({
+        ...prev,
+        monthlyRevenue: Number(monthlyRevenue.toFixed(2)),
+      }));
 
-      // Get ALL sessions
-      // const sessionsRes = await apiRequest("Session/getAllSession", {
-      //   method: "POST",
-      //   body: JSON.stringify({}),
-      // });
-
-      // Count completed sessions per patient (MONTH FILTER)
-      const completedSessionsByPatient = {};
-
-      // sessionsRes.forEach((session) => {
-      //   if (!session.patientId) return; //  skip invalid sessions
-
-      //   const patientId =
-      //     typeof session.patientId === "object"
-      //       ? session.patientId._id
-      //       : session.patientId;
-
-      //   if (!patientId) return;
-
-      //   const date = new Date(session.sessionDate);
-
-      //   const isSameMonth =
-      //     date.getMonth() + 1 === selectedMonth &&
-      //     date.getFullYear() === selectedYear;
-
-      //   if (
-      //     isSameMonth &&
-      //     session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-      //       "completed"
-      //   ) {
-      //     completedSessionsByPatient[patientId] =
-      //       (completedSessionsByPatient[patientId] || 0) + 1;
-      //   }
-      // });
-
-      //  Merge + calculate income
-      const patientsWithIncome = patientsRes.map((p) => {
-        const completed = completedSessionsByPatient[p._id] || 0;
-
-        const fee = Number(p.feePerSession || 0); // PerMonth already comes as baseFee/26
-
-        const totalIncome =
-          p.feeType === "PerSession" || p.feeType === "PerMonth"
-            ? Number((completed * fee).toFixed(2))
-            : 0;
-
-        return {
-          ...p,
-          totalCompletedSessions: completed,
-          totalIncome,
-        };
-      });
-
-      setPatients(patientsWithIncome);
-      // setSessions(sessionsRes);
+      console.log("Monthly Revenue:", monthlyRevenue);
     } catch (err) {
-      console.error(err);
-    } finally {
-      //   setLoading(false);
+      console.error("fetchData error:", err);
     }
   };
+  const fetchIncomeByDate = async (filter = {}) => {
+    try {
+      const payload = { ...filter };
+      if (payload.fromDate && !payload.toDate)
+        payload.toDate = payload.fromDate;
+
+      const res = await apiRequest("DashBoard/getIncomeByDate", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      setPatients(res.patients || []);
+
+      setStats((prev) => ({
+        ...prev,
+        monthlyRevenue: res.totalIncome || 0,
+      }));
+
+      console.log("Dashboard Income:", res.totalIncome);
+    } catch (err) {
+      console.error("fetchIncomeByDate error:", err);
+    }
+  };
+
   const applyDateFilter = () => {
     let payload = { ...dateFilter };
 

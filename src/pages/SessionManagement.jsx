@@ -669,9 +669,9 @@ const SessionManagement = () => {
       const msgs = response.message;
       setMsg(msgs);
       const Data = response.incompleteData || response || [];
-      // setData(Data);
+      setData(Data);
       console.log(Data, "Data");
-      // setSessions(Data);
+      setSessions(Data);
       setFilteredSessions(Data);
       //Build session count map
       const countMap = {};
@@ -881,8 +881,9 @@ const SessionManagement = () => {
     }
 
     // Modalities list required if modalities = yes
-    if (feedback.modalities) {
-      if (!feedback.modalitiesList?.length) {
+    // validate ONLY if modalities is YES
+    if (feedback.modalities === true) {
+      if (!feedback.modalityList || feedback.modalityList.length === 0) {
         toast({
           title: "Alert",
           description: "Select at least one modality",
@@ -890,6 +891,7 @@ const SessionManagement = () => {
         });
         return;
       }
+
       if (!feedback.targetArea?.trim()) {
         toast({
           title: "Alert",
@@ -1140,7 +1142,7 @@ const SessionManagement = () => {
       throw error;
     }
   };
-  console.log("Session invompleted", filteredSessions);
+  console.log("Session invompleted", sessions);
   return (
     <div className="md:space-y-6  space-y-10">
       <motion.div
