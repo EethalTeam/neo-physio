@@ -669,9 +669,9 @@ const SessionManagement = () => {
       const msgs = response.message;
       setMsg(msgs);
       const Data = response.incompleteData || response || [];
-      setData(Data);
+      // setData(Data);
       console.log(Data, "Data");
-      setSessions(Data);
+      // setSessions(Data);
       setFilteredSessions(Data);
       //Build session count map
       const countMap = {};
@@ -1140,7 +1140,7 @@ const SessionManagement = () => {
       throw error;
     }
   };
-
+  console.log("Session invompleted", filteredSessions);
   return (
     <div className="md:space-y-6  space-y-10">
       <motion.div
@@ -1270,8 +1270,14 @@ const SessionManagement = () => {
                   ))} */}
                   {filteredSessions.map((session) => (
                     <tr key={session._id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">{session.sessionCode}</td>
-                      <td className="p-2">{session.patientId?.patientName}</td>
+                      <td className="p-2">
+                        {session.sessionCode ||
+                          session.incompleteData.sessionCode}
+                      </td>
+                      <td className="p-2">
+                        {session.patientId?.patientName ||
+                          session.incompleteData.patientId?.patientName}
+                      </td>
                       {/* <td className="p-2">{session.patientId.patientName}</td> */}
                       {/* <td className='p-2'>
                         {
@@ -1297,7 +1303,10 @@ const SessionManagement = () => {
                               .split("-")
                               .reverse()
                               .join("-")}{" "}
-                            ({session.sessionDay})
+                            (
+                            {session.sessionDay ||
+                              session.incompleteData.sessionDay}
+                            )
                           </p>
                           <p className="text-xs text-gray-600">
                             {Converttime(session.sessionTime)}

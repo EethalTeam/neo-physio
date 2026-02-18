@@ -26,6 +26,90 @@ const AdminDashboard = () => {
     // physio: 0,
     sessionCompleted: 0,
   });
+  const fetchData = async () => {
+    console.log("fetchData called", selectedMonth, selectedYear);
+    // setLoading(true);
+    try {
+      // Get patient base data (fee type & fee)
+      const patientsRes = await apiRequest("Patient/getAllPatientsIncome", {
+        method: "POST",
+        body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
+      });
+
+      setPatients(patientsRes);
+
+      // total monthly revenue from patient list
+      const monthlyRevenue = patientsRes.reduce(
+        (sum, p) => sum + (p.totalIncome || 0),
+        0,
+      );
+
+      setStats((prev) => ({ ...prev, monthlyRevenue }));
+
+      const totalPatinetIncome = patientsRes.reduce(
+        (sum, p) => sum + Number(p.totalIncome || 0),
+        0,
+      );
+      console.log("Total Patient Income", totalPatinetIncome.toFixed(2));
+      // Count completed sessions per patient (MONTH FILTER)
+      const completedSessionsByPatient = {};
+
+      // sessionsRes.forEach((session) => {
+      //   if (!session.patientId) return; //  skip invalid sessions
+
+      //   const patientId =
+      //     typeof session.patientId === "object"
+      //       ? session.patientId._id
+      //       : session.patientId;
+
+      //   if (!patientId) return;
+
+      //   const date = new Date(session.sessionDate);
+
+      //   const isSameMonth =
+      //     date.getMonth() + 1 === selectedMonth &&
+      //     date.getFullYear() === selectedYear;
+
+      //   if (
+      //     isSameMonth &&
+      //     session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+      //       "completed"
+      //   ) {
+      //     completedSessionsByPatient[patientId] =
+      //       (completedSessionsByPatient[patientId] || 0) + 1;
+      //   }
+      // });
+
+      //  Merge + calculate income
+      const patientsWithIncome = patientsRes.map((p) => {
+        const completed = completedSessionsByPatient[p._id] || 0;
+
+        const fee = Number(p.feePerSession || 0); // PerMonth already comes as baseFee/26
+
+        const totalIncome =
+          p.feeType === "PerSession" || p.feeType === "PerMonth"
+            ? Number((completed * fee).toFixed(2))
+            : 0;
+
+        return {
+          ...p,
+          totalCompletedSessions: completed,
+          totalIncome,
+        };
+      });
+
+      setPatients(patientsWithIncome);
+      // setSessions(sessionsRes);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      //   setLoading(false);
+    }
+  };
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [patients, setPatients] = useState([]);
+
   console.log(stats, "Stats");
   const [dateFilter, setDateFilter] = useState({
     fromDate: "",
@@ -34,6 +118,10 @@ const AdminDashboard = () => {
   useEffect(() => {
     getAllDashBoard(dateFilter);
   }, [dateFilter]);
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedMonth, selectedYear]);
 
   const getAllDashBoard = async (filterData = {}) => {
     try {
@@ -83,7 +171,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Monthly Revenue",
-      value: `₹${stats.monthlyRevenue}`,
+      value: `₹${stats.monthlyRevenue || 0}`,
       icon: DollarSign,
       color: "text-emerald-600",
       bgColor: "bg-emerald-100",
