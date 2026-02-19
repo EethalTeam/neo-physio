@@ -179,7 +179,7 @@ const AdminDashboard = () => {
         transition={{ duration: 0.5 }}
       >
         <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">
-          SuperAdmin Dashboard
+          Admin Dashboard
         </h1>
         <p className="text-gray-600">
           Complete overview of your physiotherapy service management
@@ -215,15 +215,6 @@ const AdminDashboard = () => {
                   setDateFilter((prev) => ({ ...prev, toDate: e.target.value }))
                 }
               />
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={applyDateFilter}
-                className="w-full px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-              >
-                Apply Filter
-              </button>
             </div>
 
             <div className="flex items-end">

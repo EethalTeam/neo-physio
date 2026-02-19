@@ -74,7 +74,7 @@ const Income = () => {
         if (p.feeType === "PerSession") {
           totalIncome = completed * (p.feePerSession || 0);
         } else if (p.feeType === "PerMonth") {
-          totalIncome = p.feePerSession || 0;
+          totalIncome = completed * (p.feePerSession || 0);
         }
 
         return {
@@ -232,15 +232,108 @@ const Income = () => {
     </button>
   );
 
-  const filteredPatients =
-    activeTab === "bill"
-      ? patients.filter(
-          (p) =>
-            (p.totalCompletedSessions || 0) > 0 && (p.totalIncome || 0) > 0,
-        )
-      : patients;
+  // const filteredPatients =
+  //   activeTab === "bill"
+  //     ? patients.filter(
+  //         (p) =>
+  //           (p.totalCompletedSessions || 0) > 0 && (p.totalIncome || 0) > 0,
+  //       )
+  //     : patients;
+
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [physios, setPhysios] = useState([]);
+  // const [patients, setPatients] = useState([]);
+  const [selectedPhysioId, setSelectedPhysioId] = useState("ALL");
+  const [selectedPatientId, setSelectedPatientId] = useState("ALL");
+  const [selectedFeeTypeId, setSelectedFeeTypeId] = useState("ALL");
+
+  const [feesType, setFeesType] = useState([]);
+
+  const getFeesType = async (data) => {
+    try {
+      const response = await apiRequest("FeesType/getAllFeesType", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setFeesType(response);
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
+  };
+  const getAllPatient = async () => {
+    try {
+      const res = await apiRequest("Patient/getAllPatientsIncome", {
+        method: "POST",
+        body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
+      });
+
+      // setFilteredPatients(res);
+      setPatients(res);
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
+    console.log("dateFilter", selectedMonth);
+  };
+
+  const getAllPshyio = async () => {
+    try {
+      const res = await apiRequest("Physio/getAllPhysio", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      console.log(res, "PhysioRespions");
+      setPhysios(res.physios);
+      // setAssignForm(res.physio)
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
+  };
+  useEffect(() => {
+    getAllPshyio();
+    getFeesType();
+    getAllPatient();
+  }, [selectedMonth, selectedYear]);
+
+  const getId = (v) => (typeof v === "object" ? v?._id : v);
+
+  const feeTypeMatch = (p) => {
+    if (selectedFeeTypeId === "ALL") return true;
+
+    const id = getId(p.feesTypeId || p.feeTypeId || p.FeesTypeId);
+    if (id) return id === selectedFeeTypeId;
+
+    const patientFee = (p.feeType || "").toLowerCase();
+    const selectedFee = (
+      feesType.find((x) => x._id === selectedFeeTypeId)?.feesTypeName || ""
+    ).toLowerCase();
+
+    return patientFee === selectedFee;
+  };
+
+  const filteredPatients = patients
+    .filter((p) =>
+      activeTab === "bill"
+        ? (p.totalCompletedSessions || 0) > 0 && (p.totalIncome || 0) > 0
+        : true,
+    )
+    .filter((p) =>
+      selectedPhysioId === "ALL"
+        ? true
+        : getId(p.physioId) === selectedPhysioId,
+    )
+    .filter(feeTypeMatch)
+    .filter((p) =>
+      selectedPatientId === "ALL" ? true : p._id === selectedPatientId,
+    );
+
+  const totalIncomeByFilter = filteredPatients.reduce(
+    (sum, p) => sum + Number(p.totalIncome || 0),
+    0,
+  );
 
   return (
     <div className="p-4 space-y-4 flex flex-col">
@@ -258,14 +351,62 @@ const Income = () => {
               <CardTitle>Income Dashboard</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap justify-between items-center w-full gap-4">
+              <div className="flex flex-wrap justify-between items-center w-full gap-2">
                 {/* Left: Total Income */}
                 <h3 className="text-lg font-semibold">
-                  Total Income: ₹{totalMonthlyIncome.toFixed(0)}
+                  Total Income: ₹{totalIncomeByFilter.toFixed(0)}
                 </h3>
 
                 {/* Right: Month, Year, Refresh */}
                 <div className="flex items-center gap-2">
+                  <Select
+                    value={selectedPhysioId}
+                    onValueChange={(v) => setSelectedPhysioId(v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by Physiotherapist" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Physios</SelectItem>
+                      {physios.map((p) => (
+                        <SelectItem key={p._id} value={p._id}>
+                          {p.physioName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={selectedPatientId}
+                    onValueChange={(v) => setSelectedPatientId(v)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by Patients" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Patients</SelectItem>
+                      {patients.map((p) => (
+                        <SelectItem key={p._id} value={p._id}>
+                          {p.patientName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={selectedFeeTypeId}
+                    onValueChange={(v) => setSelectedFeeTypeId(v)}
+                  >
+                    <SelectTrigger className="w-full mr-10">
+                      <SelectValue placeholder="Filter by Feestype" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Fees Type</SelectItem>
+                      {feesType.map((p) => (
+                        <SelectItem key={p._id} value={p._id}>
+                          {p.feesTypeName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select
                     onValueChange={(val) => setSelectedMonth(Number(val))}
                     value={selectedMonth}
@@ -311,10 +452,11 @@ const Income = () => {
                   <thead className="bg-gray-100 text-gray-700">
                     <tr>
                       <th className="px-3 py-2 text-left">Patient Name</th>
+                      <th className="px-3 py-2 text-left">Physio Name</th>
                       <th className="px-3 py-2 text-left">
                         Completed Sessions
                       </th>
-                      <th className="px-3 py-2 text-left">Fees</th>
+                      <th className="px-3 py-2 text-left">Fees(Fees Type)</th>
                       <th className="px-3 py-2 text-left">Total Income</th>
                     </tr>
                   </thead>
@@ -329,16 +471,16 @@ const Income = () => {
                         >
                           <td className="p-2 border whitespace-nowrap">
                             {p.patientName}
+                          </td>{" "}
+                          <td className="p-2 border whitespace-nowrap">
+                            {p.physioName}
                           </td>
-
                           <td className="p-2 border text-center">
                             {p.totalCompletedSessions}
                           </td>
-
                           <td className="p-2 border text-center whitespace-nowrap">
                             ₹{p.feePerSession || 0} ({p.feeType || "N/A"})
                           </td>
-
                           <td className="p-2 border text-center font-semibold whitespace-nowrap">
                             ₹{Number(p.totalIncome || 0).toFixed(0)}
                           </td>

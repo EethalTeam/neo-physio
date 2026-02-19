@@ -219,15 +219,6 @@ const SuperAdminDashboard = () => {
 
             <div className="flex items-end">
               <button
-                onClick={applyDateFilter}
-                className="w-full px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-              >
-                Apply Filter
-              </button>
-            </div>
-
-            <div className="flex items-end">
-              <button
                 onClick={resetFilter}
                 className="w-full px-6 py-2 border rounded-md hover:bg-gray-50 transition"
               >
