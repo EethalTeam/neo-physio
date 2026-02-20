@@ -67,24 +67,24 @@ const Income = () => {
       });
 
       //  Merge + calculate income
-      const patientsWithIncome = patientsRes.map((p) => {
-        const completed = completedSessionsByPatient[p._id] || 0;
-        let totalIncome = 0;
+      // const patientsWithIncome = patientsRes.map((p) => {
+      //   const completed = completedSessionsByPatient[p._id] || 0;
+      //   let totalIncome = 0;
 
-        if (p.feeType === "PerSession") {
-          totalIncome = completed * (p.feePerSession || 0);
-        } else if (p.feeType === "PerMonth") {
-          totalIncome = completed * (p.feePerSession || 0);
-        }
+      //   if (p.feeType === "PerSession") {
+      //     totalIncome = completed * (p.feePerSession || 0);
+      //   } else if (p.feeType === "PerMonth") {
+      //     totalIncome = completed * (p.feePerSession || 0);
+      //   }
 
-        return {
-          ...p,
-          totalCompletedSessions: completed,
-          totalIncome,
-        };
-      });
+      //   return {
+      //     ...p,
+      //     totalCompletedSessions: completed,
+      //     totalIncome,
+      //   };
+      // });
 
-      setPatients(patientsWithIncome);
+      setPatients(patientsRes);
       setSessions(sessionsRes);
     } catch (err) {
       console.error(err);
@@ -205,10 +205,10 @@ const Income = () => {
   //     setLoading(false);
   //   }
   // };
-  const totalMonthlyIncome = patients.reduce(
-    (sum, p) => sum + Math.round(p.totalIncome || 0),
-    0,
-  );
+  // const totalMonthlyIncome = patients.reduce(
+  //   (sum, p) => sum + Number(p.totalIncome || 0).toFixed(2),
+  //   0,
+  // );
   const [activeTab, setActiveTab] = useState("income");
 
   const TabButton = ({ id, label, icon: Icon }) => (
@@ -334,6 +334,14 @@ const Income = () => {
     (sum, p) => sum + Number(p.totalIncome || 0),
     0,
   );
+  const totalPendingByfilter = filteredPatients.reduce(
+    (sum, p) => sum + Number(p.paymentPending || 0),
+    0,
+  );
+  const totalReceivedByfilter = filteredPatients.reduce(
+    (sum, p) => sum + Number(p.paymentReceived || 0),
+    0,
+  );
 
   return (
     <div className="p-4 space-y-4 flex flex-col">
@@ -351,14 +359,26 @@ const Income = () => {
               <CardTitle>Income Dashboard</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap justify-between items-center w-full gap-2">
+              <div className="md:flex flex-wrap justify-between items-center w-full gap-2 grid grid-cols-1">
                 {/* Left: Total Income */}
-                <h3 className="text-lg font-semibold">
-                  Total Income: ₹{totalIncomeByFilter.toFixed(0)}
-                </h3>
+                <div className="flex flex-col gap-2 text-sm font-semibold md:flex-row md:items-center md:gap-8">
+                  <div className="flex w-full justify-between md:w-[220px]">
+                    <span>Total Income:</span>
+                    <span>₹{totalIncomeByFilter.toFixed(2)}</span>
+                  </div>
 
+                  <div className="flex w-full justify-between md:w-[220px]">
+                    <span>Received:</span>
+                    <span>₹{totalReceivedByfilter.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex w-full justify-between md:w-[220px]">
+                    <span>Pending:</span>
+                    <span>₹{totalPendingByfilter.toFixed(2)}</span>
+                  </div>
+                </div>
                 {/* Right: Month, Year, Refresh */}
-                <div className="flex items-center gap-2">
+                <div className="md:flex items-center gap-2 grid grid-cols-2">
                   <Select
                     value={selectedPhysioId}
                     onValueChange={(v) => setSelectedPhysioId(v)}
@@ -458,6 +478,8 @@ const Income = () => {
                       </th>
                       <th className="px-3 py-2 text-left">Fees(Fees Type)</th>
                       <th className="px-3 py-2 text-left">Total Income</th>
+                      <th className="px-3 py-2 text-left">Payment Received</th>
+                      <th className="px-3 py-2 text-left">Payment Pending</th>
                     </tr>
                   </thead>
 
@@ -482,7 +504,13 @@ const Income = () => {
                             ₹{p.feePerSession || 0} ({p.feeType || "N/A"})
                           </td>
                           <td className="p-2 border text-center font-semibold whitespace-nowrap">
-                            ₹{Number(p.totalIncome || 0).toFixed(0)}
+                            ₹{Number(p.totalIncome || 0).toFixed(2)}
+                          </td>
+                          <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                            ₹{Number(p.paymentReceived || 0).toFixed(2)}
+                          </td>
+                          <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                            ₹{Number(p.paymentPending || 0).toFixed(2)}
                           </td>
                         </tr>
                       ))}

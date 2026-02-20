@@ -232,7 +232,7 @@ const LeadManagement = () => {
       const Otherleads = (response.leads || []).filter(
         (lead) =>
           lead.isQualified !== "true" &&
-          lead.LeadStatusId?.leadStatusName !== "Qualified"
+          lead.LeadStatusId?.leadStatusName !== "Qualified",
       );
       setLeads(Otherleads || []);
       setFilteredLeads(Otherleads || []);
@@ -309,14 +309,14 @@ const LeadManagement = () => {
       filtered = filtered.filter(
         (lead) =>
           lead.leadName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.leadContactNo?.includes(searchTerm)
+          lead.leadContactNo?.includes(searchTerm),
       );
     }
     if (statusFilter !== "all") {
       filtered = filtered.filter(
         (lead) =>
           lead.isQualified?.toString() ===
-          (statusFilter === "Qualified").toString()
+          (statusFilter === "Qualified").toString(),
       );
     }
     setFilteredLeads(filtered);
@@ -434,7 +434,7 @@ const LeadManagement = () => {
   useEffect(() => {
     if (leadStatus.length > 0 && !leadForm.LeadStatusId) {
       const pendingStatus = leadStatus.find(
-        (st) => st.leadStatusName === "Pending"
+        (st) => st.leadStatusName === "Pending",
       );
 
       if (pendingStatus) {
@@ -622,7 +622,7 @@ const LeadManagement = () => {
                             onChange={(e) =>
                               setConsultationDate(e.target.value)
                             }
-                            min={new Date().toISOString().split("T")[0]}
+                            // min={new Date().toISOString().split("T")[0]}
                           />
                         </div>
                         <DialogFooter>
@@ -827,9 +827,19 @@ const LeadManagement = () => {
               <div>
                 <Label>Age</Label>
                 <Input
+                  type="number"
                   name="leadAge"
+                  // maxLength={2}
                   value={leadForm.leadAge}
-                  onChange={handleFormChange}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    if (value.length > 2) return;
+                    setLeadForm((prev) => ({
+                      ...prev,
+                      leadAge: value,
+                    }));
+                  }}
+                  placeholder="Enter Age"
                 />
               </div>
             </div>
@@ -855,14 +865,33 @@ const LeadManagement = () => {
               </div>
               <div>
                 <Label>Contact</Label>
-                <Input
-                  name="leadContactNo"
-                  value={leadForm.leadContactNo}
-                  onChange={handleFormChange}
-                  maxLength={10}
-                  inputMode="numeric"
-                  pattern="[6-9][0-9]{9}"
-                />
+
+                <div className="flex">
+                  <span className="px-3 flex items-center border border-r-0 rounded-l-md bg-gray-100">
+                    +91
+                  </span>
+
+                  <Input
+                    name="leadContactNo"
+                    value={leadForm.leadContactNo}
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      value = value.replace(/\D/g, "");
+                      if (value.startsWith("91") && value.length > 10) {
+                        value = value.slice(-10);
+                      }
+                      value = value.slice(0, 10);
+                      setLeadForm((prev) => ({
+                        ...prev,
+                        leadContactNo: value,
+                      }));
+                    }}
+                    // maxLength={10}
+                    inputMode="numeric"
+                    placeholder="Enter mobile number"
+                    className="rounded"
+                  />
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
