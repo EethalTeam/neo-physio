@@ -449,7 +449,7 @@ const PhysioManagement = () => {
         createPhysio(physioForm);
       }
     }
-    setShowPassword(!showPassword);
+    setShowPassword(false);
   };
 
   const handleEdit = (physio) => {
@@ -488,6 +488,8 @@ const PhysioManagement = () => {
       roleId: physio.roleId ? physio.roleId._id : null,
     });
     setIsFormOpen(true);
+
+    setShowPassword(false);
   };
 
   // const handleViewDetails = (physio) => {
@@ -1025,7 +1027,7 @@ const PhysioManagement = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="relative left-80 bottom-9  transform translate-y text-gray-400 hover:text-white"
+                    className="relative left-40 bottom-9  transform translate-y text-gray-400 hover:text-white"
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
