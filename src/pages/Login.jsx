@@ -120,7 +120,11 @@ const Login = () => {
             <CardDescription>Sign in to access your dashboard</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4"
+              autoComplete="off"
+            >
               <div className="space-y-2">
                 <Label htmlFor="physioCode">Physio Code</Label>
                 <Input
@@ -128,6 +132,7 @@ const Login = () => {
                   type="type"
                   placeholder="Enter your Employe Code"
                   value={formData.physioCode}
+                  autoComplete="off"
                   onChange={(e) =>
                     setFormData({ ...formData, physioCode: e.target.value })
                   }
@@ -140,6 +145,7 @@ const Login = () => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })

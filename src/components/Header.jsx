@@ -23,13 +23,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Label } from "@radix-ui/react-dropdown-menu";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import Logo from "@/Assets/images/Logo_png.png";
+
 import { apiRequest } from "../components/CustomComponents/apiRequest";
 const Header = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
@@ -319,7 +314,126 @@ const Header = ({ toggleSidebar }) => {
                 </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto pr-6 -mr-6 mt-4">
-                  <h2 className="text-lg font-semibold mb-4">
+                  <div className="flex justify-center mt-4">
+                    <div className="w-[360px] rounded-2xl overflow-hidden border bg-white shadow-lg">
+                      {/* Header */}
+                      <div className="px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center gap-4">
+                        {/* Logo - FULL ROUND */}
+                        <div className="h-24 w-24 rounded-full bg-white flex items-center justify-center shadow-md">
+                          <img
+                            src={Logo}
+                            alt="Neo-Physio Logo"
+                            className="h-20 w-20 object-contain rounded-full"
+                          />
+                        </div>
+
+                        {/* Text */}
+                        <div className="flex-1">
+                          <p className="text-[11px] tracking-widest font-semibold">
+                            NEO-PHYSIO
+                          </p>
+
+                          <h2 className="text-lg font-bold mt-1">
+                            {user?.physioName || physioData?.physioName}
+                          </h2>
+
+                          <p className="text-sm opacity-95">
+                            Physio ID:{" "}
+                            {user?.physioCode || physioData?.physioCode}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Body */}
+                      <div className="p-5">
+                        {/* Photo + Role */}
+                        <div className="flex items-center gap-4">
+                          <div className="w-20 h-20 rounded-full border overflow-hidden bg-gray-100 flex items-center justify-center">
+                            <img
+                              src={previewUrl || profile}
+                              alt="Physio"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500">Role</p>
+                            <p className="font-semibold">
+                              {user?.role || "Physio"}
+                            </p>
+
+                            <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="text-xs text-gray-500">Age</p>
+                                <p className="font-medium">
+                                  {physioData?.physioAge || "-"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500">Gender</p>
+                                <p className="font-medium">
+                                  {physioData?.physioGenderId?.genderName ||
+                                    "-"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="my-4 border-t" />
+
+                        {/* Details */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-500">Contact</p>
+                            <p className="font-medium">
+                              {physioData?.physioContactNo || "-"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500">Experience</p>
+                            <p className="font-medium">
+                              {physioData?.physioExp || "-"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500">Aadhar</p>
+                            <p className="font-medium">
+                              {physioData?.physioAadhar || "-"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500">PAN</p>
+                            <p className="font-medium">
+                              {physioData?.physioPAN || "-"}
+                            </p>
+                          </div>
+
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">
+                              Qualification
+                            </p>
+                            <p className="font-medium">
+                              {physioData?.physioQulifi || "-"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="mt-5 flex justify-between items-center text-[11px] text-gray-500">
+                          <span>Valid Staff</span>
+                          <span className="font-semibold text-gray-700">
+                            {user?.physioCode || physioData?.physioCode}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>{" "}
+                  {/* <h2 className="text-lg font-semibold mb-4">
                     Personal Information
                   </h2>
                   <div className="flex-1 flex items-center justify-center overflow-hidden p-2">
@@ -390,7 +504,7 @@ const Header = ({ toggleSidebar }) => {
                       <Label>Qualification</Label>
                       <p className="mt-1">{physioData.physioQulifi}</p>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </DialogContent>
             </Dialog>
