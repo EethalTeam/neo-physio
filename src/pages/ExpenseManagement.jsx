@@ -88,9 +88,7 @@ const ExpenseManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
 
-  const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear().toString(),
-  );
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().getMonth().toString(),
   ); // 0-indexed
@@ -827,7 +825,10 @@ const ExpenseManagement = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {yearOptions.map((year) => (
+                    {[
+                      2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
+                      2035, 2036, 2037, 2038, 2039, 2040,
+                    ].map((year) => (
                       <SelectItem key={year} value={year}>
                         {year}
                       </SelectItem>

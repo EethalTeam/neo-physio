@@ -972,7 +972,10 @@ const MachineryMaster = () => {
                                   ? "deactivate"
                                   : "activate"}
                               </strong>{" "}
-                              <strong>{selectedMachine?.machineName}</strong>?
+                              <strong>
+                                {selectedMachine?.modalityId.modalitiesName}
+                              </strong>
+                              ?
                             </AlertDialogDescription>
                           </AlertDialogHeader>
 
@@ -1167,7 +1170,9 @@ const MachineryMaster = () => {
       <Dialog open={isInventoryOpen} onOpenChange={setIsInventoryOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Manage Inventory: {managingMachine?.name}</DialogTitle>
+            <DialogTitle>
+              Manage Inventory: {managingMachine?.modalityId.modalitiesName}
+            </DialogTitle>
             <DialogDescription>
               Assign, return, or manage maintenance for this equipment.
             </DialogDescription>
@@ -1182,11 +1187,12 @@ const MachineryMaster = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {managingMachine.inventory?.inUse?.length > 0 ? (
+                  {groupedAssigned.length > 0 ? (
                     <ul className="space-y-2">
-                      {managingMachine.inventory.inUse.map((item) => {
+                      {groupedAssigned.map((item) => {
                         const physio = physios.find(
-                          (p) => p.id === item.physioId,
+                          (p) =>
+                            p._id?.toString() === item.physioId?.toString(),
                         );
                         return (
                           <li
@@ -1195,23 +1201,15 @@ const MachineryMaster = () => {
                           >
                             <div>
                               <span className="font-semibold">
-                                {physio?.name || "Unknown Physio"}
+                                {physio?.physioName || "Unknown Physio"}
                               </span>
                               :{" "}
                               <span className="text-blue-600 font-bold">
                                 {item.count}
                               </span>{" "}
-                              unit(s)
+                              {""}
+                              {item.count > 1 ? "Units" : "Unit"}
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                handleReturnFromPhysio(item.physioId, 1)
-                              }
-                            >
-                              Return 1
-                            </Button>
                           </li>
                         );
                       })}

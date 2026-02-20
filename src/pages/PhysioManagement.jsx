@@ -53,6 +53,8 @@ import {
   Edit,
   Info,
   FileText,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -72,6 +74,8 @@ const PhysioManagement = () => {
   const [editingPhysio, setEditingPhysio] = useState(null);
   const [gender, setGender] = useState([]);
   const [Roles, setRoles] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
+
   console.log(Roles, "Roles");
 
   const initialFormState = {
@@ -445,6 +449,7 @@ const PhysioManagement = () => {
         createPhysio(physioForm);
       }
     }
+    setShowPassword(!showPassword);
   };
 
   const handleEdit = (physio) => {
@@ -997,14 +1002,39 @@ const PhysioManagement = () => {
                 </>
                 {/* )} */}
 
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label>Password</Label>
                   <Input
                     name="password"
                     value={physioForm.password}
                     onChange={handleFormChange}
                   />
+                </div> */}
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    autoComplete="new-password"
+                    value={physioForm.password}
+                    onChange={(e) =>
+                      setPhysioForm({ ...physioForm, password: e.target.value })
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="relative left-80 bottom-9  transform translate-y text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
+
                 {/* <div className="space-y-2"><Label>Role</Label><Input name="roleId" value={physioForm.roleId} onChange={handleFormChange} required /></div> */}
                 <div className="space-y-2">
                   <Label>Role</Label>
