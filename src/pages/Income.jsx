@@ -175,20 +175,87 @@ const Income = () => {
   const calcRatePerSession = (patient) => {
     if (!patient) return 0;
 
-    const feeAmount = Number(patient.feeAmount || 0);
-    const feesTypeId = getId(patient.FeesTypeId);
-    const totalDays = Number(patient.totalSessionDays || patient.noOfDays || 0);
+    // ✅ if backend already gives feePerSession, use it first
+    const directRate = Number(
+      patient.feePerSession ?? patient.ratePerSession ?? 0,
+    );
+    if (directRate > 0) return directRate;
 
+    // ✅ try to get feesTypeId from any key
+    const feesTypeId = getId(
+      patient.feesTypeId ?? patient.feeTypeId ?? patient.FeesTypeId,
+    );
+
+    // ✅ try to get feeAmount from any key
+    const feeAmount = Number(
+      patient.feeAmount ?? patient.feesAmount ?? patient.amount ?? 0,
+    );
+
+    // ✅ try to get total days from any key
+    const totalDays = Number(
+      patient.totalSessionDays ?? patient.noOfDays ?? patient.totalDays ?? 0,
+    );
+
+    if (!feeAmount) return 0;
+
+    // monthly
     if (feesTypeId === monthlyId) {
       return totalDays ? feeAmount / totalDays : 0;
     }
 
+    // per session
     if (feesTypeId === sessionId) {
       return feeAmount;
     }
 
+    // fallback
     return feeAmount;
   };
+  const [bills, setBills] = useState([]);
+  const fetchBills = async () => {
+    try {
+      const res = await apiRequest("Bill/getAllBill", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setBills(Array.isArray(res) ? res : []);
+    } catch (e) {
+      console.error(e);
+      setBills([]);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "bill") fetchBills();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "bill") fetchBills();
+  }, [selectedBillMonth, selectedBillYear]);
+  const filteredBills = useMemo(() => {
+    return bills.filter((b) => {
+      const pid = getId(b.patientId);
+
+      // patient filter
+      const matchPatient =
+        selectedBillPatientId === "ALL" ? true : pid === selectedBillPatientId;
+
+      // month/year filter (use bill.startDate)
+      const d = new Date(b.startDate);
+      const matchMonthYear =
+        d.getMonth() + 1 === selectedBillMonth &&
+        d.getFullYear() === selectedBillYear;
+
+      return matchPatient && matchMonthYear;
+    });
+  }, [bills, selectedBillPatientId, selectedBillMonth, selectedBillYear]);
+
+  const totalGeneratedBillAmount = useMemo(() => {
+    return filteredBills.reduce(
+      (sum, b) => sum + Number(b.totalAmount || 0),
+      0,
+    );
+  }, [filteredBills]);
 
   const billSessions = useMemo(() => {
     return sessions.filter((s) => {
@@ -240,7 +307,48 @@ const Income = () => {
 
     return Number(total.toFixed(2));
   }, [patients, completedBillSessions, selectedBillPatientId, completedCount]);
+  const selectedBillPatient = useMemo(() => {
+    if (selectedBillPatientId === "ALL") return null;
+    return patients.find((p) => p._id === selectedBillPatientId) || null;
+  }, [patients, selectedBillPatientId]);
 
+  const billFromDate = useMemo(
+    () => new Date(selectedBillYear, selectedBillMonth - 1, 1),
+    [selectedBillYear, selectedBillMonth],
+  );
+  const billToDate = useMemo(() => {
+    if (!selectedBillPatientId || selectedBillPatientId === "ALL") return null;
+
+    const patientCompletedSessions = completedBillSessions
+      .filter((s) => getId(s.patientId) === selectedBillPatientId)
+      .map((s) => new Date(s.sessionDate))
+      .filter((d) => !isNaN(d.getTime()));
+
+    if (patientCompletedSessions.length === 0) return null;
+
+    // latest date
+    return new Date(Math.max(...patientCompletedSessions));
+  }, [completedBillSessions, selectedBillPatientId]);
+  const ratePerSessionForSelected = useMemo(() => {
+    if (!selectedBillPatient) return 0;
+    return calcRatePerSession(selectedBillPatient);
+  }, [selectedBillPatient]);
+
+  const selectedGeneratedBill = useMemo(() => {
+    if (selectedBillPatientId === "ALL") return null;
+
+    // pick latest generated bill for that patient in current month/year filter
+    const list = filteredBills.filter(
+      (b) => getId(b.patientId) === selectedBillPatientId,
+    );
+
+    if (list.length === 0) return null;
+
+    // latest by startDate (or createdAt if you have)
+    return list.sort(
+      (a, b) => new Date(b.startDate) - new Date(a.startDate),
+    )[0];
+  }, [filteredBills, selectedBillPatientId]);
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -447,73 +555,163 @@ const Income = () => {
           <CardHeader>
             <CardTitle>Bill Generate Dashboard</CardTitle>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="space-y-4">
+            {/* Top Summary */}
             <div className="flex flex-wrap justify-between items-center w-full gap-4">
               <h3 className="text-lg font-semibold">
-                Completed Sessions:{" "}
-                <span className="ml-2">{completedCount}</span>
+                Generated Bills:{" "}
+                <span className="ml-2">{filteredBills.length}</span>
               </h3>
 
               <h3 className="text-lg font-semibold">
-                Billed Amount: <span className="ml-2">₹{billedAmount}</span>
+                Total Billed Amount:{" "}
+                <span className="ml-2">
+                  ₹{totalGeneratedBillAmount.toFixed(2)}
+                </span>
               </h3>
-
-              <div className="flex items-center gap-3 w-full">
-                <Select
-                  value={selectedBillPatientId}
-                  onValueChange={(v) => setSelectedBillPatientId(v)}
-                >
-                  <SelectTrigger className="w-56">
-                    <SelectValue placeholder="Filter by Patients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Patients</SelectItem>
-                    {patients.map((p) => (
-                      <SelectItem key={p._id} value={p._id}>
-                        {p.patientName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  onValueChange={(val) => setSelectedBillMonth(Number(val))}
-                  value={selectedBillMonth}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Select Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((m, idx) => (
-                      <SelectItem key={idx} value={idx + 1}>
-                        {m}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  onValueChange={(val) => setSelectedBillYear(Number(val))}
-                  value={selectedBillYear}
-                >
-                  <SelectTrigger className="w-28">
-                    <SelectValue placeholder="Select Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[
-                      2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
-                      2035, 2036, 2037, 2038, 2039, 2040,
-                    ].map((y) => (
-                      <SelectItem key={y} value={y}>
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button onClick={fetchData}>Apply</Button>
-              </div>
             </div>
+
+            {/* Filters + Button Row */}
+            <div className="flex flex-wrap items-center gap-3 w-full">
+              <Select
+                value={selectedBillPatientId}
+                onValueChange={(v) => setSelectedBillPatientId(v)}
+              >
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Filter by Patients" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Patients</SelectItem>
+                  {patients.map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.patientName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                onValueChange={(val) => setSelectedBillMonth(Number(val))}
+                value={selectedBillMonth}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Select Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((m, idx) => (
+                    <SelectItem key={idx} value={idx + 1}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                onValueChange={(val) => setSelectedBillYear(Number(val))}
+                value={selectedBillYear}
+              >
+                <SelectTrigger className="w-28">
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035,
+                    2036, 2037, 2038, 2039, 2040,
+                  ].map((y) => (
+                    <SelectItem key={y} value={y}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button onClick={fetchData}>Apply</Button>
+
+              {/* RIGHT SIDE BUTTON */}
+              {/* <Button
+                className="ml-auto"
+                disabled={!selectedBillPatient}
+                onClick={generateBillAndPdf}
+              >
+                Show Bill (PDF)
+              </Button> */}
+            </div>
+
+            {/* Patient Details Card (show only when patient selected) */}
+            {selectedBillPatient ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="border">
+                  <CardHeader>
+                    <CardTitle className="text-base">Patient Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Name</span>
+                      <span className="font-semibold">
+                        {selectedBillPatient.patientName}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Physio</span>
+                      <span className="font-semibold">
+                        {selectedBillPatient.physioName || "N/A"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Fee Type</span>
+                      <span className="font-semibold">
+                        {selectedBillPatient.feeType || "N/A"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Rate / Session</span>
+                      <span className="font-semibold">
+                        ₹{Number(ratePerSessionForSelected || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border">
+                  <CardHeader>
+                    <CardTitle className="text-base">Bill Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">From</span>
+                      <span className="font-semibold">
+                        {billFromDate.toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">To</span>
+                      <span className="font-semibold">
+                        {billToDate ? billToDate.toLocaleDateString() : "N/A"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Completed Sessions</span>
+                      <span className="font-semibold">{completedCount}</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Total</span>
+                      <span className="font-semibold">₹{billedAmount}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">
+                Select a patient to view details and generate bill.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

@@ -155,6 +155,20 @@ const SuperAdminDashboard = () => {
       bgColor: "bg-cyan-100",
     },
     {
+      title: "Today total session",
+      value: stats.todaysession,
+      icon: DollarSign,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
+    },
+    {
+      title: "Today Completed Sessions",
+      value: stats.todayCompletedSession,
+      icon: DollarSign,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
+    },
+    {
       title: "Active Physios",
       value: stats.physio,
       icon: Activity,

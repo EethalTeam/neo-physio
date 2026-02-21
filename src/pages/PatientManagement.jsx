@@ -334,15 +334,17 @@ const PatientManagement = () => {
         }),
       });
 
-      setFilteredPatients(res);
-      setPatients(res);
+      const reversedPatients = Array.isArray(res) ? [...res].reverse() : [];
+
+      setFilteredPatients(reversedPatients);
+      setPatients(reversedPatients);
     } catch (error) {
       console.error("Error:", error);
       throw error;
     }
+
     console.log("dateFilter", dateFilter);
   };
-
   //api call and delete Patients
   const deletePatient = async (id) => {
     try {
@@ -1292,29 +1294,32 @@ const PatientManagement = () => {
   const handleViewHistory = async (patient) => {
     setHistoryPatient(patient);
     setIsHistoryOpen(true);
-    console.log(historyPatient, "History patinet");
+
     console.log("Fetching history for patient:", patient.patientName);
     console.log("Sending patientId:", patient._id);
 
     try {
-      // Call API to get all sessions
       const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
         method: "POST",
-        body: JSON.stringify({
-          patientId: patient._id, // selected patient _id
-        }),
+        body: JSON.stringify({ patientId: patient._id }),
       });
-      const sortedSessions = allSessions
-        .filter((s) => s.patientId?._id === patient._id)
-        .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate)); // oldest → newest
 
-      // Filter sessions for this patient
-      const patientSessions = sortedSessions.map((s, index) => ({
+      const sessionsArr = Array.isArray(allSessions) ? allSessions : [];
+
+      const sortedSessions = sessionsArr.sort(
+        (a, b) => new Date(b.sessionDate) - new Date(a.sessionDate),
+      );
+
+      const patientSessions = sortedSessions.map((s) => ({
         type: "session",
         date: s.sessionDate,
-        title: `Session ${s.sessionCount}`,
+        title: `Session ${s.sessionCount || ""}`,
         status: s.sessionStatusId?.sessionStatusName || "N/A",
         color: s.sessionStatusId?.sessionStatusColor,
+
+        sessionFromTime: s.sessionFromTime || "N/A",
+        sessionToTime: s.sessionToTime || "N/A",
+
         feedback:
           s.sessionFeedbackPros ||
           s.sessionCancelReason ||
@@ -1322,13 +1327,11 @@ const PatientManagement = () => {
           "No feedback",
       }));
 
-      // Count sessions
       const totalSessions = patientSessions.length;
       const completedSessions = patientSessions.filter(
-        (s) => s.status?.toLowerCase() === "completed",
+        (x) => (x.status || "").toLowerCase() === "completed",
       ).length;
 
-      // Map HOD goal reviews if any
       const patientGoalLog = (patient.goalLog || []).map((log) => ({
         type: "review",
         date: log.date,
@@ -1338,15 +1341,12 @@ const PatientManagement = () => {
         }%`,
       }));
 
-      // Combine sessions and reviews in chronological order
       const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
         (a, b) => new Date(b.date) - new Date(a.date),
       );
 
       setPatientHistory(combinedHistory);
-      console.log("setPatientHistory", combinedHistory);
       setSessionCount({ total: totalSessions, completed: completedSessions });
-      console.log("Patient sessions:", patientSessions);
     } catch (error) {
       console.error("Failed to fetch sessions:", error);
     }
@@ -2378,6 +2378,11 @@ const PatientManagement = () => {
                       {/* Date */}
                       <p className="text-xs text-gray-500">
                         {item.date ? format(new Date(item.date), "PPP") : "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {item.sessionFromTime && item.sessionToTime
+                          ? `Session From - To Time: ${item.sessionFromTime} - ${item.sessionToTime}`
+                          : "N/A"}
                       </p>
 
                       {/* Title */}

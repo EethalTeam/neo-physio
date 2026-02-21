@@ -73,7 +73,7 @@ const PetrolAllowance = () => {
     notes: "",
   };
 
-  const [filteredData, setFilteredData] = useState(initialState);
+  const [filteredData, setFilteredData] = useState([]);
   console.log(filteredData, "filteredData  from petrol");
 
   const [dateRange, setDateRange] = useState({
@@ -254,20 +254,40 @@ const PetrolAllowance = () => {
           body: JSON.stringify(data),
         },
       );
-      setDailyData(response);
+      const reveresedPetrol = Array.isArray(response)
+        ? [...response].reverse()
+        : [];
+
+      setDailyData(reveresedPetrol);
     } catch (error) {
       console.log(error, "Error");
     }
   };
 
-  useEffect(() => {
-    let data = dailyData;
-    if (physioFilter !== "all") {
-      data = data.filter((d) => d.physioId === physioFilter);
-    }
-    setFilteredData(data);
-  }, [dailyData, physioFilter]);
+  const filteredDailyData = useMemo(() => {
+    let data = Array.isArray(dailyData) ? dailyData : [];
 
+    if (dateRange?.from && dateRange?.to) {
+      const start = new Date(dateRange.from);
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+
+      data = data.filter((d) => {
+        const dt = new Date(d.date);
+        return dt >= start && dt <= end;
+      });
+    }
+
+    if (physioFilter !== "all") {
+      data = data.filter((d) => {
+        const pid =
+          typeof d.physioId === "object" ? d.physioId?._id : d.physioId;
+        return pid?.toString() === physioFilter?.toString();
+      });
+    }
+
+    return data;
+  }, [dailyData, physioFilter, dateRange]);
   const handleAdjustment = (date, physioId, amount) => {
     setDailyData((prevData) =>
       prevData.map((d) => {
@@ -469,8 +489,8 @@ const PetrolAllowance = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.length > 0 ? (
-                    filteredData.map((item) => (
+                  {filteredDailyData.length > 0 ? (
+                    filteredDailyData.map((item) => (
                       <tr
                         key={item._id}
                         className="border-b hover:bg-gray-50/50"
@@ -554,8 +574,8 @@ const PetrolAllowance = () => {
           </CardHeader>
           <CardContent>
             <div className=" space-y-4 mt-4">
-              {filteredData.length > 0 ? (
-                filteredData.map((item) => (
+              {filteredDailyData.length > 0 ? (
+                filteredDailyData.map((item) => (
                   <Card
                     key={item._id}
                     className="p-4 rounded-2xl shadow border"
