@@ -670,7 +670,7 @@ const SessionManagement = () => {
       const Data = response.incompleteData || response || [];
       // setData(Data);
       console.log(Data, "Data");
-      setSessions(Data);
+      // setSessions(Data);
       setFilteredSessions(Data);
       //Build session count map
       const countMap = {};

@@ -370,7 +370,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               <span className="text-xl font-bold text-blue-600 hidden md:block">
                 NEO DESK
                 <span className="text-xs text-blue-300 hidden md:block">
-                  V-1.3.6
+                  V-1.3.7
                 </span>
               </span>
             </motion.div>
