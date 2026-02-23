@@ -367,11 +367,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 className="h-20 w-20 object-contain"
               />
 
-              <span className="text-xl font-bold text-blue-600 hidden md:block">
-                NEO DESK
-                <span className="text-xs text-blue-300 hidden md:block">
-                  V-1.3.7
-                </span>
+              <span className="flex flex-col text-blue-600">
+                <span className="text-xl font-bold">NEO DESK</span>
+                <span className="text-xs text-blue-300">V-1.3.7</span>
               </span>
             </motion.div>
           ) : (
