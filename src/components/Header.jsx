@@ -313,10 +313,18 @@ const Header = ({ toggleSidebar }) => {
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex justify-center mt-4">
-                  <div className="w-[340px] rounded-2xl overflow-hidden border bg-white shadow-lg">
-                    {/* Header (Company Name) */}
-                    <div className="px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                <div className="flex justify-center">
+                  <div className="w-[280px] rounded-2xl overflow-hidden border bg-white shadow-lg">
+                    <div className="px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex flex-row items-center gap-2">
+                      {/* Logo wrapper */}
+                      <div className="bg-white  rounded-full shadow-md">
+                        <img
+                          src={Logo}
+                          alt="Neo-physio Logo"
+                          className="h-16 w-16 object-contain"
+                        />
+                      </div>
+
                       <p className="text-sm font-bold tracking-wider text-center">
                         NEO-PHYSIO
                       </p>
@@ -335,24 +343,29 @@ const Header = ({ toggleSidebar }) => {
                         </div>
                       </div>
 
-                      {/* Details */}
-                      <div className="mt-4 space-y-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Name</span>
-                          <span className="font-semibold">
+                      <div className="mt-4 space-y-3 text-sm ml-10">
+                        {/* Name */}
+                        <div className="grid grid-cols-[80px_10px_1fr]">
+                          <span className="text-gray-400">Name</span>
+                          <span>:</span>
+                          <span className="font-semibold ">
                             {user?.physioName || physioData?.physioName || "-"}
                           </span>
                         </div>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Emp ID</span>
-                          <span className="font-semibold">
+                        {/* Emp ID */}
+                        <div className="grid grid-cols-[80px_10px_1fr]">
+                          <span className="text-gray-400">Emp ID</span>
+                          <span>:</span>
+                          <span className="font-semibold ">
                             {user?.EmpCode || physioData?.EmpCode || "-"}
                           </span>
                         </div>
 
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Designation</span>
+                        {/* Designation */}
+                        <div className="grid grid-cols-[80px_10px_1fr]">
+                          <span className="text-gray-400">Designation</span>
+                          <span>:</span>
                           <span className="font-semibold">
                             {user?.role || "Physio"}
                           </span>
