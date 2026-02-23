@@ -177,6 +177,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: "Masters",
       isMenu: true,
       submenu: [
+        { icon: ClipboardCheck, label: "Debit", path: "/debit" },
+        { icon: ClipboardCheck, label: "Credit", path: "/credit" },
+
         { icon: Layers, label: "Categories", path: "/categories" },
         { icon: AlertTriangle, label: "Red Flags", path: "/red-flags" },
         { icon: Globe, label: "Country", path: "/country" },

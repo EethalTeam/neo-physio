@@ -48,6 +48,8 @@ import ReviewForm from "./pages/ReviewMasterForm";
 import ReviewStatus from "./pages/ReviewStatus";
 import Income from "./pages/Income";
 import LeavephysioManagement from "./pages/LeavephysioManagement";
+import Debit from "./pages/Debit";
+import Credit from "./pages/Credit";
 
 function App() {
   return (
@@ -402,6 +404,26 @@ function App() {
                 >
                   <Layout>
                     <ReviewForm />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />{" "}
+            <Route
+              path="/debit"
+              element={
+                <ProtectedRoute allowedRoles={["SuperAdmin"]}>
+                  <Layout>
+                    <Debit />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />{" "}
+            <Route
+              path="/credit"
+              element={
+                <ProtectedRoute allowedRoles={["SuperAdmin"]}>
+                  <Layout>
+                    <Credit />
                   </Layout>
                 </ProtectedRoute>
               }

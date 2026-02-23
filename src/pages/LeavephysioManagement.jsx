@@ -30,6 +30,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   FileSpreadsheet,
   Calendar,
   Download,
@@ -76,13 +86,41 @@ const LeavephysioManagement = () => {
   }, [sessions, searchTerm, dateFilter]);
   const [patients, setPatients] = useState([]);
   const [openRowId, setOpenRowId] = useState(null);
+  const [paidConfirm, setPaidConfirm] = useState({
+    open: false,
+    leaveId: null,
+    nextValue: false,
+    message: "",
+  });
 
+  const openPaidConfirm = (leave) => {
+    const nextValue = !leave.PaidLeave;
+
+    setPaidConfirm({
+      open: true,
+      leaveId: leave._id,
+      nextValue,
+      message: nextValue
+        ? "Are you sure you want to mark this as PAID leave?"
+        : "Are you sure you want to mark this as UNPAID leave?",
+    });
+  };
+
+  const confirmPaidToggle = async () => {
+    if (!paidConfirm.leaveId) return;
+
+    await updatePaidLeave(paidConfirm.leaveId, paidConfirm.nextValue);
+
+    setPaidConfirm({
+      open: false,
+      leaveId: null,
+      nextValue: false,
+      message: "",
+    });
+  };
   useEffect(() => {
-    console.log("Calling APIs...");
     getPhysio();
-    // getAllPatient();
     getSessionStatus();
-    // getSessions();
     getLeave();
   }, []);
 
@@ -124,7 +162,7 @@ const LeavephysioManagement = () => {
 
   const getLeave = async () => {
     try {
-      const response = await apiRequest("Physio/getAllLeave", {
+      const response = await apiRequest("LeaveControllers/getAllLeave", {
         method: "POST",
         body: JSON.stringify({}),
       });
@@ -135,8 +173,11 @@ const LeavephysioManagement = () => {
         const normal = response.Leaves.map((leave) => ({
           ...leave,
           LeaveDate: leave.LeaveDate || leave.Date,
+          PaidLeave:
+            leave.PaidLeave === true || leave.PaidLeave === "true"
+              ? true
+              : false,
         }));
-
         setLeaveData(normal);
 
         console.log(normal, "normal LeaveData");
@@ -293,7 +334,7 @@ const LeavephysioManagement = () => {
     const selectedPhysio = employees.find((p) => p._id === assignForm.physioId);
 
     try {
-      const response = await apiRequest("Physio/markLeave", {
+      const response = await apiRequest("LeaveControllers/markLeave", {
         method: "POST",
         body: JSON.stringify({
           physioId: assignForm.physioId,
@@ -321,6 +362,7 @@ const LeavephysioManagement = () => {
         variant: "destructive",
       });
     }
+    getLeave();
   };
   const [cancelDialog, setCancelDialog] = useState({
     open: false,
@@ -341,7 +383,7 @@ const LeavephysioManagement = () => {
       const response = await apiRequest("Session/getAllSession", {
         method: "POST",
         body: JSON.stringify({
-          physioId: user._id,
+          // physioId: user._id,
           storedRole,
         }),
       });
@@ -415,32 +457,6 @@ const LeavephysioManagement = () => {
     });
   };
 
-  const handleSessionAction = (sessionId, action) => {
-    console.log(sessionId, "sessionId");
-    if (action === "Completed") {
-      setFeedbackDialog({ open: true, sessionId: sessionId });
-      // handleActionEnd(sessionId, action)
-    } else if (action === "Canceled") {
-      setCancelDialog({
-        open: true,
-        type: "session",
-        sessionId,
-        patientId: null,
-        patientName: "",
-      });
-    } else {
-      // handleActionStart(sessionId, action);
-      // handlesessionStock(sessionId, action);
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, status: action } : s)),
-      );
-      toast({
-        title: "Session Updated",
-        description: `Session has been marked as ${action}`,
-      });
-    }
-  };
-
   const handleCancelSubmit = () => {
     if (!cancelledReason.trim()) {
       toast({
@@ -499,7 +515,37 @@ const LeavephysioManagement = () => {
   };
   const today = new Date().toISOString().split("T")[0];
   const isFutureSelected = !!dateFilter && dateFilter > today;
+  const updatePaidLeave = async (leaveId, nextValue) => {
+    try {
+      const res = await apiRequest("LeaveControllers/updateLeavePaid", {
+        method: "POST",
+        body: JSON.stringify({ _id: leaveId, PaidLeave: nextValue }),
+      });
 
+      if (res?.success) {
+        toast({ title: "Success", description: res.message || "Updated" });
+
+        // update local state instantly
+        setLeaveData((prev) =>
+          prev.map((l) =>
+            l._id === leaveId ? { ...l, PaidLeave: nextValue } : l,
+          ),
+        );
+      } else {
+        toast({
+          title: "Error",
+          description: res?.message || "Update failed",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err?.message || "Update failed",
+        variant: "destructive",
+      });
+    }
+  };
   const handleSaveSession = async () => {
     if (!assignForm.physioId || !dateFilter) {
       toast({
@@ -510,7 +556,6 @@ const LeavephysioManagement = () => {
       return;
     }
 
-    // ✅ Only rows that user planned (has Re_Assign)
     const planned = leaveSessionPlan
       .filter((x) => x.patientId && x.Re_Assign)
       .map((x) => ({
@@ -528,7 +573,6 @@ const LeavephysioManagement = () => {
       return;
     }
 
-    // ✅ Validate only planned rows
     const invalid = planned.find((x) => !x.sessionTime || !x.Re_Assign);
     if (invalid) {
       toast({
@@ -540,13 +584,13 @@ const LeavephysioManagement = () => {
     }
 
     try {
-      const res = await apiRequest("Physio/saveLeavePlan", {
+      const res = await apiRequest("LeaveControllers/saveLeavePlan", {
         method: "POST",
         body: JSON.stringify({
           physioId: assignForm.physioId,
           LeaveDate: dateFilter,
           LeaveMode: assignForm.LeaveMode,
-          SessionGenerateForLeave: planned, // ✅ send only planned
+          SessionGenerateForLeave: planned,
         }),
       });
 
@@ -569,6 +613,7 @@ const LeavephysioManagement = () => {
         variant: "destructive",
       });
     }
+    getLeave();
   };
 
   const [selectedPatientId, setSelectedPatientId] = useState("");
@@ -880,6 +925,9 @@ const LeavephysioManagement = () => {
                     <th className="text-left p-3 font-semibold text-gray-600">
                       Sessions
                     </th>
+                    <th className="text-left p-3 font-semibold text-gray-600">
+                      Paid / Unpaid Leave
+                    </th>
                   </tr>
                 </thead>
 
@@ -910,23 +958,35 @@ const LeavephysioManagement = () => {
                                 <ChevronRight size={16} />
                               )}
                             </td>
-
                             <td className="p-3 font-medium text-gray-800">
                               {leave.physioId?.physioName || "N/A"}
                             </td>
-
                             <td className="p-3 text-gray-700">
                               {new Date(
                                 leave.LeaveDate || leave.Date,
                               ).toLocaleDateString()}
                             </td>
-
                             <td className="p-3 text-gray-700">
                               {leave.LeaveMode || "N/A"}
                             </td>
-
                             <td className="p-3 text-gray-700">
                               {sessions.length}
+                            </td>{" "}
+                            <td className="p-3">
+                              <Button
+                                size="sm"
+                                variant={
+                                  leave.PaidLeave ? "outline" : "default"
+                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openPaidConfirm(leave);
+                                }}
+                              >
+                                {leave.PaidLeave
+                                  ? "Mark as UnPaid Leave"
+                                  : "Mark as Paid Leave"}
+                              </Button>
                             </td>
                           </tr>
 
@@ -980,6 +1040,34 @@ const LeavephysioManagement = () => {
               </table>
             </div>
           </div>
+          <AlertDialog
+            open={paidConfirm.open}
+            onOpenChange={(open) =>
+              setPaidConfirm((prev) => ({
+                ...prev,
+                open,
+                ...(open
+                  ? {}
+                  : { leaveId: null, nextValue: false, message: "" }),
+              }))
+            }
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {paidConfirm.message}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmPaidToggle}>
+                  Yes, Confirm
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </Card>
       </motion.div>
       <Dialog
