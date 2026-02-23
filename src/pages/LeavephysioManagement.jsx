@@ -1206,6 +1206,18 @@ const LeavephysioManagement = () => {
                                 {sessions.length}
                               </span>
                             </p>
+                            <Button
+                              size="sm"
+                              variant={leave.PaidLeave ? "outline" : "default"}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openPaidConfirm(leave);
+                              }}
+                            >
+                              {leave.PaidLeave
+                                ? "Mark as UnPaid Leave"
+                                : "Mark as Paid Leave"}
+                            </Button>
                           </div>
 
                           <div className="pt-1 text-gray-600">
