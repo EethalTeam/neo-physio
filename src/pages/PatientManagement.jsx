@@ -1317,6 +1317,10 @@ const PatientManagement = () => {
         status: s.sessionStatusId?.sessionStatusName || "N/A",
         color: s.sessionStatusId?.sessionStatusColor,
 
+        // ✅ add BOTH (so UI always works)
+        physioId: s.physioId || null,
+        physioName: s.physioId?.physioName || "N/A",
+
         sessionFromTime: s.sessionFromTime || "N/A",
         sessionToTime: s.sessionToTime || "N/A",
 
@@ -1344,7 +1348,7 @@ const PatientManagement = () => {
       const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
         (a, b) => new Date(b.date) - new Date(a.date),
       );
-
+      console.log("first history item:", combinedHistory[0]);
       setPatientHistory(combinedHistory);
       setSessionCount({ total: totalSessions, completed: completedSessions });
     } catch (error) {
@@ -2379,11 +2383,12 @@ const PatientManagement = () => {
                         {item.sessionFromTime && item.sessionToTime
                           ? `Session From - To Time: ${item.sessionFromTime} - ${item.sessionToTime}`
                           : "N/A"}
-                      </p>
-
+                      </p>{" "}
                       {/* Title */}
                       <h4 className="font-semibold text-md">{item.title}</h4>
-
+                      <p className="text-sm text-gray-700">
+                        PHYSIO: {item.type === "session" ? item.physioName : ""}
+                      </p>
                       {/* Session status and feedback */}
                       {item.type === "session" && (
                         <p className="text-sm text-gray-600">
@@ -2394,7 +2399,6 @@ const PatientManagement = () => {
                           </span>
                         </p>
                       )}
-
                       {/* Review details */}
                       {item.type === "review" && (
                         <p className="text-sm text-gray-600">{item.details}</p>
