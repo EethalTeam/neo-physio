@@ -106,7 +106,15 @@ const SuperAdminDashboard = () => {
 
     setDateFilter(payload);
   };
+  useEffect(() => {
+    const payload = { ...dateFilter };
+    if (payload.fromDate && !payload.toDate) payload.toDate = payload.fromDate;
 
+    console.log("Sending payload to getAllDashBoard:", payload);
+
+    getAllDashBoard(payload);
+    fetchIncomeByDate(payload);
+  }, [dateFilter]);
   const resetFilter = () => {
     setDateFilter({ fromDate: "", toDate: "" });
   };

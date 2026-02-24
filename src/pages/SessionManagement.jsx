@@ -565,37 +565,50 @@ const SessionManagement = () => {
       hour12: true,
     });
   };
-
   useEffect(() => {
     let filtered = [...sessions];
 
-    const term = searchTerm.toLowerCase();
+    const term = (searchTerm || "").trim().toLowerCase();
+    if (term) {
+      filtered = filtered.filter((s) => {
+        const patientName = (
+          s.patientId?.patientName ||
+          s.incompleteData?.patientId?.patientName ||
+          ""
+        ).toLowerCase();
 
-    // Filter by patient name
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (s) =>
-          s.patientId?.patientName?.toLowerCase().includes(term) ||
-          s.physioId?.physioName?.toLowerCase().includes(term),
-      );
+        const physioName = (
+          s.physioId?.physioName ||
+          s.incompleteData?.physioId?.physioName ||
+          ""
+        ).toLowerCase();
+
+        const sessionCode = (
+          s.sessionCode ||
+          s.incompleteData?.sessionCode ||
+          ""
+        ).toLowerCase();
+
+        return (
+          patientName.includes(term) ||
+          physioName.includes(term) ||
+          sessionCode.includes(term)
+        );
+      });
     }
-
-    // Filter by status
     if (statusFilter !== "all") {
       filtered = filtered.filter(
         (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
       );
     }
+    if (dateFilter) {
+      filtered = filtered.filter(
+        (s) => (s.sessionDate || "").slice(0, 10) === dateFilter,
+      );
+    }
 
-    // Filter by date
-    const filterDate = dateFilter || new Date().toISOString().slice(0, 10);
-    filtered = filtered.filter(
-      (s) => s.sessionDate?.slice(0, 10) === filterDate,
-    );
     setFilteredSessions(filtered);
-    // setSearchTerm("");
   }, [sessions, searchTerm, statusFilter, dateFilter]);
-
   const buildSessionDateTime = (session) => {
     if (!session.sessionDate || !session.sessionTime) return null;
 
@@ -662,17 +675,33 @@ const SessionManagement = () => {
           storedRole,
         }),
       });
+      const incomplete = Array.isArray(response?.incompleteData)
+        ? response.incompleteData
+        : [];
+
+      const complete = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.sessions)
+          ? response.sessions
+          : Array.isArray(response)
+            ? response
+            : [];
+
+      const merged = [...complete, ...incomplete];
+
+      setSessions(merged);
+      setFilteredSessions(merged);
       // console.log(response, "response response");
       // if (!Array.isArray(response)) return;
       console.log(response, "response");
       const msgs = response.message;
       setMsg(msgs);
-      const Data = response.incompleteData || response || [];
-      // setData(Data);
-      console.log(Data, "Data");
-      // setSessions(Data);
-      setFilteredSessions(Data);
-      //Build session count map
+      // const Data = response.incompleteData || response || [];
+      // // setData(Data);
+      // console.log(Data, "Data");
+      // // setSessions(Data);
+      // setFilteredSessions(Data);
+      // //Build session count map
       const countMap = {};
 
       Data.forEach((s) => {
