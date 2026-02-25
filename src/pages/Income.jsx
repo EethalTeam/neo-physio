@@ -8,10 +8,20 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { Bitcoin, InboxIcon } from "lucide-react";
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 const Income = () => {
   const [patients, setPatients] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -333,7 +343,75 @@ const Income = () => {
     if (!selectedBillPatient) return 0;
     return calcRatePerSession(selectedBillPatient);
   }, [selectedBillPatient]);
+  const [paymentDialog, setPaymentDialog] = useState({
+    open: false,
+    bill: null,
+  });
 
+  const [paymentMode, setPaymentMode] = useState("Full Payment");
+  const [partialAmount, setPartialAmount] = useState("");
+
+  const openPaymentDialog = (bill) => {
+    const net = Number(
+      bill?.NetBilledAmount ??
+        bill?.TotalBilledAmount ??
+        bill?.totalAmount ??
+        0,
+    );
+    const received = Number(bill?.ReceivedAmount ?? 0);
+
+    const pending = Math.max(net - received, 0);
+
+    setPaymentDialog({ open: true, bill: { ...bill, pending } });
+    setPaymentMode("Full Payment");
+    setPartialAmount("");
+  };
+
+  const closePaymentDialog = () => {
+    setPaymentDialog({ open: false, bill: null });
+    setPaymentMode("Full Payment");
+    setPartialAmount("");
+  };
+  useEffect(() => {
+    if (!paymentDialog.open || !paymentDialog.bill) return;
+    if (paymentMode !== "Partial Payment") return;
+
+    const pending = Number(paymentDialog.bill.pending || 0);
+
+    // only switch when user typed exactly pending
+    if (partialAmount === "") return;
+
+    const n = Number(partialAmount);
+    if (Number.isNaN(n)) return;
+
+    if (n === pending && pending > 0) {
+      setPaymentMode("Full Payment");
+    }
+  }, [paymentMode, partialAmount, paymentDialog.open, paymentDialog.bill]);
+
+  const handlePartialChange = (e) => {
+    const pending = Number(paymentDialog.bill?.pending || 0);
+    const val = e.target.value; // keep as string
+
+    // allow empty
+    if (val === "") {
+      setPartialAmount("");
+      return;
+    }
+
+    // allow only digits (no minus, no e, no +)
+    if (!/^\d*$/.test(val)) return;
+
+    const num = Number(val);
+
+    // clamp to pending
+    if (num > pending) {
+      setPartialAmount(String(pending));
+      return;
+    }
+
+    setPartialAmount(val);
+  };
   const selectedGeneratedBill = useMemo(() => {
     if (selectedBillPatientId === "ALL") return null;
 
@@ -349,6 +427,19 @@ const Income = () => {
       (a, b) => new Date(b.startDate) - new Date(a.startDate),
     )[0];
   }, [filteredBills, selectedBillPatientId]);
+
+  const updateBillPayment = async (billId, receivedAmount, paymentType) => {
+    return await apiRequest("Bill/receivePayment", {
+      method: "POST",
+      body: JSON.stringify({
+        billId,
+        receivedAmount,
+        paymentType,
+        notes: "",
+        feedback: "",
+      }),
+    });
+  };
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -639,82 +730,218 @@ const Income = () => {
             </div>
 
             {/* Patient Details Card (show only when patient selected) */}
-            {selectedBillPatient ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="border">
-                  <CardHeader>
-                    <CardTitle className="text-base">Patient Details</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Name</span>
-                      <span className="font-semibold">
-                        {selectedBillPatient.patientName}
-                      </span>
-                    </div>
+            <Card className="medical-card hidden md:block ">
+              <CardContent>
+                <div className="hidden md:block overflow-x-auto mt-5">
+                  <table className="min-w-full text-sm border rounded-lg">
+                    <thead className="bg-gray-100 text-gray-700">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Patient</th>
+                        <th className="px-3 py-2 text-left">Physio</th>
+                        <th className="px-3 py-2 text-left">Month / Year</th>
+                        <th className="px-3 py-2 text-left">From</th>
+                        <th className="px-3 py-2 text-left">To</th>
+                        <th className="px-3 py-2 text-left">Sessions</th>
+                        <th className="px-3 py-2 text-left">Rate/Session</th>
+                        <th className="px-3 py-2 text-left">Total Amount</th>
+                        <th className="px-3 py-2 text-left">
+                          Deducted From Advance
+                        </th>
+                        <th className="px-3 py-2 text-left">
+                          Net Billed Amount
+                        </th>
 
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Physio</span>
-                      <span className="font-semibold">
-                        {selectedBillPatient.physioName || "N/A"}
-                      </span>
-                    </div>
+                        <th className="px-3 py-2 text-left">Received Amount</th>
 
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Fee Type</span>
-                      <span className="font-semibold">
-                        {selectedBillPatient.feeType || "N/A"}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Rate / Session</span>
-                      <span className="font-semibold">
-                        ₹{Number(ratePerSessionForSelected || 0).toFixed(2)}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border">
-                  <CardHeader>
-                    <CardTitle className="text-base">Bill Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">From</span>
-                      <span className="font-semibold">
-                        {billFromDate.toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">To</span>
-                      <span className="font-semibold">
-                        {billToDate ? billToDate.toLocaleDateString() : "N/A"}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Completed Sessions</span>
-                      <span className="font-semibold">{completedCount}</span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Total</span>
-                      <span className="font-semibold">₹{billedAmount}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Select a patient to view details and generate bill.
-              </p>
-            )}
+                        <th className="px-3 py-2 text-left">Payment Status</th>
+                        <th className="px-3 py-2 text-left">Payment Type</th>
+                        <th className="px-3 py-2 text-left">Bill Generate</th>
+                        <th className="px-3 py-2 text-left">Receive Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {" "}
+                      {filteredBills.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={10}
+                            className="p-4 text-center text-gray-500"
+                          >
+                            No bills found for selected filters
+                          </td>
+                        </tr>
+                      ) : (
+                        // .filter((p) => p.totalCompletedSessions > 0)
+                        filteredBills.map((b) => (
+                          <tr
+                            key={b._id}
+                            className="hover:bg-gray-50 text-sm md:text-base"
+                          >
+                            <td className="p-2 border whitespace-nowrap">
+                              {b?.patientId?.patientName || "N/A"}{" "}
+                              <span className="text-xs text-gray-500">
+                                ({b?.patientId?.patientCode || ""})
+                              </span>
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              {b?.physioId?.physioName || "N/A"}
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              {b?.month || "N/A"} / {b?.year || "N/A"}
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              {b?.startDate
+                                ? new Date(b.startDate).toLocaleDateString()
+                                : "N/A"}
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              {b?.ToDate
+                                ? new Date(b.ToDate).toLocaleDateString()
+                                : "N/A"}
+                            </td>
+                            <td className="p-2 border text-center">
+                              {b?.TotalSessionCount ?? 0}
+                            </td>
+                            <td className="p-2 border text-center whitespace-nowrap">
+                              ₹{Number(b?.ratePerSession || 0).toFixed(2)}
+                            </td>
+                            <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                              ₹{Number(b?.TotalBilledAmount || 0).toFixed(2)}
+                            </td>
+                            <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                              ₹{Number(b?.DeductedFromAdvance || 0).toFixed(2)}
+                            </td>
+                            <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                              ₹{Number(b?.NetBilledAmount || 0).toFixed(2)}
+                            </td>
+                            <td className="p-2 border text-center whitespace-nowrap">
+                              ₹{Number(b?.ReceivedAmount || 0).toFixed(2)}
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              {b?.paymentStatus || "N/A"}
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              {b?.paymentType || "N/A"}
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              <Button>Generate Bill</Button>
+                            </td>{" "}
+                            <td className="p-2 border whitespace-nowrap">
+                              <Button
+                                size="sm"
+                                onClick={() => openPaymentDialog(b)}
+                                disabled={
+                                  Number(b?.TotalBilledAmount || 0) -
+                                    Number(b?.ReceivedAmount || 0) <=
+                                  0
+                                }
+                              >
+                                Receive Payment
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}{" "}
+                    </tbody>{" "}
+                  </table>{" "}
+                </div>{" "}
+              </CardContent>{" "}
+            </Card>
           </CardContent>
         </Card>
       )}
+      <Dialog
+        open={paymentDialog.open}
+        onOpenChange={(v) => !v && closePaymentDialog()}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Payment Received</DialogTitle>
+            <DialogDescription>
+              {paymentDialog.bill?.patientId?.patientName || "Patient"} —
+              Pending:{" "}
+              <span className="font-semibold">
+                ₹{Number(paymentDialog.bill?.NetBilledAmount || 0).toFixed(2)}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Payment type dropdown */}
+          <div className="space-y-2">
+            <Label>Payment Type</Label>
+            <Select value={paymentMode} onValueChange={setPaymentMode}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Full Payment">Full Payment</SelectItem>
+                <SelectItem value="Partial Payment">Partial Payment</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Partial amount input */}
+          {paymentMode === "Partial Payment" && (
+            <div className="space-y-2">
+              <Label>Partial Amount</Label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={partialAmount}
+                onChange={handlePartialChange}
+                placeholder="Enter amount"
+              />
+              <p className="text-xs text-gray-500">
+                Amount cannot exceed pending bill amount.
+              </p>
+            </div>
+          )}
+
+          {/* If FULL, show auto amount */}
+          {paymentMode === "Full Payment" && (
+            <div className="text-sm text-gray-700">
+              Amount to receive:{" "}
+              <span className="font-semibold">
+                ₹{Number(paymentDialog.bill?.pending || 0).toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closePaymentDialog}>
+              Cancel
+            </Button>
+
+            <Button
+              onClick={async () => {
+                const billId = paymentDialog.bill?._id;
+                const pending = Number(paymentDialog.bill?.pending || 0);
+
+                const amt =
+                  paymentMode === "Full Payment"
+                    ? pending
+                    : Number(partialAmount || 0);
+
+                if (!billId) return;
+                if (amt <= 0) return;
+                if (amt > pending) return; // safety
+
+                try {
+                  await updateBillPayment(billId, amt, paymentMode);
+
+                  closePaymentDialog();
+                  fetchBills(); // ✅ refresh bill tab table
+                  // fetchData(); // (optional, only if you need income refresh)
+                } catch (err) {
+                  console.error("Payment update failed:", err);
+                }
+              }}
+            >
+              Confirm Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
