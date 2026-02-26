@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Bitcoin, InboxIcon } from "lucide-react";
+import { Bitcoin, CheckCircle, InboxIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -201,24 +201,20 @@ const Income = () => {
       patient.feeAmount ?? patient.feesAmount ?? patient.amount ?? 0,
     );
 
-    // ✅ try to get total days from any key
     const totalDays = Number(
       patient.totalSessionDays ?? patient.noOfDays ?? patient.totalDays ?? 0,
     );
 
     if (!feeAmount) return 0;
 
-    // monthly
     if (feesTypeId === monthlyId) {
       return totalDays ? feeAmount / totalDays : 0;
     }
 
-    // per session
     if (feesTypeId === sessionId) {
       return feeAmount;
     }
 
-    // fallback
     return feeAmount;
   };
   const [bills, setBills] = useState([]);
@@ -262,11 +258,25 @@ const Income = () => {
 
   const totalGeneratedBillAmount = useMemo(() => {
     return filteredBills.reduce(
-      (sum, b) => sum + Number(b.totalAmount || 0),
+      (sum, b) => sum + Number(b.NetBilledAmount || 0),
       0,
     );
   }, [filteredBills]);
 
+  const totalReceivedAmt = useMemo(() => {
+    return filteredBills.reduce(
+      (sum, b) => sum + Number(b.ReceivedAmount || 0),
+      0,
+    );
+  }, [filteredBills]);
+
+  const totalPendingAmt = useMemo(() => {
+    return filteredBills.reduce((sum, b) => {
+      const pending =
+        Number(b.NetBilledAmount || 0) - Number(b.ReceivedAmount || 0);
+      return sum + Math.max(pending, 0);
+    }, 0);
+  }, [filteredBills]);
   const billSessions = useMemo(() => {
     return sessions.filter((s) => {
       const pid = getId(s.patientId);
@@ -463,16 +473,6 @@ const Income = () => {
                     <span>Total Income:</span>
                     <span>₹{totalIncomeByFilter.toFixed(2)}</span>
                   </div>
-
-                  <div className="flex w-full justify-between md:w-[220px]">
-                    <span>Received:</span>
-                    <span>₹{totalReceivedByfilter.toFixed(2)}</span>
-                  </div>
-
-                  <div className="flex w-full justify-between md:w-[220px]">
-                    <span>Pending:</span>
-                    <span>₹{totalPendingByfilter.toFixed(2)}</span>
-                  </div>
                 </div>
 
                 {/* Right */}
@@ -588,10 +588,6 @@ const Income = () => {
                         Fees(Fees Type)
                       </th>{" "}
                       <th className="px-3 py-2 text-left">Total Income</th>{" "}
-                      <th className="px-3 py-2 text-left">Payment Received</th>{" "}
-                      <th className="px-3 py-2 text-left">
-                        Payment Pending
-                      </th>{" "}
                     </tr>{" "}
                   </thead>{" "}
                   <tbody>
@@ -624,14 +620,6 @@ const Income = () => {
                             {" "}
                             ₹{Number(p.totalIncome || 0).toFixed(2)}{" "}
                           </td>{" "}
-                          <td className="p-2 border text-center font-semibold whitespace-nowrap">
-                            {" "}
-                            ₹{Number(p.paymentReceived || 0).toFixed(2)}{" "}
-                          </td>{" "}
-                          <td className="p-2 border text-center font-semibold whitespace-nowrap">
-                            {" "}
-                            ₹{Number(p.paymentPending || 0).toFixed(2)}{" "}
-                          </td>{" "}
                         </tr>
                       ))}{" "}
                   </tbody>{" "}
@@ -654,7 +642,14 @@ const Income = () => {
                 Generated Bills:{" "}
                 <span className="ml-2">{filteredBills.length}</span>
               </h3>
-
+              <h3 className="text-lg font-semibold">
+                Total Received Amount:{" "}
+                <span className="ml-2">₹{totalReceivedAmt.toFixed(2)}</span>
+              </h3>{" "}
+              <h3 className="text-lg font-semibold">
+                Total Pending Amount:{" "}
+                <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
+              </h3>{" "}
               <h3 className="text-lg font-semibold">
                 Total Billed Amount:{" "}
                 <span className="ml-2">
@@ -738,9 +733,7 @@ const Income = () => {
                       <tr>
                         <th className="px-3 py-2 text-left">Patient</th>
                         <th className="px-3 py-2 text-left">Physio</th>
-                        <th className="px-3 py-2 text-left">Month / Year</th>
-                        <th className="px-3 py-2 text-left">From</th>
-                        <th className="px-3 py-2 text-left">To</th>
+
                         <th className="px-3 py-2 text-left">Sessions</th>
                         <th className="px-3 py-2 text-left">Rate/Session</th>
                         <th className="px-3 py-2 text-left">Total Amount</th>
@@ -752,6 +745,7 @@ const Income = () => {
                         </th>
 
                         <th className="px-3 py-2 text-left">Received Amount</th>
+                        <th className="px-3 py-2 text-left">Pending Amount</th>
 
                         <th className="px-3 py-2 text-left">Payment Status</th>
                         <th className="px-3 py-2 text-left">Payment Type</th>
@@ -786,36 +780,29 @@ const Income = () => {
                             <td className="p-2 border whitespace-nowrap">
                               {b?.physioId?.physioName || "N/A"}
                             </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              {b?.month || "N/A"} / {b?.year || "N/A"}
-                            </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              {b?.startDate
-                                ? new Date(b.startDate).toLocaleDateString()
-                                : "N/A"}
-                            </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              {b?.ToDate
-                                ? new Date(b.ToDate).toLocaleDateString()
-                                : "N/A"}
-                            </td>
                             <td className="p-2 border text-center">
                               {b?.TotalSessionCount ?? 0}
                             </td>
                             <td className="p-2 border text-center whitespace-nowrap">
                               ₹{Number(b?.ratePerSession || 0).toFixed(2)}
                             </td>
-                            <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                            <td className="p-2 border text-center font-semibold whitespace-nowrap ">
                               ₹{Number(b?.TotalBilledAmount || 0).toFixed(2)}
                             </td>
-                            <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                            <td className="p-2 border text-center font-semibold whitespace-nowrap bg-yellow-100">
                               ₹{Number(b?.DeductedFromAdvance || 0).toFixed(2)}
                             </td>
-                            <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                            <td className="p-2 border text-center font-semibold whitespace-nowrap bg-blue-100">
                               ₹{Number(b?.NetBilledAmount || 0).toFixed(2)}
                             </td>
-                            <td className="p-2 border text-center whitespace-nowrap">
+                            <td className="p-2 border text-center whitespace-nowrap bg-green-300">
                               ₹{Number(b?.ReceivedAmount || 0).toFixed(2)}
+                            </td>
+                            <td className="p-2 border text-center whitespace-nowrap bg-[#ED3421]">
+                              ₹
+                              {Number(
+                                b?.NetBilledAmount - b?.ReceivedAmount || 0,
+                              ).toFixed(2)}
                             </td>
                             <td className="p-2 border whitespace-nowrap">
                               {b?.paymentStatus || "N/A"}
@@ -835,8 +822,24 @@ const Income = () => {
                                     Number(b?.ReceivedAmount || 0) <=
                                   0
                                 }
+                                className={
+                                  Number(b?.TotalBilledAmount || 0) -
+                                    Number(b?.ReceivedAmount || 0) <=
+                                  0
+                                    ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                    : ""
+                                }
                               >
-                                Receive Payment
+                                {Number(b?.TotalBilledAmount || 0) -
+                                  Number(b?.ReceivedAmount || 0) <=
+                                0 ? (
+                                  <span className="flex items-center gap-2">
+                                    <CheckCircle size={16} />
+                                    Payment Received
+                                  </span>
+                                ) : (
+                                  "Receive Payment"
+                                )}
                               </Button>
                             </td>
                           </tr>
@@ -861,7 +864,11 @@ const Income = () => {
               {paymentDialog.bill?.patientId?.patientName || "Patient"} —
               Pending:{" "}
               <span className="font-semibold">
-                ₹{Number(paymentDialog.bill?.NetBilledAmount || 0).toFixed(2)}
+                ₹{" "}
+                {Number(
+                  paymentDialog.bill?.NetBilledAmount -
+                    paymentDialog.bill?.ReceivedAmount || 0,
+                ).toFixed(2)}
               </span>
             </DialogDescription>
           </DialogHeader>

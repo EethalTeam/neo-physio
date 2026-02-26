@@ -105,7 +105,7 @@ const SessionManagement = () => {
     sessionCode: "",
     patientId: "",
     physioId: "",
-    sessionDate: "",
+    sessionDate: [],
     sessionDay: "",
     sessionTime: "",
     sessionStatusId: "691ecb36b87c5c57dead47a7",

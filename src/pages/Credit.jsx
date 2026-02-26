@@ -318,12 +318,12 @@ const Credit = () => {
     }
 
     try {
-      await apiRequest("Credit/receiveCredit", {
+      await apiRequest("Credit/payCredit", {
         method: "POST",
         body: JSON.stringify({
-          _id: payingCredit._id,
+          creditId: payingCredit._id,
           receivedAmount: received,
-          receivedDate: new Date(payForm.receivedDate),
+          receivedDate: payForm.receivedDate,
           notes: payForm.notes,
         }),
       });
@@ -340,6 +340,11 @@ const Credit = () => {
       });
     }
   };
+
+  const totalCreditAmount = filteredCredits.reduce(
+    (sum, p) => sum + Number(p.CreditAmount || 0),
+    0,
+  );
   return (
     <div className="space-y-6 overflow-x-hidden">
       <motion.div
@@ -406,7 +411,10 @@ const Credit = () => {
               ))}
             </SelectContent>
           </Select>
-
+          <div className="text-sm text-gray-600 sm:ml-auto">
+            Total Credit Amount:{" "}
+            <span className="font-semibold">{totalCreditAmount}</span>
+          </div>
           <div className="text-sm text-gray-600 sm:ml-auto">
             Total:{" "}
             <span className="font-semibold">{filteredCredits.length}</span>
