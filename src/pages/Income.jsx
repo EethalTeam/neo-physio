@@ -9,7 +9,8 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
@@ -40,7 +41,12 @@ const Income = () => {
 
   const [physios, setPhysios] = useState([]);
   const [feesType, setFeesType] = useState([]);
-
+  const [billPreview, setBillPreview] = useState({
+    open: false,
+    bill: null,
+    includeSessions: false,
+    loading: false,
+  });
   const [selectedPhysioId, setSelectedPhysioId] = useState("ALL");
   const [selectedPatientId, setSelectedPatientId] = useState("ALL");
   const [selectedBillPatientId, setSelectedBillPatientId] = useState("ALL");
@@ -86,7 +92,87 @@ const Income = () => {
       )}
     </button>
   );
+  const getPreviewDateRange = (bill) => {
+    const pid = getId(bill?.patientId);
+    const list = sessions
+      .filter((s) => getId(s.patientId) === pid)
+      .map((s) => new Date(s.sessionDate))
+      .filter((d) => !isNaN(d.getTime()))
+      .filter(
+        (d) =>
+          d.getMonth() + 1 === selectedBillMonth &&
+          d.getFullYear() === selectedBillYear,
+      );
 
+    if (!list.length) return "N/A";
+    const minD = new Date(Math.min(...list));
+    const maxD = new Date(Math.max(...list));
+    return `${fmt(minD)} → ${fmt(maxD)}`;
+  };
+  const getCompletedCountForPreview = (bill) => {
+    if (!bill) return 0;
+
+    const pid = getId(bill.patientId);
+
+    return sessions.filter((s) => {
+      const spid = getId(s.patientId);
+      if (spid !== pid) return false;
+
+      const d = new Date(s.sessionDate);
+      const sameMonth =
+        d.getMonth() + 1 === selectedBillMonth &&
+        d.getFullYear() === selectedBillYear;
+
+      const isCompleted =
+        (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
+        "completed";
+
+      return sameMonth && isCompleted;
+    }).length;
+  };
+  const fetchCompletedSessionsForBill = async (bill) => {
+    const pid = getId(bill?.patientId);
+
+    const res = await apiRequest("Session/getAllSession", {
+      method: "POST",
+      body: JSON.stringify({
+        patientId: pid,
+        month: selectedBillMonth,
+        year: selectedBillYear,
+        status: "completed",
+      }),
+    });
+
+    const list = Array.isArray(res) ? res : res?.sessions || [];
+
+    // ✅ FRONTEND FILTER (important even if backend supports filters)
+    const filtered = list.filter((s) => {
+      const spid = getId(s?.patientId);
+      if (spid !== pid) return false;
+
+      const d = new Date(s?.sessionDate);
+      if (isNaN(d.getTime())) return false;
+
+      const sameMonth =
+        d.getMonth() + 1 === selectedBillMonth &&
+        d.getFullYear() === selectedBillYear;
+
+      const isCompleted =
+        (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
+        "completed";
+
+      return sameMonth && isCompleted;
+    });
+
+    return filtered.sort(
+      (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
+    );
+  };
+  const fmt = (d) => {
+    const x = new Date(d);
+    if (isNaN(x.getTime())) return "N/A";
+    return x.toLocaleDateString("en-GB"); // dd/mm/yyyy
+  };
   const fetchData = async () => {
     try {
       const patientsRes = await apiRequest("Patient/getAllPatientsIncome", {
@@ -450,6 +536,115 @@ const Income = () => {
       }),
     });
   };
+  const handleDownloadBill = async () => {
+    const bill = billPreview.bill;
+    if (!bill) return;
+
+    try {
+      setBillPreview((s) => ({ ...s, loading: true }));
+
+      let completedSessions = [];
+
+      if (billPreview.includeSessions) {
+        completedSessions = await fetchCompletedSessionsForBill(bill);
+      }
+
+      downloadBillPdf({
+        bill,
+        includeSessions: billPreview.includeSessions,
+        completedSessions,
+      });
+
+      setBillPreview((s) => ({ ...s, open: false, loading: false }));
+    } catch (err) {
+      console.error("Bill PDF download failed:", err);
+      setBillPreview((s) => ({ ...s, loading: false }));
+    }
+  };
+  const downloadBillPdf = ({
+    bill,
+    includeSessions,
+    completedSessions = [],
+  }) => {
+    const doc = new jsPDF();
+
+    const patientName = bill?.patientId?.patientName || "N/A";
+    const patientCode = bill?.patientId?.patientCode || "";
+    const physioName = bill?.physioId?.physioName || "N/A";
+
+    const totalSessions = Number(bill?.TotalSessionCount || 0);
+    const rate = Number(bill?.ratePerSession || 0);
+    const totalAmount = Number(bill?.TotalBilledAmount || 0);
+    const deducted = Number(bill?.DeductedFromAdvance || 0);
+    const net = Number(bill?.NetBilledAmount || 0);
+    const received = Number(bill?.ReceivedAmount || 0);
+    const pending = Math.max(net - received, 0);
+
+    // Header
+    doc.setFontSize(16);
+    doc.text("NEO-PHYSIO - BILL", 14, 16);
+
+    doc.setFontSize(11);
+    doc.text(`Patient: ${patientName} (${patientCode})`, 14, 26);
+    doc.text(`Physio: ${physioName}`, 14, 32);
+    doc.text(
+      `Bill Month: ${months[selectedBillMonth - 1]} ${selectedBillYear}`,
+      14,
+      38,
+    );
+
+    // Summary
+    autoTable(doc, {
+      startY: 45,
+      head: [["Item", "Value"]],
+      body: [
+        ["Total Sessions", String(totalSessions)],
+        ["Rate / Session", `Rs. ${rate.toFixed(2)}`],
+        ["Total Amount", `Rs. ${totalAmount.toFixed(2)}`],
+        ["Deducted From Advance", `Rs. ${deducted.toFixed(2)}`],
+        ["Net Billed Amount", `Rs. ${net.toFixed(2)}`],
+        ["Received Amount", `Rs. ${received.toFixed(2)}`],
+        ["Pending Amount", `Rs. ${pending.toFixed(2)}`],
+        ["Payment Status", bill?.paymentStatus || "N/A"],
+        ["Payment Type", bill?.paymentType || "-"],
+      ],
+      styles: { fontSize: 10 },
+    });
+
+    // Sessions + feedback
+    if (includeSessions) {
+      const rows = completedSessions.map((s, idx) => [
+        idx + 1,
+        fmt(s.sessionDate),
+        s?.sessionFeedbackPros || s?.Feedback || "—",
+      ]);
+
+      const nextY = doc.lastAutoTable.finalY + 10;
+
+      doc.setFontSize(12);
+      doc.text("Completed Sessions (with feedback)", 14, nextY);
+
+      autoTable(doc, {
+        startY: nextY + 4,
+        head: [["#", "Session Date", "Feedback"]],
+        body: rows.length ? rows : [["", "No completed sessions", ""]],
+        styles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 130 },
+        },
+      });
+    }
+
+    // filename
+    const fileName =
+      `Bill_${patientName}_${selectedBillMonth}-${selectedBillYear}.pdf`
+        .replaceAll(" ", "_")
+        .replace(/[^\w\-\.]/g, "");
+
+    doc.save(fileName);
+  };
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -808,10 +1003,27 @@ const Income = () => {
                               {b?.paymentStatus || "N/A"}
                             </td>
                             <td className="p-2 border whitespace-nowrap">
-                              {b?.paymentType || "N/A"}
+                              {b?.paymentType || "-"}
                             </td>
                             <td className="p-2 border whitespace-nowrap">
-                              <Button>Generate Bill</Button>
+                              <Button
+                                onClick={() => {
+                                  const net = Number(b?.NetBilledAmount || 0);
+                                  const received = Number(
+                                    b?.ReceivedAmount || 0,
+                                  );
+                                  const pending = Math.max(net - received, 0);
+
+                                  setBillPreview({
+                                    open: true,
+                                    bill: { ...b, pending },
+                                    includeSessions: false,
+                                    loading: false,
+                                  });
+                                }}
+                              >
+                                Generate Bill
+                              </Button>
                             </td>{" "}
                             <td className="p-2 border whitespace-nowrap">
                               <Button
@@ -945,6 +1157,90 @@ const Income = () => {
               }}
             >
               Confirm Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={billPreview.open}
+        onOpenChange={(v) =>
+          !v && setBillPreview((s) => ({ ...s, open: false }))
+        }
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Generate Bill</DialogTitle>
+            <DialogDescription>
+              Review summary. Choose whether to include sessions + feedback in
+              PDF.
+            </DialogDescription>
+          </DialogHeader>
+
+          {billPreview.bill && (
+            <div className="space-y-3 text-sm">
+              <div className="p-3 rounded-md border bg-gray-50">
+                <div className="font-semibold">
+                  {billPreview.bill?.patientId?.patientName || "Patient"}{" "}
+                  <span className="text-gray-500 text-xs">
+                    ({billPreview.bill?.patientId?.patientCode || ""})
+                  </span>
+                </div>
+                <div className="text-gray-700">
+                  Physio: {billPreview.bill?.physioId?.physioName || "N/A"}
+                </div>
+                <div className="text-gray-700">
+                  Month: {months[selectedBillMonth - 1]} {selectedBillYear}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 border rounded">
+                  Sessions: {getCompletedCountForPreview(billPreview.bill)}
+                </div>
+                <div className="p-2 border rounded">
+                  Period: {getPreviewDateRange(billPreview.bill)}
+                </div>
+                <div className="p-2 border rounded">
+                  Rate: ₹
+                  {Number(billPreview.bill?.ratePerSession || 0).toFixed(2)}
+                </div>
+                <div className="p-2 border rounded">
+                  Net: ₹
+                  {Number(billPreview.bill?.NetBilledAmount || 0).toFixed(2)}
+                </div>
+                <div className="p-2 border rounded">
+                  Pending: ₹{Number(billPreview.bill?.pending || 0).toFixed(2)}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="includeSessions"
+                  type="checkbox"
+                  checked={billPreview.includeSessions}
+                  onChange={(e) =>
+                    setBillPreview((s) => ({
+                      ...s,
+                      includeSessions: e.target.checked,
+                    }))
+                  }
+                />
+                <Label htmlFor="includeSessions">
+                  Include all completed sessions + feedback in PDF
+                </Label>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBillPreview((s) => ({ ...s, open: false }))}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleDownloadBill} disabled={billPreview.loading}>
+              {billPreview.loading ? "Preparing..." : "Download PDF"}
             </Button>
           </DialogFooter>
         </DialogContent>

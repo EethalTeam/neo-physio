@@ -259,36 +259,51 @@ const SessionManagement = () => {
 
   const getCreateSession = async (data) => {
     try {
-      if (!data.sessionDate) {
+      if (
+        !Array.isArray(sessionForm.sessionDate) ||
+        sessionForm.sessionDate.length === 0
+      ) {
+        toast({ title: "Select at least one date", variant: "destructive" });
         return;
       }
-      const year = data.sessionDate.getFullYear();
-      const month = (data.sessionDate.getMonth() + 1)
-        .toString()
-        .padStart(2, "0");
-      // Pad the date with a leading zero if necessary
-      const date = data.sessionDate.getDate().toString().padStart(2, "0");
-      // let [month, date, year] = data.sessionDate
-      // .toLocaleDateString()
-      // .split("/");
-      let date1 = `${year}-${month}-${date}`;
-      console.log(date1);
-      const create = {
-        sessionStatusId: data.sessionStatusId,
+
+      if (!data.patientId || !data.physioId || !data.sessionTime) {
+        toast({
+          title: "Fill patient, physio and time",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const payload = {
         patientId: data.patientId,
         physioId: data.physioId,
-        sessionDate: new Date(date1).toISOString(),
         sessionTime: data.sessionTime,
-        sessionDay: data.sessionDay,
         sessionCount: data.sessionCount,
+        sessionDates: sessionForm.sessionDate
+          .map((d) => {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`; // "2026-02-26"
+          })
+          .sort((a, b) => new Date(a) - new Date(b)),
+        sessionStatusId: data.sessionStatusId,
       };
-      const response = await apiRequest("Session/createSession", {
+      await apiRequest("Session/createSession", {
         method: "POST",
-        body: JSON.stringify(create),
+        body: JSON.stringify(payload),
       });
+
+      toast({ title: "Success", description: "Sessions created" });
       getSession();
-    } catch (error) {
-      console.log(error, "error from frontend get All  Session");
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: "Error",
+        description: "Failed to create sessions",
+        variant: "destructive",
+      });
     }
   };
 
@@ -566,7 +581,7 @@ const SessionManagement = () => {
     });
   };
   useEffect(() => {
-    let filtered = [...sessions];
+    let filtered = Array.isArray(sessions) ? [...sessions] : [];
 
     const term = (searchTerm || "").trim().toLowerCase();
     if (term) {
@@ -602,8 +617,11 @@ const SessionManagement = () => {
       );
     }
     if (dateFilter) {
+      const toISTDate = (iso) =>
+        new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // YYYY-MM-DD
+
       filtered = filtered.filter(
-        (s) => (s.sessionDate || "").slice(0, 10) === dateFilter,
+        (s) => toISTDate(s.sessionDate) === dateFilter,
       );
     }
 
@@ -697,13 +715,13 @@ const SessionManagement = () => {
       const msgs = response.message;
       setMsg(msgs);
       // const Data = response.incompleteData || response || [];
-      // // setData(Data);
-      // console.log(Data, "Data");
-      // // setSessions(Data);
+      // setData(Data);
+      console.log(Data, "Data");
+      // setSessions(Data);
       // setFilteredSessions(Data);
       // //Build session count map
       const countMap = {};
-
+      const Data = merged;
       Data.forEach((s) => {
         const pid = s.patientId?._id;
         const physioId = s.physioId?._id;
@@ -810,8 +828,22 @@ const SessionManagement = () => {
       }
 
       // update UI after success
-      setFilteredSessions((prev) =>
-        prev.map((s) =>
+      // setFilteredSessions((prev) =>
+      //   prev.map((s) =>
+      //     s._id === sessionId
+      //       ? {
+      //           ...s,
+      //           sessionStatusId: {
+      //             ...(s.sessionStatusId || {}),
+      //             sessionStatusName: action,
+      //           },
+      //         }
+      //       : s,
+      //   ),
+      // );
+      // ✅ update sessions (source of truth)
+      setSessions((prev) =>
+        (Array.isArray(prev) ? prev : []).map((s) =>
           s._id === sessionId
             ? {
                 ...s,
@@ -1064,7 +1096,7 @@ const SessionManagement = () => {
       sessionCode: session.sessionCode ? session.sessionCode : "",
       patientId: session.patientId ? session.patientId._id : "",
       physioId: session.physioId ? session.physioId._id : "",
-      sessionDate: session.sessionDate ? new Date(session.sessionDate) : "",
+      sessionDate: session.sessionDate ? [new Date(session.sessionDate)] : "",
       sessionDay: session.sessionDay ? session.sessionDay : "",
       sessionTime: session.sessionTime ? session.sessionTime : "",
       sessionFromTime: session.sessionFromTime ? session.sessionFromTime : "",
@@ -1334,17 +1366,21 @@ const SessionManagement = () => {
                           <div>
                             <p className="text-sm">
                               {session.sessionDate
-                                .split("T")[0]
-                                .split("-")
-                                .reverse()
-                                .join("-")}{" "}
+                                ? session.sessionDate
+                                    .split("T")[0]
+                                    .split("-")
+                                    .reverse()
+                                    .join("-")
+                                : "-"}
                               (
                               {session.sessionDay ||
                                 session.incompleteData.sessionDay}
                               )
                             </p>
                             <p className="text-xs text-gray-600">
-                              {Converttime(session.sessionTime)}
+                              {session.sessionTime
+                                ? Converttime(session.sessionTime)
+                                : "-"}
                             </p>
                           </div>
                         </td>
@@ -1427,8 +1463,9 @@ const SessionManagement = () => {
                             >
                               <FileText size={14} />
                             </Button>
-                            {session?.sessionStatusId?.sessionStatusName.toLowerCase() ===
-                              "scheduled" && (
+                            {(
+                              session?.sessionStatusId?.sessionStatusName || ""
+                            ).toLowerCase() === "scheduled" && (
                               <Button
                                 type="button"
                                 size="sm"
@@ -2581,33 +2618,47 @@ const SessionManagement = () => {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d , }))} initialFocus /></PopoverContent></Popover></div> */}
             <div className="space-y-2">
-              <Label>Session Date</Label>
+              <Label>Session Dates</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !sessionForm.sessionDate && "text-muted-foreground",
+                      (!sessionForm.sessionDate ||
+                        sessionForm.sessionDate.length === 0) &&
+                        "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {sessionForm.sessionDate ? (
-                      format(sessionForm.sessionDate, "PPP")
+                    {sessionForm.sessionDate?.length > 0 ? (
+                      <span>
+                        {sessionForm.sessionDate.length} date(s) selected
+                      </span>
                     ) : (
-                      <span>Pick a date</span>
+                      <span>Pick date(s)</span>
                     )}
                   </Button>
                 </PopoverTrigger>
+
                 <PopoverContent className="w-auto p-0">
                   <Calendar
-                    mode="single"
-                    selected={sessionForm.sessionDate}
-                    onSelect={(d) =>
+                    mode="multiple"
+                    selected={
+                      Array.isArray(sessionForm.sessionDate)
+                        ? sessionForm.sessionDate
+                        : []
+                    }
+                    onSelect={(dates) =>
                       setSessionForm((p) => ({
                         ...p,
-                        sessionDate: d,
-                        sessionDay: getDayName(d),
+                        sessionDate: dates || [],
+                        sessionDay:
+                          dates?.length === 1
+                            ? getDayName(dates[0])
+                            : dates?.length > 1
+                              ? "Multiple"
+                              : "",
                       }))
                     }
                     initialFocus
