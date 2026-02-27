@@ -85,7 +85,7 @@ const Payroll = () => {
       petrolAmount: Number(emp.petrolAmount || 0),
       incentive: Number(emp.incentive || 0),
       leaveDays: Number(emp.leaveDays || 0),
-      deducted: Number(emp.deducted || 0),
+      deducted: Number(emp.manualDeduction || 0),
       ESI: Number(emp.ESI || 0),
       PF: Number(emp.PF || 0),
     });
@@ -116,8 +116,12 @@ const Payroll = () => {
           PetrolKm: Number(editForm.petrolKm || 0),
           PetrolAmount: Number(editForm.petrolAmount || 0),
           Incentive: Number(editForm.incentive || 0),
+
           NoofLeave: Number(editForm.leaveDays || 0),
-          TotalAmountDeducted: Number(editForm.deducted || 0),
+
+          // ✅ admin typed
+          ManualDeduction: Number(editForm.deducted || 0),
+
           ESI: Number(editForm.ESI || 0),
           PF: Number(editForm.PF || 0),
         }),
@@ -466,7 +470,8 @@ const Payroll = () => {
 
     grossRevenue: p.TotalSalary ?? 0, // or totalGrossSalary
     netPay: p.NetSalary ?? 0,
-
+    manualDeduction: p.ManualDeduction ?? 0,
+    deducted: p.TotalAmountDeducted ?? 0, // keep this for display
     basicSalary: p.basicSalary ?? 0,
     vehicleMaintanance: p.vehicleMaintanance ?? 0,
     petrolKm: p.PetrolKm ?? 0,
