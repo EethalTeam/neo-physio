@@ -1431,6 +1431,9 @@ const Consulation = () => {
                 <Input
                   id="newGoalDuration"
                   type="number"
+                  onWheel={(e) => {
+                    e.target.blur();
+                  }}
                   value={newGoalForm.newGoalDuration}
                   onChange={(e) =>
                     setNewGoalForm((p) => ({
@@ -1591,6 +1594,9 @@ const Consulation = () => {
                         <Input
                           name="patientAge"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           value={patientForm.patientAge}
                           onChange={handleFormChange}
                           required
@@ -1980,6 +1986,9 @@ const Consulation = () => {
                         <Input
                           name="painLevel"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           value={patientForm.painLevel}
                           onChange={handleFormChange}
                         />
@@ -1997,6 +2006,9 @@ const Consulation = () => {
                         <Input
                           name="muscleStrength"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           value={patientForm.muscleStrength}
                           onChange={handleFormChange}
                         />
@@ -2074,6 +2086,9 @@ const Consulation = () => {
                         <Input
                           name="Frequency"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           value={patientForm.Frequency}
                           onChange={handleFormChange}
                         />
@@ -2091,6 +2106,9 @@ const Consulation = () => {
                         <Input
                           name="noOfDays"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           value={patientForm.noOfDays}
                           onChange={handleFormChange}
                         />
@@ -2318,6 +2336,9 @@ const Consulation = () => {
                         <Input
                           id="totalSessionDays"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           placeholder="e.g., 30"
                           value={assignForm.totalSessionDays}
                           onChange={(e) =>
@@ -2335,6 +2356,9 @@ const Consulation = () => {
                         <Input
                           id="reviewFrequency"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           placeholder="e.g., 15"
                           value={assignForm.reviewFrequency}
                           onChange={(e) =>
@@ -2404,6 +2428,9 @@ const Consulation = () => {
                       <Input
                         id="visitOrder"
                         type="number"
+                        onWheel={(e) => {
+                          e.target.blur();
+                        }}
                         min="1"
                         placeholder="e.g., 1 for first visit"
                         value={assignForm.visitOrder}
@@ -2421,6 +2448,9 @@ const Consulation = () => {
                         <Input
                           id="KmsfromHub"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           placeholder="Distance from hub to first patient"
                           value={assignForm.KmsfromHub}
                           onChange={(e) =>
@@ -2440,6 +2470,9 @@ const Consulation = () => {
                         <Input
                           id="kmsFromPrevious"
                           type="number"
+                          onWheel={(e) => {
+                            e.target.blur();
+                          }}
                           placeholder="Distance from previous patient"
                           value={assignForm.kmsFromPrevious}
                           onChange={(e) =>
@@ -2458,6 +2491,9 @@ const Consulation = () => {
                       <Input
                         id="KmsfLPatienttoHub"
                         type="number"
+                        onWheel={(e) => {
+                          e.target.blur();
+                        }}
                         placeholder="Distance for return trip"
                         value={assignForm.KmsfLPatienttoHub}
                         onChange={(e) =>

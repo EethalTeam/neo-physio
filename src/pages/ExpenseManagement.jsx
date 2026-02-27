@@ -1186,6 +1186,9 @@ const ExpenseManagement = () => {
                 <Input
                   id="expenseAmount"
                   type="number"
+                  onWheel={(e) => {
+                    e.target.blur();
+                  }}
                   value={formState.expenseAmount}
                   onChange={(e) =>
                     handleFormChange("expenseAmount", e.target.value)

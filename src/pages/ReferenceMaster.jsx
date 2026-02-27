@@ -503,6 +503,9 @@ const ReferenceMaster = () => {
                   id="CommissionPercentage"
                   name="CommissionPercentage"
                   type="number"
+                  onWheel={(e) => {
+                    e.target.blur();
+                  }}
                   step="0.01"
                   min="0"
                   value={referenceForm.CommissionPercentage}
@@ -515,6 +518,9 @@ const ReferenceMaster = () => {
                   id="commissionAmount"
                   name="commissionAmount"
                   type="number"
+                  onWheel={(e) => {
+                    e.target.blur();
+                  }}
                   step="0.01"
                   min="0"
                   value={referenceForm.commissionAmount}

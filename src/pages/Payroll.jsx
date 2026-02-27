@@ -535,10 +535,7 @@ const Payroll = () => {
                 </thead>
                 <tbody>
                   {payrollUi
-                    .filter(
-                      (emp) =>
-                        emp.role !== "Admin" && emp.role !== "SuperAdmin",
-                    )
+                    .filter((emp) => emp.role !== "SuperAdmin")
                     .map((emp) => (
                       <tr
                         key={emp._id}

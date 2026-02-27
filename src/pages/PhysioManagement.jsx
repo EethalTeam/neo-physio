@@ -1125,6 +1125,9 @@ const PhysioManagement = () => {
                   <Input
                     name="physioSalary"
                     type="number"
+                    onWheel={(e) => {
+                      e.target.blur();
+                    }}
                     value={physioForm.physioSalary}
                     onChange={handleFormChange}
                   />
@@ -1134,6 +1137,9 @@ const PhysioManagement = () => {
                   <Input
                     name="physioProbation"
                     type="number"
+                    onWheel={(e) => {
+                      e.target.blur();
+                    }}
                     value={physioForm.physioProbation}
                     onChange={handleFormChange}
                   />
@@ -1177,6 +1183,9 @@ const PhysioManagement = () => {
                   <Input
                     name="physioPetrolAlw"
                     type="number"
+                    onWheel={(e) => {
+                      e.target.blur();
+                    }}
                     step="0.01"
                     value={physioForm.physioPetrolAlw}
                     onChange={handleFormChange}
@@ -1187,7 +1196,10 @@ const PhysioManagement = () => {
                   <Input
                     name="physioVehicleMTC"
                     type="number"
-                    step="0.01"
+                    onWheel={(e) => {
+                      e.target.blur();
+                    }}
+                    step="100"
                     value={physioForm.physioVehicleMTC}
                     onChange={handleFormChange}
                   />
@@ -1197,6 +1209,9 @@ const PhysioManagement = () => {
                   <Input
                     name="physioIncentive"
                     type="number"
+                    onWheel={(e) => {
+                      e.target.blur();
+                    }}
                     step="0.01"
                     value={physioForm.physioIncentive}
                     onChange={handleFormChange}

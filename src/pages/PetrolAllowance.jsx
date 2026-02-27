@@ -81,7 +81,8 @@ const PetrolAllowance = () => {
     to: endOfMonth(new Date()),
   });
   const [physioFilter, setPhysioFilter] = useState("all");
-
+  const [openPhysios, setOpenPhysios] = useState({});
+  const togglePhysio = (id) => setOpenPhysios((p) => ({ ...p, [id]: !p[id] }));
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [ratePerKm, setRatePerKm] = useState(10);
   const [monthlyReport, setMonthlyReport] = useState(null);
@@ -288,23 +289,98 @@ const PetrolAllowance = () => {
 
     return data;
   }, [dailyData, physioFilter, dateRange]);
-  const handleAdjustment = (date, physioId, amount) => {
-    setDailyData((prevData) =>
-      prevData.map((d) => {
-        if (d.date === date && d.physioId === physioId) {
-          const newAdjustment = d.manualKms + amount;
-          logAuditEvent(
-            `Manual adjustment of ${amount}km for ${physioId.physioName} on ${date}.`,
-          );
-          return {
-            ...d,
-            manualKms: newAdjustment,
-            finalDailyKms: d.finalDailyKms + amount,
-          };
-        }
-        return d;
+
+  const groupedByPhysio = useMemo(() => {
+    const map = new Map();
+
+    for (const item of filteredDailyData || []) {
+      const pid =
+        typeof item.physioId === "object" ? item.physioId?._id : item.physioId;
+
+      const physioName =
+        typeof item.physioId === "object"
+          ? item.physioId?.physioName
+          : "Not Assigned";
+
+      const prev = map.get(pid) || {
+        physioId: pid,
+        physioName,
+        totalCompleted: 0,
+        totalCancelled: 0,
+        totalManual: 0,
+        totalFinal: 0,
+        rows: [],
+      };
+
+      map.set(pid, {
+        ...prev,
+        totalCompleted: prev.totalCompleted + Number(item.completedKms || 0),
+        totalCancelled: prev.totalCancelled + Number(item.cancelledKms || 0),
+        totalManual: prev.totalManual + Number(item.manualKms || 0),
+        totalFinal: prev.totalFinal + Number(item.finalDailyKms || 0),
+        rows: [...prev.rows, item],
+      });
+    }
+
+    const result = Array.from(map.values());
+
+    result.forEach((g) => {
+      g.rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+    });
+
+    result.sort((a, b) =>
+      (a.physioName || "").localeCompare(b.physioName || ""),
+    );
+
+    return result;
+  }, [filteredDailyData]);
+
+  const handleAdjustment = async (row, delta) => {
+    const petrolAllowanceId = row._id;
+
+    setDailyData((prev) =>
+      prev.map((d) => {
+        if (d._id !== petrolAllowanceId) return d;
+
+        const newManual = Number(d.manualKms || 0) + delta;
+        return {
+          ...d,
+          manualKms: newManual,
+          finalDailyKms: Number(d.finalDailyKms || 0) + delta,
+        };
       }),
     );
+
+    try {
+      await apiRequest("PetrolAllowance/updateManualKms", {
+        method: "POST",
+        body: JSON.stringify({
+          petrolAllowanceId,
+          amount: Number(delta), // ✅ must be number (+1 / -1)
+        }),
+      });
+    } catch (err) {
+      console.log(err);
+
+      // rollback if failed
+      setDailyData((prev) =>
+        prev.map((d) => {
+          if (d._id !== petrolAllowanceId) return d;
+
+          return {
+            ...d,
+            manualKms: Number(d.manualKms || 0) - delta,
+            finalDailyKms: Number(d.finalDailyKms || 0) - delta,
+          };
+        }),
+      );
+
+      toast({
+        title: "Not Saved",
+        description: "Failed to save manual kms",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGenerateReport = () => {
@@ -469,9 +545,6 @@ const PetrolAllowance = () => {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left p-3 font-semibold text-gray-600">
-                      Date
-                    </th>
-                    <th className="text-left p-3 font-semibold text-gray-600">
                       Physiotherapist
                     </th>
                     <th className="text-center p-3 font-semibold text-gray-600">
@@ -483,77 +556,137 @@ const PetrolAllowance = () => {
                     <th className="text-center p-3 font-semibold text-gray-600">
                       Manual Adjustments
                     </th>
-                    <th className="text-right p-3 font-semibold text-gray-600">
+                    {/* <th className="text-right p-3 font-semibold text-gray-600">
                       Final Daily Kms
-                    </th>
+                    </th> */}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDailyData.length > 0 ? (
-                    filteredDailyData.map((item) => (
-                      <tr
-                        key={item._id}
-                        className="border-b hover:bg-gray-50/50"
-                      >
-                        <td className="p-3">
-                          {format(new Date(item.date), "PPP")}
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <User size={14} className="text-gray-500" />
-                            <span className="font-medium text-gray-800">
-                              {item.physioId?.physioName || "Not Assigned"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-3 text-center text-green-600 font-medium">
-                          {(item.completedKms || 0).toFixed(2)}
-                        </td>
-                        <td className="p-3 text-center text-red-600 font-medium">
-                          {(item.cancelledKms || 0).toFixed(2)}
-                        </td>
+                  {groupedByPhysio.length > 0 ? (
+                    groupedByPhysio.map((group) => {
+                      const isOpen = !!openPhysios[group.physioId];
 
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() =>
-                                handleAdjustment(item.date, item.physioId, -1)
-                              }
-                            >
-                              <MinusCircle size={14} />
-                            </Button>
-                            <span
-                              className={cn(
-                                "font-medium w-12 text-center",
-                                item.manualKms > 0 && "text-blue-600",
-                                item.manualKms < 0 && "text-orange-600",
-                              )}
-                            >
-                              {item.manualKms.toFixed(2)}
-                            </span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() =>
-                                handleAdjustment(item.date, item.physioId, 1)
-                              }
-                            >
-                              <PlusCircle size={14} />
-                            </Button>
-                          </div>
-                        </td>
-                        <td className="p-3 text-right font-bold text-lg">
-                          {item.finalDailyKms.toFixed(2)} km
-                        </td>
-                      </tr>
-                    ))
+                      return (
+                        <React.Fragment key={group.physioId}>
+                          {/* Parent (Physio Summary Row) */}
+                          <tr className="border-b bg-gray-50">
+                            <td className="p-3">
+                              <button
+                                type="button"
+                                onClick={() => togglePhysio(group.physioId)}
+                                className="flex items-center gap-2 font-semibold text-gray-800"
+                              >
+                                {/* Chevron */}
+                                <span
+                                  className={cn(
+                                    "inline-block transition-transform",
+                                    isOpen ? "rotate-90" : "rotate-0",
+                                  )}
+                                >
+                                  ▶
+                                </span>
+                                {group.physioName}
+                              </button>
+
+                              <p className="text-xs text-gray-500 mt-1">
+                                Total days: {group.rows.length}
+                              </p>
+                            </td>
+
+                            {/* Totals */}
+                            <td className="p-3 text-center text-green-700 font-semibold">
+                              {group.totalCompleted.toFixed(2)}
+                            </td>
+                            <td className="p-3 text-center text-red-700 font-semibold">
+                              {group.totalCancelled.toFixed(2)}
+                            </td>
+                            <td className="p-3 text-center font-semibold">
+                              {group.totalManual.toFixed(2)}
+                            </td>
+                            <td className="p-3 text-right font-bold text-lg">
+                              {group.totalFinal.toFixed(2)} km
+                            </td>
+                          </tr>
+
+                          {/* Expanded (Daily rows for that physio) */}
+                          {isOpen &&
+                            group.rows.map((item) => (
+                              <tr
+                                key={item._id}
+                                className="border-b hover:bg-gray-50/50"
+                              >
+                                <td className="p-3 pl-10 text-gray-700">
+                                  {format(new Date(item.date), "PPP")}
+                                </td>
+
+                                <td className="p-3 text-center text-green-600 font-medium">
+                                  {(item.completedKms || 0).toFixed(2)}
+                                </td>
+
+                                <td className="p-3 text-center text-red-600 font-medium">
+                                  {(item.cancelledKms || 0).toFixed(2)}
+                                </td>
+
+                                <td className="p-3 text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={() =>
+                                        handleAdjustment(
+                                          // item.date,
+                                          // item.physioId,
+                                          // -1,
+                                          item,
+                                          -1,
+                                        )
+                                      }
+                                    >
+                                      <MinusCircle size={14} />
+                                    </Button>
+
+                                    <span
+                                      className={cn(
+                                        "font-medium w-12 text-center",
+                                        item.manualKms > 0 && "text-blue-600",
+                                        item.manualKms < 0 && "text-orange-600",
+                                      )}
+                                    >
+                                      {Number(item.manualKms || 0).toFixed(2)}
+                                    </span>
+
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                      onClick={() =>
+                                        handleAdjustment(
+                                          // item.date,
+                                          // item.physioId,
+                                          // 1,
+                                          item,
+                                          1,
+                                        )
+                                      }
+                                    >
+                                      <PlusCircle size={14} />
+                                    </Button>
+                                  </div>
+                                </td>
+
+                                {/* <td className="p-3 text-right font-bold">
+                                  {Number(item.finalDailyKms || 0).toFixed(2)}{" "}
+                                  km
+                                </td> */}
+                              </tr>
+                            ))}
+                        </React.Fragment>
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan="6" className="text-center p-8 text-gray-500">
+                      <td colSpan="5" className="text-center p-8 text-gray-500">
                         No travel data found for the selected criteria.
                       </td>
                     </tr>
@@ -661,12 +794,12 @@ const PetrolAllowance = () => {
                     </div>
 
                     {/* FINAL DAILY KM */}
-                    <div className="mt-3 text-right">
+                    {/* <div className="mt-3 text-right">
                       <p className="text-xs text-gray-500">Final Daily Kms</p>
                       <p className="text-xl font-extrabold">
                         {item.finalDailyKms.toFixed(2)} km
                       </p>
-                    </div>
+                    </div> */}
                   </Card>
                 ))
               ) : (

@@ -1145,6 +1145,9 @@ const MachineryMaster = () => {
               <Input
                 name="TotalStockCount"
                 type="number"
+                onWheel={(e) => {
+                  e.target.blur();
+                }}
                 min="1"
                 value={machineForm.TotalStockCount}
                 onChange={handleFormChange}
@@ -1263,6 +1266,9 @@ const MachineryMaster = () => {
                       <Label>Count</Label>
                       <Input
                         type="number"
+                        onWheel={(e) => {
+                          e.target.blur();
+                        }}
                         min="1"
                         max={machineForm.TotalStockCount}
                         value={assignCount}
@@ -1335,6 +1341,9 @@ const MachineryMaster = () => {
                       <Label>Count</Label>
                       <Input
                         type="number"
+                        onWheel={(e) => {
+                          e.target.blur();
+                        }}
                         min="1"
                         max={machineForm.TotalStockCount}
                         value={assignCount}

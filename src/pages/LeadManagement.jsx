@@ -828,6 +828,9 @@ const LeadManagement = () => {
                 <Label>Age</Label>
                 <Input
                   type="number"
+                  onWheel={(e) => {
+                    e.target.blur();
+                  }}
                   name="leadAge"
                   // maxLength={2}
                   value={leadForm.leadAge}

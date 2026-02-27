@@ -575,6 +575,9 @@ const Credit = () => {
                 onChange={(e) =>
                   setPayForm((p) => ({ ...p, receivedAmount: e.target.value }))
                 }
+                onWheel={(e) => {
+                  e.target.blur();
+                }}
                 placeholder="Enter received amount"
               />
             </div>
@@ -653,6 +656,9 @@ const Credit = () => {
                 <Label>Credit Amount</Label>
                 <Input
                   type="number"
+                  onWheel={(e) => {
+                    e.target.blur();
+                  }}
                   name="CreditAmount"
                   value={form.CreditAmount}
                   onChange={handleChange}

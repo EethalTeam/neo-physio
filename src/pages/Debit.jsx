@@ -591,6 +591,9 @@ const Debit = () => {
                 <Label>Debit Amount</Label>
                 <Input
                   type="number"
+                  onWheel={(e) => {
+                    e.target.blur();
+                  }}
                   name="DebitAmount"
                   value={form.DebitAmount}
                   onChange={handleChange}

@@ -2483,6 +2483,9 @@ const SessionManagement = () => {
               <Input
                 id="cancelledKms"
                 type="number"
+                onWheel={(e) => {
+                  e.target.blur();
+                }}
                 value={cancelledKms}
                 onChange={(e) => setCancelledKms(e.target.value)}
                 placeholder="e.g., 5"
