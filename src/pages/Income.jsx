@@ -317,10 +317,12 @@ const Income = () => {
     }
   };
 
+  // useEffect(() => {
+  //   if (activeTab === "bill") fetchBills();
+  // }, [activeTab]);
   useEffect(() => {
-    if (activeTab === "bill") fetchBills();
-  }, [activeTab]);
-
+    fetchBills(); // ✅ bills needed for both tabs
+  }, [selectedMonth, selectedYear, selectedBillMonth, selectedBillYear]);
   useEffect(() => {
     if (activeTab === "bill") fetchBills();
   }, [selectedBillMonth, selectedBillYear]);
@@ -645,6 +647,22 @@ const Income = () => {
 
     doc.save(fileName);
   };
+  const billedAmountFromBills = useMemo(() => {
+    return bills.reduce((sum, b) => {
+      const d = new Date(b.startDate); // you already use startDate in bill tab
+      if (isNaN(d.getTime())) return sum;
+
+      const sameMonth =
+        d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+
+      if (!sameMonth) return sum;
+
+      return sum + Number(b.NetBilledAmount || 0);
+    }, 0);
+  }, [bills, selectedMonth, selectedYear]);
+  const unbilledAmountFromIncome = useMemo(() => {
+    return Math.max(totalIncomeByFilter - billedAmountFromBills, 0);
+  }, [totalIncomeByFilter, billedAmountFromBills]);
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -663,10 +681,20 @@ const Income = () => {
             <CardContent>
               <div className="md:flex flex-wrap justify-between items-center w-full gap-2 grid grid-cols-1">
                 {/* Left */}
-                <div className="flex flex-col gap-2 text-sm font-semibold md:flex-row md:items-center md:gap-8">
-                  <div className="flex w-full justify-between md:w-[220px]">
+                <div className="flex flex-col gap-2 text-sm font-semibold md:flex-row md:gap-8">
+                  <div className="flex justify-between md:w-[220px]">
                     <span>Total Income:</span>
                     <span>₹{totalIncomeByFilter.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between md:w-[220px] text-green-700">
+                    <span>Billed Amount:</span>
+                    <span>₹{billedAmountFromBills.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between md:w-[220px] text-red-600">
+                    <span>Unbilled Amount:</span>
+                    <span>₹{unbilledAmountFromIncome.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -996,7 +1024,9 @@ const Income = () => {
                             <td className="p-2 border text-center whitespace-nowrap bg-[#ED3421]">
                               ₹
                               {Number(
-                                b?.NetBilledAmount - b?.ReceivedAmount || 0,
+                                b?.NetBilledAmount -
+                                  (b?.ReceivedAmount + b?.DeductedFromAdvance ||
+                                    0),
                               ).toFixed(2)}
                             </td>
                             <td className="p-2 border whitespace-nowrap">

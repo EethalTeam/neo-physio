@@ -53,6 +53,7 @@ const SuperAdminDashboard = () => {
     monthlyRevenue: 0,
     physio: 0,
     sessionCompleted: 0,
+    avgPatientPerPhysio: 0,
   });
 
   const getAllDashBoard = async (filterData = {}) => {
@@ -106,19 +107,20 @@ const SuperAdminDashboard = () => {
 
     setDateFilter(payload);
   };
-  useEffect(() => {
-    const payload = { ...dateFilter };
-    if (payload.fromDate && !payload.toDate) payload.toDate = payload.fromDate;
+  // useEffect(() => {
+  //   const payload = { ...dateFilter };
+  //   if (payload.fromDate && !payload.toDate) payload.toDate = payload.fromDate;
 
-    console.log("Sending payload to getAllDashBoard:", payload);
+  //   console.log("Sending payload to getAllDashBoard:", payload);
 
-    getAllDashBoard(payload);
-    fetchIncomeByDate(payload);
-  }, [dateFilter]);
+  //   getAllDashBoard(payload);
+  //   fetchIncomeByDate(payload);
+  // }, [dateFilter]);
   const resetFilter = () => {
     setDateFilter({ fromDate: "", toDate: "" });
   };
-
+  const avgPatient =
+    stats.physio > 0 ? Number((stats.patient / stats.physio).toFixed(1)) : 0;
   const statCards = [
     {
       title: "Total Leads",
@@ -127,6 +129,7 @@ const SuperAdminDashboard = () => {
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
+
     {
       title: "Total Patients",
       value: stats.patient,
@@ -154,6 +157,13 @@ const SuperAdminDashboard = () => {
       icon: DollarSign,
       color: "text-emerald-600",
       bgColor: "bg-emerald-100",
+    },
+    {
+      title: "Avg Patients / Physio",
+      value: avgPatient,
+      icon: Users,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-100",
     },
     {
       title: "Avg / Session",
