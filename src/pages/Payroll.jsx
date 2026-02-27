@@ -966,6 +966,14 @@ const Payroll = () => {
                       </tr>
 
                       <tr className="border-b">
+                        <td className="p-2 text-600">No of Leave Days</td>
+                        <td className="p-2 text-right text-gray-600">
+                          {Number(
+                            selectedPayslip?.leaveDays || 0,
+                          ).toLocaleString()}
+                        </td>
+                      </tr>
+                      <tr className="border-b">
                         <td className="p-2 text-red-600">Leave Deduction</td>
                         <td className="p-2 text-right text-red-600">
                           - ₹
