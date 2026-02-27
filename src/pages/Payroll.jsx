@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 import {
   AlertDialog,
@@ -59,7 +61,84 @@ const Payroll = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isPayslipOpen, setIsPayslipOpen] = useState(false);
   const [selectedPayslip, setSelectedPayslip] = useState(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editRow, setEditRow] = useState(null);
 
+  const [editForm, setEditForm] = useState({
+    basicSalary: 0,
+    vehicleMaintanance: 0,
+    petrolKm: 0,
+    petrolAmount: 0,
+    incentive: 0,
+    leaveDays: 0,
+    deducted: 0,
+    ESI: 0,
+    PF: 0,
+  });
+  const openEdit = (emp) => {
+    setEditRow(emp);
+
+    setEditForm({
+      basicSalary: Number(emp.basicSalary || 0),
+      vehicleMaintanance: Number(emp.vehicleMaintanance || 0),
+      petrolKm: Number(emp.petrolKm || 0),
+      petrolAmount: Number(emp.petrolAmount || 0),
+      incentive: Number(emp.incentive || 0),
+      leaveDays: Number(emp.leaveDays || 0),
+      deducted: Number(emp.deducted || 0),
+      ESI: Number(emp.ESI || 0),
+      PF: Number(emp.PF || 0),
+    });
+
+    setIsEditOpen(true);
+  };
+  const onEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
+  };
+  const saveEdit = async () => {
+    if (!editRow?._id) {
+      toast({
+        title: "Error",
+        description: "Payroll id missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await apiRequest("Payroll/updatePayroll", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: editRow._id,
+          basicSalary: Number(editForm.basicSalary || 0),
+          vehicleMaintanance: Number(editForm.vehicleMaintanance || 0),
+          PetrolKm: Number(editForm.petrolKm || 0),
+          PetrolAmount: Number(editForm.petrolAmount || 0),
+          Incentive: Number(editForm.incentive || 0),
+          NoofLeave: Number(editForm.leaveDays || 0),
+          TotalAmountDeducted: Number(editForm.deducted || 0),
+          ESI: Number(editForm.ESI || 0),
+          PF: Number(editForm.PF || 0),
+        }),
+      });
+
+      toast({ title: "Updated", description: "Payroll updated successfully" });
+
+      setIsEditOpen(false);
+      setEditRow(null);
+
+      // refresh table from DB
+      await getPayrolls();
+    } catch (err) {
+      console.log(err);
+      toast({
+        title: "Update Failed",
+        description: err?.message || "Could not update payroll",
+        variant: "destructive",
+      });
+    }
+  };
   // useEffect(() => {
   //   Promise.all([
   //     fetch("/mockdata/physios.json").then((res) => res.json()),
@@ -580,7 +659,7 @@ const Payroll = () => {
                         </td>
                         <td className="p-3">
                           <div className="flex items-center justify-center gap-2">
-                            {/* {Permissions.isEdit && (
+                            {Permissions.isEdit && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -588,7 +667,7 @@ const Payroll = () => {
                               >
                                 <Edit size={14} className="m-2" />
                               </Button>
-                            )} */}
+                            )}
                             {Permissions.isDelete && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -696,15 +775,15 @@ const Payroll = () => {
                         </span>
                       </div>
                       <div className="flex items-center justify-center gap-2">
-                        {/* {Permissions.isEdit && (
+                        {Permissions.isEdit && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => openEdit(d)}
+                            onClick={() => openEdit(emp)}
                           >
                             <Edit size={14} className="m-2" />
                           </Button>
-                        )} */}
+                        )}
                         {Permissions.isDelete && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -982,6 +1061,124 @@ const Payroll = () => {
             <Button onClick={handleDownload}>
               <Download size={16} className="mr-2" /> Download PDF
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="w-[95vw] max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit Payroll</DialogTitle>
+            <DialogDescription>
+              {editRow?.name} • {months[selectedMonth]} {selectedYear}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Basic Salary</Label>
+              <Input
+                name="basicSalary"
+                type="number"
+                value={editForm.basicSalary}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Vehicle Maintenance</Label>
+              <Input
+                name="vehicleMaintanance"
+                type="number"
+                value={editForm.vehicleMaintanance}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Petrol Km</Label>
+              <Input
+                name="petrolKm"
+                type="number"
+                value={editForm.petrolKm}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Petrol Amount</Label>
+              <Input
+                name="petrolAmount"
+                type="number"
+                value={editForm.petrolAmount}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Incentive</Label>
+              <Input
+                name="incentive"
+                type="number"
+                value={editForm.incentive}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>No. of Leave</Label>
+              <Input
+                name="leaveDays"
+                type="number"
+                value={editForm.leaveDays}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Deducted Amount</Label>
+              <Input
+                name="deducted"
+                type="number"
+                value={editForm.deducted}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>ESI</Label>
+              <Input
+                name="ESI"
+                type="number"
+                value={editForm.ESI}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>PF</Label>
+              <Input
+                name="PF"
+                type="number"
+                value={editForm.PF}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit}>Save</Button>
           </div>
         </DialogContent>
       </Dialog>
