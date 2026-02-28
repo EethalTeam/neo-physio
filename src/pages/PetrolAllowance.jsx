@@ -702,106 +702,158 @@ const PetrolAllowance = () => {
           <CardHeader>
             <CardTitle className="text-xl">Daily Kms Summary</CardTitle>
             <CardDescription>
-              Editable summary of daily travel for each physiotherapist.
+              Grouped summary of daily travel for each physiotherapist.
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <div className=" space-y-4 mt-4">
-              {filteredDailyData.length > 0 ? (
-                filteredDailyData.map((item) => (
-                  <Card
-                    key={item._id}
-                    className="p-4 rounded-2xl shadow border"
-                  >
-                    {/* DATE */}
-                    <div className="mb-2">
-                      <p className="text-xs text-gray-500">Date</p>
-                      <p className="text-base font-bold">
-                        {format(new Date(item.date), "PP")}
-                      </p>
-                    </div>
+            <div className="space-y-4">
+              {groupedByPhysio.length > 0 ? (
+                groupedByPhysio.map((group) => {
+                  const isOpen = !!openPhysios[group.physioId];
 
-                    {/* PHYSIO */}
-                    <div className="mb-3">
-                      <p className="text-xs text-gray-500">Physiotherapist</p>
-                      <div className="flex items-center gap-2">
-                        <User size={14} className="text-gray-500" />
-                        <span className="font-medium text-gray-800">
-                          {item.physioId?.physioName || "Not Assigned"}
-                        </span>
-                      </div>
-                    </div>
+                  return (
+                    <Card
+                      key={group.physioId}
+                      className="rounded-2xl border shadow-sm"
+                    >
+                      {/* Physio Summary Header */}
+                      <div className="p-4 flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <User size={16} className="text-gray-500" />
+                            <p className="font-bold text-gray-800">
+                              {group.physioName}
+                            </p>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Total days: {group.rows.length}
+                          </p>
 
-                    {/* KM SUMMARY */}
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="p-2 bg-green-50 rounded-lg">
-                        <p className="text-xs text-green-700 font-semibold">
-                          Completed
-                        </p>
-                        <p className="text-lg font-normal text-green-600">
-                          {item.completedKms.toFixed(2)} km
-                        </p>
-                      </div>
+                          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                            <div className="p-2 bg-green-50 rounded-lg text-center">
+                              <p className="text-green-700 font-semibold">
+                                Completed
+                              </p>
+                              <p className="text-green-700">
+                                {group.totalCompleted.toFixed(2)}
+                              </p>
+                            </div>
 
-                      <div className="p-2 bg-red-50 rounded-lg">
-                        <p className="text-xs text-red-700 font-semibold">
-                          Canceled
-                        </p>
-                        <p className="text-lg font-bold text-red-600">
-                          {item.canceledKms.toFixed(2)} km
-                        </p>
-                      </div>
+                            <div className="p-2 bg-red-50 rounded-lg text-center">
+                              <p className="text-red-700 font-semibold">
+                                Canceled
+                              </p>
+                              <p className="text-red-700">
+                                {group.totalCancelled.toFixed(2)}
+                              </p>
+                            </div>
 
-                      <div className="p-2 bg-blue-50 rounded-lg col-span-2">
-                        <p className="text-xs text-blue-700 font-semibold">
-                          Manual Adjustment
-                        </p>
-
-                        <div className="flex items-center justify-between mt-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() =>
-                              handleAdjustment(item.date, item.physioId, -1)
-                            }
-                          >
-                            <MinusCircle size={14} />
-                          </Button>
-
-                          <span
-                            className={cn(
-                              "font-medium text-lg",
-                              item.manualKms > 0 && "text-blue-600",
-                              item.manualKms < 0 && "text-orange-600",
-                            )}
-                          >
-                            {item.manualKms.toFixed(2)} km
-                          </span>
-
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() =>
-                              handleAdjustment(item.date, item.physioId, 1)
-                            }
-                          >
-                            <PlusCircle size={14} />
-                          </Button>
+                            <div className="p-2 bg-blue-50 rounded-lg text-center">
+                              <p className="text-blue-700 font-semibold">
+                                Manual
+                              </p>
+                              <p className="text-blue-700">
+                                {group.totalManual.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    {/* FINAL DAILY KM */}
-                    {/* <div className="mt-3 text-right">
-                      <p className="text-xs text-gray-500">Final Daily Kms</p>
-                      <p className="text-xl font-extrabold">
-                        {item.finalDailyKms.toFixed(2)} km
-                      </p>
-                    </div> */}
-                  </Card>
-                ))
+                        {/* Expand Button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => togglePhysio(group.physioId)}
+                          className="shrink-0"
+                        >
+                          {isOpen ? "Hide" : "View"}
+                        </Button>
+                      </div>
+
+                      {/* Expanded Daily Cards */}
+                      {isOpen && (
+                        <div className="px-4 pb-4 space-y-3">
+                          {group.rows.map((item) => (
+                            <Card
+                              key={item._id}
+                              className="p-4 rounded-2xl shadow border"
+                            >
+                              {/* DATE */}
+                              <div className="mb-2">
+                                <p className="text-xs text-gray-500">Date</p>
+                                <p className="text-base font-bold">
+                                  {format(new Date(item.date), "PP")}
+                                </p>
+                              </div>
+
+                              {/* KM SUMMARY */}
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="p-2 bg-green-50 rounded-lg">
+                                  <p className="text-xs text-green-700 font-semibold">
+                                    Completed
+                                  </p>
+                                  <p className="text-lg font-normal text-green-600">
+                                    {Number(item.completedKms || 0).toFixed(2)}{" "}
+                                    km
+                                  </p>
+                                </div>
+
+                                <div className="p-2 bg-red-50 rounded-lg">
+                                  <p className="text-xs text-red-700 font-semibold">
+                                    Canceled
+                                  </p>
+                                  <p className="text-lg font-bold text-red-600">
+                                    {Number(item.cancelledKms || 0).toFixed(2)}{" "}
+                                    km
+                                  </p>
+                                </div>
+
+                                {/* Manual Adjustment */}
+                                <div className="p-2 bg-blue-50 rounded-lg col-span-2">
+                                  <p className="text-xs text-blue-700 font-semibold">
+                                    Manual Adjustment
+                                  </p>
+
+                                  <div className="flex items-center justify-between mt-1">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => handleAdjustment(item, -1)} // ✅ correct
+                                    >
+                                      <MinusCircle size={16} />
+                                    </Button>
+
+                                    <span
+                                      className={cn(
+                                        "font-medium text-lg",
+                                        item.manualKms > 0 && "text-blue-600",
+                                        item.manualKms < 0 && "text-orange-600",
+                                      )}
+                                    >
+                                      {Number(item.manualKms || 0).toFixed(2)}{" "}
+                                      km
+                                    </span>
+
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8"
+                                      onClick={() => handleAdjustment(item, 1)} // ✅ correct
+                                    >
+                                      <PlusCircle size={16} />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })
               ) : (
                 <Card className="p-6 text-center text-gray-500">
                   No travel data found for the selected criteria.
