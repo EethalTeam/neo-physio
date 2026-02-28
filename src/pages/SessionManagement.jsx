@@ -678,7 +678,8 @@ const SessionManagement = () => {
   const getSession = async (date) => {
     try {
       const storedRole = localStorage.getItem("userRole");
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toLocaleDateString("en-CA");
+      // console.log(today);
       let Today;
       if (date) {
         Today = date;
@@ -711,12 +712,13 @@ const SessionManagement = () => {
       setFilteredSessions(merged);
       // console.log(response, "response response");
       // if (!Array.isArray(response)) return;
-      console.log(response, "response");
+      // console.log(response, "response");
       const msgs = response.message;
       setMsg(msgs);
       // const Data = response.incompleteData || response || [];
       // setData(Data);
-      console.log(Data, "Data");
+      // console.log(Data, "Data");
+
       // setSessions(Data);
       // setFilteredSessions(Data);
       // //Build session count map
@@ -741,7 +743,7 @@ const SessionManagement = () => {
       });
 
       setSessionCountMap(countMap);
-      console.log("FilteredSessions", "filteredSessions", filteredSessions);
+      // console.log("FilteredSessions", "filteredSessions", filteredSessions);
       const todaySessions = Data.filter((s) => {
         if (!s.sessionDate || !s.sessionTime) return false;
 
@@ -765,7 +767,7 @@ const SessionManagement = () => {
           const bTime = buildSessionDateTime(b);
           return aTime - bTime;
         });
-      console.log(todaySessions, "todaySessions");
+      // console.log(todaySessions, "todaySessions");
     } catch (error) {
       console.error("Error fetching sessions:", error);
     }
@@ -777,7 +779,7 @@ const SessionManagement = () => {
         body: JSON.stringify({}),
       });
 
-      console.log(response, "getphysiocount response");
+      // console.log(response, "getphysiocount response");
       setgetphyioCounts(response.data);
     } catch (error) {
       console.error("Error fetching sessions:", error);
@@ -785,7 +787,7 @@ const SessionManagement = () => {
   };
 
   const handleSessionAction = async (session, action) => {
-    console.log("handleSessionAction:", session?._id, action);
+    // console.log("handleSessionAction:", session?._id, action);
 
     try {
       const sessionId = session?._id;
@@ -803,7 +805,7 @@ const SessionManagement = () => {
 
       if (action === "Attended") {
         const allowed = canStartByPreviousIndex(filteredSessions, session);
-        console.log("allowed to start?", allowed);
+        // console.log("allowed to start?", allowed);
 
         if (!allowed) {
           toast({
@@ -819,12 +821,12 @@ const SessionManagement = () => {
           sessionFromTime: CovertTdyTim(),
           action: "Attended",
         });
-        console.log("SessionStart res:", res);
+        // console.log("SessionStart res:", res);
       }
 
       if (action === "Scheduled") {
         const res = await SessionStop({ _id: sessionId, action: "Scheduled" });
-        console.log("SessionStop res:", res);
+        // console.log("SessionStop res:", res);
       }
 
       // update UI after success
@@ -964,7 +966,7 @@ const SessionManagement = () => {
 
     //Targeted area required
 
-    console.log(feedback, "Validation passed");
+    // console.log(feedback, "Validation passed");
     handleActionEnd(feedback, "Completed", sessionId);
   };
 
@@ -1202,7 +1204,7 @@ const SessionManagement = () => {
       throw error;
     }
   };
-  console.log("Session invompleted", sessions);
+  // console.log("Session invompleted", sessions);
   return (
     <div className="md:space-y-6  space-y-10">
       <motion.div
@@ -2242,7 +2244,7 @@ const SessionManagement = () => {
                 <RadioGroup
                   value={feedback.homeExerciseAssigned}
                   onValueChange={(v) => {
-                    console.log(v, "v in home exercise");
+                    // console.log(v, "v in home exercise");
                     setFeedback({ ...feedback, homeExerciseAssigned: v });
                   }}
                   className="flex gap-4"
