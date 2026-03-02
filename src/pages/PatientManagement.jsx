@@ -2931,7 +2931,7 @@ const PatientManagement = () => {
                         <Label>Muscle Strength (0-5)</Label>
                         <Input
                           name="muscleStrength"
-                          type="number"
+                          type="text"
                           onWheel={(e) => {
                             e.target.blur();
                           }}

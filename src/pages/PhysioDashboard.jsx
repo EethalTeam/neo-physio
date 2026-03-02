@@ -54,13 +54,28 @@ const PhysioDashboard = () => {
         }),
       });
 
-      // Fetch patients (already filtered by physio on backend if possible)
       const patientRes = await apiRequest("Patient/getAllPatient", {
         method: "POST",
         body: JSON.stringify({}),
       });
 
-      processDashboardData(sessionRes, patientRes);
+      const sessionsArr = Array.isArray(sessionRes)
+        ? sessionRes
+        : Array.isArray(sessionRes?.data)
+          ? sessionRes.data
+          : Array.isArray(sessionRes?.sessions)
+            ? sessionRes.sessions
+            : [];
+
+      const patientsArr = Array.isArray(patientRes)
+        ? patientRes
+        : Array.isArray(patientRes?.data)
+          ? patientRes.data
+          : Array.isArray(patientRes?.patients)
+            ? patientRes.patients
+            : [];
+
+      processDashboardData(sessionsArr, patientsArr);
     } catch (err) {
       console.error("Dashboard load failed:", err);
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, User, LogOut, Menu } from "lucide-react";
+import { Bell, User, LogOut, Menu, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { config } from "./CustomComponents/config";
@@ -49,9 +49,16 @@ const Header = ({ toggleSidebar }) => {
 
   const handleNotificationAction = async (notification, action) => {
     try {
+      const meta = notification?.meta || {};
       const res = await apiRequest("Notifications/updateNotificationStatus", {
         method: "POST",
-        body: JSON.stringify({ notificationId: notification._id, action }),
+        body: JSON.stringify({
+          notificationId: notification._id,
+          action,
+          patientId: meta.patientId,
+          physioId: meta.physioId,
+          date: meta.date,
+        }),
       });
 
       if (res) {
@@ -230,52 +237,61 @@ const Header = ({ toggleSidebar }) => {
                 userNotifications.map((notification) => (
                   <div key={notification._id} className="px-2 py-1.5 text-sm">
                     <p className="mb-2">{notification.message}</p>
-                    {(notification.type === "permission-request" ||
-                      notification.type === "leave-request" ||
-                      notification.type === "task-complete") &&
-                      notification.fromEmployeeId !== user._id &&
-                      notification.status !== "approved" &&
-                      notification.status !== "rejected" && (
-                        <div className="flex gap-2 mt-1">
-                          <Button
-                            size="sm"
-                            className="bg-green-500/80 hover:bg-green-500 h-7"
-                            onClick={() =>
-                              handleNotificationAction(notification, "approve")
-                            }
-                          >
-                            <Check className="w-4 h-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-red-500/80 hover:bg-red-500 h-7"
-                            onClick={() =>
-                              handleNotificationAction(notification, "reject")
-                            }
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      )}
-                    {notification.type !== "permission-request" &&
+                    {
+                      // notification.type === "permission-request" ||
+                      notification.type !== "Petrol-Allowance" ||
+                        // notification.type === "task-complete") &&
+                        (notification.fromEmployeeId !== user._id &&
+                          notification.status !== "approved" &&
+                          notification.status !== "rejected" && (
+                            <div className="flex gap-2 mt-1">
+                              <Button
+                                size="sm"
+                                className="bg-green-500/80 hover:bg-green-500 h-7"
+                                onClick={() =>
+                                  handleNotificationAction(
+                                    notification,
+                                    "approve",
+                                  )
+                                }
+                              >
+                                <Check className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-red-500/80 hover:bg-red-500 h-7"
+                                onClick={() =>
+                                  handleNotificationAction(
+                                    notification,
+                                    "reject",
+                                  )
+                                }
+                              >
+                                <X className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          ))
+                    }
+                    {(notification.type !== "permission-request" &&
                       notification.type !== "leave-request" &&
-                      notification.type !== "task-complete" && (
-                        <div className="flex gap-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7"
-                            onClick={() => markAsRead(notification._id)}
-                          >
-                            Mark as read
-                          </Button>
-                          <p>
-                            {new Date(notification.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                      )}
+                      notification.type !== "task-complete" &&
+                      notification.type === "Petrol-Allowance") || (
+                      <div className="flex gap-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7"
+                          onClick={() => markAsRead(notification._id)}
+                        >
+                          Mark as read
+                        </Button>
+                        <p>
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (

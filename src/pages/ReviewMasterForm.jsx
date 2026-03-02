@@ -117,6 +117,7 @@ const ReviewMasterForm = () => {
     sessionId: null,
   });
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditDate, setIsEditDate] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
   const [sessionForm, setSessionForm] = useState(initialFormState);
   const [feedback, setFeedback] = useState(initialFeedbackState);
@@ -494,6 +495,42 @@ const ReviewMasterForm = () => {
     });
     setIsFormOpen(true);
   };
+  const updateReviewDate = async () => {
+    if (!editingReview || !sessionForm.sessionDate) {
+      toast({
+        title: "Error",
+        description: "Please select a valid date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await apiRequest("Review/updateReview", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: editingReview._id,
+          reviewDate: sessionForm.sessionDate,
+        }),
+      });
+
+      toast({
+        title: "Success",
+        description: "Review date updated successfully",
+      });
+
+      setIsEditDate(false);
+      setEditingReview(null);
+      getReviews(); // refresh table
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update review date",
+        variant: "destructive",
+      });
+    }
+  };
   const getReviewStatus = async (data) => {
     try {
       const response = await apiRequest("ReviewStatus/getAllReviewStatus", {
@@ -711,6 +748,71 @@ const ReviewMasterForm = () => {
                           <div className="flex space-x-1">
                             {user?.role !== "physio" && (
                               <>
+                                {/* ✅ Review Date icon button */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingReview(session);
+                                    setSessionForm((p) => ({
+                                      ...p,
+                                      sessionDate: session.reviewDate
+                                        ? new Date(session.reviewDate)
+                                        : "",
+                                    }));
+                                    setIsEditDate(true);
+                                  }}
+                                >
+                                  <CalendarIcon className="h-4 w-4" />
+                                </Button>
+
+                                {/* Edit */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditReview(session)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+
+                                {/* Delete */}
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Are you sure?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the review.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() =>
+                                          handleDeleteReview(session._id)
+                                        }
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        {/* <td className="p-2">
+                          <div className="flex space-x-1">
+                            {user?.role !== "physio" && (
+                              <>
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -750,7 +852,7 @@ const ReviewMasterForm = () => {
                               </>
                             )}
                           </div>
-                        </td>
+                        </td> */}
                       </tr>
                     ))}
                   </tbody>
@@ -1175,7 +1277,60 @@ const ReviewMasterForm = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={isEditDate} onOpenChange={setIsEditDate}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Review Date</DialogTitle>
+            <DialogDescription>
+              Select a new date and submit to update.
+            </DialogDescription>
+          </DialogHeader>
 
+          <div className="space-y-4">
+            {/* Date Picker */}
+            <div className="space-y-2">
+              <Label>Review Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !sessionForm.sessionDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {sessionForm.sessionDate ? (
+                      format(sessionForm.sessionDate, "PPP")
+                    ) : (
+                      <span>Select date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={sessionForm.sessionDate}
+                    onSelect={(date) =>
+                      setSessionForm((p) => ({ ...p, sessionDate: date }))
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Buttons */}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDate(false)}>
+                Cancel
+              </Button>
+              <Button onClick={updateReviewDate}>Update Date</Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
@@ -1233,10 +1388,12 @@ const ReviewMasterForm = () => {
             </div>
             <div className="space-y-2">
               <Label>Review Date</Label>
+
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    type="button"
+                    variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !sessionForm.sessionDate && "text-muted-foreground",
@@ -1250,7 +1407,8 @@ const ReviewMasterForm = () => {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={sessionForm.sessionDate}

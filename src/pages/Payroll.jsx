@@ -107,32 +107,32 @@ const Payroll = () => {
     }
 
     try {
+      // send only what user edits (but here we send all inputs safely)
+      const payload = {
+        _id: editRow._id,
+        basicSalary: Number(editForm.basicSalary ?? 0),
+        vehicleMaintanance: Number(editForm.vehicleMaintanance ?? 0),
+
+        PetrolKm: Number(editForm.petrolKm ?? 0),
+        PetrolAmount: Number(editForm.petrolAmount ?? 0), // keep if you allow manual edit
+        Incentive: Number(editForm.incentive ?? 0),
+
+        NoofLeave: Number(editForm.leaveDays ?? 0),
+
+        ManualDeduction: Number(editForm.deducted ?? 0), // your "Deducted Amount" input = ManualDeduction
+
+        ESI: Number(editForm.ESI ?? 0),
+        PF: Number(editForm.PF ?? 0),
+      };
+
       await apiRequest("Payroll/updatePayroll", {
         method: "POST",
-        body: JSON.stringify({
-          _id: editRow._id,
-          basicSalary: Number(editForm.basicSalary || 0),
-          vehicleMaintanance: Number(editForm.vehicleMaintanance || 0),
-          PetrolKm: Number(editForm.petrolKm || 0),
-          PetrolAmount: Number(editForm.petrolAmount || 0),
-          Incentive: Number(editForm.incentive || 0),
-
-          NoofLeave: Number(editForm.leaveDays || 0),
-
-          // ✅ admin typed
-          ManualDeduction: Number(editForm.deducted || 0),
-
-          ESI: Number(editForm.ESI || 0),
-          PF: Number(editForm.PF || 0),
-        }),
+        body: JSON.stringify(payload),
       });
 
       toast({ title: "Updated", description: "Payroll updated successfully" });
-
       setIsEditOpen(false);
       setEditRow(null);
-
-      // refresh table from DB
       await getPayrolls();
     } catch (err) {
       console.log(err);
@@ -457,6 +457,10 @@ const Payroll = () => {
       p.payrRollMonth === selectedMonthName &&
       Number(p.payrRollYear) === Number(selectedYear),
   );
+  const totalNetPay = dbPayrolls.reduce(
+    (sum, p) => sum + Number(p.NetSalary || 0),
+    0,
+  );
   const payrollUi = payrollFromDb.map((p) => ({
     _id: p._id,
     physioId: p.physioId?._id || p.physioId,
@@ -478,7 +482,7 @@ const Payroll = () => {
     petrolAmount: p.PetrolAmount ?? 0,
     incentive: p.Incentive ?? 0,
     leaveDays: p.NoofLeave ?? 0,
-    deducted: p.TotalAmountDeducted ?? 0,
+    // deducted: p.TotalAmountDeducted ?? 0,
     ESI: p.ESI ?? 0,
     PF: p.PF ?? 0,
 
@@ -578,6 +582,12 @@ const Payroll = () => {
               </SelectContent>
             </Select>
           </div>
+          <div className="ml-auto">
+            <p className="text-xs text-gray-500">Total Net Salary</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+              ₹{Number(totalNetPay || 0).toLocaleString("en-IN")}
+            </h2>
+          </div>
         </CardContent>
       </Card>
 
@@ -654,25 +664,25 @@ const Payroll = () => {
                           ₹{Number(emp.netPay || 0).toLocaleString()}
                         </td>
                         <td className="p-3 text-center">
-                          <Button
-                            size="sm"
-                            onClick={() => handleViewPayslip(emp)}
-                          >
-                            <FileSpreadsheet size={14} className="mr-2" /> View
-                            Payslip
-                          </Button>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-2 flex-wrap">
+                            <Button
+                              size="sm"
+                              onClick={() => handleViewPayslip(emp)}
+                            >
+                              <FileSpreadsheet size={14} className="mr-2" />{" "}
+                              View Payslip
+                            </Button>
+
                             {Permissions.isEdit && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => openEdit(emp)}
                               >
-                                <Edit size={14} className="m-2" />
+                                <Edit size={14} />
                               </Button>
                             )}
+
                             {Permissions.isDelete && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -683,10 +693,10 @@ const Payroll = () => {
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>
-                                      Delete patient?
+                                      Delete payroll?
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      This will permanently delete the Debit.
+                                      This will permanently delete the payroll.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
