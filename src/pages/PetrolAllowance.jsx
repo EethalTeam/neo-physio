@@ -83,6 +83,8 @@ const PetrolAllowance = () => {
   const [physioFilter, setPhysioFilter] = useState("all");
   const [openPhysios, setOpenPhysios] = useState({});
   const togglePhysio = (id) => setOpenPhysios((p) => ({ ...p, [id]: !p[id] }));
+  const [openDays, setOpenDays] = useState({});
+  const toggleDay = (id) => setOpenDays((p) => ({ ...p, [id]: !p[id] }));
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [ratePerKm, setRatePerKm] = useState(10);
   const [monthlyReport, setMonthlyReport] = useState(null);
@@ -556,11 +558,12 @@ const PetrolAllowance = () => {
                     <th className="text-center p-3 font-semibold text-gray-600">
                       Manual Adjustments
                     </th>
-                    {/* <th className="text-right p-3 font-semibold text-gray-600">
-                      Final Daily Kms
-                    </th> */}
+                    <th className="text-right p-3 font-semibold text-gray-600">
+                      Final Kms
+                    </th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {groupedByPhysio.length > 0 ? (
                     groupedByPhysio.map((group) => {
@@ -576,7 +579,6 @@ const PetrolAllowance = () => {
                                 onClick={() => togglePhysio(group.physioId)}
                                 className="flex items-center gap-2 font-semibold text-gray-800"
                               >
-                                {/* Chevron */}
                                 <span
                                   className={cn(
                                     "inline-block transition-transform",
@@ -595,98 +597,177 @@ const PetrolAllowance = () => {
 
                             {/* Totals */}
                             <td className="p-3 text-center text-green-700 font-semibold">
-                              {group.totalCompleted.toFixed(2)}
+                              {Number(group.totalCompleted || 0).toFixed(2)}
                             </td>
                             <td className="p-3 text-center text-red-700 font-semibold">
-                              {group.totalCancelled.toFixed(2)}
+                              {Number(group.totalCancelled || 0).toFixed(2)}
                             </td>
                             <td className="p-3 text-center font-semibold">
-                              {group.totalManual.toFixed(2)}
+                              {Number(group.totalManual || 0).toFixed(2)}
                             </td>
                             <td className="p-3 text-right font-bold text-lg">
-                              {group.totalFinal.toFixed(2)} km
+                              {Number(group.totalFinal || 0).toFixed(2)} km
                             </td>
                           </tr>
 
                           {/* Expanded (Daily rows for that physio) */}
                           {isOpen &&
-                            group.rows.map((item) => (
-                              <tr
-                                key={item._id}
-                                className="border-b hover:bg-gray-50/50"
-                              >
-                                <td className="p-3 pl-10 text-gray-700">
-                                  {format(new Date(item.date), "PPP")}
-                                </td>
+                            group.rows.map((item) => {
+                              const isDayOpen = !!openDays[item._id];
+                              const daySummary = Array.isArray(item.summary)
+                                ? item.summary
+                                : [];
 
-                                <td className="p-3 text-center text-green-600 font-medium">
-                                  {(item.completedKms || 0).toFixed(2)}
-                                </td>
+                              return (
+                                <React.Fragment key={item._id}>
+                                  {/* Daily row */}
+                                  <tr className="border-b hover:bg-gray-50/50">
+                                    {/* Date with chevron */}
+                                    <td className="p-3 pl-10 text-gray-700">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleDay(item._id)}
+                                        className="flex items-center gap-2 w-full text-left"
+                                      >
+                                        <span
+                                          className={cn(
+                                            "inline-block transition-transform",
+                                            isDayOpen
+                                              ? "rotate-90"
+                                              : "rotate-0",
+                                          )}
+                                        >
+                                          ▶
+                                        </span>
+                                        <span>
+                                          {format(new Date(item.date), "PPP")}
+                                        </span>
+                                      </button>
+                                    </td>
 
-                                <td className="p-3 text-center text-red-600 font-medium">
-                                  {(item.cancelledKms || 0).toFixed(2)}
-                                </td>
-
-                                <td className="p-3 text-center">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-6 w-6"
-                                      onClick={() =>
-                                        handleAdjustment(
-                                          // item.date,
-                                          // item.physioId,
-                                          // -1,
-                                          item,
-                                          -1,
-                                        )
-                                      }
-                                    >
-                                      <MinusCircle size={14} />
-                                    </Button>
-
-                                    <span
-                                      className={cn(
-                                        "font-medium w-12 text-center",
-                                        item.manualKms > 0 && "text-blue-600",
-                                        item.manualKms < 0 && "text-orange-600",
+                                    <td className="p-3 text-center text-green-600 font-medium">
+                                      {Number(item.completedKms || 0).toFixed(
+                                        2,
                                       )}
-                                    >
-                                      {Number(item.manualKms || 0).toFixed(2)}
-                                    </span>
+                                    </td>
 
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-6 w-6"
-                                      onClick={() =>
-                                        handleAdjustment(
-                                          // item.date,
-                                          // item.physioId,
-                                          // 1,
-                                          item,
-                                          1,
-                                        )
-                                      }
-                                    >
-                                      <PlusCircle size={14} />
-                                    </Button>
-                                  </div>
-                                </td>
+                                    <td className="p-3 text-center text-red-600 font-medium">
+                                      {Number(item.cancelledKms || 0).toFixed(
+                                        2,
+                                      )}
+                                    </td>
 
-                                {/* <td className="p-3 text-right font-bold">
-                                  {Number(item.finalDailyKms || 0).toFixed(2)}{" "}
-                                  km
-                                </td> */}
-                              </tr>
-                            ))}
+                                    <td className="p-3 text-center">
+                                      <div className="flex items-center justify-center gap-2">
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-6 w-6"
+                                          onClick={() =>
+                                            handleAdjustment(item, -1)
+                                          }
+                                        >
+                                          <MinusCircle size={14} />
+                                        </Button>
+
+                                        <span
+                                          className={cn(
+                                            "font-medium w-12 text-center",
+                                            Number(item.manualKms || 0) > 0 &&
+                                              "text-blue-600",
+                                            Number(item.manualKms || 0) < 0 &&
+                                              "text-orange-600",
+                                          )}
+                                        >
+                                          {Number(item.manualKms || 0).toFixed(
+                                            2,
+                                          )}
+                                        </span>
+
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-6 w-6"
+                                          onClick={() =>
+                                            handleAdjustment(item, 1)
+                                          }
+                                        >
+                                          <PlusCircle size={14} />
+                                        </Button>
+                                      </div>
+                                    </td>
+
+                                    <td className="p-3 text-right font-bold">
+                                      {Number(item.finalDailyKms || 0).toFixed(
+                                        2,
+                                      )}{" "}
+                                      km
+                                    </td>
+                                  </tr>
+
+                                  {/* Expanded Patients list row */}
+                                  {isDayOpen && (
+                                    <tr className="border-b bg-gray-50/30">
+                                      <td colSpan={5} className="p-3 pl-14">
+                                        {daySummary.length > 0 ? (
+                                          <div className="overflow-x-auto">
+                                            <table className="w-full text-xs">
+                                              <thead>
+                                                <tr className="border-b">
+                                                  <th className="text-left py-2 text-gray-600">
+                                                    Patient Name
+                                                  </th>
+                                                  <th className="text-right py-2 text-gray-600">
+                                                    KM
+                                                  </th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {daySummary.map((s, idx) => {
+                                                  // If populate done -> patientId is object
+                                                  const patientName =
+                                                    typeof s.patientId ===
+                                                    "object"
+                                                      ? s.patientId?.patientName
+                                                      : s.patientName; // fallback if snapshot
+
+                                                  return (
+                                                    <tr
+                                                      key={idx}
+                                                      className="border-b last:border-0"
+                                                    >
+                                                      <td className="py-2">
+                                                        {patientName ||
+                                                          "Patient"}
+                                                      </td>
+                                                      <td className="py-2 text-right font-medium">
+                                                        {Number(
+                                                          s.travelKm || 0,
+                                                        ).toFixed(2)}
+                                                      </td>
+                                                    </tr>
+                                                  );
+                                                })}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                        ) : (
+                                          <p className="text-xs text-gray-500">
+                                            No patients for this day.
+                                          </p>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
                         </React.Fragment>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan="5" className="text-center p-8 text-gray-500">
+                      <td colSpan={5} className="text-center p-8 text-gray-500">
                         No travel data found for the selected criteria.
                       </td>
                     </tr>
@@ -736,7 +817,7 @@ const PetrolAllowance = () => {
                                 Completed
                               </p>
                               <p className="text-green-700">
-                                {group.totalCompleted.toFixed(2)}
+                                {Number(group.totalCompleted || 0).toFixed(2)}
                               </p>
                             </div>
 
@@ -745,7 +826,7 @@ const PetrolAllowance = () => {
                                 Canceled
                               </p>
                               <p className="text-red-700">
-                                {group.totalCancelled.toFixed(2)}
+                                {Number(group.totalCancelled || 0).toFixed(2)}
                               </p>
                             </div>
 
@@ -754,18 +835,16 @@ const PetrolAllowance = () => {
                                 Manual
                               </p>
                               <p className="text-blue-700">
-                                {group.totalManual.toFixed(2)}
+                                {Number(group.totalManual || 0).toFixed(2)}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Expand Button */}
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => togglePhysio(group.physioId)}
-                          className="shrink-0"
                         >
                           {isOpen ? "Hide" : "View"}
                         </Button>
@@ -774,81 +853,160 @@ const PetrolAllowance = () => {
                       {/* Expanded Daily Cards */}
                       {isOpen && (
                         <div className="px-4 pb-4 space-y-3">
-                          {group.rows.map((item) => (
-                            <Card
-                              key={item._id}
-                              className="p-4 rounded-2xl shadow border"
-                            >
-                              {/* DATE */}
-                              <div className="mb-2">
-                                <p className="text-xs text-gray-500">Date</p>
-                                <p className="text-base font-bold">
-                                  {format(new Date(item.date), "PP")}
-                                </p>
-                              </div>
+                          {group.rows.map((item) => {
+                            const isDayOpen = !!openDays[item._id];
+                            const daySummary = Array.isArray(item.summary)
+                              ? item.summary
+                              : [];
 
-                              {/* KM SUMMARY */}
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div className="p-2 bg-green-50 rounded-lg">
-                                  <p className="text-xs text-green-700 font-semibold">
-                                    Completed
-                                  </p>
-                                  <p className="text-lg font-normal text-green-600">
-                                    {Number(item.completedKms || 0).toFixed(2)}{" "}
-                                    km
+                            return (
+                              <Card
+                                key={item._id}
+                                className="p-4 rounded-2xl shadow border"
+                              >
+                                {/* DATE */}
+                                <div className="mb-2">
+                                  <p className="text-xs text-gray-500">Date</p>
+                                  <p className="text-base font-bold">
+                                    {format(new Date(item.date), "PP")}
                                   </p>
                                 </div>
 
-                                <div className="p-2 bg-red-50 rounded-lg">
-                                  <p className="text-xs text-red-700 font-semibold">
-                                    Canceled
-                                  </p>
-                                  <p className="text-lg font-bold text-red-600">
-                                    {Number(item.cancelledKms || 0).toFixed(2)}{" "}
-                                    km
-                                  </p>
-                                </div>
-
-                                {/* Manual Adjustment */}
-                                <div className="p-2 bg-blue-50 rounded-lg col-span-2">
-                                  <p className="text-xs text-blue-700 font-semibold">
-                                    Manual Adjustment
-                                  </p>
-
-                                  <div className="flex items-center justify-between mt-1">
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8"
-                                      onClick={() => handleAdjustment(item, -1)} // ✅ correct
-                                    >
-                                      <MinusCircle size={16} />
-                                    </Button>
-
-                                    <span
-                                      className={cn(
-                                        "font-medium text-lg",
-                                        item.manualKms > 0 && "text-blue-600",
-                                        item.manualKms < 0 && "text-orange-600",
-                                      )}
-                                    >
-                                      {Number(item.manualKms || 0).toFixed(2)}{" "}
+                                {/* KM SUMMARY */}
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  <div className="p-2 bg-green-50 rounded-lg">
+                                    <p className="text-xs text-green-700 font-semibold">
+                                      Completed
+                                    </p>
+                                    <p className="text-lg text-green-600">
+                                      {Number(item.completedKms || 0).toFixed(
+                                        2,
+                                      )}{" "}
                                       km
-                                    </span>
+                                    </p>
+                                  </div>
 
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8"
-                                      onClick={() => handleAdjustment(item, 1)} // ✅ correct
-                                    >
-                                      <PlusCircle size={16} />
-                                    </Button>
+                                  <div className="p-2 bg-red-50 rounded-lg">
+                                    <p className="text-xs text-red-700 font-semibold">
+                                      Canceled
+                                    </p>
+                                    <p className="text-lg font-bold text-red-600">
+                                      {Number(item.cancelledKms || 0).toFixed(
+                                        2,
+                                      )}{" "}
+                                      km
+                                    </p>
+                                  </div>
+
+                                  {/* Manual Adjustment */}
+                                  <div className="p-2 bg-blue-50 rounded-lg col-span-2">
+                                    <p className="text-xs text-blue-700 font-semibold">
+                                      Manual Adjustment
+                                    </p>
+
+                                    <div className="flex items-center justify-between mt-1">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8"
+                                        onClick={() =>
+                                          handleAdjustment(item, -1)
+                                        }
+                                      >
+                                        <MinusCircle size={16} />
+                                      </Button>
+
+                                      <span
+                                        className={cn(
+                                          "font-medium text-lg",
+                                          Number(item.manualKms || 0) > 0 &&
+                                            "text-blue-600",
+                                          Number(item.manualKms || 0) < 0 &&
+                                            "text-orange-600",
+                                        )}
+                                      >
+                                        {Number(item.manualKms || 0).toFixed(2)}{" "}
+                                        km
+                                      </span>
+
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8"
+                                        onClick={() =>
+                                          handleAdjustment(item, 1)
+                                        }
+                                      >
+                                        <PlusCircle size={16} />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </Card>
-                          ))}
+
+                                {/* VIEW PATIENTS BUTTON */}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full mt-3 flex items-center justify-center gap-2"
+                                  onClick={() => toggleDay(item._id)}
+                                >
+                                  <span
+                                    className={cn(
+                                      "inline-block transition-transform",
+                                      isDayOpen ? "rotate-90" : "rotate-0",
+                                    )}
+                                  >
+                                    ▶
+                                  </span>
+                                  {isDayOpen
+                                    ? "Hide Patients"
+                                    : "View Patients"}
+                                </Button>
+
+                                {/* PATIENT LIST */}
+                                {isDayOpen && (
+                                  <div className="mt-3 rounded-xl border bg-white p-3">
+                                    <p className="text-xs font-semibold text-gray-600 mb-2">
+                                      Patients & KM
+                                    </p>
+
+                                    {daySummary.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {daySummary.map((s, idx) => {
+                                          const patientName =
+                                            typeof s.patientId === "object"
+                                              ? s.patientId?.patientName
+                                              : s.patientName;
+
+                                          return (
+                                            <div
+                                              key={idx}
+                                              className="flex items-center justify-between text-sm border-b pb-2 last:border-0 last:pb-0"
+                                            >
+                                              <span className="font-medium">
+                                                {patientName || "Patient"}
+                                              </span>
+
+                                              <span className="font-medium text-gray-700">
+                                                {Number(
+                                                  s.travelKm || 0,
+                                                ).toFixed(2)}{" "}
+                                                km
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-gray-500">
+                                        No patients for this day.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </Card>
+                            );
+                          })}
                         </div>
                       )}
                     </Card>
