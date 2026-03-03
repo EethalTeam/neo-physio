@@ -2591,14 +2591,13 @@ const PatientManagement = () => {
                         <Select
                           value={patientForm?.FeesTypeId || ""}
                           onValueChange={(id) => {
-                            console.log(id, "id");
-
                             const selected = feesType.find((f) => f._id === id);
-                            console.log(selected, "selected");
-                            handleSelectChange("FeesTypeId", selected._id); // store whole object
+                            if (!selected) return;
+
+                            handleSelectChange("FeesTypeId", selected._id);
                             handleSelectChange(
-                              "FeesTypeName",
-                              selected?.feesTypeName || "",
+                              "feesTypeName",
+                              selected.feesTypeName,
                             );
                           }}
                         >
