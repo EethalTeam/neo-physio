@@ -457,10 +457,16 @@ const Payroll = () => {
       p.payrRollMonth === selectedMonthName &&
       Number(p.payrRollYear) === Number(selectedYear),
   );
-  const totalNetPay = dbPayrolls.reduce(
-    (sum, p) => sum + Number(p.NetSalary || 0),
-    0,
-  );
+
+  const totalNetPay = dbPayrolls
+    .filter(
+      (p) =>
+        p.payrRollMonth === selectedMonthName &&
+        Number(p.payrRollYear) === Number(selectedYear) &&
+        p?.physioId?.roleId?.RoleName !== "SuperAdmin",
+    )
+    .reduce((sum, p) => sum + Number(p.NetSalary || 0), 0);
+
   const payrollUi = payrollFromDb.map((p) => ({
     _id: p._id,
     physioId: p.physioId?._id || p.physioId,

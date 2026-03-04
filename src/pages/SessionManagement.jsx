@@ -140,7 +140,7 @@ const SessionManagement = () => {
   const [cancelledReason, setCancelledReason] = useState("");
   const [cancelledKms, setCancelledKms] = useState("");
   const [radio, setRadio] = useState([]);
-  const [claimPetrol, setClaimPetrol] = useState(true);
+  const [claimPetrol, setClaimPetrol] = useState(false);
   const { getPermissionsByPath } = useAuth();
   const [Permissions, setPermissions] = useState({
     isAdd: false,

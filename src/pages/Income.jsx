@@ -130,44 +130,7 @@ const Income = () => {
       return sameMonth && isCompleted;
     }).length;
   };
-  const fetchCompletedSessionsForBill = async (bill) => {
-    const pid = getId(bill?.patientId);
 
-    const res = await apiRequest("Session/getAllSession", {
-      method: "POST",
-      body: JSON.stringify({
-        patientId: pid,
-        month: selectedBillMonth,
-        year: selectedBillYear,
-        status: "completed",
-      }),
-    });
-
-    const list = Array.isArray(res) ? res : res?.sessions || [];
-
-    // ✅ FRONTEND FILTER (important even if backend supports filters)
-    const filtered = list.filter((s) => {
-      const spid = getId(s?.patientId);
-      if (spid !== pid) return false;
-
-      const d = new Date(s?.sessionDate);
-      if (isNaN(d.getTime())) return false;
-
-      const sameMonth =
-        d.getMonth() + 1 === selectedBillMonth &&
-        d.getFullYear() === selectedBillYear;
-
-      const isCompleted =
-        (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
-        "completed";
-
-      return sameMonth && isCompleted;
-    });
-
-    return filtered.sort(
-      (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
-    );
-  };
   const fmt = (d) => {
     const x = new Date(d);
     if (isNaN(x.getTime())) return "N/A";
@@ -647,22 +610,28 @@ const Income = () => {
 
     doc.save(fileName);
   };
-  const billedAmountFromBills = useMemo(() => {
-    return bills.reduce((sum, b) => {
-      const d = new Date(b.startDate); // you already use startDate in bill tab
-      if (isNaN(d.getTime())) return sum;
-
-      const sameMonth =
-        d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
-
-      if (!sameMonth) return sum;
-
-      return sum + Number(b.NetBilledAmount || 0);
-    }, 0);
-  }, [bills, selectedMonth, selectedYear]);
+  const billedAmountFromBills = filteredPatients.reduce(
+    (sum, p) => sum + Number(p.Billed || 0),
+    0,
+  );
   const unbilledAmountFromIncome = useMemo(() => {
     return Math.max(totalIncomeByFilter - billedAmountFromBills, 0);
   }, [totalIncomeByFilter, billedAmountFromBills]);
+  const handleSendBill = async (id) => {
+    try {
+      await apiRequest("Bill/updateSendStatus", {
+        method: "POST",
+        body: JSON.stringify({ billId: id }),
+      });
+
+      // update UI instantly
+      setBills((prev) =>
+        prev.map((b) => (b._id === id ? { ...b, isSend: true } : b)),
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -974,6 +943,7 @@ const Income = () => {
                         <th className="px-3 py-2 text-left">Payment Type</th>
                         <th className="px-3 py-2 text-left">Bill Generate</th>
                         <th className="px-3 py-2 text-left">Receive Payment</th>
+                        <th className="px-3 py-2 text-left">Bill Send</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1081,6 +1051,27 @@ const Income = () => {
                                   </span>
                                 ) : (
                                   "Receive Payment"
+                                )}
+                              </Button>
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              <Button
+                                size="sm"
+                                onClick={() => handleSendBill(b._id)}
+                                disabled={b?.isSend}
+                                className={
+                                  b?.isSend
+                                    ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                    : ""
+                                }
+                              >
+                                {b?.isSend ? (
+                                  <span className="flex items-center gap-2">
+                                    <CheckCircle size={16} />
+                                    Bill Sent
+                                  </span>
+                                ) : (
+                                  "Send Bill"
                                 )}
                               </Button>
                             </td>
