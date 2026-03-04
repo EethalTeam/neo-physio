@@ -143,13 +143,13 @@ const Income = () => {
         body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
       });
 
-      const sessionsRes = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      // const sessionsRes = await apiRequest("Session/getAllSession", {
+      //   method: "POST",
+      //   body: JSON.stringify({}),
+      // });
 
       setPatients(Array.isArray(patientsRes) ? patientsRes : []);
-      setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
+      // setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
     } catch (err) {
       console.error(err);
     }
@@ -280,15 +280,10 @@ const Income = () => {
     }
   };
 
-  // useEffect(() => {
-  //   if (activeTab === "bill") fetchBills();
-  // }, [activeTab]);
-  useEffect(() => {
-    fetchBills(); // ✅ bills needed for both tabs
-  }, [selectedMonth, selectedYear, selectedBillMonth, selectedBillYear]);
   useEffect(() => {
     if (activeTab === "bill") fetchBills();
-  }, [selectedBillMonth, selectedBillYear]);
+  }, [activeTab]);
+
   const filteredBills = useMemo(() => {
     return bills.filter((b) => {
       const pid = getId(b.patientId);

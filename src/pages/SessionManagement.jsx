@@ -1411,7 +1411,8 @@ const SessionManagement = () => {
                           </span>
                         </td>
                         <td className="p-2">
-                          {session.sessionCount}
+                          {session.monthlySessionCount}
+                          {/* {session.sessionCount} */}
                           {/* {sessionCountMap[
                           `${session?.patientId?._id}-${session?.physioId?._id}`
                         ]?.completed + 1} */}
@@ -1863,7 +1864,8 @@ const SessionManagement = () => {
                     <span className="font-medium text-gray-800 ml-1">
                       {/* {getNthSession(session) || "-"}
                        */}
-                      {session.sessionCount}
+                      {session.monthlySessionCount}
+                      {/* {session.sessionCount} */}
                       {/* {
                         sessionCountMap[
                           `${session?.patientId?._id}-${session?.physioId?._id}`
