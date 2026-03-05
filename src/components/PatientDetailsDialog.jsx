@@ -307,45 +307,59 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                   />
                 </DetailSection>
                 <DetailSection>
-                  {reviews.length > 0 ? (
-                    reviews
-                      .filter(
-                        (rev) =>
-                          rev.reviewStatusId?.reviewStatusName === "Completed",
-                      )
-                      .map((rev) => (
-                        <div
-                          key={rev._id}
-                          className="w-full border rounded-lg mt-5 p-6 mb-4 shadow-md bg-sky-200"
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Array.isArray(reviews) && reviews.length > 0 ? (
+                    reviews.map((rev) => (
+                      <div
+                        key={rev._id}
+                        className="w-full border rounded-lg mt-5 p-6 mb-4 shadow-md bg-sky-200"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <DetailItem
+                            label="Review Date"
+                            value={
+                              rev.reviewDate
+                                ? new Date(rev.reviewDate).toLocaleDateString()
+                                : "N/A"
+                            }
+                          />
+                          <DetailItem
+                            label="Review Status"
+                            value={
+                              rev.reviewStatusId?.reviewStatusName ?? "N/A"
+                            }
+                          />{" "}
+                          <DetailItem
+                            label="Feedback"
+                            value={rev.feedback ?? "N/A"}
+                          />
+                          <DetailItem
+                            label="Review Type"
+                            value={rev.reviewTypeId?.reviewTypeName ?? "N/A"}
+                          />
+                          {/* RedFlags count */}
+                          <DetailItem
+                            label="Red Flags"
+                            value={
+                              rev.redFlags?.length
+                                ? `${rev.redFlags.length}`
+                                : "0"
+                            }
+                          />
+                          {/* If you want red flag names */}
+                          {rev.redFlags?.length > 0 && (
                             <DetailItem
-                              label="Review Date"
-                              value={new Date(
-                                rev.reviewDate,
-                              ).toLocaleDateString()}
+                              label="Red Flag Names"
+                              value={rev.redFlags
+                                .map((x) => x.redFlagId?.redflagName)
+                                .filter(Boolean)
+                                .join(", ")}
                             />
-                            <DetailItem
-                              label="Review Status"
-                              value={rev.reviewStatusId?.reviewStatusName}
-                            />
-                            <DetailItem
-                              label="Review Type"
-                              value={rev.reviewTypeId?.reviewTypeName}
-                            />
-                            <DetailItem
-                              label="Review Satisfaction"
-                              value={`${rev.Satisfaction}%`}
-                            />
-                            <DetailItem
-                              label="Review Feedback"
-                              value={rev.feedback || "N/A"}
-                            />
-                          </div>
+                          )}
                         </div>
-                      ))
+                      </div>
+                    ))
                   ) : (
-                    <DetailItem label="Review Date" value="N/A" />
+                    <DetailItem label="Review" value="N/A" />
                   )}
                 </DetailSection>
               </AccordionContent>

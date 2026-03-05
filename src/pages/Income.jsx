@@ -627,6 +627,22 @@ const Income = () => {
       console.error(error);
     }
   };
+  const sortedBills = useMemo(() => {
+    const pending = [];
+    const paid = [];
+
+    filteredBills.forEach((b) => {
+      const net = Number(b?.NetBilledAmount || 0);
+      const received = Number(b?.ReceivedAmount || 0);
+
+      const isPaid = received >= net;
+
+      if (isPaid) paid.push(b);
+      else pending.push(b);
+    });
+
+    return [...pending, ...paid];
+  }, [filteredBills]);
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -814,272 +830,544 @@ const Income = () => {
               </div>{" "}
             </CardContent>{" "}
           </Card>
+          {/* ✅ MOBILE VIEW - INCOME CARDS */}
+          <Card className="medical-card md:hidden">
+            <CardHeader>
+              <CardTitle className="text-base">
+                Patients (
+                {
+                  filteredPatients.filter((p) => p.totalCompletedSessions > 0)
+                    .length
+                }
+                )
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              {filteredPatients.filter((p) => p.totalCompletedSessions > 0)
+                .length === 0 ? (
+                <div className="text-center text-sm text-gray-500 py-6">
+                  No income records found for selected filters.
+                </div>
+              ) : (
+                filteredPatients
+                  .filter((p) => p.totalCompletedSessions > 0)
+                  .map((p) => (
+                    <motion.div
+                      key={p._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="border rounded-xl p-4 bg-white shadow-sm"
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-gray-800">
+                            {p.patientName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {p.patientCode || ""}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Total Income</p>
+                          <p className="font-bold text-gray-900">
+                            ₹{Number(p.totalIncome || 0).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Body */}
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                        <div className="p-2 rounded-lg bg-gray-50">
+                          <p className="text-xs text-gray-500">Physio</p>
+                          <p className="font-medium text-gray-800">
+                            {p.physioName || "N/A"}
+                          </p>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-gray-50">
+                          <p className="text-xs text-gray-500">Completed</p>
+                          <p className="font-medium text-gray-800">
+                            {p.totalCompletedSessions || 0}
+                          </p>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-gray-50 col-span-2">
+                          <p className="text-xs text-gray-500">Fees</p>
+                          <p className="font-medium text-gray-800">
+                            ₹{p.feePerSession || 0}{" "}
+                            <span className="text-xs text-gray-500">
+                              ({p.feeType || "N/A"})
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
       {activeTab === "bill" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Bill Generate Dashboard</CardTitle>
-          </CardHeader>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Bill Generate Dashboard</CardTitle>
+            </CardHeader>
 
-          <CardContent className="space-y-4">
-            {/* Top Summary */}
-            <div className="flex flex-wrap justify-between items-center w-full gap-4">
-              <h3 className="text-lg font-semibold">
-                Generated Bills:{" "}
-                <span className="ml-2">{filteredBills.length}</span>
-              </h3>
-              <h3 className="text-lg font-semibold">
-                Total Received Amount:{" "}
-                <span className="ml-2">₹{totalReceivedAmt.toFixed(2)}</span>
-              </h3>{" "}
-              <h3 className="text-lg font-semibold">
-                Total Pending Amount:{" "}
-                <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
-              </h3>{" "}
-              <h3 className="text-lg font-semibold">
-                Total Billed Amount:{" "}
-                <span className="ml-2">
-                  ₹{totalGeneratedBillAmount.toFixed(2)}
-                </span>
-              </h3>
-            </div>
+            <CardContent className="space-y-4">
+              {/* Top Summary */}
+              <div className="flex flex-wrap justify-between items-center w-full gap-4">
+                <h3 className="text-lg font-semibold">
+                  Generated Bills:{" "}
+                  <span className="ml-2">{filteredBills.length}</span>
+                </h3>
+                <h3 className="text-lg font-semibold">
+                  Total Received Amount:{" "}
+                  <span className="ml-2">₹{totalReceivedAmt.toFixed(2)}</span>
+                </h3>{" "}
+                <h3 className="text-lg font-semibold">
+                  Total Pending Amount:{" "}
+                  <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
+                </h3>{" "}
+                <h3 className="text-lg font-semibold">
+                  Total Billed Amount:{" "}
+                  <span className="ml-2">
+                    ₹{totalGeneratedBillAmount.toFixed(2)}
+                  </span>
+                </h3>
+              </div>
 
-            {/* Filters + Button Row */}
-            <div className="flex flex-wrap items-center gap-3 w-full">
-              <Select
-                value={selectedBillPatientId}
-                onValueChange={(v) => setSelectedBillPatientId(v)}
-              >
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="Filter by Patients" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Patients</SelectItem>
-                  {patients.map((p) => (
-                    <SelectItem key={p._id} value={p._id}>
-                      {p.patientName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Filters + Button Row */}
+              <div className="flex flex-wrap items-center gap-3 w-full">
+                <Select
+                  value={selectedBillPatientId}
+                  onValueChange={(v) => setSelectedBillPatientId(v)}
+                >
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="Filter by Patients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Patients</SelectItem>
+                    {patients.map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        {p.patientName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Select
-                onValueChange={(val) => setSelectedBillMonth(Number(val))}
-                value={selectedBillMonth}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Select Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((m, idx) => (
-                    <SelectItem key={idx} value={idx + 1}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Select
+                  onValueChange={(val) => setSelectedBillMonth(Number(val))}
+                  value={selectedBillMonth}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Select Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((m, idx) => (
+                      <SelectItem key={idx} value={idx + 1}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Select
-                onValueChange={(val) => setSelectedBillYear(Number(val))}
-                value={selectedBillYear}
-              >
-                <SelectTrigger className="w-28">
-                  <SelectValue placeholder="Select Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[
-                    2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035,
-                    2036, 2037, 2038, 2039, 2040,
-                  ].map((y) => (
-                    <SelectItem key={y} value={y}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Select
+                  onValueChange={(val) => setSelectedBillYear(Number(val))}
+                  value={selectedBillYear}
+                >
+                  <SelectTrigger className="w-28">
+                    <SelectValue placeholder="Select Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
+                      2035, 2036, 2037, 2038, 2039, 2040,
+                    ].map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Button onClick={fetchData}>Apply</Button>
+                <Button onClick={fetchData}>Apply</Button>
 
-              {/* RIGHT SIDE BUTTON */}
-              {/* <Button
+                {/* RIGHT SIDE BUTTON */}
+                {/* <Button
                 className="ml-auto"
                 disabled={!selectedBillPatient}
                 onClick={generateBillAndPdf}
               >
                 Show Bill (PDF)
               </Button> */}
-            </div>
+              </div>
 
-            {/* Patient Details Card (show only when patient selected) */}
-            <Card className="medical-card hidden md:block ">
-              <CardContent>
-                <div className="hidden md:block overflow-x-auto mt-5">
-                  <table className="min-w-full text-sm border rounded-lg">
-                    <thead className="bg-gray-100 text-gray-700">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Patient</th>
-                        <th className="px-3 py-2 text-left">Physio</th>
-
-                        <th className="px-3 py-2 text-left">Sessions</th>
-                        <th className="px-3 py-2 text-left">Rate/Session</th>
-                        <th className="px-3 py-2 text-left">Total Amount</th>
-                        <th className="px-3 py-2 text-left">
-                          Deducted From Advance
-                        </th>
-                        <th className="px-3 py-2 text-left">
-                          Net Billed Amount
-                        </th>
-
-                        <th className="px-3 py-2 text-left">Received Amount</th>
-                        <th className="px-3 py-2 text-left">Pending Amount</th>
-
-                        <th className="px-3 py-2 text-left">Payment Status</th>
-                        <th className="px-3 py-2 text-left">Payment Type</th>
-                        <th className="px-3 py-2 text-left">Bill Generate</th>
-                        <th className="px-3 py-2 text-left">Receive Payment</th>
-                        <th className="px-3 py-2 text-left">Bill Send</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {" "}
-                      {filteredBills.length === 0 ? (
+              {/* Patient Details Card (show only when patient selected) */}
+              <Card className="medical-card hidden md:block ">
+                <CardContent>
+                  <div className="hidden md:block overflow-x-auto mt-5">
+                    <table className="min-w-full text-sm border rounded-lg">
+                      <thead className="bg-gray-100 text-gray-700">
                         <tr>
-                          <td
-                            colSpan={10}
-                            className="p-4 text-center text-gray-500"
-                          >
-                            No bills found for selected filters
-                          </td>
-                        </tr>
-                      ) : (
-                        // .filter((p) => p.totalCompletedSessions > 0)
-                        filteredBills.map((b) => (
-                          <tr
-                            key={b._id}
-                            className="hover:bg-gray-50 text-sm md:text-base"
-                          >
-                            <td className="p-2 border whitespace-nowrap">
-                              {b?.patientId?.patientName || "N/A"}{" "}
-                              <span className="text-xs text-gray-500">
-                                ({b?.patientId?.patientCode || ""})
-                              </span>
-                            </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              {b?.physioId?.physioName || "N/A"}
-                            </td>
-                            <td className="p-2 border text-center">
-                              {b?.TotalSessionCount ?? 0}
-                            </td>
-                            <td className="p-2 border text-center whitespace-nowrap">
-                              ₹{Number(b?.ratePerSession || 0).toFixed(2)}
-                            </td>
-                            <td className="p-2 border text-center font-semibold whitespace-nowrap ">
-                              ₹{Number(b?.TotalBilledAmount || 0).toFixed(2)}
-                            </td>
-                            <td className="p-2 border text-center font-semibold whitespace-nowrap bg-yellow-100">
-                              ₹{Number(b?.DeductedFromAdvance || 0).toFixed(2)}
-                            </td>
-                            <td className="p-2 border text-center font-semibold whitespace-nowrap bg-blue-100">
-                              ₹{Number(b?.NetBilledAmount || 0).toFixed(2)}
-                            </td>
-                            <td className="p-2 border text-center whitespace-nowrap bg-green-300">
-                              ₹{Number(b?.ReceivedAmount || 0).toFixed(2)}
-                            </td>
-                            <td className="p-2 border text-center whitespace-nowrap bg-[#ED3421]">
-                              ₹
-                              {Number(
-                                b?.NetBilledAmount -
-                                  (b?.ReceivedAmount + b?.DeductedFromAdvance ||
-                                    0),
-                              ).toFixed(2)}
-                            </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              {b?.paymentStatus || "N/A"}
-                            </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              {b?.paymentType || "-"}
-                            </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              <Button
-                                onClick={() => {
-                                  const net = Number(b?.NetBilledAmount || 0);
-                                  const received = Number(
-                                    b?.ReceivedAmount || 0,
-                                  );
-                                  const pending = Math.max(net - received, 0);
+                          <th className="px-3 py-2 text-left">Patient</th>
+                          <th className="px-3 py-2 text-left">Physio</th>
+                          <th className="px-3 py-2 text-left">
+                            Session Start - To date
+                          </th>
+                          <th className="px-3 py-2 text-left">Sessions</th>
+                          <th className="px-3 py-2 text-left">Rate/Session</th>
+                          <th className="px-3 py-2 text-left">Total Amount</th>
+                          <th className="px-3 py-2 text-left">
+                            Deducted From Advance
+                          </th>
+                          <th className="px-3 py-2 text-left">
+                            Net Billed Amount
+                          </th>
 
-                                  setBillPreview({
-                                    open: true,
-                                    bill: { ...b, pending },
-                                    includeSessions: false,
-                                    loading: false,
-                                  });
-                                }}
-                              >
-                                Generate Bill
-                              </Button>
-                            </td>{" "}
-                            <td className="p-2 border whitespace-nowrap">
-                              <Button
-                                size="sm"
-                                onClick={() => openPaymentDialog(b)}
-                                disabled={
-                                  Number(b?.TotalBilledAmount || 0) -
-                                    Number(b?.ReceivedAmount || 0) <=
-                                  0
-                                }
-                                className={
-                                  Number(b?.TotalBilledAmount || 0) -
-                                    Number(b?.ReceivedAmount || 0) <=
-                                  0
-                                    ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                    : ""
-                                }
-                              >
-                                {Number(b?.TotalBilledAmount || 0) -
-                                  Number(b?.ReceivedAmount || 0) <=
-                                0 ? (
-                                  <span className="flex items-center gap-2">
-                                    <CheckCircle size={16} />
-                                    Payment Received
-                                  </span>
-                                ) : (
-                                  "Receive Payment"
-                                )}
-                              </Button>
-                            </td>
-                            <td className="p-2 border whitespace-nowrap">
-                              <Button
-                                size="sm"
-                                onClick={() => handleSendBill(b._id)}
-                                disabled={b?.isSend}
-                                className={
-                                  b?.isSend
-                                    ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                    : ""
-                                }
-                              >
-                                {b?.isSend ? (
-                                  <span className="flex items-center gap-2">
-                                    <CheckCircle size={16} />
-                                    Bill Sent
-                                  </span>
-                                ) : (
-                                  "Send Bill"
-                                )}
-                              </Button>
+                          <th className="px-3 py-2 text-left">
+                            Received Amount
+                          </th>
+                          <th className="px-3 py-2 text-left">
+                            Pending Amount
+                          </th>
+
+                          <th className="px-3 py-2 text-left">
+                            Payment Status
+                          </th>
+                          <th className="px-3 py-2 text-left">Payment Type</th>
+                          <th className="px-3 py-2 text-left">Bill Generate</th>
+                          <th className="px-3 py-2 text-left">
+                            Receive Payment
+                          </th>
+                          <th className="px-3 py-2 text-left">Bill Send</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {" "}
+                        {sortedBills.length === 0 ? (
+                          // {filteredBills.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={10}
+                              className="p-4 text-center text-gray-500"
+                            >
+                              No bills found for selected filters
                             </td>
                           </tr>
-                        ))
-                      )}{" "}
-                    </tbody>{" "}
-                  </table>{" "}
-                </div>{" "}
-              </CardContent>{" "}
-            </Card>
-          </CardContent>
-        </Card>
+                        ) : (
+                          // .filter((p) => p.totalCompletedSessions > 0)
+                          sortedBills.map((b) => (
+                            // filteredBills.map((b) => (
+                            <tr
+                              key={b._id}
+                              className="hover:bg-gray-50 text-sm md:text-base"
+                            >
+                              <td className="p-2 border whitespace-nowrap">
+                                {b?.patientId?.patientName || "N/A"}{" "}
+                                <span className="text-xs text-gray-500">
+                                  ({b?.patientId?.patientCode || ""})
+                                </span>
+                              </td>
+                              <td className="p-2 border whitespace-nowrap">
+                                {b?.physioId?.physioName || "N/A"}
+                              </td>{" "}
+                              <td className="p-2 border whitespace-nowrap">
+                                {b?.patientId?.sessionStartDate || b?.startDate
+                                  ? new Date(
+                                      b?.patientId?.sessionStartDate ||
+                                        b?.startDate,
+                                    ).toLocaleDateString()
+                                  : "-"}
+                                {" - "}
+                                {b?.ToDate
+                                  ? new Date(b.ToDate).toLocaleDateString()
+                                  : "-"}
+                              </td>
+                              <td className="p-2 border text-center">
+                                {b?.TotalSessionCount ?? 0}
+                              </td>
+                              <td className="p-2 border text-center whitespace-nowrap">
+                                ₹{Number(b?.ratePerSession || 0).toFixed(2)}
+                              </td>
+                              <td className="p-2 border text-center font-semibold whitespace-nowrap ">
+                                ₹{Number(b?.TotalBilledAmount || 0).toFixed(2)}
+                              </td>
+                              <td className="p-2 border text-center font-semibold whitespace-nowrap bg-yellow-100">
+                                ₹
+                                {Number(b?.DeductedFromAdvance || 0).toFixed(2)}
+                              </td>
+                              <td className="p-2 border text-center font-semibold whitespace-nowrap bg-blue-100">
+                                ₹{Number(b?.NetBilledAmount || 0).toFixed(2)}
+                              </td>
+                              <td className="p-2 border text-center whitespace-nowrap bg-green-300">
+                                ₹{Number(b?.ReceivedAmount || 0).toFixed(2)}
+                              </td>
+                              <td className="p-2 border text-center whitespace-nowrap bg-[#ED3421]">
+                                ₹
+                                {Number(
+                                  b?.NetBilledAmount -
+                                    (b?.ReceivedAmount +
+                                      b?.DeductedFromAdvance || 0),
+                                ).toFixed(2)}
+                              </td>
+                              <td className="p-2 border whitespace-nowrap">
+                                {b?.paymentStatus || "N/A"}
+                              </td>
+                              <td className="p-2 border whitespace-nowrap">
+                                {b?.paymentType || "-"}
+                              </td>
+                              <td className="p-2 border whitespace-nowrap">
+                                <Button
+                                  onClick={() => {
+                                    const net = Number(b?.NetBilledAmount || 0);
+                                    const received = Number(
+                                      b?.ReceivedAmount || 0,
+                                    );
+                                    const pending = Math.max(net - received, 0);
+
+                                    setBillPreview({
+                                      open: true,
+                                      bill: { ...b, pending },
+                                      includeSessions: false,
+                                      loading: false,
+                                    });
+                                  }}
+                                >
+                                  Generate Bill
+                                </Button>
+                              </td>{" "}
+                              <td className="p-2 border whitespace-nowrap">
+                                <Button
+                                  size="sm"
+                                  onClick={() => openPaymentDialog(b)}
+                                  disabled={
+                                    Number(b?.TotalBilledAmount || 0) -
+                                      Number(b?.ReceivedAmount || 0) <=
+                                    0
+                                  }
+                                  className={
+                                    Number(b?.TotalBilledAmount || 0) -
+                                      Number(b?.ReceivedAmount || 0) <=
+                                    0
+                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                      : ""
+                                  }
+                                >
+                                  {Number(b?.TotalBilledAmount || 0) -
+                                    Number(b?.ReceivedAmount || 0) <=
+                                  0 ? (
+                                    <span className="flex items-center gap-2">
+                                      <CheckCircle size={16} />
+                                      Payment Received
+                                    </span>
+                                  ) : (
+                                    "Receive Payment"
+                                  )}
+                                </Button>
+                              </td>
+                              <td className="p-2 border whitespace-nowrap">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSendBill(b._id)}
+                                  disabled={b?.isSend}
+                                  className={
+                                    b?.isSend
+                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                      : ""
+                                  }
+                                >
+                                  {b?.isSend ? (
+                                    <span className="flex items-center gap-2">
+                                      <CheckCircle size={16} />
+                                      Bill Sent
+                                    </span>
+                                  ) : (
+                                    "Send Bill"
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}{" "}
+                      </tbody>{" "}
+                    </table>{" "}
+                  </div>{" "}
+                </CardContent>{" "}
+              </Card>
+            </CardContent>
+          </Card>
+          {/* ✅ MOBILE VIEW - BILL CARDS */}
+          <Card className="medical-card md:hidden">
+            <CardHeader>
+              <CardTitle className="text-base">
+                Bills ({sortedBills.length})
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              {sortedBills.length === 0 ? (
+                <div className="text-center text-sm text-gray-500 py-6">
+                  No bills found for selected filters.
+                </div>
+              ) : (
+                sortedBills.map((b) => {
+                  const net = Number(b?.NetBilledAmount || 0);
+                  const received = Number(b?.ReceivedAmount || 0);
+                  const deducted = Number(b?.DeductedFromAdvance || 0);
+
+                  // ✅ pending logic (use NET - RECEIVED)
+                  const pending = Math.max(net - received, 0);
+                  const isPaid = pending <= 0;
+
+                  const fromDate =
+                    b?.patientId?.sessionStartDate || b?.startDate;
+                  const toDate = b?.ToDate;
+
+                  return (
+                    <motion.div
+                      key={b._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className={`border rounded-xl p-4 bg-white shadow-sm ${
+                        isPaid ? "border-green-200" : "border-red-200"
+                      }`}
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-gray-800">
+                            {b?.patientId?.patientName || "N/A"}{" "}
+                            <span className="text-xs text-gray-500">
+                              ({b?.patientId?.patientCode || ""})
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Physio: {b?.physioId?.physioName || "N/A"}
+                          </p>
+                        </div>
+
+                        <div
+                          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                            isPaid
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {isPaid ? "Paid" : "Pending"}
+                        </div>
+                      </div>
+
+                      {/* Period */}
+                      <div className="mt-2 text-xs text-gray-600">
+                        Period:{" "}
+                        {fromDate
+                          ? new Date(fromDate).toLocaleDateString()
+                          : "-"}{" "}
+                        {" - "}
+                        {toDate ? new Date(toDate).toLocaleDateString() : "-"}
+                      </div>
+
+                      {/* Amounts */}
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                        <div className="p-2 rounded-lg bg-gray-50">
+                          <p className="text-xs text-gray-500">Sessions</p>
+                          <p className="font-medium">
+                            {b?.TotalSessionCount ?? 0}
+                          </p>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-gray-50">
+                          <p className="text-xs text-gray-500">Rate</p>
+                          <p className="font-medium">
+                            ₹{Number(b?.ratePerSession || 0).toFixed(2)}
+                          </p>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-blue-50">
+                          <p className="text-xs text-gray-500">Net</p>
+                          <p className="font-bold">₹{net.toFixed(2)}</p>
+                        </div>
+
+                        <div
+                          className={`p-2 rounded-lg ${isPaid ? "bg-green-50" : "bg-red-50"}`}
+                        >
+                          <p className="text-xs text-gray-500">Pending</p>
+                          <p className="font-bold">₹{pending.toFixed(2)}</p>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-gray-50 col-span-2">
+                          <p className="text-xs text-gray-500">
+                            Received / Deducted
+                          </p>
+                          <p className="font-medium">
+                            ₹{received.toFixed(2)}{" "}
+                            <span className="text-xs text-gray-500">
+                              (Deducted: ₹{deducted.toFixed(2)})
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            const pendingNow = Math.max(net - received, 0);
+                            setBillPreview({
+                              open: true,
+                              bill: { ...b, pending: pendingNow },
+                              includeSessions: false,
+                              loading: false,
+                            });
+                          }}
+                        >
+                          Generate
+                        </Button>
+
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() => openPaymentDialog(b)}
+                          disabled={pending <= 0}
+                        >
+                          {pending <= 0 ? (
+                            <span className="flex items-center gap-2">
+                              <CheckCircle size={16} /> Paid
+                            </span>
+                          ) : (
+                            "Receive"
+                          )}
+                        </Button>
+
+                        <Button
+                          className="w-full col-span-2"
+                          onClick={() => handleSendBill(b._id)}
+                          disabled={b?.isSend}
+                          variant={b?.isSend ? "secondary" : "default"}
+                        >
+                          {b?.isSend ? (
+                            <span className="flex items-center gap-2">
+                              <CheckCircle size={16} /> Bill Sent
+                            </span>
+                          ) : (
+                            "Send Bill"
+                          )}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
       <Dialog
         open={paymentDialog.open}

@@ -349,7 +349,7 @@ const SuperAdminDashboard = () => {
         </Card>
 
         {/* Optional: show list of patients revenue (if you want later) */}
-        <Card className="medical-card">
+        {/* <Card className="medical-card">
           <CardHeader>
             <CardTitle>Revenue Patients Count</CardTitle>
             <CardDescription>
@@ -361,7 +361,7 @@ const SuperAdminDashboard = () => {
               (If you want, we can show top 5 income patients here.)
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );

@@ -93,6 +93,7 @@ const LeadManagement = () => {
     isQualified: true,
     LeadStatusId: "691c06c97abd26fd38437215",
     leadStatusName: "Pending",
+    cbDate: "",
   };
   const [leadStatus, setLeadStatus] = useState([]);
   const [leadForm, setLeadForm] = useState(initialFormState);
@@ -327,7 +328,10 @@ const LeadManagement = () => {
     const { name, value } = e.target;
     setLeadForm((prev) => ({ ...prev, [name]: value }));
   };
-
+  const isCBStatus =
+    leadStatus
+      .find((s) => s._id === leadForm.LeadStatusId)
+      ?.leadStatusName.toLowerCase() === "cb";
   const handleSelectChange = (name, value) => {
     setLeadForm((prev) => ({ ...prev, [name]: value }));
   };
@@ -398,7 +402,18 @@ const LeadManagement = () => {
       });
       return false;
     }
-
+    if (
+      leadStatus.find((s) => s._id === leadForm.LeadStatusId)
+        ?.leadStatusName === "CB" &&
+      !leadForm.cbDate
+    ) {
+      toast({
+        title: "Alert",
+        description: "Please select Call Back Date",
+        variant: "destructive",
+      });
+      return false;
+    }
     if (!leadForm.physioCategoryId) {
       toast({
         title: "Alert",
@@ -472,6 +487,9 @@ const LeadManagement = () => {
         ? lead.LeadStatusId.leadSourceName
         : null,
       leadDocuments: lead.leadDocuments || [],
+      cbDate: lead.cbDate
+        ? new Date(lead.cbDate).toISOString().split("T")[0]
+        : "",
     });
     setIsFormOpen(true);
   };
@@ -923,6 +941,17 @@ const LeadManagement = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {isCBStatus && (
+                  <div>
+                    <Label>Call Back Date</Label>
+                    <Input
+                      type="date"
+                      name="cbDate"
+                      value={leadForm.cbDate}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 

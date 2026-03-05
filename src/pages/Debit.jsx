@@ -309,41 +309,67 @@ const Debit = () => {
           <CardDescription>Select month and year</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-gray-500" />
+          {/* Month */}
+          <div className="space-y-2">
+            <Label className="text-xs text-gray-600">Month</Label>
+
+            <div className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-gray-500 shrink-0" />
+
+              <Select
+                value={String(selectedMonth)}
+                onValueChange={(v) => setSelectedMonth(Number(v))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Month" />
+                </SelectTrigger>
+
+                <SelectContent
+                  position="popper"
+                  side="bottom"
+                  align="start"
+                  sideOffset={6}
+                  avoidCollisions={false}
+                  className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg"
+                >
+                  {months.map((m) => (
+                    <SelectItem key={m.value} value={String(m.value)}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Year */}
+          <div className="space-y-2">
+            <Label className="text-xs text-gray-600">Year</Label>
+
             <Select
-              value={String(selectedMonth)}
-              onValueChange={(v) => setSelectedMonth(Number(v))}
+              value={String(selectedYear)}
+              onValueChange={(v) => setSelectedYear(Number(v))}
             >
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="Month" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Year" />
               </SelectTrigger>
-              <SelectContent>
-                {months.map((m) => (
-                  <SelectItem key={m.value} value={String(m.value)}>
-                    {m.label}
+
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={6}
+                avoidCollisions={false}
+                className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg"
+              >
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          <Select
-            value={String(selectedYear)}
-            onValueChange={(v) => setSelectedYear(Number(v))}
-          >
-            <SelectTrigger className="w-full sm:w-32">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <div className="text-sm text-gray-600 sm:ml-auto">
             Total:{" "}
             <span className="font-semibold">{filteredDebits.length}</span>
@@ -607,7 +633,9 @@ const Debit = () => {
                   type="date"
                   name="DebitDate"
                   value={form.DebitDate}
-                  onChange={(e) => handleDateChange(e.target.value)}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, DebitDate: e.target.value }))
+                  }
                 />
               </div>
             </div>

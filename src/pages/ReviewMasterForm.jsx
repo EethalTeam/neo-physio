@@ -459,7 +459,45 @@ const ReviewMasterForm = () => {
 
     setIsFormOpen(true);
   };
+  const handlePostponed = async (review) => {
+    if (!review?._id) return;
 
+    try {
+      const newDate = sessionForm.sessionDate;
+      if (!newDate) {
+        toast({
+          title: "Error",
+          description: "Please select a date",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await apiRequest("Review/updateReviewDate", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: review._id,
+          reviewDate: newDate.toISOString(),
+        }),
+      });
+
+      toast({
+        title: "Success",
+        description: "Review date updated successfully",
+      });
+
+      setIsEditDate(false);
+      setEditingReview(null);
+      getReviews();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update review date",
+        variant: "destructive",
+      });
+    }
+  };
   const handleDeleteReview = (id) => {
     // setSessions(prev => prev.filter(s => s.id !== sessionId));
     deleteReview({ _id: id });
@@ -758,7 +796,7 @@ const ReviewMasterForm = () => {
                                       ...p,
                                       sessionDate: session.reviewDate
                                         ? new Date(session.reviewDate)
-                                        : "",
+                                        : null,
                                     }));
                                     setIsEditDate(true);
                                   }}
@@ -988,7 +1026,7 @@ const ReviewMasterForm = () => {
                     </Button>
                   )}
 
-                  {user?.role !== "physio" && (
+                  {user?.role !== "Physio" && (
                     <>
                       <Button
                         size="sm"
@@ -1326,7 +1364,9 @@ const ReviewMasterForm = () => {
               <Button variant="outline" onClick={() => setIsEditDate(false)}>
                 Cancel
               </Button>
-              <Button onClick={updateReviewDate}>Update Date</Button>
+              <Button onClick={() => handlePostponed(editingReview)}>
+                Update Date
+              </Button>
             </DialogFooter>
           </div>
         </DialogContent>
