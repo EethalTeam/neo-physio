@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { m, motion } from "framer-motion";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,8 +43,6 @@ import {
   Paperclip,
   XCircle,
   FileText,
-  User,
-  CircleDotDashedIcon,
   StopCircle,
   XCircleIcon,
 } from "lucide-react";
@@ -61,7 +53,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, isMonday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -69,38 +60,31 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import PatientDetailsDialog from "../components/PatientDetailsDialog";
-import PetrolAllowance from "./PetrolAllowance";
 
 const SessionManagement = () => {
-  const [cancelledReasonType, setCancelledReasonType] = useState("");
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [getPhysioCounts, setgetphyioCounts] = useState("");
+  const { user, getPermissionsByPath } = useAuth();
   const userRole = localStorage.getItem("userRole");
   const physioName = user?.physioName;
-  console.log(userRole, "userRole");
-  console.log(user?.physioName, "physioName");
+
+  const [cancelledReasonType, setCancelledReasonType] = useState("");
+  const [getPhysioCounts, setgetphyioCounts] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
   const [machines, setMachines] = useState([]);
   const [redFlags, setRedFlags] = useState([]);
   const [Modalities, setModalities] = useState([]);
-  // console.log(Modalities,"Modalities")
   const [sessionStatus, setSessionStatus] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState(null);
+  const [dateFilter, setDateFilter] = useState("");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+
   const initialFormState = {
-    // patientId: '',
-    //  physioId: '',
-    //  sessionDate: null,
-    //  sessionTime: '',
-    //  machineId: ''
     sessionCount: "",
     sessionCode: "",
     patientId: "",
@@ -109,28 +93,30 @@ const SessionManagement = () => {
     sessionDay: "",
     sessionTime: "",
     sessionStatusId: "691ecb36b87c5c57dead47a7",
-    // machineId:''
   };
 
   const [sessionForm, setSessionForm] = useState(initialFormState);
+
   const [feedbackDialog, setFeedbackDialog] = useState({
     open: false,
     sessionId: null,
+    physioId: "",
   });
-  // console.log(feedbackDialog, "feedbackDialog");
+
   const initialFeedbackState = {
     sessionFeedbackPros: "",
     redFlags: [],
     media: [],
     modeOfExercise: "",
-    homeExerciseAssigned: false,
+    homeExerciseAssigned: "false",
     modalitiesList: [],
+    modalitiestype: "",
     targetArea: "",
     machineId: "",
-    modalities: "no",
+    modalities: false,
   };
+
   const [feedback, setFeedback] = useState(initialFeedbackState);
-  console.log(feedback, "feedback");
   const fileInputRef = useRef(null);
 
   const [cancelDialog, setCancelDialog] = useState({
@@ -139,9 +125,8 @@ const SessionManagement = () => {
   });
   const [cancelledReason, setCancelledReason] = useState("");
   const [cancelledKms, setCancelledKms] = useState("");
-  const [radio, setRadio] = useState([]);
   const [claimPetrol, setClaimPetrol] = useState(false);
-  const { getPermissionsByPath } = useAuth();
+
   const [Permissions, setPermissions] = useState({
     isAdd: false,
     isView: false,
@@ -149,7 +134,11 @@ const SessionManagement = () => {
     isDelete: false,
   });
 
-  // const modalitiesOptions = ["TENS", "IFT", "USD", "WAX", "ICE", "HOT", "Weights", "Band"];
+  const [sessionCountMap, setSessionCountMap] = useState({});
+  const [msg, setMsg] = useState("");
+  const [viewingPatient, setViewingPatient] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [filteredPatients, setFilteredPatients] = useState([]);
 
   useEffect(() => {
     getPhysio();
@@ -157,22 +146,15 @@ const SessionManagement = () => {
     getPhysioCount();
     getPatient();
     getSessionStatus();
-    // getMachinery();
     getRedFlag();
     getModalities();
     getAllMachine();
-    handleViewConsultation();
+
     getPermissionsByPath(window.location.pathname).then((res) => {
-      if (res) {
-        setPermissions(res);
-      } else {
-        navigate("/dashboard");
-      }
+      if (res) setPermissions(res);
+      else navigate("/dashboard");
     });
   }, []);
-  const handleCheckboxChange = () => {
-    setClaimPetrol((prev) => !prev);
-  };
 
   useEffect(() => {
     if (Permissions.isView) {
@@ -180,82 +162,239 @@ const SessionManagement = () => {
     }
   }, [Permissions]);
 
-  // const getSession = async (data) => {
-  //   try {
-  //     let date = new Date().toISOString()
-  //     let nextdate1 = Number(date.split('T')[0].split('-')[2]) + 1
-  //     console.log(nextdate1, "nextdate")
-  //     let filter = `${date.split('T')[0]}T00:00:00Z`
-  //     const [year, month] = date.split("T")[0].split("-");
-  //     let nextdate = `${year}-${month}-${nextdate1}T00:00:00Z`;
-  //     //  let nextdate=`${date.split('T')[0].split('-')[0]}-${date.split('T')[0].split('-')[1]}-${nextdate1}T00:00:00Z`
-  //     console.log(nextdate, "nextdate")
-  //     const response = await apiRequest("Session/getAllSession", {
-  //       method: 'POST',
-  //       body: JSON.stringify({ sessionDate: filter, nextDate: nextdate, physioId: user._id })
-  //     });
-  //     setSessions(response)
-  //     setFilteredSessions(response)
+  const handleCheckboxChange = () => {
+    setClaimPetrol((prev) => !prev);
+  };
 
-  //   } catch (error) {
-  //     console.log(error, "error from frontend get All  Session")
-  //   }
-  // }
+  const getPatient = async (data) => {
+    try {
+      const response = await apiRequest("Patient/getAllPatient", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setPatients(response);
+    } catch (error) {
+      console.log(error, "error from frontend get All patient");
+    }
+  };
 
-  // const getSession = async () => {
-  //   try {
-  //     const storedRole = localStorage.getItem("userRole");
+  const getAllPatient = async () => {
+    try {
+      const res = await apiRequest("Patient/getAllPatient", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
 
-  //     const today = new Date();
-  //     const tomorrow = new Date(today);
-  //     tomorrow.setDate(today.getDate() + 1);
+      setFilteredPatients(res);
+      setPatients(res);
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
-  //     const filter = `${today.toISOString().split("T")[0]}T00:00:00Z`;
-  //     const nextdate = `${tomorrow.toISOString().split("T")[0]}T00:00:00Z`;
+  const getPhysio = async (data) => {
+    try {
+      const response = await apiRequest("Physio/getAllPhysio", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setPhysios(response.physios || []);
+    } catch (error) {
+      console.log(error, "error from frontend get All Physio");
+    }
+  };
 
-  //     const response = await apiRequest("Session/getAllSession", {
-  //       method: "POST",
-  //       body: JSON.stringify({
-  //         sessionDate: filter,
-  //         nextDate: nextdate,
-  //         physioId: user._id,
-  //         storedRole,
-  //       }),
-  //     });
+  const getSessionStatus = async (data) => {
+    try {
+      const response = await apiRequest("SessionStatus/getAllSessionStatus", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setSessionStatus(response.sessionStatuses || []);
+    } catch (error) {
+      console.log(error, "error from frontend get All Session Status");
+    }
+  };
 
-  //     //  IMPORTANT SAFETY CHECK
-  //     if (Array.isArray(response)) {
-  //       setSessions(response);
-  //       setFilteredSessions(response);
-  //     } else {
-  //       console.warn("Session API did not return array:", response);
-  //       setSessions([]);
-  //       setFilteredSessions([]);
-  //     }
-  //   } catch (error) {
-  //     console.log(error, "error from frontend get All Session");
-  //     setSessions([]);
-  //     setFilteredSessions([]);
-  //   }
-  // };
-  const [sessionCountMap, setSessionCountMap] = useState({});
-  // console.log(sessionCountMap, "sessionCountMap");
+  const getRedFlag = async (data) => {
+    try {
+      const response = await apiRequest("Redflag/getAllRedflag", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setRedFlags(response || []);
+    } catch (error) {
+      console.log(error, "error from frontend get All RedFlag");
+    }
+  };
 
-  // const getNthSession = (currentSession) => {
-  //   if (!sessions?.length) return "-";
-  //   const relatedSessions = sessions
-  //     .filter(
-  //       (s) =>
-  //         s.patientId?._id === currentSession.patientId?._id &&
-  //         s.physioId?._id === currentSession.physioId?._id,
-  //     )
-  //     .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
-  //   const index = relatedSessions.findIndex(
-  //     (s) => s._id === currentSession._id,
-  //   );
+  const getModalities = async (data) => {
+    try {
+      const response = await apiRequest("Modalities/getAllModalities", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setModalities(response || []);
+    } catch (error) {
+      console.log(error, "error from frontend get All Modalities");
+    }
+  };
 
-  //   return index !== -1 ? index + 1 : "-";
-  // };
+  const getAllMachine = async (data) => {
+    try {
+      const res = await apiRequest("Machinery/getAllMachinery", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      const list = res?.machines ?? res ?? [];
+      setMachines(list);
+    } catch (error) {
+      console.error("not able to getall Machine", error);
+    }
+  };
+
+  const getPhysioCount = async () => {
+    try {
+      const response = await apiRequest("Patient/getPhysioPatientCounts", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setgetphyioCounts(response.data || []);
+    } catch (error) {
+      console.error("Error fetching physio counts:", error);
+    }
+  };
+
+  const getSession = async (date) => {
+    try {
+      const storedRole = localStorage.getItem("userRole");
+      const today = new Date().toLocaleDateString("en-CA");
+      const Today = date || today;
+
+      const response = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({
+          physioId: user?._id,
+          Today,
+          storedRole,
+        }),
+      });
+
+      const incomplete = Array.isArray(response?.incompleteData)
+        ? response.incompleteData
+        : [];
+
+      const complete = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.sessions)
+          ? response.sessions
+          : Array.isArray(response)
+            ? response
+            : [];
+
+      const merged = [...complete, ...incomplete];
+      setSessions(merged);
+      setFilteredSessions(merged);
+      setMsg(response?.message || "");
+
+      const countMap = {};
+      merged.forEach((s) => {
+        const pid = s.patientId?._id;
+        const phyId = s.physioId?._id;
+        if (!pid || !phyId) return;
+
+        const key = `${pid}-${phyId}`;
+        if (!countMap[key]) countMap[key] = { total: 0, completed: 0 };
+
+        countMap[key].total += 1;
+        if (s.sessionStatusId?.sessionStatusName === "Completed") {
+          countMap[key].completed += 1;
+        }
+      });
+
+      setSessionCountMap(countMap);
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+    }
+  };
+
+  const assignedPhysioIds = feedbackDialog?.physioId ?? "";
+
+  const physioModalityIds = useMemo(() => {
+    if (!assignedPhysioIds || !Array.isArray(machines)) return [];
+
+    const set = new Set();
+
+    machines.forEach((m) => {
+      const isAssigned =
+        Array.isArray(m.Assignedto) &&
+        m.Assignedto.some(
+          (a) =>
+            String(a.physioId) === String(assignedPhysioIds) &&
+            Number(a.count || 0) > 0,
+        );
+
+      const modId = m.modalityId?._id ?? m.modalityId;
+
+      if (isAssigned && modId) {
+        set.add(String(modId));
+      }
+    });
+
+    return Array.from(set);
+  }, [machines, assignedPhysioIds]);
+
+  useEffect(() => {
+    let filtered = Array.isArray(sessions) ? [...sessions] : [];
+
+    const term = (searchTerm || "").trim().toLowerCase();
+
+    if (term) {
+      filtered = filtered.filter((s) => {
+        const patientName = (
+          s.patientId?.patientName ||
+          s.incompleteData?.patientId?.patientName ||
+          ""
+        ).toLowerCase();
+
+        const physioNameValue = (
+          s.physioId?.physioName ||
+          s.incompleteData?.physioId?.physioName ||
+          ""
+        ).toLowerCase();
+
+        const sessionCode = (
+          s.sessionCode ||
+          s.incompleteData?.sessionCode ||
+          ""
+        ).toLowerCase();
+
+        return (
+          patientName.includes(term) ||
+          physioNameValue.includes(term) ||
+          sessionCode.includes(term)
+        );
+      });
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(
+        (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
+      );
+    }
+
+    if (dateFilter) {
+      const toISTDate = (iso) =>
+        new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+      filtered = filtered.filter(
+        (s) => s.sessionDate && toISTDate(s.sessionDate) === dateFilter,
+      );
+    }
+
+    setFilteredSessions(filtered);
+  }, [sessions, searchTerm, statusFilter, dateFilter]);
 
   const getCreateSession = async (data) => {
     try {
@@ -285,11 +424,12 @@ const SessionManagement = () => {
             const yyyy = d.getFullYear();
             const mm = String(d.getMonth() + 1).padStart(2, "0");
             const dd = String(d.getDate()).padStart(2, "0");
-            return `${yyyy}-${mm}-${dd}`; // "2026-02-26"
+            return `${yyyy}-${mm}-${dd}`;
           })
           .sort((a, b) => new Date(a) - new Date(b)),
         sessionStatusId: data.sessionStatusId,
       };
+
       await apiRequest("Session/createSession", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -309,150 +449,25 @@ const SessionManagement = () => {
 
   const updateSession = async (data) => {
     try {
-      const response = await apiRequest("Session/updateSession", {
+      await apiRequest("Session/updateSession", {
         method: "POST",
         body: JSON.stringify(data),
       });
       getSession();
     } catch (error) {
-      console.log(error, "error from frontend update  Session");
+      console.log(error, "error from frontend update Session");
     }
   };
 
   const deleteSession = async (data) => {
     try {
-      const response = await apiRequest("Session/deleteSession", {
+      await apiRequest("Session/deleteSession", {
         method: "POST",
         body: JSON.stringify(data),
       });
-      getSession();
-    } catch (error) {
-      console.log(error, "error   Session delete");
-    }
-  };
-  const deleteDuplicateSession = async (patientId, physioId, sessionTime) => {
-    try {
-      const response = await apiRequest("Session/deleteDuplicateSession", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId,
-          physioId,
-          sessionTime,
-        }),
-      });
-
-      console.log(response);
       getSession();
     } catch (error) {
       console.log(error, "error Session delete");
-    }
-  };
-
-  const getPatient = async (data) => {
-    try {
-      const response = await apiRequest("Patient/getAllPatient", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setPatients(response);
-    } catch (error) {
-      console.log(error, "error from frontend get All patient");
-    }
-  };
-
-  const getPhysio = async (data) => {
-    try {
-      const response = await apiRequest("Physio/getAllPhysio", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setPhysios(response.physios);
-    } catch (error) {
-      console.log(error, "error from frontend get All Physio");
-    }
-  };
-  const [sessionCount, setSessionCount] = useState({ total: 0, completed: 0 });
-
-  const getSessionStatus = async (data) => {
-    try {
-      const response = await apiRequest("SessionStatus/getAllSessionStatus", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      // setSessionStatus(response)
-      setSessionStatus(response.sessionStatuses);
-    } catch (error) {
-      console.log(error, "error from frontend get All Session Status");
-    }
-  };
-
-  const getRedFlag = async (data) => {
-    try {
-      const response = await apiRequest("Redflag/getAllRedflag", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setRedFlags(response);
-    } catch (error) {
-      console.log(error, "error from frontend get All RedFlag");
-    }
-  };
-
-  const getModalities = async (data) => {
-    try {
-      const response = await apiRequest("Modalities/getAllModalities", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setModalities(response);
-    } catch (error) {
-      console.log(error, "error from frontend get All Modalities");
-    }
-  };
-  // const assignedPhysioIds =
-  //   typeof sessionForm.physioId === "object"
-  //     ? sessionForm.physioId?._id
-  //     : sessionForm.physioId;
-  const assignedPhysioIds = feedbackDialog?.physioId ?? "";
-
-  const physioModalityIds = useMemo(() => {
-    if (!assignedPhysioIds || !Array.isArray(machines)) return [];
-
-    const set = new Set();
-
-    machines.forEach((m) => {
-      const isAssigned =
-        Array.isArray(m.Assignedto) &&
-        m.Assignedto.some(
-          (a) =>
-            String(a.physioId) === String(assignedPhysioIds) &&
-            Number(a.count || 0) > 0,
-        );
-
-      const modId = m.modalityId?._id ?? m.modalityId; // object or string
-
-      if (isAssigned && modId) set.add(String(modId));
-    });
-
-    return Array.from(set);
-  }, [machines, assignedPhysioIds]);
-
-  console.log("machines", machines.length);
-  console.log("assignedPhysioId", assignedPhysioIds);
-  console.log("physioModalityIds", physioModalityIds);
-
-  const getAllMachine = async (data) => {
-    try {
-      const res = await apiRequest("Machinery/getAllMachinery", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-
-      // depending on response shape
-      const list = res?.machines ?? res ?? [];
-      setMachines(list);
-    } catch (error) {
-      console.error("not able to getall Machine", error);
     }
   };
 
@@ -465,9 +480,10 @@ const SessionManagement = () => {
       getSession();
       return response;
     } catch (error) {
-      console.log(error, "error from frontend get All Session Start");
+      console.log(error, "error from frontend SessionStop");
     }
   };
+
   const SessionCancelRevert = async (sessionId) => {
     try {
       const response = await apiRequest("Session/SessionCancelRevert", {
@@ -491,7 +507,7 @@ const SessionManagement = () => {
       getSession();
       return response;
     } catch (error) {
-      console.log(error, "error from frontend get All Session Start");
+      console.log(error, "error from frontend SessionStart");
     }
   };
 
@@ -501,50 +517,50 @@ const SessionManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      // console.log(data, "data of cancel");
       getSession();
       return response;
     } catch (error) {
-      console.log(error, "error from frontend get All Session Cancel");
+      console.log(error, "error from frontend SessionCancel");
     }
   };
 
   const SessionEnd = async (data) => {
-    // console.log("SessionEnd");
     try {
       const payload = {
         ...data,
         modalities: data.modalities,
       };
+
       const response = await apiRequest("Session/SessionEnd", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      // console.log(data.modalities, "data.modalities ");
 
       if (response) {
-        if (feedback.redFlags.length > 0) {
+        if ((feedback.redFlags || []).length > 0) {
           toast({
             title: "HOD Notification",
             description: "Red flags have been reported to HOD for review.",
           });
         }
-        setFeedbackDialog({ open: false, sessionId: null });
+
+        setFeedbackDialog({ open: false, sessionId: null, physioId: "" });
         setFeedback(initialFeedbackState);
+
         toast({
           title: "Session Completed",
           description: "Session feedback has been recorded.",
         });
+
         getSession();
       }
     } catch (error) {
-      console.log(error, "error from frontend get All Session Start");
+      console.log(error, "error from frontend SessionEnd");
     }
   };
 
-  //convert the time
-
   const Converttime = (time) => {
+    if (!time) return "-";
     const [hours, minutes] = time.split(":");
     const data = new Date();
     data.setHours(hours, minutes);
@@ -554,11 +570,12 @@ const SessionManagement = () => {
       hour12: true,
     });
   };
+
   const handleViewConsultation = (patient) => {
     setViewingPatient(patient);
     setIsDetailsOpen(true);
   };
-  // getDayName
+
   const getDayName = (date) => {
     const days = [
       "Sunday",
@@ -580,53 +597,7 @@ const SessionManagement = () => {
       hour12: true,
     });
   };
-  useEffect(() => {
-    let filtered = Array.isArray(sessions) ? [...sessions] : [];
 
-    const term = (searchTerm || "").trim().toLowerCase();
-    if (term) {
-      filtered = filtered.filter((s) => {
-        const patientName = (
-          s.patientId?.patientName ||
-          s.incompleteData?.patientId?.patientName ||
-          ""
-        ).toLowerCase();
-
-        const physioName = (
-          s.physioId?.physioName ||
-          s.incompleteData?.physioId?.physioName ||
-          ""
-        ).toLowerCase();
-
-        const sessionCode = (
-          s.sessionCode ||
-          s.incompleteData?.sessionCode ||
-          ""
-        ).toLowerCase();
-
-        return (
-          patientName.includes(term) ||
-          physioName.includes(term) ||
-          sessionCode.includes(term)
-        );
-      });
-    }
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(
-        (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
-      );
-    }
-    if (dateFilter) {
-      const toISTDate = (iso) =>
-        new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // YYYY-MM-DD
-
-      filtered = filtered.filter(
-        (s) => toISTDate(s.sessionDate) === dateFilter,
-      );
-    }
-
-    setFilteredSessions(filtered);
-  }, [sessions, searchTerm, statusFilter, dateFilter]);
   const buildSessionDateTime = (session) => {
     if (!session.sessionDate || !session.sessionTime) return null;
 
@@ -645,9 +616,7 @@ const SessionManagement = () => {
 
       hours = h;
       minutes = m;
-    }
-    // Handle 24-hour format
-    else {
+    } else {
       const [h, m] = time.split(":").map(Number);
       hours = h;
       minutes = m;
@@ -656,145 +625,51 @@ const SessionManagement = () => {
     date.setHours(hours, minutes, 0, 0);
     return date;
   };
-  const canStartByPreviousIndex = (sessions, session) => {
+
+  const canStartByPreviousIndex = (sessionsList, session) => {
     const currentTime = buildSessionDateTime(session);
 
-    const previousSessions = sessions
+    const previousSessions = sessionsList
       .filter((s) => {
         const t = buildSessionDateTime(s);
-        return t < currentTime;
+        return t && currentTime && t < currentTime;
       })
       .sort((a, b) => buildSessionDateTime(b) - buildSessionDateTime(a));
 
     if (previousSessions.length === 0) return true;
 
     const prevStatus = previousSessions[0]?.sessionStatusId?.sessionStatusName;
-
     return prevStatus === "Completed" || prevStatus === "Canceled";
   };
 
-  const [msg, setMsg] = useState("");
-  const [data, setData] = useState("");
-  const getSession = async (date) => {
-    try {
-      const storedRole = localStorage.getItem("userRole");
-      const today = new Date().toLocaleDateString("en-CA");
-      // console.log(today);
-      let Today;
-      if (date) {
-        Today = date;
-      } else {
-        Today = today;
-      }
-      const response = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({
-          physioId: user._id,
-          Today,
-          storedRole,
-        }),
-      });
-      const incomplete = Array.isArray(response?.incompleteData)
-        ? response.incompleteData
-        : [];
-
-      const complete = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response?.sessions)
-          ? response.sessions
-          : Array.isArray(response)
-            ? response
-            : [];
-
-      const merged = [...complete, ...incomplete];
-
-      setSessions(merged);
-      setFilteredSessions(merged);
-      // console.log(response, "response response");
-      // if (!Array.isArray(response)) return;
-      // console.log(response, "response");
-      const msgs = response.message;
-      setMsg(msgs);
-      // const Data = response.incompleteData || response || [];
-      // setData(Data);
-      // console.log(Data, "Data");
-
-      // setSessions(Data);
-      // setFilteredSessions(Data);
-      // //Build session count map
-      const countMap = {};
-      const Data = merged;
-      Data.forEach((s) => {
-        const pid = s.patientId?._id;
-        const physioId = s.physioId?._id;
-        if (!pid || !physioId) return;
-
-        const key = `${pid}-${physioId}`;
-
-        if (!countMap[key]) {
-          countMap[key] = { total: 0, completed: 0 };
-        }
-
-        countMap[key].total += 1;
-
-        if (s.sessionStatusId?.sessionStatusName === "Completed") {
-          countMap[key].completed += 1;
-        }
-      });
-
-      setSessionCountMap(countMap);
-      // console.log("FilteredSessions", "filteredSessions", filteredSessions);
-      const todaySessions = Data.filter((s) => {
-        if (!s.sessionDate || !s.sessionTime) return false;
-
-        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
-
-        // if patient is recovered
-        if (s.patientId?.isRecovered) {
-          const recoveredDay = new Date(s.patientId.recoveredAt)
-            .toISOString()
-            .split("T")[0];
-
-          //recovered before today → hide today session
-          if (recoveredDay < today) return false;
-        }
-
-        return sessionDay === today;
-      })
-
-        .sort((a, b) => {
-          const aTime = buildSessionDateTime(a);
-          const bTime = buildSessionDateTime(b);
-          return aTime - bTime;
-        });
-      // console.log(todaySessions, "todaySessions");
-    } catch (error) {
-      console.error("Error fetching sessions:", error);
-    }
-  };
-  const getPhysioCount = async () => {
-    try {
-      const response = await apiRequest("Patient/getPhysioPatientCounts", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-
-      // console.log(response, "getphysiocount response");
-      setgetphyioCounts(response.data);
-    } catch (error) {
-      console.error("Error fetching sessions:", error);
-    }
-  };
-
   const handleSessionAction = async (session, action) => {
-    // console.log("handleSessionAction:", session?._id, action);
-
     try {
       const sessionId = session?._id;
       if (!sessionId) return;
 
       if (action === "Completed") {
-        setFeedbackDialog({ open: true, sessionId });
+        setFeedback({
+          sessionFeedbackPros: session.sessionFeedbackPros || "",
+          modeOfExercise: session.modeOfExercise || "",
+          redFlags: session.redFlags || [],
+          homeExerciseAssigned: String(!!session.homeExerciseAssigned),
+          modalities: !!session.modalities,
+          modalitiestype: session.modalitiestype || "",
+          modalitiesList: Array.isArray(session.modalitiesList)
+            ? session.modalitiesList
+                .map((m) => String(m.modalityId?._id ?? m.modalityId ?? m))
+                .filter(Boolean)
+            : [],
+          machineId: session.machineId?._id || session.machineId || "",
+          targetArea: session.targetArea || "",
+          media: session.media || [],
+        });
+
+        setFeedbackDialog({
+          open: true,
+          sessionId,
+          physioId: session?.physioId?._id ?? session?.physioId ?? "",
+        });
         return;
       }
 
@@ -805,7 +680,6 @@ const SessionManagement = () => {
 
       if (action === "Attended") {
         const allowed = canStartByPreviousIndex(filteredSessions, session);
-        // console.log("allowed to start?", allowed);
 
         if (!allowed) {
           toast({
@@ -816,34 +690,17 @@ const SessionManagement = () => {
           return;
         }
 
-        const res = await SessionStart({
+        await SessionStart({
           _id: sessionId,
           sessionFromTime: CovertTdyTim(),
           action: "Attended",
         });
-        // console.log("SessionStart res:", res);
       }
 
       if (action === "Scheduled") {
-        const res = await SessionStop({ _id: sessionId, action: "Scheduled" });
-        // console.log("SessionStop res:", res);
+        await SessionStop({ _id: sessionId, action: "Scheduled" });
       }
 
-      // update UI after success
-      // setFilteredSessions((prev) =>
-      //   prev.map((s) =>
-      //     s._id === sessionId
-      //       ? {
-      //           ...s,
-      //           sessionStatusId: {
-      //             ...(s.sessionStatusId || {}),
-      //             sessionStatusName: action,
-      //           },
-      //         }
-      //       : s,
-      //   ),
-      // );
-      // ✅ update sessions (source of truth)
       setSessions((prev) =>
         (Array.isArray(prev) ? prev : []).map((s) =>
           s._id === sessionId
@@ -869,6 +726,25 @@ const SessionManagement = () => {
     }
   };
 
+  const handleActionCancel = (
+    session,
+    action,
+    cancelledKmsValue,
+    cancelledReasonValue,
+    claimPetrolValue,
+  ) => {
+    SessionCancel({
+      _id: session,
+      action,
+      physioId: user?._id,
+      userRole,
+      physioName,
+      cancelledKms: cancelledKmsValue,
+      cancelledReason: cancelledReasonValue,
+      petrolAllowanceClaimed: claimPetrolValue,
+    });
+  };
+
   const handleCancelSubmit = () => {
     if (!cancelledReason.trim()) {
       toast({
@@ -878,7 +754,9 @@ const SessionManagement = () => {
       });
       return;
     }
+
     const { sessionId } = cancelDialog;
+
     handleActionCancel(
       sessionId,
       "Canceled",
@@ -886,6 +764,7 @@ const SessionManagement = () => {
       cancelledReason,
       claimPetrol,
     );
+
     setFilteredSessions((prev) =>
       prev.map((s) =>
         s._id === sessionId
@@ -898,18 +777,21 @@ const SessionManagement = () => {
           : s,
       ),
     );
+
     toast({
       title: "Session Canceled",
       description: "Session has been marked as Canceled.",
     });
+
     setCancelDialog({ open: false, sessionId: null });
     setCancelledKms("");
     setCancelledReason("");
-    setClaimPetrol(true);
+    setClaimPetrol(false);
+    setCancelledReasonType("");
   };
 
   const handleFeedbackUpload = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       setFeedback((prev) => ({ ...prev, media: [...prev.media, file.name] }));
       toast({
@@ -919,10 +801,32 @@ const SessionManagement = () => {
     }
   };
 
+  const handleActionEnd = (session, action, id) => {
+    SessionEnd({
+      _id: id,
+      sessionToTime: CovertTdyTim(),
+      action,
+      modeOfExercise: feedback.modeOfExercise || "",
+      machineId: feedback.machineId || undefined,
+      sessionFeedbackPros: session.sessionFeedbackPros || "",
+      redFlags: (session.redFlags || []).map((r) => ({
+        redFlagId: r.redFlagId?._id || r.redFlagId,
+        isOccurred: r.isOccurred || false,
+      })),
+      targetArea: session.targetArea || "",
+      modalitiestype: feedback.modalitiestype || "",
+      modalitiesList: (session.modalitiesList || []).map((idValue) => ({
+        modalityId: idValue,
+        isOccurred: true,
+      })),
+      homeExerciseAssigned: feedback.homeExerciseAssigned === "true",
+      modalities: feedback.modalities,
+    });
+  };
+
   const handleFeedbackSubmit = () => {
     const { sessionId } = feedbackDialog;
 
-    // Feedback text required
     if (!feedback.sessionFeedbackPros?.trim()) {
       toast({
         title: "Alert",
@@ -932,7 +836,6 @@ const SessionManagement = () => {
       return;
     }
 
-    //Mode of exercise required
     if (!feedback.modeOfExercise) {
       toast({
         title: "Alert",
@@ -942,8 +845,6 @@ const SessionManagement = () => {
       return;
     }
 
-    // Modalities list required if modalities = yes
-    // validate ONLY if modalities is YES
     if (feedback.modalities === true) {
       if (!feedback.modalitiesList || feedback.modalitiesList.length === 0) {
         toast({
@@ -964,89 +865,7 @@ const SessionManagement = () => {
       }
     }
 
-    //Targeted area required
-
-    // console.log(feedback, "Validation passed");
     handleActionEnd(feedback, "Completed", sessionId);
-  };
-
-  const handleActionStart = (session, action) => {
-    SessionStart({
-      _id: session,
-      sessionFromTime: CovertTdyTim(),
-      action: action,
-    });
-  };
-  const handlesessionStop = (session, action) => {
-    SessionStop({
-      _id: session,
-      action: action,
-    });
-  };
-  const handleSessionCancelRevert = (session, action) => {
-    SessionCancelRevert({
-      _id: session,
-
-      action: action,
-    });
-  };
-  const handleActionCancel = (
-    session,
-    action,
-    cancelledKms,
-    cancelledReason,
-    claimPetrol,
-  ) => {
-    SessionCancel({
-      _id: session,
-      action: action,
-      physioId: user?._id,
-      userRole: userRole,
-      physioName: physioName,
-      cancelledKms: cancelledKms,
-      cancelledReason: cancelledReason,
-      petrolAllowanceClaimed: claimPetrol,
-    });
-  };
-
-  // const handleActionEnd = (session, action, id) => {
-  //   SessionEnd({
-  //     _id: id,
-  //     sessionToTime: CovertTdyTim(),
-  //     action: action,
-  //     modeOfExercise: feedback.modeOfExercise,
-  //     // machineId: session.machineId,
-  //     sessionFeedbackPros: session.sessionFeedbackPros,
-  //     redFlags: session.redFlags,
-  //     targetArea: session.targetArea,
-  //     modalitiesList: session.modalitiesList,
-  //     modalities: feedback.modalities,
-  //   });
-  // };
-  const handleActionEnd = (session, action, id) => {
-    SessionEnd({
-      _id: id,
-      sessionToTime: CovertTdyTim(),
-      action: action,
-      modeOfExercise: feedback.modeOfExercise || "",
-      machineId: session.machineId?._id || session.machineId || undefined,
-      sessionFeedbackPros: session.sessionFeedbackPros || "",
-      redFlags: (session.redFlags || [])
-        .filter((r) => r.redFlagId)
-        .map((r) => ({
-          redFlagId: r.redFlagId,
-          isOccurred: r.isOccurred || false,
-        })),
-      targetArea: session.targetArea || "",
-      modalitiesList: (session.modalitiesList || [])
-        .filter((m) => m.modalityId)
-        .map((m) => ({
-          modalityId: m.modalityId,
-          isOccurred: m.isOccurred || false,
-        })),
-      homeExerciseAssigned: feedback.homeExerciseAssigned,
-      modalities: feedback.modalities,
-    });
   };
 
   const handleFormSubmit = (e) => {
@@ -1054,33 +873,30 @@ const SessionManagement = () => {
 
     if (!sessionForm.patientId) {
       alert("select the patient");
+      return;
     }
 
     if (!sessionForm.physioId) {
       alert("select the physio");
+      return;
     }
 
     const formData = {
       ...sessionForm,
-      patientId: parseInt(sessionForm.patientId),
-      physioId: parseInt(sessionForm.physioId),
-      machineId: sessionForm.machineId ? parseInt(sessionForm.machineId) : null,
+      patientId: sessionForm.patientId,
+      physioId: sessionForm.physioId,
+      machineId: sessionForm.machineId || null,
       sessionDate: sessionForm.sessionDate,
     };
 
     if (editingSession) {
-      updateSession({ ...sessionForm, redFlags: radio });
+      updateSession({ ...sessionForm });
       toast({ title: "Success", description: "Session updated." });
     } else {
-      const newSession = {
-        id: Date.now(),
-        ...formData,
-        status: "scheduled",
-        feedback: null,
-      };
-      getCreateSession({ ...sessionForm, redFlags: radio });
+      getCreateSession({ ...formData });
       toast({ title: "Success", description: "New session scheduled." });
     }
+
     setIsFormOpen(false);
     setEditingSession(null);
     setSessionForm(initialFormState);
@@ -1089,37 +905,24 @@ const SessionManagement = () => {
   const handleEditSession = (session) => {
     setEditingSession(session);
     setSessionForm({
-      ...session,
-      // patientId: session.patientId.toString(),
-      // physioId: session.physioId.toString(),
-      // machineId: session.machineId ? session.machineId.toString() : '',
-      // sessionDate: new Date(session.sessionDate),
-
-      sessionCode: session.sessionCode ? session.sessionCode : "",
-      patientId: session.patientId ? session.patientId._id : "",
-      physioId: session.physioId ? session.physioId._id : "",
-      sessionDate: session.sessionDate ? [new Date(session.sessionDate)] : "",
-      sessionDay: session.sessionDay ? session.sessionDay : "",
-      sessionTime: session.sessionTime ? session.sessionTime : "",
-      sessionFromTime: session.sessionFromTime ? session.sessionFromTime : "",
-      sessionToTime: session.sessionToTime ? session.sessionToTime : "",
-      sessionCount: session.sessionCount ? session.sessionCount : "",
-      // machineId: session.machineId?session.machineId._id:'',
-      sessionStatusId: session.sessionStatusId
-        ? session.sessionStatusId._id
-        : "",
+      sessionCode: session.sessionCode || "",
+      patientId: session.patientId?._id || "",
+      physioId: session.physioId?._id || "",
+      sessionDate: session.sessionDate ? [new Date(session.sessionDate)] : [],
+      sessionDay: session.sessionDay || "",
+      sessionTime: session.sessionTime || "",
+      sessionFromTime: session.sessionFromTime || "",
+      sessionToTime: session.sessionToTime || "",
+      sessionCount: session.sessionCount || "",
+      sessionStatusId: session.sessionStatusId?._id || "",
     });
     setIsFormOpen(true);
   };
 
   const renderPhysioBadge = (physioId) => {
-    // 1. Find the physio object from your state array
-    const physio = getPhysioCounts.find((p) => p.physioId === physioId);
-
-    // 2. Handle case where physio might not be found
+    const physio = (getPhysioCounts || []).find((p) => p.physioId === physioId);
     if (!physio) return <span>Physio not found</span>;
 
-    // 3. Define the background color logic
     const bgColor =
       physio.activePatientCount > 6
         ? "green"
@@ -1127,7 +930,6 @@ const SessionManagement = () => {
           ? "orange"
           : "red";
 
-    // 4. Return the styled response
     return (
       <span
         style={{
@@ -1143,7 +945,6 @@ const SessionManagement = () => {
   };
 
   const handleDeleteSession = (id) => {
-    // setSessions(prev => prev.filter(s => s.id !== sessionId));
     deleteSession({ _id: id });
     toast({
       title: "Deleted",
@@ -1151,62 +952,15 @@ const SessionManagement = () => {
       variant: "destructive",
     });
   };
-  // const handleDuplicateSession = (patientId, physioId, sessionTime) => {
-  //   deleteDuplicateSession(patientId, physioId, sessionTime);
-
-  //   toast({
-  //     title: "Deleted",
-  //     description: "Duplicate sessions have been removed.",
-  //     variant: "destructive",
-  //   });
-  // };
 
   const openNewSessionDialog = () => {
     setEditingSession(null);
     setSessionForm(initialFormState);
     setIsFormOpen(true);
   };
-  const Today = new Date().toISOString().split("T")[0];
 
-  // const handleRadio = (name,value) => {
-  //   setRadio(prev =>[...prev, { redFlagIdID: RedflagIDPK, isOccurred: value }] )
-  //   setFeedback(prev => ({ ...prev, [name]: value }))
-
-  // }
-  // const handleRadioChange = (name, value) => {
-  //   setFeedback(prev => ({ ...prev, [name]: value }));
-  // };
-
-  //  const renderRadioGroup = (label, name, value, id, group, dynamic) => (
-  //     <div className="flex items-center space-x-4">
-  //       <Label className="w-24">{label}</Label>
-  //       <RadioGroup value={feedback[name] || (group ? false : 'no')} onValueChange={(v) => { dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v) }} className="flex gap-4">
-  //         <div className="flex items-center space-x-2"><RadioGroupItem value={group ? true : 'yes'} id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
-  //         <div className="flex items-center space-x-2"><RadioGroupItem value={group ? false : 'no'} id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
-  //       </RadioGroup>
-  //     </div>  )
-  const [viewingPatient, setViewingPatient] = useState(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [filteredPatients, setFilteredPatients] = useState([]);
-  const [modalitiesForm, setModalitiesForm] = useState(initialFormState);
-
-  const getAllPatient = async () => {
-    try {
-      const res = await apiRequest("Patient/getAllPatient", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-
-      setFilteredPatients(res);
-      setPatients(res);
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-  // console.log("Session invompleted", sessions);
   return (
-    <div className="md:space-y-6  space-y-10">
+    <div className="md:space-y-6 space-y-10">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1223,19 +977,20 @@ const SessionManagement = () => {
               : "Manage all patient sessions and track progress"}
           </p>
         </div>
-        {/* {user?.role !== "Physio" && Permissions.isAdd && ( */}
+
         {Permissions.isAdd && (
           <Button onClick={openNewSessionDialog}>
             <PlusCircle className="mr-2 h-4 w-4" /> Schedule Session
           </Button>
         )}
       </motion.div>
-      <Card className="medical-card max-w-fit md:max-w-full  ">
+
+      <Card className="medical-card max-w-fit md:max-w-full">
         <CardHeader>
           <CardTitle>Search & Filter</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex md:flex-row  flex-col items-center gap-4  md:space-x-4  ">
+          <div className="flex md:flex-row flex-col items-center gap-4 md:space-x-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
@@ -1245,16 +1000,7 @@ const SessionManagement = () => {
                 className="pl-10"
               />
             </div>
-            {/* <div className="w-48"> */}
-            {/* <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Date">Date</SelectItem>
-                  <Input type="Date" value={sessionForm.sessionDate} />
-                </SelectContent>
-              </Select> */}
+
             {user?.role !== "Physio" && (
               <div className="w-48">
                 <Input
@@ -1286,10 +1032,11 @@ const SessionManagement = () => {
           </div>
         </CardContent>
       </Card>
+
       {msg && user?.role === "Physio" && (
-        <Card className="medical-card max-w-fit md:max-w-full  ">
+        <Card className="medical-card max-w-fit md:max-w-full">
           <CardContent>
-            <div className="flex md:flex-row m-5 mb-0 flex-col items-center gap-4 text-center md:space-x-4  ">
+            <div className="flex md:flex-row m-5 mb-0 flex-col items-center gap-4 text-center md:space-x-4">
               <div className="flex-1 relative">
                 <h5>{msg}</h5>
               </div>
@@ -1297,6 +1044,7 @@ const SessionManagement = () => {
           </CardContent>
         </Card>
       )}
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1313,7 +1061,6 @@ const SessionManagement = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-2">Session Code</th>
-
                       <th className="text-left p-2">Patient</th>
                       {user?.role !== "Physio" && (
                         <th className="text-left p-2">Physiotherapist</th>
@@ -1322,18 +1069,11 @@ const SessionManagement = () => {
                       <th className="text-left p-2">Machine</th>
                       <th className="text-left p-2">Status</th>
                       <th className="text-left p-2">Session</th>
-
                       <th className="text-left p-2">Feedback</th>
                       <th className="text-left p-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* {data.map((s) => (
-                    <tr key={s._id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">{s.sessionCode}</td>
-                      <td className="p-2">{s.patientId?.patientName}</td>
-                    </tr>
-                  ))} */}
                     {filteredSessions.map((session) => (
                       <tr
                         key={session._id}
@@ -1341,29 +1081,21 @@ const SessionManagement = () => {
                       >
                         <td className="p-2">
                           {session.sessionCode ||
-                            session.incompleteData.sessionCode}
+                            session.incompleteData?.sessionCode ||
+                            "-"}
                         </td>
                         <td className="p-2">
                           {session.patientId?.patientName ||
-                            session.incompleteData?.patientId?.patientName}
+                            session.incompleteData?.patientId?.patientName ||
+                            "-"}
                         </td>
-                        {/* <td className="p-2">{session.patientId.patientName}</td> */}
-                        {/* <td className='p-2'>
-                        {
-                          patients.map((pat)=>{
-                              <div key={pat._id}>{pat.patientName}</div> 
-                          })
-                        }
-                          
-                      </td> */}
 
                         {user?.role !== "Physio" && (
                           <td className="p-2">
-                            {renderPhysioBadge(session.physioId._id)}
-                            {/* {session.physioId?.physioName || "-"} */}
+                            {renderPhysioBadge(session.physioId?._id)}
                           </td>
                         )}
-                        {/* {user?.role !== 'physio' && <td className="p-2">{session.physioId.physioName}</td>} */}
+
                         <td className="p-2">
                           <div>
                             <p className="text-sm">
@@ -1376,7 +1108,8 @@ const SessionManagement = () => {
                                 : "-"}
                               (
                               {session.sessionDay ||
-                                session.incompleteData.sessionDay}
+                                session.incompleteData?.sessionDay ||
+                                "-"}
                               )
                             </p>
                             <p className="text-xs text-gray-600">
@@ -1386,41 +1119,33 @@ const SessionManagement = () => {
                             </p>
                           </div>
                         </td>
+
                         <td className="p-2">
-                          {session.machineId
-                            ? session.machineId.machineName
-                            : "-"}
+                          {session.machineId?.machineName || "-"}
                         </td>
+
                         <td className="p-2">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs status-${session.status}`}
+                            className="px-2 py-1 rounded-full text-xs"
                             style={{
-                              backgroundColor: session?.sessionStatusId
-                                ? session?.sessionStatusId?.sessionStatusColor
-                                : "white",
-                              color: session.sessionStatusId
-                                ? session?.sessionStatusId
-                                    ?.sessionStatusTextColor
-                                : "black",
+                              backgroundColor:
+                                session?.sessionStatusId?.sessionStatusColor ||
+                                "white",
+                              color:
+                                session?.sessionStatusId
+                                  ?.sessionStatusTextColor || "black",
                             }}
                           >
-                            {" "}
-                            {session.sessionStatusId
-                              ? session?.sessionStatusId?.sessionStatusName
-                              : ""}
+                            {session?.sessionStatusId?.sessionStatusName || ""}
                           </span>
                         </td>
+
                         <td className="p-2">
-                          {session.monthlySessionCount}
-                          {/* {session.sessionCount} */}
-                          {/* {sessionCountMap[
-                          `${session?.patientId?._id}-${session?.physioId?._id}`
-                        ]?.completed + 1} */}
+                          {session.monthlySessionCount || "-"}
                         </td>
 
                         <td className="p-2">
                           <div className="text-xs space-y-1">
-                            {/* Session Feedback Pros */}
                             {session.sessionFeedbackPros && (
                               <p className="text-green-600">
                                 ✓ {session.sessionFeedbackPros}
@@ -1432,7 +1157,6 @@ const SessionManagement = () => {
                               </p>
                             )}
 
-                            {/* Red Flags */}
                             {session.redFlags?.length > 0
                               ? session.redFlags.map(
                                   (flag) =>
@@ -1447,14 +1171,14 @@ const SessionManagement = () => {
                                 )
                               : !session.sessionFeedbackPros &&
                                 !session.sessionFeedbackCons &&
-                                !session.redFlags.length && (
+                                !(session.redFlags || []).length && (
                                   <span className="text-gray-400">
                                     No feedback
                                   </span>
                                 )}
                           </div>
                         </td>
-                        {/* <td className="p-2">{session.feedback ? <div className="text-xs">{session.feedback.sessionFeedbackPros && <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>}{session.feedback.redFlags?.length > 0 && <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>}{session.feedback.media?.length > 0 && <p className="text-blue-600"><Paperclip size={12} className="inline-block mr-1" />{session.feedback.media.join(', ')}</p>}</div> : <span className="text-gray-400 text-xs">No feedback</span>}</td> */}
+
                         <td className="p-2">
                           <div className="flex space-x-1">
                             <Button
@@ -1466,16 +1190,12 @@ const SessionManagement = () => {
                             >
                               <FileText size={14} />
                             </Button>
-                            {(
-                              session?.sessionStatusId?.sessionStatusName || ""
-                            ).toLowerCase() === "scheduled" && (
+
+                            {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                              "scheduled" && (
                               <Button
                                 type="button"
                                 size="sm"
-                                className="relative z-50 pointer-events-auto"
-                                onMouseDown={() =>
-                                  console.log("MOUSEDOWN scheduled")
-                                } // debug
                                 onClick={() =>
                                   handleSessionAction(session, "Attended")
                                 }
@@ -1483,7 +1203,8 @@ const SessionManagement = () => {
                                 <Play size={12} />
                               </Button>
                             )}
-                            {session?.sessionStatusId?.sessionStatusName.toLowerCase() ===
+
+                            {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                               "attended" && (
                               <Button
                                 size="sm"
@@ -1495,7 +1216,8 @@ const SessionManagement = () => {
                                 <Square size={12} />
                               </Button>
                             )}
-                            {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+
+                            {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                               "attended" &&
                               user?.role !== "Physio" && (
                                 <Button
@@ -1509,73 +1231,10 @@ const SessionManagement = () => {
                                 </Button>
                               )}
 
-                            {session?.sessionStatusId?.sessionStatusName.toLowerCase() ===
-                              "completed" &&
-                              !session.feedback && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    // Pre-fill feedback with existing session data
-                                    setFeedback({
-                                      sessionFeedbackPros:
-                                        session.sessionFeedbackPros || "",
-                                      modeOfExercise:
-                                        session.modeOfExercise || "",
-                                      redFlags: session.redFlags || [],
-                                      homeExerciseAssigned:
-                                        !!session.homeExerciseAssigned,
-                                      // modalitiesList:
-                                      //   session.modalitiesList.map((m) => {
-                                      //     return {
-                                      //       modalityId: m.modalityId?._id,
-                                      //       isOccurred: m.isOccurred,
-                                      //     };
-                                      //   }) || [],
-                                      modalitiesList: Array.isArray(
-                                        session.modalitiesList,
-                                      )
-                                        ? session.modalitiesList
-                                            .map((m) =>
-                                              String(
-                                                m.modalityId?._id ??
-                                                  m.modalityId,
-                                              ),
-                                            )
-                                            .filter(Boolean)
-                                        : [],
-
-                                      // machineId:
-                                      // session.machineId?.machineName || "",
-                                      targetArea: session.targetArea || "",
-                                      media: session.media || [],
-                                      modalities: !!session.modalities,
-                                    });
-
-                                    setModalitiesForm({
-                                      modalitiestype:
-                                        session.modalitiestype ||
-                                        "Exercise Therapy", // default type
-                                    });
-
-                                    // Open the feedback dialog
-                                    setFeedbackDialog({
-                                      open: true,
-                                      sessionId: session._id,
-                                      physioId:
-                                        session?.physioId?._id ??
-                                        session?.physioId ??
-                                        "",
-                                    });
-                                  }}
-                                >
-                                  <MessageSquare size={12} />
-                                </Button>
-                              )}
-                            {(session?.sessionStatusId?.sessionStatusName.toLowerCase() ===
+                            {(session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                               "scheduled" ||
-                              session?.sessionStatusId?.sessionStatusName ===
-                                "Attended") && (
+                              session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                "attended") && (
                               <Button
                                 size="sm"
                                 variant="destructive"
@@ -1606,8 +1265,8 @@ const SessionManagement = () => {
                                         Are you sure?
                                       </AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        This will Changed the Cancelled session
-                                        to Scheduled.
+                                        This will change the cancelled session
+                                        to scheduled.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -1627,7 +1286,6 @@ const SessionManagement = () => {
                               )}
 
                             {user?.role !== "Physio" && Permissions.isEdit && (
-                              // <>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1636,6 +1294,7 @@ const SessionManagement = () => {
                                 <Edit size={12} />
                               </Button>
                             )}
+
                             {user?.role !== "Physio" &&
                               Permissions.isDelete && (
                                 <AlertDialog>
@@ -1660,26 +1319,14 @@ const SessionManagement = () => {
                                       </AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() =>
-                                          handleDeleteSession(session)
+                                          handleDeleteSession(session._id)
                                         }
                                       >
                                         Delete
                                       </AlertDialogAction>
-                                      {/* <AlertDialogAction
-                                    onClick={() =>
-                                      handleDuplicateSession(
-                                        session.patientId._id,
-                                        session.physioId._id,
-                                        session.sessionTime,
-                                      )
-                                    }
-                                  >
-                                    Delete
-                                  </AlertDialogAction> */}
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
-                                // </>
                               )}
                           </div>
                         </td>
@@ -1697,140 +1344,7 @@ const SessionManagement = () => {
           onOpenChange={setIsDetailsOpen}
           patient={viewingPatient}
         />
-        {/* //card for mobile view */}
-        {/* <Card className="medical-card  md:hidden"> */}
-        {/* <CardHeader><CardTitle>Sessions ({filteredSessions.length})</CardTitle></CardHeader> */}
-        {/* <CardContent> */}
-        {/* Mobile view */}
-        {/* <div className="md:hidden space-y-4">
-              {filteredSessions.map((session) => (
-                <Card key={session._id} className="p-4 shadow-lg rounded-2xl border"> */}
 
-        {/* --- Top Section --- */}
-        {/* <div className="mb-2">
-                    <p className="text-base font-bold">{session.patientId.patientName}</p>
-
-                    {user?.role !== 'physio' && (
-                      <p className="text-sm text-gray-500">
-                        Physio: <span className="font-medium">{session.physioId.physioName}</span>
-                      </p>
-                    )}
-                  </div> */}
-
-        {/* --- Date + Time Badge --- */}
-        {/* <div className="bg-gray-100 rounded-md p-2 text-xs mb-2">
-                    <p className="font-semibold">
-                      {session.sessionDate.split('T')[0].split('-').reverse().join('-')} ({session.sessionDay})
-                    </p>
-                    <p className="text-gray-700">
-                      {Converttime(session.sessionTime)}
-                    </p>
-                  </div> */}
-
-        {/* --- Machine & Status --- */}
-        {/* <div className="flex justify-between text-xs mb-2">
-                    <p className="font-medium">
-                      Machine: {session.machineId ? session.machineId.machineName : '-'}
-                    </p>
-
-                    <span
-                      className="px-2 py-1 rounded-sm text-[10px]"
-                      style={{
-                        backgroundColor: session.sessionStatusId?.sessionStatusColor,
-                        color: session.sessionStatusId?.sessionStatusTextColor,
-                      }}
-                    >
-                      {session.sessionStatusId?.sessionStatusName}
-                    </span>
-                  </div> */}
-
-        {/* --- Feedback --- */}
-        {/* <div className="text-xs mb-3">
-                    {session.feedback ? (
-                      <>
-                        {session.feedback.sessionFeedbackPros && (
-                          <p className="text-green-600">✓ {session.feedback.sessionFeedbackPros}</p>
-                        )}
-                        {session.feedback.redFlags?.length > 0 && (
-                          <p className="text-red-600">⚠ {session.feedback.redFlags.join(', ')}</p>
-                        )}
-                        {session.feedback.media?.length > 0 && (
-                          <p className="text-blue-600">
-                            <Paperclip size={12} className="inline-block mr-1" />
-                            {session.feedback.media.join(', ')}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-gray-400">No feedback</p>
-                    )}
-                  </div> */}
-
-        {/* --- Action Buttons --- */}
-        {/* <div className="flex flex-wrap gap-2">
-                    {session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' && (
-                      <Button size="sm" onClick={() => handleSessionAction(session._id, 'Attended')}>
-                        <Play size={12} />
-                      </Button>
-                    )}
-
-                    {session.sessionStatusId.sessionStatusName.toLowerCase() === 'attended' && (
-                      <Button size="sm" variant="outline" onClick={() => handleSessionAction(session._id, 'Completed')}>
-                        <Square size={12} />
-                      </Button>
-                    )}
-
-                    {session.sessionStatusId.sessionStatusName.toLowerCase() === 'completed' && !session.feedback && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setFeedbackDialog({ open: true, sessionId: session.sessionId })}
-                      >
-                        <MessageSquare size={12} />
-                      </Button>
-                    )}
-
-                    {(session.sessionStatusId.sessionStatusName.toLowerCase() === 'scheduled' ||
-                      session.sessionStatusId.sessionStatusName === 'Attended') && (
-                        <Button size="sm" variant="destructive" onClick={() => handleSessionAction(session._id, 'Canceled')}>
-                          <XCircle size={12} />
-                        </Button>
-                      )}
-
-                    {user?.role !== 'physio' && (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => handleEditSession(session)}>
-                          <Edit size={12} />
-                        </Button>
-
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">
-                              <Trash2 size={12} />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>This will permanently delete the session.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteSession(session._id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-          </CardContent>
-        </Card> */}
-
-        {/* Mobile view card */}
         <Card className="medical-card md:hidden">
           <CardHeader>
             <CardTitle>
@@ -1844,13 +1358,12 @@ const SessionManagement = () => {
                   key={session._id}
                   className="p-4 shadow-lg rounded-2xl border"
                 >
-                  {/* Top Section */}
                   <div className="mb-2">
                     <p className="text-base font-bold">
                       {session.patientId?.patientName || "-"}
                     </p>
 
-                    {user?.role !== "physio" && (
+                    {user?.role !== "Physio" && (
                       <p className="text-sm text-gray-500">
                         Physio:
                         <span className="font-medium">
@@ -1859,22 +1372,14 @@ const SessionManagement = () => {
                       </p>
                     )}
                   </div>
+
                   <p className="text-sm text-gray-500">
                     Session
                     <span className="font-medium text-gray-800 ml-1">
-                      {/* {getNthSession(session) || "-"}
-                       */}
-                      {session.monthlySessionCount}
-                      {/* {session.sessionCount} */}
-                      {/* {
-                        sessionCountMap[
-                          `${session?.patientId?._id}-${session?.physioId?._id}`
-                        ]?.completed
-                      } */}
+                      {session.monthlySessionCount || "-"}
                     </span>
                   </p>
 
-                  {/* Date + Time */}
                   <div className="bg-gray-100 rounded-md p-2 text-xs mb-2">
                     <p className="font-semibold">
                       {session.sessionDate
@@ -1890,10 +1395,9 @@ const SessionManagement = () => {
                     </p>
                   </div>
 
-                  {/* Machine & Status */}
                   <div className="flex justify-between text-xs mb-2">
                     <p className="font-medium">
-                      Machine:{session.machineId?.machineName || "-"}
+                      Machine: {session.machineId?.machineName || "-"}
                     </p>
                     <span
                       className="px-2 py-1 rounded-sm text-[10px]"
@@ -1910,9 +1414,7 @@ const SessionManagement = () => {
                     </span>
                   </div>
 
-                  {/* Feedback */}
                   <div className="text-xs space-y-1">
-                    {/* Session Feedback Pros */}
                     {session.sessionFeedbackPros && (
                       <p className="text-green-600">
                         ✓ {session.sessionFeedbackPros}
@@ -1924,7 +1426,6 @@ const SessionManagement = () => {
                       </p>
                     )}
 
-                    {/* Red Flags */}
                     {session.redFlags?.length > 0
                       ? session.redFlags.map(
                           (flag) =>
@@ -1936,13 +1437,12 @@ const SessionManagement = () => {
                         )
                       : !session.sessionFeedbackPros &&
                         !session.sessionFeedbackCons &&
-                        !session.redFlags.length && (
+                        !(session.redFlags || []).length && (
                           <span className="text-gray-400">No feedback</span>
                         )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     <Button
                       size="sm"
                       variant="outline"
@@ -1950,13 +1450,12 @@ const SessionManagement = () => {
                     >
                       <FileText size={14} />
                     </Button>
+
                     {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                       "scheduled" && (
                       <Button
                         type="button"
                         size="sm"
-                        className="relative z-50 pointer-events-auto"
-                        onMouseDown={() => console.log("MOUSEDOWN scheduled")} // debug
                         onClick={() => handleSessionAction(session, "Attended")}
                       >
                         <Play size={12} />
@@ -1990,44 +1489,6 @@ const SessionManagement = () => {
                         </Button>
                       )}
 
-                    {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                      "completed" &&
-                      !session.feedback && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            // Pre-fill feedback with existing session data
-                            setFeedback({
-                              sessionFeedbackPros:
-                                session.sessionFeedbackPros || "",
-                              modeOfExercise: session.modeOfExercise || "",
-                              redFlags: session.redFlags || [],
-                              homeExerciseAssigned:
-                                !!session.homeExerciseAssigned,
-                              modalities: !!session.modalities,
-                              modalitiesList: session.modalitiesList || [],
-                              machineId: session.machineId?.machineName || "",
-                              targetArea: session.targetArea || "",
-                              media: session.media || [],
-                            });
-
-                            setModalitiesForm({
-                              modalitiestype:
-                                session.modalitiestype || "Exercise Therapy", // default type
-                            });
-
-                            // Open the feedback dialog
-                            setFeedbackDialog({
-                              open: true,
-                              sessionId: session._id,
-                            });
-                          }}
-                        >
-                          <MessageSquare size={12} />
-                        </Button>
-                      )}
-
                     {(session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
                       "scheduled" ||
                       session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
@@ -2040,6 +1501,7 @@ const SessionManagement = () => {
                         <XCircle size={12} />
                       </Button>
                     )}
+
                     {user?.role !== "Physio" &&
                       session.sessionStatusId?.sessionStatusName ===
                         "Canceled" && (
@@ -2057,8 +1519,8 @@ const SessionManagement = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will Changed the Cancelled session to
-                                Scheduled.
+                                This will change the cancelled session to
+                                scheduled.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -2080,15 +1542,7 @@ const SessionManagement = () => {
                         <Edit size={12} />
                       </Button>
                     )}
-                    {/* {user?.role !== "Physio" && ( */}
-                    {/* <> */}
-                    {/* <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditSession(session)}
-                        >
-                          <Edit size={12} />
-                        </Button> */}
+
                     {user?.role !== "Physio" && Permissions.isDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -2106,7 +1560,7 @@ const SessionManagement = () => {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDeleteSession(session)}
+                              onClick={() => handleDeleteSession(session._id)}
                             >
                               Delete
                             </AlertDialogAction>
@@ -2114,8 +1568,6 @@ const SessionManagement = () => {
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
-                    {/* </> */}
-                    {/* )} */}
                   </div>
                 </Card>
               ))}
@@ -2123,9 +1575,16 @@ const SessionManagement = () => {
           </CardContent>
         </Card>
       </motion.div>
+
       <Dialog
         open={feedbackDialog.open}
-        onOpenChange={(open) => setFeedbackDialog({ open, sessionId: null })}
+        onOpenChange={(open) =>
+          setFeedbackDialog({
+            open,
+            sessionId: null,
+            physioId: open ? feedbackDialog.physioId : "",
+          })
+        }
       >
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
@@ -2134,12 +1593,13 @@ const SessionManagement = () => {
               Provide feedback for the completed session.
             </DialogDescription>
           </DialogHeader>
+
           <div className="flex-1 overflow-y-auto pr-6">
             <div className="space-y-6 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="sessionFeedbackPros ">Update Feedback </Label>
+                <Label htmlFor="sessionFeedbackPros">Update Feedback</Label>
                 <textarea
-                  id="sessionFeedbackPros "
+                  id="sessionFeedbackPros"
                   className="w-full p-2 border rounded-md"
                   rows={2}
                   value={feedback.sessionFeedbackPros}
@@ -2156,7 +1616,6 @@ const SessionManagement = () => {
               <div className="space-y-2">
                 <Label>Mode of Exercise</Label>
                 <RadioGroup
-                  defaultValue="passive"
                   value={feedback.modeOfExercise}
                   onValueChange={(v) =>
                     setFeedback({ ...feedback, modeOfExercise: v })
@@ -2176,34 +1635,34 @@ const SessionManagement = () => {
 
               <div className="space-y-2">
                 <Label>Red Flags</Label>
-
                 <div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                   {redFlags.map((flag) => {
+                    const flagId = flag.RedflagIDPK || flag._id;
                     const isChecked = feedback.redFlags?.some(
-                      (f) => f.redFlagId?._id === flag.RedflagIDPK,
+                      (f) =>
+                        String(f.redFlagId?._id || f.redFlagId) ===
+                        String(flagId),
                     );
 
                     return (
-                      <div
-                        key={flag.RedflagIDPK}
-                        className="flex items-center space-x-2"
-                      >
+                      <div key={flagId} className="flex items-center space-x-2">
                         <Checkbox
-                          id={`rf-${flag.RedflagIDPK}`}
+                          id={`rf-${flagId}`}
                           checked={isChecked}
                           onCheckedChange={(checked) => {
                             setFeedback((prev) => ({
                               ...prev,
                               redFlags: checked
                                 ? [
-                                    // remove duplicates first
                                     ...prev.redFlags.filter(
                                       (f) =>
-                                        f.redFlagId?._id !== flag.RedflagIDPK,
+                                        String(
+                                          f.redFlagId?._id || f.redFlagId,
+                                        ) !== String(flagId),
                                     ),
                                     {
                                       redFlagId: {
-                                        _id: flag.RedflagIDPK,
+                                        _id: flagId,
                                         redflagName: flag.redflagName,
                                       },
                                       isOccurred: true,
@@ -2211,14 +1670,15 @@ const SessionManagement = () => {
                                   ]
                                 : prev.redFlags.filter(
                                     (f) =>
-                                      f.redFlagId?._id !== flag.RedflagIDPK,
+                                      String(
+                                        f.redFlagId?._id || f.redFlagId,
+                                      ) !== String(flagId),
                                   ),
                             }));
                           }}
                         />
-
                         <Label
-                          htmlFor={`rf-${flag.RedflagIDPK}`}
+                          htmlFor={`rf-${flagId}`}
                           className="text-sm font-normal"
                         >
                           {flag.redflagName}
@@ -2229,48 +1689,36 @@ const SessionManagement = () => {
                 </div>
               </div>
 
-              {/* <div className="space-y-2"><Label>Red Flags</Label>
-              <div className="p-3 border rounded-md grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                {  
-                redFlags.map((red)=>{
-                      <div key={red.RedflagIDPK}>
-                          {renderRadioGroup(red.redflagName, red.redflagName.toLowerCase(), feedback[red.redflagName.toLowerCase()], red.RedflagIDPK, true, true)}
-                        </div>
-                  })
-                }
-                </div>
-                </div> */}
-
               <div className="space-y-2">
                 <Label>Home Exercise Program Assigned</Label>
                 <RadioGroup
                   value={feedback.homeExerciseAssigned}
-                  onValueChange={(v) => {
-                    // console.log(v, "v in home exercise");
-                    setFeedback({ ...feedback, homeExerciseAssigned: v });
-                  }}
+                  onValueChange={(v) =>
+                    setFeedback({ ...feedback, homeExerciseAssigned: v })
+                  }
                   className="flex gap-4"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value={true} id="he-yes" />
+                    <RadioGroupItem value="true" id="he-yes" />
                     <Label htmlFor="he-yes">Yes</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value={false} id="he-no" />
+                    <RadioGroupItem value="false" id="he-no" />
                     <Label htmlFor="he-no">No</Label>
                   </div>
                 </RadioGroup>
               </div>
+
               <div className="space-y-2">
                 <Label>Modalities</Label>
                 <RadioGroup
-                  value={sessionForm.modalities ? "yes" : "no"}
+                  value={feedback.modalities ? "yes" : "no"}
                   onValueChange={(v) => {
-                    setSessionForm((prev) => ({
+                    setFeedback((prev) => ({
                       ...prev,
                       modalities: v === "yes",
                       modalitiestype: v === "no" ? "" : prev.modalitiestype,
-                      modalityList: v === "no" ? [] : prev.modalityList,
+                      modalitiesList: v === "no" ? [] : prev.modalitiesList,
                     }));
                   }}
                   className="flex gap-4"
@@ -2279,7 +1727,6 @@ const SessionManagement = () => {
                     <RadioGroupItem value="yes" id="mod-yes" />
                     <Label htmlFor="mod-yes">Yes</Label>
                   </div>
-
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="no" id="mod-no" />
                     <Label htmlFor="mod-no">No</Label>
@@ -2287,17 +1734,17 @@ const SessionManagement = () => {
                 </RadioGroup>
               </div>
 
-              {sessionForm.modalities === true && (
+              {feedback.modalities === true && (
                 <div className="space-y-2">
                   <Label htmlFor="modalitiestype">Modalities Type</Label>
 
                   <Select
-                    value={sessionForm.modalitiestype}
+                    value={feedback.modalitiestype}
                     onValueChange={(val) =>
-                      setSessionForm((prev) => ({
+                      setFeedback((prev) => ({
                         ...prev,
                         modalitiestype: val,
-                        modalityList: [],
+                        modalitiesList: [],
                       }))
                     }
                   >
@@ -2314,7 +1761,7 @@ const SessionManagement = () => {
                     </SelectContent>
                   </Select>
 
-                  {sessionForm.modalitiestype && (
+                  {feedback.modalitiestype && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -2322,95 +1769,72 @@ const SessionManagement = () => {
                     >
                       <Label>List of Modalities</Label>
 
-                      {Array.isArray(Modalities) &&
-                        (() => {
-                          const list = Modalities.filter(
-                            (mod) =>
-                              mod.modalitiestype ===
-                                sessionForm.modalitiestype &&
-                              physioModalityIds.includes(String(mod._id)),
-                          );
-
-                          if (list.length === 0) {
-                            return (
-                              <div className="p-3 border rounded-md text-sm text-red-500">
-                                This Physio does not have any assigned
-                                modalities.
-                              </div>
-                            );
-                          }
-
+                      {(() => {
+                        const list = (Modalities || []).filter((mod) => {
+                          const modId = String(mod._id);
                           return (
-                            <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
-                              {list.map((mod) => {
-                                const id = String(mod._id);
-                                const isChecked = (
-                                  sessionForm.modalityList || []
-                                )
-                                  .map(String)
-                                  .includes(id);
+                            mod.modalitiestype === feedback.modalitiestype &&
+                            physioModalityIds.includes(modId)
+                          );
+                        });
 
-                                return (
-                                  <div
-                                    key={id}
-                                    className="flex items-center space-x-2"
-                                  >
-                                    <Checkbox
-                                      id={`mod-${id}`}
-                                      checked={isChecked}
-                                      onCheckedChange={(checked) => {
-                                        setSessionForm((prev) => {
-                                          const list = (
-                                            prev.modalityList || []
-                                          ).map(String);
-                                          return {
-                                            ...prev,
-                                            modalityList: checked
-                                              ? Array.from(
-                                                  new Set([...list, id]),
-                                                )
-                                              : list.filter((m) => m !== id),
-                                          };
-                                        });
-                                      }}
-                                    />
-                                    <Label
-                                      htmlFor={`mod-${id}`}
-                                      className="text-sm font-normal"
-                                    >
-                                      {mod.modalitiesName}
-                                    </Label>
-                                  </div>
-                                );
-                              })}
+                        if (list.length === 0) {
+                          return (
+                            <div className="p-3 border rounded-md text-sm text-red-500">
+                              This Physio does not have any assigned modalities.
                             </div>
                           );
-                        })()}
+                        }
+
+                        return (
+                          <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
+                            {list.map((mod) => {
+                              const id = String(mod._id);
+                              const isChecked = (feedback.modalitiesList || [])
+                                .map(String)
+                                .includes(id);
+
+                              return (
+                                <div
+                                  key={id}
+                                  className="flex items-center space-x-2"
+                                >
+                                  <Checkbox
+                                    id={`mod-${id}`}
+                                    checked={isChecked}
+                                    onCheckedChange={(checked) => {
+                                      setFeedback((prev) => {
+                                        const listIds = (
+                                          prev.modalitiesList || []
+                                        ).map(String);
+
+                                        return {
+                                          ...prev,
+                                          modalitiesList: checked
+                                            ? Array.from(
+                                                new Set([...listIds, id]),
+                                              )
+                                            : listIds.filter((m) => m !== id),
+                                        };
+                                      });
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`mod-${id}`}
+                                    className="text-sm font-normal"
+                                  >
+                                    {mod.modalitiesName}
+                                  </Label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </motion.div>
                   )}
                 </div>
               )}
-
-              {/* <div className="space-y-2">
-                <Label>Machine Used</Label>
-                <Select
-                  onValueChange={(v) =>
-                    setFeedback((p) => ({ ...p, machineId: v }))
-                  }
-                  value={feedback.machineId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a machine" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {machines.map((m) => (
-                      <SelectItem key={m._id} value={m._id}>
-                        {m.machineName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div> */}
 
               <div className="space-y-2">
                 <Label htmlFor="targetArea">Targeted Area</Label>
@@ -2437,12 +1861,13 @@ const SessionManagement = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => fileInputRef.current.click()}
+                    onClick={() => fileInputRef.current?.click()}
                   >
                     <Upload size={16} className="mr-2" /> Attach Media
                   </Button>
+
                   <div className="mt-2 space-y-1">
-                    {feedback.media.map((doc, index) => (
+                    {(feedback.media || []).map((doc, index) => (
                       <div
                         key={index}
                         className="flex items-center gap-2 text-sm text-gray-600"
@@ -2453,12 +1878,17 @@ const SessionManagement = () => {
                   </div>
                 </div>
               )}
+
               <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() =>
-                    setFeedbackDialog({ open: false, sessionId: null })
+                    setFeedbackDialog({
+                      open: false,
+                      sessionId: null,
+                      physioId: "",
+                    })
                   }
                 >
                   Cancel
@@ -2469,6 +1899,7 @@ const SessionManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
       <Dialog
         open={cancelDialog.open}
         onOpenChange={(open) => setCancelDialog({ open, sessionId: null })}
@@ -2478,18 +1909,16 @@ const SessionManagement = () => {
             <DialogTitle>Cancel Session</DialogTitle>
             <DialogDescription>
               Enter the below details before cancellation, if any.
-              {/* Enter the kilometers travelled before cancellation, if any. */}
             </DialogDescription>
           </DialogHeader>
+
           {user?.role !== "Physio" && (
             <div className="space-y-4 pt-4">
               <Label htmlFor="cancelledKms">Cancelled Kms</Label>
               <Input
                 id="cancelledKms"
                 type="number"
-                onWheel={(e) => {
-                  e.target.blur();
-                }}
+                onWheel={(e) => e.target.blur()}
                 value={cancelledKms}
                 onChange={(e) => setCancelledKms(e.target.value)}
                 placeholder="e.g., 5"
@@ -2507,23 +1936,20 @@ const SessionManagement = () => {
               value={cancelledReasonType}
               onValueChange={(val) => {
                 setCancelledReasonType(val);
-                if (val !== "Other") {
-                  setCancelledReason(val);
-                } else {
-                  setCancelledReason("");
-                }
+                if (val !== "Other") setCancelledReason(val);
+                else setCancelledReason("");
               }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select Cancel Reason" />
               </SelectTrigger>
-
               <SelectContent>
                 <SelectItem value="LUP">LUP</SelectItem>
                 <SelectItem value="LUO">LUO</SelectItem>
                 <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
+
             {cancelledReasonType === "Other" && (
               <Input
                 id="cancelledReason"
@@ -2534,6 +1960,7 @@ const SessionManagement = () => {
                 required
               />
             )}
+
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -2544,19 +1971,8 @@ const SessionManagement = () => {
               />
               <Label htmlFor="claimPetrol">Claim Petrol</Label>
             </div>
-
-            {/* <Input
-              id="cancelledReason"
-              type="text"
-              value={cancelledReason}
-              onChange={(e) => setCancelledReason(e.target.value)}
-              placeholder="Enter reason for cancelling this session..."
-              required
-            /> */}
-            {/* <p className="text-xs text-gray-500">
-              This amount will be deducted from the physio's daily total.
-            </p> */}
           </div>
+
           <DialogFooter>
             <Button
               type="button"
@@ -2569,6 +1985,7 @@ const SessionManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>
@@ -2576,6 +1993,7 @@ const SessionManagement = () => {
               {editingSession ? "Edit Session" : "Schedule New Session"}
             </DialogTitle>
           </DialogHeader>
+
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>Patient</Label>
@@ -2598,6 +2016,7 @@ const SessionManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Physiotherapist</Label>
               <Select
@@ -2618,12 +2037,7 @@ const SessionManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            {/* <div className="space-y-2"><Label>Session Date</Label><Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !sessionForm.sessionDate && "text-muted-foreground")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {sessionForm.sessionDate ? sessionForm.sessionDate : <span>Pick a date</span>}
-              </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={sessionForm.sessionDate} onSelect={(d) => setSessionForm(p => ({ ...p, sessionDate: d , }))} initialFocus /></PopoverContent></Popover></div> */}
+
             <div className="space-y-2">
               <Label>Session Dates</Label>
               <Popover>
@@ -2673,6 +2087,7 @@ const SessionManagement = () => {
                 </PopoverContent>
               </Popover>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="sessionDay">Session Day</Label>
               <Input
@@ -2685,6 +2100,7 @@ const SessionManagement = () => {
                 }
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="sessionTime">Session Time</Label>
               <Input
@@ -2695,36 +2111,8 @@ const SessionManagement = () => {
                   setSessionForm((p) => ({ ...p, sessionTime: e.target.value }))
                 }
               />
-            </div>{" "}
-            {/* <div className="space-y-2">
-              <Label htmlFor="sessionTime">Session Count</Label>
-              <Input
-                id="sessionCount"
-                type="text"
-                value={sessionForm.sessionCount}
-                onChange={(e) =>
-                  setSessionForm((p) => ({
-                    ...p,
-                    sessionCount: e.target.value,
-                  }))
-                }
-              />
-            </div> */}
-            {/* <div className="space-y-2">
-              <Label htmlFor="sessionTime">Session Code</Label>
-              <Input
-                id="sessionCode"
-                type="text"
-                value={sessionForm.sessionCode}
-                onChange={(e) =>
-                  setSessionForm((p) => ({
-                    ...p,
-                    sessionCode: e.target.value,
-                  }))
-                }
-              />
-            </div> */}
-            {/* <div className="space-y-2"><Label>Machine Used (Optional)</Label><Select onValueChange={(v) => setSessionForm(p => ({ ...p, machineId: v }))} value={sessionForm.machineId}><SelectTrigger><SelectValue placeholder="Select a machine" /></SelectTrigger><SelectContent>{machines.map(m => <SelectItem key={m._id} value={m._id}>{m.machineName}</SelectItem>)}</SelectContent></Select></div> */}
+            </div>
+
             <DialogFooter>
               <Button
                 type="button"

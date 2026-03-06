@@ -830,7 +830,7 @@ const Income = () => {
               </div>{" "}
             </CardContent>{" "}
           </Card>
-          {/* ✅ MOBILE VIEW - INCOME CARDS */}
+          {/* MOBILE VIEW - INCOME CARDS */}
           <Card className="medical-card md:hidden">
             <CardHeader>
               <CardTitle className="text-base">
@@ -1220,7 +1220,7 @@ const Income = () => {
                   const received = Number(b?.ReceivedAmount || 0);
                   const deducted = Number(b?.DeductedFromAdvance || 0);
 
-                  // ✅ pending logic (use NET - RECEIVED)
+                  //  pending logic (use NET - RECEIVED)
                   const pending = Math.max(net - received, 0);
                   const isPaid = pending <= 0;
 
