@@ -271,8 +271,13 @@ const Income = () => {
     try {
       const res = await apiRequest("Bill/getAllBill", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          month: months[selectedBillMonth - 1], // "February"
+          year: selectedBillYear, // 2026
+          patientId: selectedBillPatientId, // optional
+        }),
       });
+
       setBills(Array.isArray(res) ? res : []);
     } catch (e) {
       console.error(e);
@@ -281,27 +286,30 @@ const Income = () => {
   };
 
   useEffect(() => {
-    if (activeTab === "bill") fetchBills();
-  }, [activeTab]);
-
+    if (activeTab === "bill") {
+      fetchBills();
+    }
+  }, [activeTab, selectedBillMonth, selectedBillYear, selectedBillPatientId]);
   const filteredBills = useMemo(() => {
     return bills.filter((b) => {
       const pid = getId(b.patientId);
 
-      // patient filter
       const matchPatient =
         selectedBillPatientId === "ALL" ? true : pid === selectedBillPatientId;
 
-      // month/year filter (use bill.startDate)
-      const d = new Date(b.startDate);
-      const matchMonthYear =
-        d.getMonth() + 1 === selectedBillMonth &&
-        d.getFullYear() === selectedBillYear;
+      const matchMonth =
+        String(b.month || "")
+          .trim()
+          .toLowerCase() ===
+        String(months[selectedBillMonth - 1] || "")
+          .trim()
+          .toLowerCase();
 
-      return matchPatient && matchMonthYear;
+      const matchYear = Number(b.year) === Number(selectedBillYear);
+
+      return matchPatient && matchMonth && matchYear;
     });
   }, [bills, selectedBillPatientId, selectedBillMonth, selectedBillYear]);
-
   const totalGeneratedBillAmount = useMemo(() => {
     return filteredBills.reduce(
       (sum, b) => sum + Number(b.NetBilledAmount || 0),
@@ -962,14 +970,14 @@ const Income = () => {
 
                 <Select
                   onValueChange={(val) => setSelectedBillMonth(Number(val))}
-                  value={selectedBillMonth}
+                  value={String(selectedBillMonth)}
                 >
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Select Month" />
                   </SelectTrigger>
                   <SelectContent>
                     {months.map((m, idx) => (
-                      <SelectItem key={idx} value={idx + 1}>
+                      <SelectItem key={idx} value={String(idx + 1)}>
                         {m}
                       </SelectItem>
                     ))}
@@ -978,7 +986,7 @@ const Income = () => {
 
                 <Select
                   onValueChange={(val) => setSelectedBillYear(Number(val))}
-                  value={selectedBillYear}
+                  value={String(selectedBillYear)}
                 >
                   <SelectTrigger className="w-28">
                     <SelectValue placeholder="Select Year" />
@@ -988,14 +996,13 @@ const Income = () => {
                       2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
                       2035, 2036, 2037, 2038, 2039, 2040,
                     ].map((y) => (
-                      <SelectItem key={y} value={y}>
+                      <SelectItem key={y} value={String(y)}>
                         {y}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-
-                <Button onClick={fetchData}>Apply</Button>
+                <Button onClick={fetchBills}>Apply</Button>
 
                 {/* RIGHT SIDE BUTTON */}
                 {/* <Button
