@@ -695,7 +695,7 @@ const Income = () => {
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Filter by Physiotherapist" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="h-[200px]">
                       <SelectItem value="ALL">All Physios</SelectItem>
                       {physios.map((p) => (
                         <SelectItem key={p._id} value={p._id}>
@@ -712,7 +712,7 @@ const Income = () => {
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Filter by Patients" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="h-[200px]">
                       <SelectItem value="ALL">All Patients</SelectItem>
                       {patients.map((p) => (
                         <SelectItem key={p._id} value={p._id}>
@@ -729,6 +729,8 @@ const Income = () => {
                     <SelectTrigger className="w-full mr-10">
                       <SelectValue placeholder="Filter by Feestype" />
                     </SelectTrigger>
+                    {/* <SelectContent className="h-[200px]">
+                     */}
                     <SelectContent>
                       <SelectItem value="ALL">All Fees Type</SelectItem>
                       {feesType.map((p) => (
@@ -746,7 +748,7 @@ const Income = () => {
                     <SelectTrigger className="w-full sm:w-40">
                       <SelectValue placeholder="Select Month" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="h-[200px]">
                       {months.map((m, idx) => (
                         <SelectItem key={idx} value={idx + 1}>
                           {m}
@@ -762,7 +764,7 @@ const Income = () => {
                     <SelectTrigger className="w-full sm:w-28">
                       <SelectValue placeholder="Select Year" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="h-[200px]">
                       {[
                         2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
                         2035, 2036, 2037, 2038, 2039, 2040,
@@ -958,7 +960,7 @@ const Income = () => {
                   <SelectTrigger className="w-56">
                     <SelectValue placeholder="Filter by Patients" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="h-[200px]">
                     <SelectItem value="ALL">All Patients</SelectItem>
                     {patients.map((p) => (
                       <SelectItem key={p._id} value={p._id}>
@@ -975,7 +977,7 @@ const Income = () => {
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Select Month" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="h-[200px]">
                     {months.map((m, idx) => (
                       <SelectItem key={idx} value={String(idx + 1)}>
                         {m}
@@ -991,7 +993,7 @@ const Income = () => {
                   <SelectTrigger className="w-28">
                     <SelectValue placeholder="Select Year" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="h-[200px]">
                     {[
                       2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
                       2035, 2036, 2037, 2038, 2039, 2040,
@@ -1403,7 +1405,7 @@ const Income = () => {
               <SelectTrigger>
                 <SelectValue placeholder="Select payment type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="h-[200px]">
                 <SelectItem value="Full Payment">Full Payment</SelectItem>
                 <SelectItem value="Partial Payment">Partial Payment</SelectItem>
               </SelectContent>

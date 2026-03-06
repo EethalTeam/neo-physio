@@ -43,6 +43,7 @@ import {
   Filter,
   Search,
   FileText,
+  List,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
@@ -58,7 +59,6 @@ import {
   Legend,
   ArcElement,
 } from "chart.js";
-
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
@@ -74,25 +74,27 @@ ChartJS.register(
 
 const ExpenseManagement = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, getPermissionsByPath } = useAuth();
+
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
-  // const [masters, setMasters] = useState([]);
   const [masters, setMasters] = useState({
     patients: [],
     physio: [],
     machines: [],
     references: [],
   });
-  console.log(masters, "masters");
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
 
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString(),
+  );
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().getMonth().toString(),
-  ); // 0-indexed
-  const { getPermissionsByPath } = useAuth();
+  );
+
   const [Permissions, setPermissions] = useState({
     isAdd: false,
     isView: false,
@@ -101,11 +103,13 @@ const ExpenseManagement = () => {
   });
 
   const [filterState, setFilterState] = useState({
-    categories: "",
+    ExpenseCategoryId: "",
+    ExpenseCategoryName: "",
     linkedEntity: {},
     year: new Date().getFullYear().toString(),
     month: "all",
   });
+
   const [advancedFilteredTransactions, setAdvancedFilteredTransactions] =
     useState(null);
 
@@ -117,7 +121,6 @@ const ExpenseManagement = () => {
     expenseDate: new Date(),
     expenseAmount: "",
     PhysioId: "",
-    physioName: "",
     physioDescription: "",
     officeExpDes: "",
     ReferenceId: "",
@@ -126,31 +129,28 @@ const ExpenseManagement = () => {
     MachineiId: "",
     machineDes: "",
     otherDescription: "",
+    description: "",
     linkedEntity: {},
-
-    // type: 'Expense',
-    // date: new Date(),
-    // amount: '',
-    // categoryId: '',
-    // description: '',
   };
+
   const [formState, setFormState] = useState(initialFormState);
-  console.log(initialFormState, "initialFormState");
-  const [expense, SetExpense] = useState([]);
-  const [expenseType, SetExpenseType] = useState([]);
+  const [expenseType, setExpenseType] = useState([]);
   const [expenseCategory, setExpenseCategory] = useState([]);
-  const [physio, setPhysio] = useState([]);
 
   useEffect(() => {
     const fetchAll = async () => {
-      await Promise.all([
-        getAllPhysio(),
-        getExpenseType(),
-        getAllExpenseCategory(),
-        getAllReference(),
-        getAllPatient(),
-        getAllMachie(),
-      ]);
+      try {
+        await Promise.all([
+          getAllPhysio(),
+          getExpenseType(),
+          getAllExpenseCategory(),
+          getAllReference(),
+          getAllPatient(),
+          getAllMachie(),
+        ]);
+      } catch (error) {
+        console.error(error);
+      }
     };
     fetchAll();
   }, []);
@@ -158,13 +158,12 @@ const ExpenseManagement = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        console.log(res, "res");
         setPermissions(res);
       } else {
         navigate("/dashboard");
       }
     });
-  }, []);
+  }, [getPermissionsByPath, navigate]);
 
   useEffect(() => {
     if (Permissions.isView) {
@@ -176,10 +175,53 @@ const ExpenseManagement = () => {
     try {
       const response = await apiRequest("Expense/getAllExpense", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
       });
-      SetExpense(response);
-      return response;
+
+      const expenseList = response?.data || response || [];
+
+      const mappedTransactions = expenseList.map((item) => ({
+        id: item._id,
+        _id: item._id,
+        type:
+          item?.ExpenseTypeID?.ExpenseTypeName === "Income" ||
+          item?.ExpenseTypeID?.ExpenseTypeName === "Revenue" ||
+          item?.ExpenseTypeID?.ExpenseTypeName === "Revenue from Patient"
+            ? "Income"
+            : "Expense",
+        category: item?.ExpenseCategoryId?.ExpenseCategoryName || "-",
+        date: item?.expenseDate,
+        amount: Number(item?.expenseAmount || 0),
+        description:
+          item?.officeExpDes ||
+          item?.physioDescription ||
+          item?.referenceDes ||
+          item?.machineDes ||
+          item?.otherDescription ||
+          "-",
+        ExpenseCategoryId: item?.ExpenseCategoryId?._id || "",
+        ExpenseCategoryName: item?.ExpenseCategoryId?.ExpenseCategoryName || "",
+        ExpenseTypeID: item?.ExpenseTypeID?._id || "",
+        ExpenseTypeName: item?.ExpenseTypeID?.ExpenseTypeName || "",
+        PhysioId: item?.PhysioId?._id || "",
+        physioName: item?.PhysioId?.physioName || "",
+        PatientId: item?.PatientId?._id || "",
+        patientName: item?.PatientId?.patientName || "",
+        ReferenceId: item?.ReferenceId?._id || "",
+        sourceName: item?.ReferenceId?.sourceName || "",
+        MachineiId: item?.MachineiId?._id || "",
+        machineName: item?.MachineiId?.machineName || "",
+        linkedEntity: {
+          physioName: item?.PhysioId?._id || "",
+          patientName: item?.PatientId?._id || "",
+          sourceName: item?.ReferenceId?._id || "",
+          machineId: item?.MachineiId?._id || "",
+        },
+        raw: item,
+      }));
+
+      setTransactions(mappedTransactions);
+      return expenseList;
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -192,8 +234,8 @@ const ExpenseManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      getExpense();
-      return response;
+      await getExpense();
+      return response?.data || response;
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -204,11 +246,9 @@ const ExpenseManagement = () => {
     try {
       const response = await apiRequest("Physio/getAllPhysio", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
       });
-      getExpense();
-      setMasters((prev) => ({ ...prev, physio: response.physios }));
-      // setMasters(response)
+      setMasters((prev) => ({ ...prev, physio: response?.physios || [] }));
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -219,10 +259,9 @@ const ExpenseManagement = () => {
     try {
       const response = await apiRequest("ExpenseType/getAllExpenseType", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
       });
-      getExpense();
-      SetExpenseType(response);
+      setExpenseType(response || []);
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -235,13 +274,11 @@ const ExpenseManagement = () => {
         "ExpenseCategory/getAllExpenseCategory",
         {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify(data || {}),
         },
       );
-      getExpense();
-      setExpenseCategory(response);
-      setCategories(response);
-      // setMasters(response)
+      setExpenseCategory(response || []);
+      setCategories(response || []);
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -252,12 +289,9 @@ const ExpenseManagement = () => {
     try {
       const response = await apiRequest("References/getALLReferences", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
       });
-      getExpense();
-      setMasters((prev) => ({ ...prev, references: response }));
-
-      // setMasters(response)
+      setMasters((prev) => ({ ...prev, references: response || [] }));
       return response;
     } catch (error) {
       console.error("Error:", error);
@@ -269,12 +303,9 @@ const ExpenseManagement = () => {
     try {
       const response = await apiRequest("Patient/getAllPatient", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
       });
-      getExpense();
-      setMasters((prev) => ({ ...prev, patients: response }));
-
-      // setMasters(response)
+      setMasters((prev) => ({ ...prev, patients: response || [] }));
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -285,45 +316,17 @@ const ExpenseManagement = () => {
     try {
       const response = await apiRequest("Machinery/getAllMachinery", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
       });
-      getExpense();
-      setMasters((prev) => ({ ...prev, machines: response }));
 
-      // setMasters(response)
+      console.log("Machine API response:", response);
+
+      setMasters((prev) => ({ ...prev, machines: response || [] }));
     } catch (error) {
       console.error("Error:", error);
       throw error;
     }
   };
-
-  // useEffect(() => {
-  //     const fetchData = async () => {
-  //         try {
-  //             const [txRes, catRes, patRes, phyRes, macRes, refRes] = await Promise.all([
-  //                 fetch('/mockdata/transactions.json'),
-  //                 fetch('/mockdata/categories.json'),
-  //                 fetch('/mockdata/patients.json'),
-  //                 fetch('/mockdata/physios.json'),
-  //                 fetch('/mockdata/machines.json'),
-  //                 fetch('/mockdata/references.json'),
-  //             ]);
-  //             const txData = await txRes.json();
-  //             setTransactions(txData);
-  //             setCategories(await catRes.json());
-  //             setMasters({
-  //                 patients: await patRes.json(),
-  //                 physios: await phyRes.json(),
-  //                 machines: await macRes.json(),
-  //                 references: await refRes.json(),
-  //             });
-  //         } catch (error) {
-  //             console.error("Failed to fetch data", error);
-  //             toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
-  //         }
-  //     };
-  //     fetchData();
-  // }, []);
 
   const handleFormChange = (name, value) => {
     if (name.startsWith("linkedEntity.")) {
@@ -358,6 +361,7 @@ const ExpenseManagement = () => {
     setFormState(initialFormState);
     setIsFormOpen(true);
   };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
 
@@ -365,10 +369,11 @@ const ExpenseManagement = () => {
       (c) => c._id?.toString() === formState.ExpenseCategoryId?.toString(),
     );
 
-    if (!selectedCategory) {
+    if (!selectedCategory && formState.ExpenseTypeName === "Expenses") {
       toast({
         title: "Error",
         description: "Please select a valid Expense Category",
+        variant: "destructive",
       });
       return;
     }
@@ -377,38 +382,49 @@ const ExpenseManagement = () => {
       ? new Date(formState.expenseDate)
       : new Date();
 
-    if (isNaN(transactionDate)) {
-      toast({ title: "Error", description: "Please select a valid date" });
+    if (isNaN(transactionDate.getTime())) {
+      toast({
+        title: "Error",
+        description: "Please select a valid date",
+        variant: "destructive",
+      });
       return;
     }
 
-    const newTransaction = {
-      id: editingTx ? editingTx.id : Date.now(),
-      createdBy: user.name,
-      ...formState,
-      amount: parseFloat(formState.expenseAmount) || 0,
-      category: selectedCategory.ExpenseCategoryName,
-      ExpenseCategoryId: selectedCategory._id,
-      date: format(transactionDate, "yyyy-MM-dd"),
-      PhysioId: formState.PhysioId || null,
-      PatientId: formState.PatientId || null,
-      ReferenceId: formState.ReferenceId || null,
-      MachineiId: formState.MachineiId || null,
+    const payload = {
+      ExpenseTypeID: formState.ExpenseTypeID || null,
+      ExpenseCategoryId: formState.ExpenseCategoryId || null,
+      expenseDate: format(transactionDate, "yyyy-MM-dd"),
+      expenseAmount: parseFloat(formState.expenseAmount) || 0,
+      PhysioId:
+        formState.PhysioId || formState.linkedEntity?.physioName || null,
+      PatientId:
+        formState.PatientId || formState.linkedEntity?.patientName || null,
+      ReferenceId:
+        formState.ReferenceId || formState.linkedEntity?.sourceName || null,
+      MachineiId:
+        formState.MachineiId || formState.linkedEntity?.machineId || null,
+      physioDescription: formState.physioDescription || "",
+      officeExpDes: formState.description || formState.officeExpDes || "",
+      referenceDes: formState.referenceDes || "",
+      machineDes: formState.machineDes || "",
+      otherDescription: formState.otherDescription || "",
+      createdBy: user?.name || "",
     };
 
     try {
       if (editingTx) {
-        // For edit, you may want a separate API call like updateExpense()
-        setTransactions((prev) =>
-          prev.map((tx) => (tx.id === editingTx.id ? newTransaction : tx)),
-        );
-        toast({ title: "Success", description: "Transaction updated." });
+        toast({
+          title: "Info",
+          description: "Update API not connected here yet.",
+        });
       } else {
-        // Call backend API to save expense
-        const savedExpense = await createExpense(newTransaction);
-        setTransactions((prev) => [savedExpense, ...prev]);
+        await createExpense(payload);
         toast({ title: "Success", description: "New transaction added." });
       }
+
+      setIsFormOpen(false);
+      setFormState(initialFormState);
     } catch (error) {
       toast({
         title: "Error",
@@ -416,30 +432,32 @@ const ExpenseManagement = () => {
         variant: "destructive",
       });
     }
-
-    setIsFormOpen(false);
   };
 
   const handleApplyAdvancedFilter = () => {
     let filtered = transactions.filter((tx) => {
+      if (!tx.date) return false;
       const txDate = new Date(tx.date);
       const yearMatch = getYear(txDate).toString() === filterState.year;
       const monthMatch =
         filterState.month === "all" ||
         getMonth(txDate).toString() === filterState.month;
+
       return tx.type === "Expense" && yearMatch && monthMatch;
     });
 
-    if (filterState.categories) {
+    if (filterState.ExpenseCategoryId) {
       filtered = filtered.filter(
         (tx) =>
-          tx.ExpenseCategoryId?.toString() === filterState.ExpenseCategoryId,
+          tx.ExpenseCategoryId?.toString() ===
+          filterState.ExpenseCategoryId?.toString(),
       );
     }
 
     const linkedEntityFilters = Object.entries(filterState.linkedEntity).filter(
       ([_, value]) => value,
     );
+
     if (linkedEntityFilters.length > 0) {
       filtered = filtered.filter((tx) => {
         if (!tx.linkedEntity) return false;
@@ -458,7 +476,8 @@ const ExpenseManagement = () => {
 
   const clearAdvancedFilter = () => {
     setFilterState({
-      categories: "",
+      ExpenseCategoryId: "",
+      ExpenseCategoryName: "",
       linkedEntity: {},
       year: new Date().getFullYear().toString(),
       month: "all",
@@ -468,6 +487,7 @@ const ExpenseManagement = () => {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
+      if (!tx.date) return false;
       const txDate = new Date(tx.date);
       const yearMatch = getYear(txDate).toString() === selectedYear;
       const monthMatch = getMonth(txDate).toString() === selectedMonth;
@@ -479,6 +499,7 @@ const ExpenseManagement = () => {
     () => filteredTransactions.filter((t) => t.type === "Income"),
     [filteredTransactions],
   );
+
   const expenseTransactions = useMemo(
     () => filteredTransactions.filter((t) => t.type === "Expense"),
     [filteredTransactions],
@@ -488,21 +509,36 @@ const ExpenseManagement = () => {
     () => incomeTransactions.reduce((sum, t) => sum + Number(t.amount), 0),
     [incomeTransactions],
   );
+
   const totalExpense = useMemo(
     () => expenseTransactions.reduce((sum, t) => sum + Number(t.amount), 0),
     [expenseTransactions],
   );
+
   const netBalance = totalIncome - totalExpense;
 
   const advancedFilterTotal = useMemo(() => {
     if (!advancedFilteredTransactions) return 0;
-    return advancedFilteredTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    return advancedFilteredTransactions.reduce(
+      (sum, tx) => sum + Number(tx.amount || 0),
+      0,
+    );
   }, [advancedFilteredTransactions]);
 
   const renderDynamicFields = (state, handler, isFilter = false) => {
-    // const category = categories.find(c => c.id === parseInt(state.categoryId));
-    const category = formState.ExpenseCategoryName;
-    if (!category) return null;
+    const category = state?.ExpenseCategoryName || "";
+    if (!category)
+      return !isFilter ? (
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={state.description || ""}
+            onChange={(e) => handler("description", e.target.value)}
+            required
+          />
+        </div>
+      ) : null;
 
     const commonFields = !isFilter ? (
       <div className="space-y-2">
@@ -534,9 +570,9 @@ const ExpenseManagement = () => {
                   <SelectValue placeholder="Select Patient" />
                 </SelectTrigger>
                 <SelectContent>
-                  {masters.patients.map((p) => (
-                    <SelectItem key={p.id} value={p._id}>
-                      {p.name}
+                  {(masters.patients || []).map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.patientName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -545,6 +581,7 @@ const ExpenseManagement = () => {
             {commonFields}
           </>
         );
+
       case "Other Income":
         return (
           <>
@@ -561,6 +598,7 @@ const ExpenseManagement = () => {
             {commonFields}
           </>
         );
+
       case "Physio Salary":
         return (
           <>
@@ -592,19 +630,18 @@ const ExpenseManagement = () => {
       case "Machine Maintenance":
         return (
           <>
-            {/* <div className="space-y-2">
-                        <Label>Machine</Label>
-                        <Select value={state.linkedEntity?.machineName || ''} onValueChange={(val) => onValueChange(val, 'linkedEntity.machineName')}>
-                            <SelectTrigger><SelectValue placeholder={isFilter ? "All Machines" : "Select Machine"} /></SelectTrigger>
-                            <SelectContent>{(masters.machines || []).map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </div> */}
             <div className="space-y-2">
               <Label>Machine</Label>
               <Select
-                value={state.linkedEntity?.machineName || ""}
+                value={
+                  isFilter
+                    ? state.linkedEntity?.machineId || ""
+                    : state.MachineiId || ""
+                }
                 onValueChange={(val) =>
-                  onValueChange(val, "linkedEntity.machineName")
+                  isFilter
+                    ? handler("linkedEntity.machineId", val)
+                    : handler("MachineiId", val)
                 }
               >
                 <SelectTrigger>
@@ -615,7 +652,10 @@ const ExpenseManagement = () => {
                 <SelectContent>
                   {(masters.machines || []).map((m) => (
                     <SelectItem key={m._id} value={m._id}>
-                      {m.machineName}
+                      {m.modalityId?.modalitiesName.trim() ||
+                        m.modalityId?.modalitiesName.trim() ||
+                        // m.machineDescription?.trim() ||
+                        "Unnamed Machine"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -644,7 +684,7 @@ const ExpenseManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {(masters.references || []).map((r) => (
-                    <SelectItem key={r.id} value={r.name}>
+                    <SelectItem key={r._id} value={r._id}>
                       {r.sourceName}
                     </SelectItem>
                   ))}
@@ -666,7 +706,7 @@ const ExpenseManagement = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {(masters.patients || []).map((p) => (
-                    <SelectItem key={p.id} value={p.name}>
+                    <SelectItem key={p._id} value={p._id}>
                       {p.patientName}
                     </SelectItem>
                   ))}
@@ -676,13 +716,14 @@ const ExpenseManagement = () => {
             {commonFields}
           </>
         );
+
       default:
         return commonFields;
     }
   };
 
   const TransactionTable = ({ data, type }) => (
-    <div className="table-responsive-wrapper">
+    <div className="table-responsive-wrapper overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
@@ -699,22 +740,32 @@ const ExpenseManagement = () => {
           </tr>
         </thead>
         <tbody>
-          {data.map((tx) => (
-            <tr key={tx.id} className="border-b hover:bg-gray-50/50">
-              <td className="p-3 text-gray-700">
-                {format(new Date(tx.date), "dd MMM, yyyy")}
-              </td>
-              <td className="p-3 text-gray-700">{tx.category}</td>
-              <td className="p-3 text-gray-500 max-w-xs truncate">
-                {tx.description}
-              </td>
-              <td
-                className={`p-3 text-right font-medium ${type === "Income" ? "text-green-600" : "text-red-600"}`}
-              >
-                ₹{tx.amount.toLocaleString()}
+          {data.length > 0 ? (
+            data.map((tx) => (
+              <tr key={tx.id} className="border-b hover:bg-gray-50/50">
+                <td className="p-3 text-gray-700">
+                  {tx.date ? format(new Date(tx.date), "dd MMM, yyyy") : "-"}
+                </td>
+                <td className="p-3 text-gray-700">{tx.category}</td>
+                <td className="p-3 text-gray-500 max-w-xs truncate">
+                  {tx.description}
+                </td>
+                <td
+                  className={`p-3 text-right font-medium ${
+                    type === "Income" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  ₹{Number(tx.amount || 0).toLocaleString()}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="4" className="p-6 text-center text-gray-500">
+                No records found
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
@@ -722,7 +773,7 @@ const ExpenseManagement = () => {
 
   const expenseByCategory = useMemo(() => {
     const data = expenseTransactions.reduce((acc, tx) => {
-      acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
+      acc[tx.category] = (acc[tx.category] || 0) + Number(tx.amount || 0);
       return acc;
     }, {});
     return {
@@ -745,10 +796,14 @@ const ExpenseManagement = () => {
   }, [expenseTransactions]);
 
   const yearOptions = useMemo(() => {
-    const years = new Set(transactions.map((tx) => getYear(new Date(tx.date))));
-    if (!years.has(new Date().getFullYear())) {
-      years.add(new Date().getFullYear());
-    }
+    const years = new Set(
+      transactions
+        .filter((tx) => tx.date)
+        .map((tx) => getYear(new Date(tx.date))),
+    );
+
+    years.add(new Date().getFullYear());
+
     return Array.from(years)
       .sort((a, b) => b - a)
       .map(String);
@@ -788,6 +843,7 @@ const ExpenseManagement = () => {
             Track all income and expenses in one place.
           </p>
         </div>
+
         {Permissions.isAdd && (
           <Button
             onClick={openNewDialog}
@@ -796,19 +852,18 @@ const ExpenseManagement = () => {
             <PlusCircle size={18} className="mr-2" /> Add Transaction
           </Button>
         )}
-        {/* <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl transition-shadow">
-                    <PlusCircle size={18} className="mr-2" /> Add Transaction
-                </Button> */}
       </motion.div>
 
       <Tabs defaultValue="monthly_report">
-        <TabsList className="grid w-full md:grid-cols-5  grid-cols-2 gap-2 mb-20 md:mb-0">
+        <TabsList className="grid w-full md:grid-cols-6 grid-cols-2 gap-2 mb-20 md:mb-0">
           <TabsTrigger value="monthly_report">Monthly Report</TabsTrigger>
+          <TabsTrigger value="all_records">All Data</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="income">Income</TabsTrigger>
           <TabsTrigger value="expense_chart">Expense Chart</TabsTrigger>
           <TabsTrigger value="advanced_filter">Advanced Filter</TabsTrigger>
         </TabsList>
+
         <TabsContent value="monthly_report">
           <Card>
             <CardHeader className="flex-row items-center space-x-4 space-y-0">
@@ -817,6 +872,7 @@ const ExpenseManagement = () => {
                 <h3 className="text-lg font-semibold">Report Filters</h3>
               </div>
             </CardHeader>
+
             <CardContent className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <Label htmlFor="year-select">Year:</Label>
@@ -825,10 +881,7 @@ const ExpenseManagement = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[
-                      2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
-                      2035, 2036, 2037, 2038, 2039, 2040,
-                    ].map((year) => (
+                    {yearOptions.map((year) => (
                       <SelectItem key={year} value={year}>
                         {year}
                       </SelectItem>
@@ -836,6 +889,7 @@ const ExpenseManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="flex items-center gap-2">
                 <Label htmlFor="month-select">Month:</Label>
                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -853,6 +907,7 @@ const ExpenseManagement = () => {
               </div>
             </CardContent>
           </Card>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <Card>
               <CardHeader className="flex-row items-center justify-between pb-2">
@@ -867,6 +922,7 @@ const ExpenseManagement = () => {
                 </div>
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -880,18 +936,23 @@ const ExpenseManagement = () => {
                 </div>
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
                   Monthly Net
                 </CardTitle>
                 <IndianRupee
-                  className={`h-4 w-4 ${netBalance >= 0 ? "text-blue-500" : "text-orange-500"}`}
+                  className={`h-4 w-4 ${
+                    netBalance >= 0 ? "text-blue-500" : "text-orange-500"
+                  }`}
                 />
               </CardHeader>
               <CardContent>
                 <div
-                  className={`text-2xl font-bold ${netBalance >= 0 ? "text-blue-600" : "text-orange-600"}`}
+                  className={`text-2xl font-bold ${
+                    netBalance >= 0 ? "text-blue-600" : "text-orange-600"
+                  }`}
                 >
                   ₹{netBalance.toLocaleString()}
                 </div>
@@ -899,16 +960,31 @@ const ExpenseManagement = () => {
             </Card>
           </div>
         </TabsContent>
+
+        <TabsContent value="all_records">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <List size={18} /> All Expense / Income Records
+              </CardTitle>
+              <CardDescription>
+                Showing all available data from backend
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TransactionTable data={transactions} type="Expense" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="expenses">
           <Card>
             <CardHeader>
               <CardTitle>Expense Records</CardTitle>
               <CardDescription>
                 Showing transactions for{" "}
-                {
-                  reportMonthOptions.find((m) => m.value === selectedMonth)
-                    ?.label
-                }{" "}
+                {reportMonthOptions.find((m) => m.value === selectedMonth)
+                  ?.label || ""}{" "}
                 {selectedYear}
               </CardDescription>
             </CardHeader>
@@ -917,16 +993,15 @@ const ExpenseManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
         <TabsContent value="income">
           <Card>
             <CardHeader>
               <CardTitle>Income Records</CardTitle>
               <CardDescription>
                 Showing transactions for{" "}
-                {
-                  reportMonthOptions.find((m) => m.value === selectedMonth)
-                    ?.label
-                }{" "}
+                {reportMonthOptions.find((m) => m.value === selectedMonth)
+                  ?.label || ""}{" "}
                 {selectedYear}
               </CardDescription>
             </CardHeader>
@@ -935,6 +1010,7 @@ const ExpenseManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
         <TabsContent value="expense_chart">
           <Card>
             <CardHeader>
@@ -943,10 +1019,8 @@ const ExpenseManagement = () => {
               </CardTitle>
               <CardDescription>
                 Expenses by category for{" "}
-                {
-                  reportMonthOptions.find((m) => m.value === selectedMonth)
-                    ?.label
-                }{" "}
+                {reportMonthOptions.find((m) => m.value === selectedMonth)
+                  ?.label || ""}{" "}
                 {selectedYear}
               </CardDescription>
             </CardHeader>
@@ -971,6 +1045,7 @@ const ExpenseManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
         <TabsContent value="advanced_filter">
           <Card>
             <CardHeader>
@@ -981,6 +1056,7 @@ const ExpenseManagement = () => {
                 Drill down into your expenses with specific criteria.
               </CardDescription>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div className="p-4 border rounded-lg bg-gray-50/50 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1002,6 +1078,7 @@ const ExpenseManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="space-y-2">
                     <Label>Month</Label>
                     <Select
@@ -1020,12 +1097,28 @@ const ExpenseManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Select
-                      value={filterState.ExpenseCategoryId}
+                      value={filterState.ExpenseCategoryId || "all"}
                       onValueChange={(val) => {
+                        if (val === "all") {
+                          handleFilterChange("ExpenseCategoryId", "");
+                          handleFilterChange("ExpenseCategoryName", "");
+                          handleFilterChange("linkedEntity", {});
+                          return;
+                        }
+
+                        const selected = categories.find(
+                          (c) => c._id?.toString() === val,
+                        );
+
                         handleFilterChange("ExpenseCategoryId", val);
+                        handleFilterChange(
+                          "ExpenseCategoryName",
+                          selected?.ExpenseCategoryName || "",
+                        );
                         handleFilterChange("linkedEntity", {});
                       }}
                     >
@@ -1033,24 +1126,22 @@ const ExpenseManagement = () => {
                         <SelectValue placeholder="All Categories" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories
-                          .filter(
-                            (c) =>
-                              c.type === "Expense" && c.status === "Active",
-                          )
-                          .map((c) => (
-                            <SelectItem key={c.id} value={c.id.toString()}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map((c) => (
+                          <SelectItem key={c._id} value={c._id.toString()}>
+                            {c.ExpenseCategoryName}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {renderDynamicFields(filterState, handleFilterChange, true)}
                 </div>
               </div>
+
               <div className="flex gap-2">
                 <Button onClick={handleApplyAdvancedFilter}>
                   Apply Filter
@@ -1061,6 +1152,7 @@ const ExpenseManagement = () => {
               </div>
             </CardContent>
           </Card>
+
           {advancedFilteredTransactions && (
             <Card className="mt-6">
               <CardHeader>
@@ -1077,6 +1169,7 @@ const ExpenseManagement = () => {
                       </p>
                     </div>
                   </div>
+
                   <div className="flex items-center gap-3 rounded-lg border p-4">
                     <TrendingDown className="h-6 w-6 text-red-500" />
                     <div>
@@ -1090,17 +1183,12 @@ const ExpenseManagement = () => {
                   </div>
                 </div>
               </CardHeader>
+
               <CardContent>
-                {advancedFilteredTransactions.length > 0 ? (
-                  <TransactionTable
-                    data={advancedFilteredTransactions}
-                    type="Expense"
-                  />
-                ) : (
-                  <p className="text-center text-gray-500 py-8">
-                    No transactions found matching your criteria.
-                  </p>
-                )}
+                <TransactionTable
+                  data={advancedFilteredTransactions}
+                  type="Expense"
+                />
               </CardContent>
             </Card>
           )}
@@ -1117,6 +1205,7 @@ const ExpenseManagement = () => {
               Fill in the details for the transaction.
             </DialogDescription>
           </DialogHeader>
+
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <Select
@@ -1132,9 +1221,11 @@ const ExpenseManagement = () => {
                   const selected = JSON.parse(v);
                   handleSelectChange("ExpenseTypeID", selected.id);
                   handleSelectChange("ExpenseTypeName", selected.name);
+                  handleSelectChange("ExpenseCategoryId", "");
+                  handleSelectChange("ExpenseCategoryName", "");
+                  handleSelectChange("linkedEntity", {});
                 }}
               >
-                {" "}
                 <SelectTrigger>
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
@@ -1153,7 +1244,6 @@ const ExpenseManagement = () => {
                 </SelectContent>
               </Select>
 
-              {/* <div className="space-y-2"><Label>Type</Label><Select value={formState.type} onValueChange={(val) => handleFormChange('type', val)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Expense">Expense</SelectItem><SelectItem value="Income">Income</SelectItem></SelectContent></Select></div> */}
               <div className="space-y-2">
                 <Popover>
                   <PopoverTrigger asChild>
@@ -1180,15 +1270,14 @@ const ExpenseManagement = () => {
                 </Popover>
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="expenseAmount">Amount (₹)</Label>
                 <Input
                   id="expenseAmount"
                   type="number"
-                  onWheel={(e) => {
-                    e.target.blur();
-                  }}
+                  onWheel={(e) => e.target.blur()}
                   value={formState.expenseAmount}
                   onChange={(e) =>
                     handleFormChange("expenseAmount", e.target.value)
@@ -1199,7 +1288,7 @@ const ExpenseManagement = () => {
                 />
               </div>
 
-              {formState.ExpenseTypeName == "Expenses" ? (
+              {formState.ExpenseTypeName === "Expenses" && (
                 <div className="space-y-2">
                   <Label htmlFor="ExpenseCategoryId">Select Categories</Label>
                   <Select
@@ -1215,9 +1304,9 @@ const ExpenseManagement = () => {
                       const selected = JSON.parse(v);
                       handleSelectChange("ExpenseCategoryId", selected.id);
                       handleSelectChange("ExpenseCategoryName", selected.name);
+                      handleSelectChange("linkedEntity", {});
                     }}
                   >
-                    {" "}
                     <SelectTrigger>
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
@@ -1235,12 +1324,12 @@ const ExpenseManagement = () => {
                       ))}
                     </SelectContent>
                   </Select>
-
-                  {/* <div className="space-y-2"><Label>Category</Label><Select value={formState.categoryId} onValueChange={(val) => { handleFormChange('categoryId', val); handleFormChange('linkedEntity', {}) }}><SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger><SelectContent>{categories.filter(c => c.type === formState.type && c.status === 'Active').map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}</SelectContent></Select></div> */}
                 </div>
-              ) : null}
+              )}
             </div>
+
             {renderDynamicFields(formState, handleFormChange)}
+
             <DialogFooter>
               <Button
                 type="button"
