@@ -943,7 +943,65 @@ const SessionManagement = () => {
       </span>
     );
   };
+  const handleSessionCancelRevert = async (sessionId) => {
+    try {
+      const response = await SessionCancelRevert(sessionId);
 
+      if (response?.success) {
+        toast({
+          title: "Success",
+          description: response.message || "Session reverted successfully",
+        });
+
+        setSessions((prev) =>
+          (Array.isArray(prev) ? prev : []).map((s) =>
+            s._id === sessionId
+              ? {
+                  ...s,
+                  sessionStatusId: {
+                    ...s.sessionStatusId,
+                    sessionStatusName: "Scheduled",
+                  },
+                  cancelledReason: "",
+                  sessionFeedbackCons: "",
+                  cancelledKms: 0,
+                }
+              : s,
+          ),
+        );
+
+        setFilteredSessions((prev) =>
+          (Array.isArray(prev) ? prev : []).map((s) =>
+            s._id === sessionId
+              ? {
+                  ...s,
+                  sessionStatusId: {
+                    ...s.sessionStatusId,
+                    sessionStatusName: "Scheduled",
+                  },
+                  cancelledReason: "",
+                  sessionFeedbackCons: "",
+                  cancelledKms: 0,
+                }
+              : s,
+          ),
+        );
+      } else {
+        toast({
+          title: "Error",
+          description: response?.message || response?.error || "Revert failed",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("handleSessionCancelRevert error:", error);
+      toast({
+        title: "Error",
+        description: "Something went wrong while reverting the session",
+        variant: "destructive",
+      });
+    }
+  };
   const handleDeleteSession = (id) => {
     deleteSession({ _id: id });
     toast({

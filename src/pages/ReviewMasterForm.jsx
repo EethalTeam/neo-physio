@@ -63,7 +63,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
-
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 const initialFormState = {
   patientId: "",
   physioId: "",
@@ -106,7 +107,36 @@ const ReviewMasterForm = () => {
     isEdit: false,
     isDelete: false,
   });
+  const today = new Date();
 
+  const [downloadMonth, setDownloadMonth] = useState(
+    String(today.getMonth() + 1),
+  );
+  const [downloadYear, setDownloadYear] = useState(String(today.getFullYear()));
+  const monthOptions = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+
+  const yearOptions = [];
+  for (let y = today.getFullYear() - 5; y <= today.getFullYear() + 5; y++) {
+    yearOptions.push(String(y));
+  }
+
+  const fmtDate = (date) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString("en-IN");
+  };
   const [feedbackDialog, setFeedbackDialog] = useState({
     open: false,
     sessionId: null,
@@ -408,6 +438,91 @@ const ReviewMasterForm = () => {
   };
   console.log(sessionForm, "Session form");
 
+  const downloadReviewPDF = async () => {
+    try {
+      const res = await apiRequest("Review/getAllReviewDownload", {
+        method: "POST",
+        body: JSON.stringify({
+          month: downloadMonth,
+          year: downloadYear,
+        }),
+      });
+
+      const report = Array.isArray(res?.report) ? res.report : [];
+      const totalReviews = res?.totalReviews || 0;
+      const completedReviews = res?.completedReviews || 0;
+
+      if (!report.length) {
+        toast({
+          title: "No Data",
+          description: "No review data found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const doc = new jsPDF("landscape");
+
+      // Title
+      doc.setFontSize(16);
+      doc.text("NEO-PHYSIO - REVIEW REPORT", 14, 15);
+
+      // Month
+      doc.setFontSize(11);
+      doc.text(
+        `Month: ${monthOptions.find((m) => m.value === downloadMonth)?.label} ${downloadYear}`,
+        14,
+        22,
+      );
+
+      // Summary
+      doc.text(`Total Reviews: ${totalReviews}`, 14, 30);
+      doc.text(`Completed Reviews: ${completedReviews}`, 90, 30);
+
+      const rows = report.map((r, index) => [
+        index + 1,
+        r.reviewDate ? fmtDate(r.reviewDate) : "-",
+        r.patientId?.patientName || "-",
+        r.physioId?.physioName || "-",
+        r.reviewTypeId?.reviewTypeName || "-",
+        r.reviewStatusId?.reviewStatusName || "-",
+        r.feedback || "-",
+        r.patientId?.shortTermGoals || "-",
+        r.patientId?.longTermGoals || "-",
+        r.patientId?.isRecovered ? "Recovered" : "Active",
+      ]);
+
+      autoTable(doc, {
+        startY: 36,
+        head: [
+          [
+            "S.No",
+            "Review Date",
+            "Patient",
+            "Physio",
+            "Type",
+            "Status",
+            "Feedback",
+            "Short Goal",
+            "Long Goal",
+            "Recovered",
+          ],
+        ],
+        body: rows,
+        styles: { fontSize: 8 },
+      });
+
+      doc.save(`Review_Report_${downloadMonth}_${downloadYear}.pdf`);
+    } catch (error) {
+      console.error("PDF download error:", error);
+
+      toast({
+        title: "Error",
+        description: "Failed to download review PDF.",
+        variant: "destructive",
+      });
+    }
+  };
   const UpdateReview = async (data) => {
     try {
       const payload = {
@@ -600,6 +715,39 @@ const ReviewMasterForm = () => {
               ? "Manage your assigned patient reviews"
               : "Manage all patient reviews and track progress"}
           </p>
+        </div>
+        <div className="flex flex-col md:flex-row gap-2 items-center">
+          <div className="w-[160px]">
+            <Select value={downloadMonth} onValueChange={setDownloadMonth}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-[120px]">
+            <Select value={downloadYear} onValueChange={setDownloadYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select year" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button onClick={downloadReviewPDF}>Download Monthly PDF</Button>
         </div>
         {user?.role !== "Physio" && permissions.isAdd && (
           <Button onClick={() => setIsFormOpen(true)}>
