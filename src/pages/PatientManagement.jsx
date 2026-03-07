@@ -95,16 +95,30 @@ const PatientManagement = () => {
   const [activeTab, setActiveTab] = useState("patient");
   const [downloadDialog, setDownloadDialog] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
-
-  // ✅ format date safely
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // format date safely
   const fmtDate = (d) => {
     if (!d) return "-";
     const x = new Date(d);
     if (isNaN(x.getTime())) return "-";
     return x.toLocaleDateString("en-GB");
   };
-
-  // ✅ build PDF from patient list
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  // build PDF from patient list
   const downloadPatientsPdf = ({ title, rows, fileName }) => {
     const doc = new jsPDF();
 
@@ -544,6 +558,113 @@ const PatientManagement = () => {
       setFilteredPatients(list);
     } catch (error) {
       console.error("Error:", error);
+    }
+  };
+
+  const downloadPatientsPDFs = async () => {
+    try {
+      const body = {
+        month: selectedMonth,
+        year: selectedYear,
+        view: "all",
+      };
+
+      const res = await apiRequest("Patient/downloadPatientsMonthlyReport", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      const report = Array.isArray(res?.report) ? res.report : [];
+
+      if (!report.length) {
+        toast({
+          title: "No Data",
+          description: "No patient report found for the selected month.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const doc = new jsPDF("landscape");
+
+      doc.setFontSize(16);
+      doc.text("NEO-PHYSIO - MONTHLY PATIENT REPORT", 14, 15);
+
+      doc.setFontSize(11);
+      doc.text(
+        `Month: ${monthNames[selectedMonth - 1]} ${selectedYear}`,
+        14,
+        23,
+      );
+      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 30);
+
+      const columns = [
+        "S.No",
+        "Patient Code",
+        "Patient Name",
+        "Age",
+        "Gender",
+        "Contact",
+        "Condition",
+        "Physio",
+        "Total Sessions",
+        "Completed",
+        "Cancelled",
+        "Status",
+      ];
+
+      const rows = report.map((p, index) => [
+        index + 1,
+        p.patientCode || "-",
+        p.patientName || "-",
+        p.age || "-",
+        p.gender || "-",
+        p.number || "-",
+        p.condition || "-",
+        p.assignedPhysio || "-",
+        p.totalSessions ?? 0,
+        p.completedSessions ?? 0,
+        p.cancelledSessions ?? 0,
+        p.recovered || (p.isRecovered ? "Recovered" : "Active"),
+      ]);
+
+      autoTable(doc, {
+        startY: 36,
+        head: [columns],
+        body: rows,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+        },
+        columnStyles: {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 22 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 12 },
+          4: { cellWidth: 18 },
+          5: { cellWidth: 24 },
+          6: { cellWidth: 32 },
+          7: { cellWidth: 26 },
+          8: { cellWidth: 20 },
+          9: { cellWidth: 18 },
+          10: { cellWidth: 18 },
+          11: { cellWidth: 18 },
+        },
+      });
+
+      doc.save(
+        `Patients_Report_${monthNames[selectedMonth - 1]}_${selectedYear}.pdf`,
+      );
+    } catch (error) {
+      console.error("PDF download error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download monthly patient PDF.",
+        variant: "destructive",
+      });
     }
   };
   //api call and delete Patients
@@ -1787,7 +1908,32 @@ const PatientManagement = () => {
                 <FileText className="mr-2 h-4 w-4" />
                 Download
               </Button>
+              <div className="flex gap-2 items-center flex-wrap">
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="border rounded-md px-3 py-2 text-sm"
+                >
+                  {monthNames.map((month, index) => (
+                    <option key={month} value={index + 1}>
+                      {month}
+                    </option>
+                  ))}
+                </select>
 
+                <input
+                  type="number"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="border rounded-md px-3 py-2 text-sm w-28"
+                  min="2020"
+                  max="2100"
+                />
+
+                <Button onClick={downloadPatientsPDFs}>
+                  Download Monthly PDF
+                </Button>
+              </div>
               {(user?.role === "Admin" || user?.role === "SuperAdmin") &&
                 Permissions.isAdd && (
                   <Button onClick={handleNewPatient}>
