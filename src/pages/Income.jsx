@@ -204,7 +204,7 @@ const Income = () => {
       .filter((p) =>
         selectedPhysioId === "ALL"
           ? true
-          : getId(p.physioId) === selectedPhysioId,
+          : p.physioDetails?.some((val)=> val.physioId === selectedPhysioId),
       )
       .filter(feeTypeMatch)
       .filter((p) =>
@@ -217,7 +217,7 @@ const Income = () => {
     selectedPatientId,
     feesType,
   ]);
-
+console.log(filteredPatients,"filteredPatients")
   const totalIncomeByFilter = filteredPatients.reduce(
     (sum, p) => sum + Number(p.totalIncome || 0),
     0,
@@ -819,11 +819,11 @@ const Income = () => {
                           </td>{" "}
                           <td className="p-2 border whitespace-nowrap">
                             {" "}
-                            {p.physioName}{" "}
+                            {selectedPhysioId !== "ALL" ? p.physioDetails?.find((physio) => physio.physioId === selectedPhysioId)?.physioName : p.physioDetails?.map((physio) => physio.physioName).join(", ") || "N/A"}{" "}
                           </td>{" "}
                           <td className="p-2 border text-center">
                             {" "}
-                            {p.totalCompletedSessions}{" "}
+                            {selectedPhysioId !== "ALL" ? p.physioDetails?.find((physio) => physio.physioId === selectedPhysioId)?.sessionCount : p.totalCompletedSessions}{" "}
                           </td>{" "}
                           <td className="p-2 border text-center whitespace-nowrap">
                             {" "}
