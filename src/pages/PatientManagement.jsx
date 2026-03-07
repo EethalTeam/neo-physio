@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import {
   Dialog,
   DialogContent,
@@ -560,7 +562,48 @@ const PatientManagement = () => {
       console.error("Error:", error);
     }
   };
+  const formatDate = (date) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "-";
 
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    return `${day}-${month}-${year}`;
+  };
+
+  const getSessionDateRange = (sessions = []) => {
+    if (!Array.isArray(sessions) || sessions.length === 0) {
+      return {
+        sessionStartDate: "-",
+        sessionEndDate: "-",
+        lastSessionDate: "-",
+      };
+    }
+
+    const validDates = sessions
+      .map((s) => s?.sessionDate)
+      .filter(Boolean)
+      .map((date) => new Date(date))
+      .filter((d) => !Number.isNaN(d.getTime()))
+      .sort((a, b) => a - b);
+
+    if (!validDates.length) {
+      return {
+        sessionStartDate: "-",
+        sessionEndDate: "-",
+        lastSessionDate: "-",
+      };
+    }
+
+    return {
+      sessionStartDate: formatDate(validDates[0]),
+      sessionEndDate: formatDate(validDates[validDates.length - 1]),
+      lastSessionDate: formatDate(validDates[validDates.length - 1]),
+    };
+  };
   const downloadPatientsPDFs = async () => {
     try {
       const body = {
@@ -607,27 +650,35 @@ const PatientManagement = () => {
         "Contact",
         "Condition",
         "Physio",
+        "Start Date",
+        "End Date",
         "Total Sessions",
         "Completed",
         "Cancelled",
         "Status",
       ];
 
-      const rows = report.map((p, index) => [
-        index + 1,
-        p.patientCode || "-",
-        p.patientName || "-",
-        p.age || "-",
-        p.gender || "-",
-        p.number || "-",
-        p.condition || "-",
-        p.assignedPhysio || "-",
-        p.totalSessions ?? 0,
-        p.completedSessions ?? 0,
-        p.cancelledSessions ?? 0,
-        p.recovered || (p.isRecovered ? "Recovered" : "Active"),
-      ]);
+      const rows = report.map((p, index) => {
+        const { sessionStartDate, sessionEndDate, lastSessionDate } =
+          getSessionDateRange(p.sessions);
 
+        return [
+          index + 1,
+          p.patientCode || "-",
+          p.patientName || "-",
+          p.age || "-",
+          p.gender || "-",
+          p.number || "-",
+          p.condition || "-",
+          p.assignedPhysio || "-",
+          sessionStartDate,
+          sessionEndDate,
+          p.totalSessions ?? 0,
+          p.completedSessions ?? 0,
+          p.cancelledSessions ?? 0,
+          p.recovered || (p.isRecovered ? "Recovered" : "Active"),
+        ];
+      });
       autoTable(doc, {
         startY: 36,
         head: [columns],
@@ -641,17 +692,19 @@ const PatientManagement = () => {
         },
         columnStyles: {
           0: { cellWidth: 10 },
-          1: { cellWidth: 22 },
-          2: { cellWidth: 35 },
-          3: { cellWidth: 12 },
-          4: { cellWidth: 18 },
-          5: { cellWidth: 24 },
-          6: { cellWidth: 32 },
-          7: { cellWidth: 26 },
-          8: { cellWidth: 20 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 10 },
+          4: { cellWidth: 14 },
+          5: { cellWidth: 22 },
+          6: { cellWidth: 28 },
+          7: { cellWidth: 24 },
+          8: { cellWidth: 18 },
           9: { cellWidth: 18 },
-          10: { cellWidth: 18 },
-          11: { cellWidth: 18 },
+          10: { cellWidth: 16 },
+          11: { cellWidth: 16 },
+          12: { cellWidth: 16 },
+          13: { cellWidth: 16 },
         },
       });
 
@@ -663,6 +716,94 @@ const PatientManagement = () => {
       toast({
         title: "Error",
         description: "Failed to download monthly patient PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadPatientsExcel = async () => {
+    try {
+      const body = {
+        month: selectedMonth,
+        year: selectedYear,
+        view: "all",
+      };
+
+      const res = await apiRequest("Patient/downloadPatientsMonthlyReport", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      const report = Array.isArray(res?.report) ? res.report : [];
+
+      if (!report.length) {
+        toast({
+          title: "No Data",
+          description: "No patient report found for the selected month.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const excelData = report.map((p, index) => {
+        const { sessionStartDate, sessionEndDate, lastSessionDate } =
+          getSessionDateRange(p.sessions);
+
+        return {
+          "S.No": index + 1,
+          "Patient Code": p.patientCode || "-",
+          "Patient Name": p.patientName || "-",
+          Age: p.age || "-",
+          Gender: p.gender || "-",
+          Contact: p.number || "-",
+          Address: p.address || "-",
+          Condition: p.condition || "-",
+          Physio: p.assignedPhysio || "-",
+          "Consultation Date": formatDate(p.consultationDate),
+          "Review Date": formatDate(p.reviewDate),
+          "Session Start Date": sessionStartDate,
+          "Session End Date": sessionEndDate,
+          "Total Sessions": p.totalSessions ?? 0,
+          Completed: p.completedSessions ?? 0,
+          Cancelled: p.cancelledSessions ?? 0,
+          Status: p.recovered || (p.isRecovered ? "Recovered" : "Active"),
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+      worksheet["!cols"] = [
+        { wch: 8 }, // S.No
+        { wch: 15 }, // Patient Code
+        { wch: 22 }, // Patient Name
+        { wch: 8 }, // Age
+        { wch: 10 }, // Gender
+        { wch: 15 }, // Contact
+        { wch: 22 }, // Address
+        { wch: 28 }, // Condition
+        { wch: 20 }, // Physio
+        { wch: 16 }, // Consultation Date
+        { wch: 16 }, // Review Date
+        { wch: 16 }, // Session Start Date
+        { wch: 16 }, // Session End Date
+        { wch: 14 }, // Total Sessions
+        { wch: 12 }, // Completed
+        { wch: 12 }, // Cancelled
+        { wch: 12 }, // Status
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Patients Report");
+
+      XLSX.writeFile(
+        workbook,
+        `Patients_Report_${monthNames[selectedMonth - 1]}_${selectedYear}.xlsx`,
+      );
+    } catch (error) {
+      console.error("Excel download error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download monthly patient Excel.",
         variant: "destructive",
       });
     }
@@ -1930,9 +2071,12 @@ const PatientManagement = () => {
                   max="2100"
                 />
 
-                <Button onClick={downloadPatientsPDFs}>
-                  Download Monthly PDF
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={downloadPatientsPDFs}>Download PDF</Button>
+                  <Button onClick={downloadPatientsExcel}>
+                    Download Excel
+                  </Button>
+                </div>
               </div>
               {(user?.role === "Admin" || user?.role === "SuperAdmin") &&
                 Permissions.isAdd && (
