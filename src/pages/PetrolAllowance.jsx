@@ -15,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -24,30 +23,14 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Calendar as CalendarIcon,
-  Download,
   Filter,
   Fuel,
   User,
   PlusCircle,
   MinusCircle,
-  FileText,
 } from "lucide-react";
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isWithinInterval,
-} from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,1094 +40,225 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 const PetrolAllowance = () => {
   const navigate = useNavigate();
   const [physios, setPhysios] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [sessions, setSessions] = useState([]);
   const [dailyData, setDailyData] = useState([]);
-  const initialState = {
-    physioId: "",
-    date: "",
-    completedKms: 0,
-    canceledKms: 0,
-    manualKms: 0,
-    finalDailyKms: 0,
-    amountPerKm: 0,
-    totalAmount: 0,
-    status: "",
-    notes: "",
-  };
-
-  const [filteredData, setFilteredData] = useState([]);
-  console.log(filteredData, "filteredData  from petrol");
-
   const [dateRange, setDateRange] = useState({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+  console.log(dateRange,"dateRange")
   const [physioFilter, setPhysioFilter] = useState("all");
+
   const [openPhysios, setOpenPhysios] = useState({});
+  const [openPatients, setOpenPatients] = useState({});
+
   const togglePhysio = (id) => setOpenPhysios((p) => ({ ...p, [id]: !p[id] }));
-  const [openDays, setOpenDays] = useState({});
-  const toggleDay = (id) => setOpenDays((p) => ({ ...p, [id]: !p[id] }));
-  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
-  const [ratePerKm, setRatePerKm] = useState(10);
-  const [monthlyReport, setMonthlyReport] = useState(null);
-  const [auditLog, setAuditLog] = useState([]);
+  const togglePatient = (id) => setOpenPatients((p) => ({ ...p, [id]: !p[id] }));
+
   const { getPermissionsByPath } = useAuth();
-  const [Permissions, setPermissions] = useState({
-    isAdd: false,
-    isView: false,
-    isEdit: false,
-    isDelete: false,
-  });
+  const [Permissions, setPermissions] = useState({ isView: false });
 
-  // useEffect(() => {
-  //   Promise.all([
-  //     fetch('/mockdata/physios.json').then(res => res.json()),
-  //     fetch('/mockdata/patients.json').then(res => res.json()),
-  //     fetch('/mockdata/sessions.json').then(res => res.json())
-  //   ]).then(([physiosData, patientsData, sessionsData]) => {
-  //     setPhysios(physiosData.filter(p => p.role === 'Physio'));
-  //     setPatients(patientsData);
-  //     setSessions(sessionsData);
-  //     // Initialize audit log from a mock source or keep it in state
-  //     const initialLog = JSON.parse(localStorage.getItem('petrolAuditLog')) || [];
-  //     setAuditLog(initialLog);
-  //   }).catch(err => console.error('Error loading data:', err));
-  // }, []);
-
-  //Api for get Physio
   useEffect(() => {
     getPhysio();
-  }, []);
-
-  useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
-      if (res) {
-        console.log(res, "res");
-        setPermissions(res);
-      } else {
-        navigate("/dashboard");
-      }
+      if (res) setPermissions(res);
+      else navigate("/dashboard");
     });
   }, []);
 
   useEffect(() => {
-    if (Permissions.isView) {
-      getPetrol();
-    }
-  }, [Permissions]);
+    if (Permissions.isView) getPetrol();
+  }, [Permissions, dateRange, physioFilter]);
 
-  const getPhysio = async (data) => {
+  const getPhysio = async () => {
     try {
-      const response = await apiRequest("Physio/getAllPhysio", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("Physio/getAllPhysio", { method: "POST" });
       setPhysios(response.physios);
     } catch (error) {
-      console.log(error, "error from frontend get All Physio");
+      console.error(error);
     }
   };
 
-  const logAuditEvent = (message) => {
-    const newLogEntry = { timestamp: new Date().toISOString(), message };
-    setAuditLog((prev) => {
-      const updatedLog = [newLogEntry, ...prev];
-      localStorage.setItem("petrolAuditLog", JSON.stringify(updatedLog));
-      return updatedLog;
-    });
-  };
-
-  const processedData = useMemo(() => {
-    if (
-      !sessions.length ||
-      !patients.length ||
-      !physios.length ||
-      !dateRange.from ||
-      !dateRange.to
-    )
-      return [];
-
-    const dailyTravel = {};
-    const interval = { start: dateRange.from, end: dateRange.to };
-    const dateArray = eachDayOfInterval(interval);
-
-    dateArray.forEach((date) => {
-      const dateKey = format(date, "yyyy-MM-dd");
-      physios.forEach((physio) => {
-        const physioId = physio._id.toString();
-        if (!dailyTravel[dateKey]) dailyTravel[dateKey] = {};
-        if (!dailyTravel[dateKey][physioId]) {
-          dailyTravel[dateKey][physioId] = {
-            physioId,
-            date: dateKey,
-            attendedCompletedKms: 0,
-            cancelledKms: 0,
-            manualAdjustment: 0,
-            finalKms: 0,
-            visits: [],
-          };
-        }
-      });
-    });
-
-    sessions.forEach((session) => {
-      const sessionDate = new Date(session.sessionDate);
-      if (!isWithinInterval(sessionDate, interval)) return;
-
-      const dateKey = format(sessionDate, "yyyy-MM-dd");
-      const physioId = session.physioId.toString();
-      const patient = patients.find((p) => p.id === session.patientId);
-
-      if (!patient || !patient.travelDetails) return;
-      if (!dailyTravel[dateKey] || !dailyTravel[dateKey][physioId]) return;
-
-      dailyTravel[dateKey][physioId].visits.push({
-        ...session,
-        travelDetails: patient.travelDetails,
-      });
-    });
-
-    Object.values(dailyTravel).forEach((physioVisitsByDate) => {
-      Object.values(physioVisitsByDate).forEach((dayData) => {
-        dayData.visits.sort(
-          (a, b) => a.travelDetails.visitOrder - b.travelDetails.visitOrder,
-        );
-
-        let attendedCompletedKms = 0;
-
-        dayData.visits.forEach((visit) => {
-          let travelKm = 0;
-
-          if (visit.travelDetails.visitOrder === 1) {
-            travelKm = visit.travelDetails.kmsFromHub || 0;
-          } else {
-            travelKm = visit.travelDetails.kmsFromPrevious || 0;
-          }
-
-          if (visit.status === "attended" || visit.status === "completed") {
-            attendedCompletedKms += travelKm;
-          }
-
-          if (visit.status === "canceled") {
-            dayData.cancelledKms += travelKm;
-          }
-        });
-
-        dayData.attendedCompletedKms = attendedCompletedKms;
-        dayData.finalKms =
-          attendedCompletedKms -
-          dayData.cancelledKms +
-          dayData.manualAdjustment;
-      });
-    });
-
-    return Object.values(dailyTravel).flatMap(Object.values);
-  }, [sessions, patients, physios, dateRange]);
-
-  // useEffect(() => {
-  //   setDailyData(processedData);
-  // }, [processedData]);
-
-  //APi for get Petrol
-
-  const getPetrol = async (data) => {
+  const getPetrol = async () => {
     try {
-      const response = await apiRequest(
-        "PetrolAllowance/getAllPetrolAllowance",
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      );
-      const reveresedPetrol = Array.isArray(response)
-        ? [...response].reverse()
-        : [];
-
-      setDailyData(reveresedPetrol);
+      const response = await apiRequest("PetrolAllowance/getAllPetrolAllowance", {
+        method: "POST",
+        body: JSON.stringify({ from: dateRange?.from, to: dateRange?.to }),
+      });
+      setDailyData(Array.isArray(response) ? response : []);
     } catch (error) {
-      console.log(error, "Error");
+      console.error(error);
     }
   };
 
-  const filteredDailyData = useMemo(() => {
-    let data = Array.isArray(dailyData) ? dailyData : [];
-
-    if (dateRange?.from && dateRange?.to) {
-      const start = new Date(dateRange.from);
-      const end = new Date(dateRange.to);
-      end.setHours(23, 59, 59, 999);
-
-      data = data.filter((d) => {
-        const dt = new Date(d.date);
-        return dt >= start && dt <= end;
-      });
-    }
-
-    if (physioFilter !== "all") {
-      data = data.filter((d) => {
-        const pid =
-          typeof d.physioId === "object" ? d.physioId?._id : d.physioId;
-        return pid?.toString() === physioFilter?.toString();
-      });
-    }
-
-    return data;
-  }, [dailyData, physioFilter, dateRange]);
-
-  const groupedByPhysio = useMemo(() => {
-    const map = new Map();
-
-    for (const item of filteredDailyData || []) {
-      const pid =
-        typeof item.physioId === "object" ? item.physioId?._id : item.physioId;
-
-      const physioName =
-        typeof item.physioId === "object"
-          ? item.physioId?.physioName
-          : "Not Assigned";
-
-      const prev = map.get(pid) || {
-        physioId: pid,
-        physioName,
-        totalCompleted: 0,
-        totalCancelled: 0,
-        totalManual: 0,
-        totalFinal: 0,
-        rows: [],
-      };
-
-      map.set(pid, {
-        ...prev,
-        totalCompleted: prev.totalCompleted + Number(item.completedKms || 0),
-        totalCancelled: prev.totalCancelled + Number(item.cancelledKms || 0),
-        totalManual: prev.totalManual + Number(item.manualKms || 0),
-        totalFinal: prev.totalFinal + Number(item.finalDailyKms || 0),
-        rows: [...prev.rows, item],
-      });
-    }
-
-    const result = Array.from(map.values());
-
-    result.forEach((g) => {
-      g.rows.sort((a, b) => new Date(a.date) - new Date(b.date));
-    });
-
-    result.sort((a, b) =>
-      (a.physioName || "").localeCompare(b.physioName || ""),
-    );
-
-    return result;
-  }, [filteredDailyData]);
-
-  const handleAdjustment = async (row, delta) => {
-    const petrolAllowanceId = row._id;
-
-    setDailyData((prev) =>
-      prev.map((d) => {
-        if (d._id !== petrolAllowanceId) return d;
-
-        const newManual = Number(d.manualKms || 0) + delta;
-        return {
-          ...d,
-          manualKms: newManual,
-          finalDailyKms: Number(d.finalDailyKms || 0) + delta,
-        };
-      }),
-    );
-
+  const handleAdjustment = async (allowanceId, delta) => {
     try {
       await apiRequest("PetrolAllowance/updateManualKms", {
         method: "POST",
-        body: JSON.stringify({
-          petrolAllowanceId,
-          amount: Number(delta), // ✅ must be number (+1 / -1)
-        }),
+        body: JSON.stringify({ petrolAllowanceId: allowanceId, amount: Number(delta) }),
       });
+      getPetrol();
+      toast({ title: "Success", description: "Adjustment saved." });
     } catch (err) {
-      console.log(err);
-
-      // rollback if failed
-      setDailyData((prev) =>
-        prev.map((d) => {
-          if (d._id !== petrolAllowanceId) return d;
-
-          return {
-            ...d,
-            manualKms: Number(d.manualKms || 0) - delta,
-            finalDailyKms: Number(d.finalDailyKms || 0) - delta,
-          };
-        }),
-      );
-
-      toast({
-        title: "Not Saved",
-        description: "Failed to save manual kms",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to save.", variant: "destructive" });
     }
   };
 
-  const handleGenerateReport = () => {
-    const summary = physios
-      .map((physio) => {
-        const physioId = physio._id.toString();
-        const physioData = dailyData.filter((d) => d.physioId === physioId);
+  // --- DATA TRANSFORMATION LOGIC ---
+  // Transforms DailyLogs into Patient-grouped data
+  const transformedData = useMemo(() => {
+    return dailyData.map((physio) => {
+      const patientMap = {};
 
-        const totalAttendedCompletedKms = physioData.reduce(
-          (sum, day) => sum + day.attendedCompletedKms,
-          0,
-        );
-        const totalCancelledKms = physioData.reduce(
-          (sum, day) => sum + day.cancelledKms,
-          0,
-        );
-        const totalManualAdjustment = physioData.reduce(
-          (sum, day) => sum + day.manualAdjustment,
-          0,
-        );
-        const finalKms =
-          totalAttendedCompletedKms - totalCancelledKms + totalManualAdjustment;
-        const allowance = finalKms * ratePerKm;
+      physio.patients.forEach((logItem) => {
+        const log = logItem.dailyLogs;
+        
+        log.patientDetails.forEach((detail) => {
+          const pId = detail.patientId;
+          if (!patientMap[pId]) {
+            patientMap[pId] = {
+              patientId: pId,
+              patientName: detail.patientName,
+              totalKm: 0,
+              dateLogs: [],
+            };
+          }
+          patientMap[pId].totalKm += detail.km;
+          patientMap[pId].dateLogs.push({
+            date: log.date,
+            km: detail.km,
+            status: log.status,
+          });
+        });
+      });
 
-        return {
-          physioName: physio.name,
-          month: format(dateRange.from, "MMM-yyyy"),
-          totalAttendedCompletedKms,
-          totalCancelledKms,
-          totalManualAdjustment,
-          finalKms,
-          allowance,
-        };
-      })
-      .filter(
-        (r) =>
-          r.finalKms !== 0 ||
-          r.totalAttendedCompletedKms !== 0 ||
-          r.totalCancelledKms !== 0,
-      );
-
-    setMonthlyReport(summary);
-    setIsGenerateOpen(false);
-    logAuditEvent(
-      `Generated petrol allowance report for ${format(
-        dateRange.from,
-        "MMM-yyyy",
-      )} with rate ₹${ratePerKm}/km.`,
-    );
-    toast({
-      title: "Report Generated",
-      description: "Monthly petrol allowance report is ready.",
+      return {
+        ...physio,
+        groupedPatients: Object.values(patientMap).sort((a, b) => 
+          a.patientName.localeCompare(b.patientName)
+        ),
+      };
     });
-  };
+  }, [dailyData]);
 
-  const handleExport = (format) => {
-    toast({
-      title: `Exporting as ${format.toUpperCase()}`,
-      description:
-        "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀",
-    });
-  };
+  const filteredData = useMemo(() => {
+    if (physioFilter === "all") return transformedData;
+    return transformedData.filter((g) => g.physioId === physioFilter);
+  }, [transformedData, physioFilter]);
 
   return (
     <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex md:flex-row flex-col md:justify-between items-start space-y-3"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex md:flex-row flex-col md:justify-between items-start space-y-3">
         <div>
-          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
-            Petrol Allowance
-          </h1>
-          <p className="text-gray-600">
-            Calculate and track daily travel expenses for physiotherapists.
-          </p>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">Petrol Allowance</h1>
+          <p className="text-gray-600">Physio Wise → Patient Wise → Date Wise</p>
         </div>
-        <Button onClick={() => setIsGenerateOpen(true)}>
-          <Fuel className="mr-2 h-4 w-4" /> Generate Monthly Allowance
-        </Button>
       </motion.div>
 
-      <Card className="medical-card ">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter size={20} /> Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-          <div className="space-y-2 ">
+      {/* FILTERS */}
+      <Card className="medical-card">
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6">
+          <div className="space-y-2">
             <Label>Date Range</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dateRange.from && "text-muted-foreground",
-                  )}
-                >
+                <Button variant="outline" className="w-full justify-start text-left">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      `${format(dateRange.from, "LLL dd, y")} - ${format(
-                        dateRange.to,
-                        "LLL dd, y",
-                      )}`
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
+                  { (dateRange?.to && dateRange?.from) ? `${format(dateRange?.from, "PP")} - ${format(dateRange?.to, "PP")}` : "Pick dates"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  initialFocus
-                />
+                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
               </PopoverContent>
             </Popover>
           </div>
           <div className="space-y-2">
             <Label>Physiotherapist</Label>
             <Select value={physioFilter} onValueChange={setPhysioFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Physiotherapists</SelectItem>
-                {physios.map((p) => (
-                  <SelectItem key={p._id} value={p._id.toString()}>
-                    {p.physioName}
-                  </SelectItem>
-                ))}
+                {physios.map((p) => (<SelectItem key={p._id} value={p._id}>{p.physioName}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <Card className="medical-card hidden md:block">
-          <CardHeader>
-            <CardTitle>Daily Kms Summary</CardTitle>
-            <CardDescription>
-              Editable summary of daily travel for each physiotherapist.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 font-semibold text-gray-600">
-                      Physiotherapist
-                    </th>
-                    <th className="text-center p-3 font-semibold text-gray-600">
-                      Attended/Completed Kms
-                    </th>
-                    <th className="text-center p-3 font-semibold text-gray-600">
-                      Canceled Kms
-                    </th>
-                    <th className="text-center p-3 font-semibold text-gray-600">
-                      Manual Adjustments
-                    </th>
-                    <th className="text-right p-3 font-semibold text-gray-600">
-                      Final Kms
-                    </th>
-                  </tr>
-                </thead>
+      {/* DATA VIEW */}
+      <div className="space-y-4">
+        {filteredData.map((physio) => {
+          const isPhysioOpen = !!openPhysios[physio.physioId];
+          return (
+            <Card key={physio.physioId} className="medical-card overflow-hidden">
+              <div 
+                className="p-4 bg-gray-50 flex items-center justify-between cursor-pointer border-b"
+                onClick={() => togglePhysio(physio.physioId)}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={cn("transition-transform", isPhysioOpen ? "rotate-90" : "rotate-0")}>▶</span>
+                  <User size={18} className="text-blue-600" />
+                  <span className="font-bold text-gray-800">{physio.physioName}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-gray-500 uppercase">Total KM: </span>
+                  <span className="font-bold text-blue-700">{physio.grandTotalPhysioKm.toFixed(2)}</span>
+                </div>
+              </div>
 
-                <tbody>
-                  {groupedByPhysio.length > 0 ? (
-                    groupedByPhysio.map((group) => {
-                      const isOpen = !!openPhysios[group.physioId];
-
-                      return (
-                        <React.Fragment key={group.physioId}>
-                          {/* Parent (Physio Summary Row) */}
-                          <tr className="border-b bg-gray-50">
-                            <td className="p-3">
-                              <button
-                                type="button"
-                                onClick={() => togglePhysio(group.physioId)}
-                                className="flex items-center gap-2 font-semibold text-gray-800"
-                              >
-                                <span
-                                  className={cn(
-                                    "inline-block transition-transform",
-                                    isOpen ? "rotate-90" : "rotate-0",
-                                  )}
-                                >
-                                  ▶
-                                </span>
-                                {group.physioName}
-                              </button>
-
-                              <p className="text-xs text-gray-500 mt-1">
-                                Total days: {group.rows.length}
-                              </p>
-                            </td>
-
-                            {/* Totals */}
-                            <td className="p-3 text-center text-green-700 font-semibold">
-                              {Number(group.totalCompleted || 0).toFixed(2)}
-                            </td>
-                            <td className="p-3 text-center text-red-700 font-semibold">
-                              {Number(group.totalCancelled || 0).toFixed(2)}
-                            </td>
-                            <td className="p-3 text-center font-semibold">
-                              {Number(group.totalManual || 0).toFixed(2)}
-                            </td>
-                            <td className="p-3 text-right font-bold text-lg">
-                              {Number(group.totalFinal || 0).toFixed(2)} km
-                            </td>
-                          </tr>
-
-                          {/* Expanded (Daily rows for that physio) */}
-                          {isOpen &&
-                            group.rows.map((item) => {
-                              const isDayOpen = !!openDays[item._id];
-                              const daySummary = Array.isArray(item.summary)
-                                ? item.summary
-                                : [];
-
-                              return (
-                                <React.Fragment key={item._id}>
-                                  {/* Daily row */}
-                                  <tr className="border-b hover:bg-gray-50/50">
-                                    {/* Date with chevron */}
-                                    <td className="p-3 pl-10 text-gray-700">
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleDay(item._id)}
-                                        className="flex items-center gap-2 w-full text-left"
-                                      >
-                                        <span
-                                          className={cn(
-                                            "inline-block transition-transform",
-                                            isDayOpen
-                                              ? "rotate-90"
-                                              : "rotate-0",
-                                          )}
-                                        >
-                                          ▶
-                                        </span>
-                                        <span>
-                                          {format(new Date(item.date), "PPP")}
-                                        </span>
-                                      </button>
-                                    </td>
-
-                                    <td className="p-3 text-center text-green-600 font-medium">
-                                      {Number(item.completedKms || 0).toFixed(
-                                        2,
-                                      )}
-                                    </td>
-
-                                    <td className="p-3 text-center text-red-600 font-medium">
-                                      {Number(item.cancelledKms || 0).toFixed(
-                                        2,
-                                      )}
-                                    </td>
-
-                                    <td className="p-3 text-center">
-                                      <div className="flex items-center justify-center gap-2">
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-6 w-6"
-                                          onClick={() =>
-                                            handleAdjustment(item, -1)
-                                          }
-                                        >
-                                          <MinusCircle size={14} />
-                                        </Button>
-
-                                        <span
-                                          className={cn(
-                                            "font-medium w-12 text-center",
-                                            Number(item.manualKms || 0) > 0 &&
-                                              "text-blue-600",
-                                            Number(item.manualKms || 0) < 0 &&
-                                              "text-orange-600",
-                                          )}
-                                        >
-                                          {Number(item.manualKms || 0).toFixed(
-                                            2,
-                                          )}
-                                        </span>
-
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-6 w-6"
-                                          onClick={() =>
-                                            handleAdjustment(item, 1)
-                                          }
-                                        >
-                                          <PlusCircle size={14} />
-                                        </Button>
-                                      </div>
-                                    </td>
-
-                                    <td className="p-3 text-right font-bold">
-                                      {Number(item.finalDailyKms || 0).toFixed(
-                                        2,
-                                      )}{" "}
-                                      km
-                                    </td>
-                                  </tr>
-
-                                  {/* Expanded Patients list row */}
-                                  {isDayOpen && (
-                                    <tr className="border-b bg-gray-50/30">
-                                      <td colSpan={5} className="p-3 pl-14">
-                                        {daySummary.length > 0 ? (
-                                          <div className="overflow-x-auto">
-                                            <table className="w-full text-xs">
-                                              <thead>
-                                                <tr className="border-b">
-                                                  <th className="text-left py-2 text-gray-600">
-                                                    Patient Name
-                                                  </th>
-                                                  <th className="text-right py-2 text-gray-600">
-                                                    KM
-                                                  </th>
-                                                </tr>
-                                              </thead>
-                                              <tbody>
-                                                {daySummary.map((s, idx) => {
-                                                  // If populate done -> patientId is object
-                                                  const patientName =
-                                                    typeof s.patientId ===
-                                                    "object"
-                                                      ? s.patientId?.patientName
-                                                      : s.patientName; // fallback if snapshot
-
-                                                  return (
-                                                    <tr
-                                                      key={idx}
-                                                      className="border-b last:border-0"
-                                                    >
-                                                      <td className="py-2">
-                                                        {patientName ||
-                                                          "Patient"}
-                                                      </td>
-                                                      <td className="py-2 text-right font-medium">
-                                                        {Number(
-                                                          s.travelKm || 0,
-                                                        ).toFixed(2)}
-                                                      </td>
-                                                    </tr>
-                                                  );
-                                                })}
-                                              </tbody>
-                                            </table>
-                                          </div>
-                                        ) : (
-                                          <p className="text-xs text-gray-500">
-                                            No patients for this day.
-                                          </p>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  )}
-                                </React.Fragment>
-                              );
-                            })}
-                        </React.Fragment>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="text-center p-8 text-gray-500">
-                        No travel data found for the selected criteria.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* //Card Mobile view */}
-        <Card className="medical-card md:hidden">
-          <CardHeader>
-            <CardTitle className="text-xl">Daily Kms Summary</CardTitle>
-            <CardDescription>
-              Grouped summary of daily travel for each physiotherapist.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <div className="space-y-4">
-              {groupedByPhysio.length > 0 ? (
-                groupedByPhysio.map((group) => {
-                  const isOpen = !!openPhysios[group.physioId];
-
-                  return (
-                    <Card
-                      key={group.physioId}
-                      className="rounded-2xl border shadow-sm"
-                    >
-                      {/* Physio Summary Header */}
-                      <div className="p-4 flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <User size={16} className="text-gray-500" />
-                            <p className="font-bold text-gray-800">
-                              {group.physioName}
-                            </p>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Total days: {group.rows.length}
-                          </p>
-
-                          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                            <div className="p-2 bg-green-50 rounded-lg text-center">
-                              <p className="text-green-700 font-semibold">
-                                Completed
-                              </p>
-                              <p className="text-green-700">
-                                {Number(group.totalCompleted || 0).toFixed(2)}
-                              </p>
-                            </div>
-
-                            <div className="p-2 bg-red-50 rounded-lg text-center">
-                              <p className="text-red-700 font-semibold">
-                                Canceled
-                              </p>
-                              <p className="text-red-700">
-                                {Number(group.totalCancelled || 0).toFixed(2)}
-                              </p>
-                            </div>
-
-                            <div className="p-2 bg-blue-50 rounded-lg text-center">
-                              <p className="text-blue-700 font-semibold">
-                                Manual
-                              </p>
-                              <p className="text-blue-700">
-                                {Number(group.totalManual || 0).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => togglePhysio(group.physioId)}
+              {isPhysioOpen && (
+                <div className="divide-y">
+                  {physio.groupedPatients.map((patient) => {
+                    const patientKey = `${physio.physioId}-${patient.patientId}`;
+                    const isPatientOpen = !!openPatients[patientKey];
+                    return (
+                      <div key={patient.patientId} className="bg-white">
+                        <div 
+                          className="p-3 pl-10 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                          onClick={() => togglePatient(patientKey)}
                         >
-                          {isOpen ? "Hide" : "View"}
-                        </Button>
-                      </div>
-
-                      {/* Expanded Daily Cards */}
-                      {isOpen && (
-                        <div className="px-4 pb-4 space-y-3">
-                          {group.rows.map((item) => {
-                            const isDayOpen = !!openDays[item._id];
-                            const daySummary = Array.isArray(item.summary)
-                              ? item.summary
-                              : [];
-
-                            return (
-                              <Card
-                                key={item._id}
-                                className="p-4 rounded-2xl shadow border"
-                              >
-                                {/* DATE */}
-                                <div className="mb-2">
-                                  <p className="text-xs text-gray-500">Date</p>
-                                  <p className="text-base font-bold">
-                                    {format(new Date(item.date), "PP")}
-                                  </p>
-                                </div>
-
-                                {/* KM SUMMARY */}
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                  <div className="p-2 bg-green-50 rounded-lg">
-                                    <p className="text-xs text-green-700 font-semibold">
-                                      Completed
-                                    </p>
-                                    <p className="text-lg text-green-600">
-                                      {Number(item.completedKms || 0).toFixed(
-                                        2,
-                                      )}{" "}
-                                      km
-                                    </p>
-                                  </div>
-
-                                  <div className="p-2 bg-red-50 rounded-lg">
-                                    <p className="text-xs text-red-700 font-semibold">
-                                      Canceled
-                                    </p>
-                                    <p className="text-lg font-bold text-red-600">
-                                      {Number(item.cancelledKms || 0).toFixed(
-                                        2,
-                                      )}{" "}
-                                      km
-                                    </p>
-                                  </div>
-
-                                  {/* Manual Adjustment */}
-                                  <div className="p-2 bg-blue-50 rounded-lg col-span-2">
-                                    <p className="text-xs text-blue-700 font-semibold">
-                                      Manual Adjustment
-                                    </p>
-
-                                    <div className="flex items-center justify-between mt-1">
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8"
-                                        onClick={() =>
-                                          handleAdjustment(item, -1)
-                                        }
-                                      >
-                                        <MinusCircle size={16} />
-                                      </Button>
-
-                                      <span
-                                        className={cn(
-                                          "font-medium text-lg",
-                                          Number(item.manualKms || 0) > 0 &&
-                                            "text-blue-600",
-                                          Number(item.manualKms || 0) < 0 &&
-                                            "text-orange-600",
-                                        )}
-                                      >
-                                        {Number(item.manualKms || 0).toFixed(2)}{" "}
-                                        km
-                                      </span>
-
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8"
-                                        onClick={() =>
-                                          handleAdjustment(item, 1)
-                                        }
-                                      >
-                                        <PlusCircle size={16} />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* VIEW PATIENTS BUTTON */}
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full mt-3 flex items-center justify-center gap-2"
-                                  onClick={() => toggleDay(item._id)}
-                                >
-                                  <span
-                                    className={cn(
-                                      "inline-block transition-transform",
-                                      isDayOpen ? "rotate-90" : "rotate-0",
-                                    )}
-                                  >
-                                    ▶
-                                  </span>
-                                  {isDayOpen
-                                    ? "Hide Patients"
-                                    : "View Patients"}
-                                </Button>
-
-                                {/* PATIENT LIST */}
-                                {isDayOpen && (
-                                  <div className="mt-3 rounded-xl border bg-white p-3">
-                                    <p className="text-xs font-semibold text-gray-600 mb-2">
-                                      Patients & KM
-                                    </p>
-
-                                    {daySummary.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {daySummary.map((s, idx) => {
-                                          const patientName =
-                                            typeof s.patientId === "object"
-                                              ? s.patientId?.patientName
-                                              : s.patientName;
-
-                                          return (
-                                            <div
-                                              key={idx}
-                                              className="flex items-center justify-between text-sm border-b pb-2 last:border-0 last:pb-0"
-                                            >
-                                              <span className="font-medium">
-                                                {patientName || "Patient"}
-                                              </span>
-
-                                              <span className="font-medium text-gray-700">
-                                                {Number(
-                                                  s.travelKm || 0,
-                                                ).toFixed(2)}{" "}
-                                                km
-                                              </span>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-xs text-gray-500">
-                                        No patients for this day.
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </Card>
-                            );
-                          })}
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-xs transition-transform", isPatientOpen ? "rotate-90" : "rotate-0")}>▶</span>
+                            <span className="font-semibold text-gray-700">{patient.patientName}</span>
+                          </div>
+                          <span className="text-sm font-medium text-gray-500">{patient.totalKm.toFixed(2)} km total</span>
                         </div>
-                      )}
-                    </Card>
-                  );
-                })
-              ) : (
-                <Card className="p-6 text-center text-gray-500">
-                  No travel data found for the selected criteria.
-                </Card>
+
+                        {isPatientOpen && (
+                          <div className="p-4 pl-16 bg-gray-50/50">
+                            <table className="w-full text-xs text-gray-600">
+                              <thead>
+                                <tr className="border-b text-left">
+                                  <th className="pb-2">Date</th>
+                                  <th className="pb-2 text-center">Status</th>
+                                  <th className="pb-2 text-right">KM</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {patient.dateLogs.map((log, idx) => (
+                                  <tr key={idx} className="border-b last:border-0">
+                                    <td className="py-2">{format(new Date(log.date), "PPP")}</td>
+                                    <td className="py-2 text-center font-medium text-blue-600">{log.status}</td>
+                                    <td className="py-2 text-right font-bold text-gray-800">{log.km.toFixed(2)} km</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {physio.groupedPatients.length === 0 && (
+                    <div className="p-4 text-center text-gray-500 text-sm italic">
+                      No patient travel records found for this period.
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {monthlyReport && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <Card className="medical-card bg-blue-50/50">
-            <CardHeader className="flex flex-row justify-between items-center">
-              <div>
-                <CardTitle>
-                  Monthly Allowance Report ({monthlyReport[0]?.month})
-                </CardTitle>
-                <CardDescription>
-                  Rate: ₹{ratePerKm.toFixed(2)}/km
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => handleExport("CSV")}>
-                  <Download size={16} className="mr-2" /> Export CSV
-                </Button>
-                <Button variant="outline" onClick={() => handleExport("PDF")}>
-                  <Download size={16} className="mr-2" /> Export PDF
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-3 font-semibold text-gray-600">
-                        Physio Name
-                      </th>
-                      <th className="text-center p-3 font-semibold text-gray-600">
-                        Attended+Completed Kms
-                      </th>
-                      <th className="text-center p-3 font-semibold text-gray-600">
-                        Canceled Kms
-                      </th>
-                      <th className="text-center p-3 font-semibold text-gray-600">
-                        Manual Adjustments
-                      </th>
-                      <th className="text-center p-3 font-semibold text-gray-600">
-                        Final Kms
-                      </th>
-                      <th className="text-right p-3 font-semibold text-gray-600">
-                        Petrol Allowance (₹)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {monthlyReport.map((row, index) => (
-                      <tr key={index} className="border-b hover:bg-gray-50/50">
-                        <td className="p-3 font-medium">{row.physioName}</td>
-                        <td className="p-3 text-center text-green-600">
-                          {row.totalAttendedCompletedKms.toFixed(2)}
-                        </td>
-                        <td className="p-3 text-center text-red-600">
-                          {row.totalCancelledKms.toFixed(2)}
-                        </td>
-                        <td className="p-3 text-center font-medium">
-                          {row.totalManualAdjustment > 0
-                            ? `+${row.totalManualAdjustment.toFixed(2)}`
-                            : row.totalManualAdjustment.toFixed(2)}
-                        </td>
-                        <td className="p-3 text-center font-bold">
-                          {row.finalKms.toFixed(2)}
-                        </td>
-                        <td className="p-3 text-right font-bold text-indigo-600">
-                          ₹
-                          {row.allowance.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      {/* <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.6 }}>
-        <Card className="medical-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileText size={20} /> Audit Trail</CardTitle>
-            <CardDescription>Log of adjustments, cancellations, and allowance generations.</CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-60 overflow-y-auto">
-            <ul className="space-y-2">
-              {auditLog.length > 0 ? auditLog.map((log, index) => (
-                <li key={index} className="text-xs text-gray-600 border-b pb-1">
-                  <span className="font-mono bg-gray-100 p-1 rounded-sm">{format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss')}</span>: {log.message}
-                </li>
-              )) : (
-                <p className="text-sm text-gray-500">No audit events recorded yet.</p>
-              )}
-            </ul>
-          </CardContent>
-        </Card>
-      </motion.div> */}
-
-      <Dialog open={isGenerateOpen} onOpenChange={setIsGenerateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Monthly petrol allowance will be generated
-            </DialogTitle>
-            {/* <DialogDescription>Enter the rate per km to calculate the allowance for the selected period ({dateRange.from ? format(dateRange.from, 'MMMM yyyy') : ''}).</DialogDescription> */}
-          </DialogHeader>
-          {/* <div className="space-y-4 pt-4">
-            <Label htmlFor="ratePerKmGenerate">Rate per Km (₹)</Label>
-            <Input id="ratePerKmGenerate" type="number" value={ratePerKm} onChange={(e) => setRatePerKm(Number(e.target.value))} />
-          </div> */}
-          {/* <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsGenerateOpen(false)}>Cancel</Button>
-            <Button onClick={handleGenerateReport}>Generate Report</Button>
-          </DialogFooter> */}
-        </DialogContent>
-      </Dialog>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 };
