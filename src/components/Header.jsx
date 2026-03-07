@@ -65,8 +65,8 @@ const Header = ({ toggleSidebar }) => {
         // Re-fetch updated notifications
         fetchNotifications();
         toast({
-          title: `Request ${action}d`,
-          description: `The request has been ${action}d.`,
+          title: `Request ${action}ed`,
+          description: `The request has been ${action}ed.`,
         });
       } else {
         toast({

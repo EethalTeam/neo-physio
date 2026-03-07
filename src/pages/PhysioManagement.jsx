@@ -45,9 +45,7 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Stethoscope,
   Search,
-  DollarSign,
   Calendar as CalendarIcon,
-  CheckCircle,
   UserPlus,
   Trash2,
   Edit,
@@ -55,6 +53,10 @@ import {
   FileText,
   EyeOff,
   Eye,
+  User2,
+  UserCheck,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
@@ -65,6 +67,7 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const PhysioManagement = () => {
   const navigate = useNavigate();
+
   const [physios, setPhysios] = useState([]);
   const [filteredPhysios, setFilteredPhysios] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,17 +78,28 @@ const PhysioManagement = () => {
   const [gender, setGender] = useState([]);
   const [Roles, setRoles] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [completedSessions, setCompletedSessions] = useState([]);
+  const [activeTab, setActiveTab] = useState("physiodetails");
+  const [expandedPatient, setExpandedPatient] = useState(null);
 
-  console.log(Roles, "Roles");
+  const { getPermissionsByPath } = useAuth();
+
+  const [Permissions, setPermissions] = useState({
+    isAdd: false,
+    isView: false,
+    isEdit: false,
+    isDelete: false,
+  });
+
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [selectedPhysio, setSelectedPhysio] = useState(null);
 
   const initialFormState = {
     _id: "",
-    // physioCode: "",
     physioName: "",
     EmpCode: "",
     physioGenderId: "",
     genderName: "",
-    // physioAge: "",
     physioDob: "",
     physioExp: "",
     physioQulifi: "",
@@ -99,68 +113,72 @@ const PhysioManagement = () => {
     physioContactNo: "",
     physioAltno: "",
     physioAltno2: "",
+    physiorelationAltno: "",
+    physiorelationAltno2: "",
     physioVehicleMTC: "",
     physioIncentive: "",
     isActive: true,
     password: "",
     roleId: "",
   };
+
   const [physioForm, setPhysioForm] = useState(initialFormState);
   const [physioPic, setPhysioPic] = useState(null);
-  console.log(physioForm, "physioForm");
-  const { getPermissionsByPath } = useAuth();
-  const [Permissions, setPermissions] = useState({
-    isAdd: false,
-    isView: false,
-    isEdit: false,
-    isDelete: false,
-  });
-  const [sessions, setSessions] = useState([]);
-  const [completedSessions, setCompletedSessions] = useState([]);
+
+  const TabButton = ({ id, label, icon: Icon }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all rounded-md ${
+        activeTab === id
+          ? "bg-blue-600 text-white shadow-md"
+          : "text-slate-400 hover:text-white hover:bg-blue-900"
+      }`}
+      type="button"
+    >
+      {Icon && <Icon className="w-4 h-4" />}
+      {label}
+      {activeTab === id && (
+        <motion.div
+          layoutId="activetabphysiodetails"
+          className="absolute inset-0 rounded-md bg-blue-600 -z-10"
+        />
+      )}
+    </button>
+  );
 
   useEffect(() => {
     getGender();
-    // getCompletedSessionsForPhysio();
     getAllRole();
   }, []);
-  // Call this when you open the physiotherapist details
-  // const getCompletedSessionsForPhysio = async (physioId) => {
-  //   try {
-  //     const response = await apiRequest("Session/getAllSession", {
-  //       method: "POST",
-  //       body: JSON.stringify({ physioId }),
-  //     });
-
-  //     // Filter completed sessions for that physio
-  //     const completedSessions = response.filter(
-  //       (session) =>
-  //         session.physioId?._id === physioId &&
-  //         session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-  //           "completed",
-  //     );
-
-  //     setCompletedSessions(completedSessions); // Store in a separate state
-  //   } catch (error) {
-  //     console.log(error, "Error fetching completed sessions for physio");
-  //   }
-  // };
 
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        console.log(res, "res");
         setPermissions(res);
       } else {
         navigate("/dashboard");
       }
     });
-  }, []);
+  }, [getPermissionsByPath, navigate]);
 
   useEffect(() => {
     if (Permissions.isView) {
       getPhysio();
     }
   }, [Permissions]);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredPhysios(physios);
+    } else {
+      const filtered = physios.filter(
+        (p) =>
+          p.physioName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.physioSpcl?.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+      setFilteredPhysios(filtered);
+    }
+  }, [searchTerm, physios]);
 
   const getGender = async () => {
     try {
@@ -174,7 +192,6 @@ const PhysioManagement = () => {
     }
   };
 
-  //  Fetch All Physios
   const getPhysio = async () => {
     try {
       const response = await apiRequest("Physio/getAllPhysio", {
@@ -188,25 +205,32 @@ const PhysioManagement = () => {
     }
   };
 
+  const getAllRole = async () => {
+    try {
+      const response = await apiRequest("RoleBased/getAllRoles", {
+        method: "POST",
+        body: JSON.stringify(),
+      });
+      setRoles(response.data || []);
+    } catch (error) {
+      console.error("Error on get all role:", error);
+    }
+  };
+
   const updatePhysio = async (data) => {
     try {
-      // 1. Initialize FormData
       const formData = new FormData();
 
-      // 2. Append all text data from your object
       Object.keys(data).forEach((key) => {
-        // Skip appending if the value is the file object, we handle it below
         if (key !== "physioPic") {
-          formData.append(key, data[key]);
+          formData.append(key, data[key] ?? "");
         }
       });
 
-      // 3. Append the actual File object (stored in your state)
       if (physioPic) {
         formData.append("physioPic", physioPic);
       }
 
-      // 4. Send request (Do NOT stringify body and DO NOT set Content-Type header manually)
       await apiRequest("Physio/updatePhysio", {
         method: "POST",
         body: formData,
@@ -226,7 +250,7 @@ const PhysioManagement = () => {
 
       Object.keys(data).forEach((key) => {
         if (key !== "physioPic" && key !== "_id") {
-          formData.append(key, data[key]);
+          formData.append(key, data[key] ?? "");
         }
       });
 
@@ -247,7 +271,6 @@ const PhysioManagement = () => {
     }
   };
 
-  // Delete Physio
   const deletePhysio = async (id) => {
     try {
       await apiRequest("Physio/deletePhysio", {
@@ -265,35 +288,6 @@ const PhysioManagement = () => {
     }
   };
 
-  // get Role
-  const getAllRole = async () => {
-    try {
-      const response = await apiRequest("RoleBased/getAllRoles", {
-        method: "POST",
-        body: JSON.stringify(),
-      });
-      setRoles(response.data);
-      getPhysio();
-      setIsFormOpen(false);
-    } catch (error) {
-      console.error("Error on get all role:", error);
-    }
-  };
-
-  // Search filter
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredPhysios(physios);
-    } else {
-      const filtered = physios.filter(
-        (p) =>
-          p.physioName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.physioSpcl.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-      setFilteredPhysios(filtered);
-    }
-  }, [searchTerm, physios]);
-
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setPhysioForm((prev) => ({ ...prev, [name]: value }));
@@ -307,21 +301,9 @@ const PhysioManagement = () => {
     setPhysioForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // const handleFormSubmit = (e) => {
-  //   e.preventDefault();
-  //   if (editingPhysio) {
-  //     // updatePhysio({ ...physioForm, _id: editingPhysio._id });
-
-  //     updatePhysio(physioForm);
-  //   } else {
-  //     createPhysio(physioForm);
-  //   }
-  // };
-
   const handleFormSubmit = (e) => {
     e.preventDefault();
 
-    // Sequential validation for editing or creating physio
     if (!physioForm.physioName) {
       toast({
         title: "Alert",
@@ -334,15 +316,7 @@ const PhysioManagement = () => {
         description: "Enter the Employee code",
         variant: "destructive",
       });
-    }
-    // else if (!physioForm._id && !physioForm.physioCode) {
-    //   toast({
-    //     title: "Alert",
-    //     description: "Enter the physio Code",
-    //     variant: "destructive",
-    //   });
-    // }
-    else if (!physioForm.physioDob) {
+    } else if (!physioForm.physioDob) {
       toast({
         title: "Alert",
         description: "Enter the Date of Birth",
@@ -435,76 +409,65 @@ const PhysioManagement = () => {
     } else if (!physioForm.physioIncentive) {
       toast({
         title: "Alert",
-        description: "Enter INCENTIVE",
+        description: "Enter Incentive",
         variant: "destructive",
       });
-    }
-    // else if (!physioForm.physioIncentive) {
-    //   toast({
-    //     title: "Alert",
-    //     description: "Enter Incentive",
-    //     variant: "destructive",
-    //   });
-    // }
-    else {
-      // If all validations pass
+    } else {
       if (editingPhysio) {
-        // updatePhysio({ ...physioForm, _id: editingPhysio._id });
         updatePhysio(physioForm);
       } else {
         createPhysio(physioForm);
       }
     }
+
     setShowPassword(false);
   };
 
   const handleEdit = (physio) => {
     setEditingPhysio(true);
-    console.log(physio.physioDob);
 
     setPhysioForm({
       _id: physio._id,
-      physioCode: physio.physioCode,
-      EmpCode: physio.EmpCode,
-      physioName: physio.physioName,
-      physioGenderId: physio.physioGenderId._id,
-      genderName: physio.physioGenderId.genderName,
-      // physioAge: physio.physioAge,
+      physioCode: physio.physioCode || "",
+      EmpCode: physio.EmpCode || "",
+      physioName: physio.physioName || "",
+      physioGenderId: physio.physioGenderId?._id || "",
+      genderName: physio.physioGenderId?.genderName || "",
       physioDob: physio.physioDob
         ? new Date(physio.physioDob).toISOString().split("T")[0]
         : "",
-      physioExp: physio.physioExp,
-      physioQulifi: physio.physioQulifi,
-      physioSpcl: physio.physioSpcl,
-      physioPAN: physio.physioPAN,
-      physioAadhar: physio.physioAadhar,
-      physioSalary: physio.physioSalary,
-      physioProbation: physio.physioProbation,
-      physioINCRDate: new Date(physio.physioINCRDate),
-      physioPetrolAlw: physio.physioPetrolAlw,
-      physioAltno: physio.physioAltno,
-      physioAltno2: physio.physioAltno2,
-      physiorelationAltno: physio.physiorelationAltno,
-      physiorelationAltno2: physio.physiorelationAltno2,
-      physioContactNo: physio.physioContactNo,
-      physioVehicleMTC: physio.physioVehicleMTC,
-      physioIncentive: physio.physioIncentive,
+      physioExp: physio.physioExp || "",
+      physioQulifi: physio.physioQulifi || "",
+      physioSpcl: physio.physioSpcl || "",
+      physioPAN: physio.physioPAN || "",
+      physioAadhar: physio.physioAadhar || "",
+      physioSalary: physio.physioSalary || "",
+      physioProbation: physio.physioProbation || "",
+      physioINCRDate: physio.physioINCRDate
+        ? new Date(physio.physioINCRDate)
+        : null,
+      physioPetrolAlw: physio.physioPetrolAlw || "",
+      physioAltno: physio.physioAltno || "",
+      physioAltno2: physio.physioAltno2 || "",
+      physiorelationAltno: physio.physiorelationAltno || "",
+      physiorelationAltno2: physio.physiorelationAltno2 || "",
+      physioContactNo: physio.physioContactNo || "",
+      physioVehicleMTC: physio.physioVehicleMTC || "",
+      physioIncentive: physio.physioIncentive || "",
       isActive: physio.isActive,
-      password: physio.password,
-      roleId: physio.roleId ? physio.roleId._id : null,
+      password: physio.password || "",
+      roleId: physio.roleId?._id || "",
     });
-    setIsFormOpen(true);
 
+    setIsFormOpen(true);
     setShowPassword(false);
   };
 
-  // const handleViewDetails = (physio) => {
-  //   setViewingPhysio(physio);
-  //   setIsDetailsOpen(true);
-  // };
   const handleViewDetails = async (physio) => {
     setViewingPhysio(physio);
     setIsDetailsOpen(true);
+    setActiveTab("physiodetails");
+    setExpandedPatient(null);
 
     try {
       const response = await apiRequest("Session/getAllSession", {
@@ -512,20 +475,19 @@ const PhysioManagement = () => {
         body: JSON.stringify({ physioId: physio._id }),
       });
 
-      const completed = response
+      const completed = (response || [])
         .filter(
           (s) =>
             s.physioId?._id === physio._id &&
             s.sessionStatusId?.sessionStatusName?.toLowerCase() === "completed",
         )
         .sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate));
+
       setCompletedSessions(completed);
     } catch (error) {
       console.error("Error fetching completed sessions:", error);
     }
   };
-  const [openStatusDialog, setOpenStatusDialog] = useState(false);
-  const [selectedPhysio, setSelectedPhysio] = useState(null);
 
   const handleToggleStatus = async (physio) => {
     if (!physio) return;
@@ -564,14 +526,19 @@ const PhysioManagement = () => {
     }
   };
 
-  const renderDetailRow = (label, value, isDate = false) => (
-    <div className="grid grid-cols-2 py-2 border-b">
-      <p className="font-semibold text-gray-600">{label}</p>
-      <p className="text-gray-800">
-        {value ? (isDate ? format(new Date(value), "PPP") : value) : "N/A"}
-      </p>
-    </div>
-  );
+  const groupedSessions = completedSessions.reduce((acc, session) => {
+    const patientId = session.patientId?._id || "unknown";
+
+    if (!acc[patientId]) {
+      acc[patientId] = {
+        patientName: session.patientId?.patientName || "Unknown Patient",
+        sessions: [],
+      };
+    }
+
+    acc[patientId].sessions.push(session);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6 ">
@@ -579,19 +546,20 @@ const PhysioManagement = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="md:flex md:justify-between md:items-center  space-y-5"
+        className="md:flex md:justify-between md:items-center space-y-5"
       >
         <div>
-          <h1 className="md:text-3xl text-xl font-bold md:font-bold text-gray-800 mb-2 ">
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
             Physiotherapist Management
           </h1>
           <p className="text-gray-600">
             Manage physiotherapists and track their performance
           </p>
         </div>
+
         {Permissions.isAdd && (
           <Button onClick={() => setIsFormOpen(true)}>
-            <UserPlus className="md:mr-2 md:h-4 md:w-4  max-w-fit " /> Add New
+            <UserPlus className="md:mr-2 md:h-4 md:w-4 max-w-fit" /> Add New
             Physio
           </Button>
         )}
@@ -599,7 +567,7 @@ const PhysioManagement = () => {
 
       <Card className="medical-card">
         <CardHeader>
-          <CardTitle className="font-bold text-xl ">
+          <CardTitle className="font-bold text-xl">
             Search Physiotherapists
           </CardTitle>
           <CardDescription>
@@ -624,7 +592,7 @@ const PhysioManagement = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <Card className="medical-card ">
+        <Card className="medical-card">
           <CardHeader>
             <CardTitle className="text-lg md:text-2xl">
               Physiotherapists ({filteredPhysios.length})
@@ -633,187 +601,181 @@ const PhysioManagement = () => {
               All physiotherapists in the system
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2  lg:grid-cols-3 gap-6">
-              {filteredPhysios.map((physio) => {
-                // const stats = getPhysioStats(physio._id);
-                return (
-                  <motion.div
-                    key={physio.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="border rounded-lg p-6 hover:shadow-md transition-shadow flex flex-col"
-                  >
-                    <div className="flex items-center space-x-3 mb-4">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          physio.isActive ? "bg-green-100" : "bg-gray-100"
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPhysios.map((physio) => (
+                <motion.div
+                  key={physio._id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="border rounded-lg p-6 hover:shadow-md transition-shadow flex flex-col"
+                >
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        physio.isActive ? "bg-green-100" : "bg-gray-100"
+                      }`}
+                    >
+                      <Stethoscope
+                        className={
+                          physio.isActive ? "text-green-600" : "text-gray-400"
+                        }
+                        size={20}
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-gray-800">
+                        {physio.physioName}
+                      </h3>
+                      <p className="text-xs text-gray-400">
+                        {physio.physioCode}
+                      </p>
+                      <p className="text-sm text-gray-600">{physio.EmpCode}</p>
+                      <p className="text-sm text-gray-600">
+                        {physio.physioSpcl}
+                      </p>
+                      <span
+                        className={`inline-block px-2 py-1 text-xs rounded-full ${
+                          physio.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-600"
                         }`}
                       >
-                        <Stethoscope
-                          className={`${
-                            physio.isActive ? "text-green-600" : "text-gray-400"
-                          }`}
-                          size={20}
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800">
-                          {physio.physioName}
-                        </h3>
-                        <p className="text-xs text-gray-400">
-                          {physio.physioCode}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {physio.EmpCode}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {physio.physioSpcl}
-                        </p>
-                        <span
-                          className={`inline-block px-2 py-1 text-xs rounded-full ${
-                            physio.isActive
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {physio.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
+                        {physio.isActive ? "Active" : "Inactive"}
+                      </span>
                     </div>
-                    <div className="space-y-3 mb-4 flex-grow">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Experience:
-                        </span>
-                        <span className="text-sm font-medium">
-                          {physio.physioExp}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Contact:</span>
-                        <span className="text-sm font-medium">
-                          {physio.physioContactNo}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Role</span>
-                        <span className="text-sm font-medium">
-                          {physio.roleId?.RoleName || "No Role"}
-                        </span>
-                      </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4 flex-grow">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Experience:</span>
+                      <span className="text-sm font-medium">
+                        {physio.physioExp}
+                      </span>
                     </div>
-                    <div className="border-t pt-4 mb-4">
-                      <h4 className="font-medium text-gray-800 mb-2">
-                        Performance Stats
-                      </h4>
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        {/* <div><div className="flex items-center justify-center mb-1"><CalendarIcon className="text-blue-600" size={16} /></div><p className="text-xs text-gray-600">Sessions</p><p className="font-semibold">{stats.totalSessions}</p></div>
-                        <div><div className="flex items-center justify-center mb-1"><CheckCircle className="text-green-600" size={16} /></div><p className="text-xs text-gray-600">Completed</p><p className="font-semibold">{stats.completedSessions}</p></div>
-                        <div><div className="flex items-center justify-center mb-1"><DollarSign className="text-emerald-600" size={16} /></div><p className="text-xs text-gray-600">Revenue</p><p className="font-semibold">₹{stats.monthlyRevenue.toLocaleString()}</p></div> */}
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Contact:</span>
+                      <span className="text-sm font-medium">
+                        {physio.physioContactNo}
+                      </span>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Role</span>
+                      <span className="text-sm font-medium">
+                        {physio.roleId?.RoleName || "No Role"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4 mb-4">
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      Performance Stats
+                    </h4>
+                  </div>
+
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewDetails(physio)}
+                      className="flex-1"
+                    >
+                      <Info size={14} className="mr-1" /> Details
+                    </Button>
+
+                    {Permissions.isEdit && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleViewDetails(physio)}
+                        onClick={() => handleEdit(physio)}
                         className="flex-1"
                       >
-                        <Info size={14} className="mr-1" /> Details
+                        <Edit size={14} className="mr-1" /> Edit
                       </Button>
-                      {Permissions.isEdit && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(physio)}
-                          className="flex-1"
+                    )}
+                  </div>
+
+                  <AlertDialog
+                    open={openStatusDialog}
+                    onOpenChange={setOpenStatusDialog}
+                  >
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to{" "}
+                          <strong>
+                            {selectedPhysio?.isActive
+                              ? "deactivate"
+                              : "activate"}
+                          </strong>{" "}
+                          <strong>{selectedPhysio?.physioName}</strong>?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            handleToggleStatus(selectedPhysio);
+                            setOpenStatusDialog(false);
+                          }}
                         >
-                          <Edit size={14} className="mr-1" /> Edit
-                        </Button>
-                      )}
-                    </div>
-                    <AlertDialog
-                      open={openStatusDialog}
-                      onOpenChange={setOpenStatusDialog}
+                          Confirm
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <div className="flex space-x-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant={physio.isActive ? "secondary" : "default"}
+                      onClick={() => {
+                        setSelectedPhysio(physio);
+                        setOpenStatusDialog(true);
+                      }}
+                      className="flex-1"
                     >
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirm Action</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to{" "}
-                            <strong>
-                              {selectedPhysio?.isActive
-                                ? "deactivate"
-                                : "activate"}
-                            </strong>{" "}
-                            <strong>{selectedPhysio?.physioName}</strong>?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
+                      {physio.isActive ? "Deactivate" : "Activate"}
+                    </Button>
 
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-
-                          <AlertDialogAction
-                            onClick={() => {
-                              handleToggleStatus(selectedPhysio);
-                              setOpenStatusDialog(false);
-                            }}
+                    {Permissions.isDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="flex-1"
                           >
-                            Confirm
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-
-                    <div className="flex space-x-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant={physio.isActive ? "secondary" : "default"}
-                        onClick={() => {
-                          setSelectedPhysio(physio);
-                          setOpenStatusDialog(true);
-                        }}
-                        className="flex-1"
-                      >
-                        {physio.isActive ? "Deactivate" : "Activate"}
-                      </Button>
-
-                      {Permissions.isDelete && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="flex-1"
+                            <Trash2 size={14} className="mr-1" /> Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will
+                              permanently delete the physiotherapist.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deletePhysio(physio._id)}
                             >
-                              <Trash2 size={14} className="mr-1" /> Delete
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete the physiotherapist.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deletePhysio(physio._id)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -842,10 +804,11 @@ const PhysioManagement = () => {
                 : "Fill in the details to add a new physio."}
             </DialogDescription>
           </DialogHeader>
+
           <div className="flex-1 overflow-y-auto pr-6 -mr-6">
             <form onSubmit={handleFormSubmit} className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {editingPhysio == true ? (
+                {editingPhysio == true && (
                   <div className="space-y-2">
                     <Label>Physio Code</Label>
                     <Input
@@ -855,7 +818,8 @@ const PhysioManagement = () => {
                       disabled
                     />
                   </div>
-                ) : null}
+                )}
+
                 <div className="space-y-2">
                   <Label>Emp Code</Label>
                   <Input
@@ -865,19 +829,19 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Physio Pic</Label>
                   <Input
                     name="physioPic"
                     type="file"
                     onChange={(e) => {
-                      const file = e.target.files[0]; // Get the actual file object
+                      const file = e.target.files[0];
                       setPhysioPic(file);
-                      console.log("Selected file:", file.name);
                     }}
                   />
                 </div>
-                {/* <div className="space-y-2"><Label>Physio Code</Label><Input name="physioCode" value={physioForm.physioCode} onChange={handleFormChange} required disabled/></div> */}
+
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input
@@ -886,6 +850,7 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Date Of Birth</Label>
                   <Input
@@ -895,6 +860,7 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div>
                   <Label>Gender</Label>
                   <Select
@@ -915,6 +881,7 @@ const PhysioManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label>Contact No</Label>
                   <Input
@@ -926,98 +893,83 @@ const PhysioManagement = () => {
                     pattern="[0-9]{10}"
                   />
                 </div>
-                {/* {editingPhysio && ( */}
-                <>
-                  {/* Alt No 1 */}
-                  <div className="space-y-2">
-                    <Label>Alt No</Label>
-                    <Input
-                      type="tel"
-                      name="physioAltno"
-                      value={physioForm.physioAltno}
-                      maxLength={10}
-                      required
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
-                        if (value.length <= 10) {
-                          setPhysioForm({
-                            ...physioForm,
-                            physioAltno: value,
-                          });
-                        }
-                      }}
-                      placeholder="Enter 10-digit number"
-                    />
-                  </div>
 
-                  {/* Relation Alt No 1 */}
-                  <div className="space-y-2">
-                    <Label>Relation with Alt No</Label>
-                    <Input
-                      type="text"
-                      name="physiorelationAltno"
-                      value={physioForm.physiorelationAltno}
-                      required
-                      onChange={(e) =>
-                        setPhysioForm({
-                          ...physioForm,
-                          physiorelationAltno: e.target.value,
-                        })
-                      }
-                      placeholder="Enter relation (Father, Mother, etc.)"
-                    />
-                  </div>
-
-                  {/* Alt No 2 */}
-                  <div className="space-y-2">
-                    <Label>Alt No 2</Label>
-                    <Input
-                      type="tel"
-                      name="physioAltno2"
-                      value={physioForm.physioAltno2}
-                      maxLength={10}
-                      required
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
-                        if (value.length <= 10) {
-                          setPhysioForm({
-                            ...physioForm,
-                            physioAltno2: value,
-                          });
-                        }
-                      }}
-                      placeholder="Enter 10-digit number"
-                    />
-                  </div>
-
-                  {/* Relation Alt No 2 */}
-                  <div className="space-y-2">
-                    <Label>Relation with Alt No 2</Label>
-                    <Input
-                      type="text"
-                      name="physiorelationAltno2"
-                      value={physioForm.physiorelationAltno2}
-                      required
-                      onChange={(e) =>
-                        setPhysioForm({
-                          ...physioForm,
-                          physiorelationAltno2: e.target.value,
-                        })
-                      }
-                      placeholder="Enter relation"
-                    />
-                  </div>
-                </>
-                {/* )} */}
-
-                {/* <div className="space-y-2">
-                  <Label>Password</Label>
+                <div className="space-y-2">
+                  <Label>Alt No</Label>
                   <Input
-                    name="password"
-                    value={physioForm.password}
-                    onChange={handleFormChange}
+                    type="tel"
+                    name="physioAltno"
+                    value={physioForm.physioAltno}
+                    maxLength={10}
+                    required
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length <= 10) {
+                        setPhysioForm({
+                          ...physioForm,
+                          physioAltno: value,
+                        });
+                      }
+                    }}
+                    placeholder="Enter 10-digit number"
                   />
-                </div> */}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Relation with Alt No</Label>
+                  <Input
+                    type="text"
+                    name="physiorelationAltno"
+                    value={physioForm.physiorelationAltno}
+                    required
+                    onChange={(e) =>
+                      setPhysioForm({
+                        ...physioForm,
+                        physiorelationAltno: e.target.value,
+                      })
+                    }
+                    placeholder="Enter relation"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Alt No 2</Label>
+                  <Input
+                    type="tel"
+                    name="physioAltno2"
+                    value={physioForm.physioAltno2}
+                    maxLength={10}
+                    required
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length <= 10) {
+                        setPhysioForm({
+                          ...physioForm,
+                          physioAltno2: value,
+                        });
+                      }
+                    }}
+                    placeholder="Enter 10-digit number"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Relation with Alt No 2</Label>
+                  <Input
+                    type="text"
+                    name="physiorelationAltno2"
+                    value={physioForm.physiorelationAltno2}
+                    required
+                    onChange={(e) =>
+                      setPhysioForm({
+                        ...physioForm,
+                        physiorelationAltno2: e.target.value,
+                      })
+                    }
+                    placeholder="Enter relation"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input
@@ -1033,7 +985,7 @@ const PhysioManagement = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="relative left-40 bottom-9  transform translate-y text-gray-400 hover:text-white"
+                    className="relative left-40 bottom-9 transform translate-y text-gray-400 hover:text-white"
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -1043,7 +995,6 @@ const PhysioManagement = () => {
                   </button>
                 </div>
 
-                {/* <div className="space-y-2"><Label>Role</Label><Input name="roleId" value={physioForm.roleId} onChange={handleFormChange} required /></div> */}
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Select
@@ -1063,6 +1014,7 @@ const PhysioManagement = () => {
                   </Select>
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Designation</Label>
@@ -1072,6 +1024,7 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Qualifications</Label>
                   <Input
@@ -1080,6 +1033,7 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Experience</Label>
                   <Input
@@ -1089,6 +1043,7 @@ const PhysioManagement = () => {
                   />
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>PAN</Label>
@@ -1098,14 +1053,7 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
-                {/* <div className="space-y-2">
-                  <Label>Aadhar</Label>
-                  <Input
-                    name="physioAadhar"
-                    value={physioForm.physioAadhar}
-                    onChange={handleFormChange}
-                  />
-                </div> */}
+
                 <div className="space-y-2">
                   <Label>Aadhaar</Label>
                   <Input
@@ -1113,43 +1061,38 @@ const PhysioManagement = () => {
                     value={physioForm.physioAadhar}
                     onChange={(e) => {
                       let value = e.target.value;
-                      // Remove non-digits
                       value = value.replace(/\D/g, "");
-                      // Limit to 12 digits
                       value = value.slice(0, 12);
-                      // Update your form state
                       setPhysioForm({ ...physioForm, physioAadhar: value });
-                      handleFormChange(e);
                     }}
                     placeholder="1234 5678 9012"
                   />
                 </div>
               </div>
-              <div className=" pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+              <div className="pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Salary (₹)</Label>
                   <Input
                     name="physioSalary"
                     type="number"
-                    onWheel={(e) => {
-                      e.target.blur();
-                    }}
+                    onWheel={(e) => e.target.blur()}
                     value={physioForm.physioSalary}
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Probation Period (months)</Label>
                   <Input
                     name="physioProbation"
                     type="number"
-                    onWheel={(e) => {
-                      e.target.blur();
-                    }}
+                    onWheel={(e) => e.target.blur()}
                     value={physioForm.physioProbation}
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Next Increment Date</Label>
                   <Popover>
@@ -1183,47 +1126,45 @@ const PhysioManagement = () => {
                   </Popover>
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Petrol Allowance (₹/km)</Label>
                   <Input
                     name="physioPetrolAlw"
                     type="number"
-                    onWheel={(e) => {
-                      e.target.blur();
-                    }}
+                    onWheel={(e) => e.target.blur()}
                     step="0.01"
                     value={physioForm.physioPetrolAlw}
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Vehicle Maintenance (₹)</Label>
                   <Input
                     name="physioVehicleMTC"
                     type="number"
-                    onWheel={(e) => {
-                      e.target.blur();
-                    }}
+                    onWheel={(e) => e.target.blur()}
                     step="100"
                     value={physioForm.physioVehicleMTC}
                     onChange={handleFormChange}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Incentive (%)</Label>
                   <Input
                     name="physioIncentive"
                     type="number"
-                    onWheel={(e) => {
-                      e.target.blur();
-                    }}
+                    onWheel={(e) => e.target.blur()}
                     step="0.01"
                     value={physioForm.physioIncentive}
                     onChange={handleFormChange}
                   />
                 </div>
               </div>
+
               <DialogFooter className="pt-4">
                 <Button
                   type="button"
@@ -1241,118 +1182,188 @@ const PhysioManagement = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          {/* Fixed header without border */}
-          <DialogHeader className="sticky top-0 z-10 pb-2">
-            <DialogTitle className="flex items-center gap-2">
+      <Dialog
+        open={isDetailsOpen}
+        onOpenChange={(open) => {
+          setIsDetailsOpen(open);
+          if (!open) {
+            setActiveTab("physiodetails");
+            setExpandedPatient(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex flex-wrap items-center gap-2">
               <FileText /> Physiotherapist Details
             </DialogTitle>
+
+            <div className="flex gap-2 mt-3">
+              <TabButton
+                id="physiodetails"
+                label="Completed Sessions"
+                icon={User2}
+              />
+              <TabButton
+                id="completed"
+                label="Grouped by Patient"
+                icon={UserCheck}
+              />
+            </div>
+
             <DialogDescription>
-              Full profile for {viewingPhysio?.physioName}.
+              Full profile for {viewingPhysio?.physioName}
             </DialogDescription>
           </DialogHeader>
 
-          {/* Scrollable section (includes all details + footer) */}
-          {/* <div className="overflow-y-auto max-h-[70vh] mt-2 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            {sessions && (
-              <div className="space-y-2">
-                {renderDetailRow("Name", sessions.patientId?.patientName)}
-                {/* {renderDetailRow("Date Of Birth", sessions.physioDob)}
-                {renderDetailRow("Contact", sessions.physioContactNo)}
-                {renderDetailRow("Designation", sessions.physioSpcl)}
-                {renderDetailRow("Qualifications", sessions.physioQulifi)}
-                {renderDetailRow("Experience", sessions.physioExp)}
-                {renderDetailRow("PAN", sessions.physioPAN)}
-                {renderDetailRow("Aadhar", sessions.physioAadhar)} */}
-          {/* {renderDetailRow(
-                  "Salary",
-                  `₹${viewingPhysio.physioSalary?.toLocaleString()}`,
-                )}
-                {renderDetailRow(
-                  "Probation Period",
-                  `${viewingPhysio.physioProbation} months`,
-                )}
-                {renderDetailRow(
-                  "Next Increment Date",
-                  viewingPhysio.physioINCRDate,
-                  true,
-                )}
-                {renderDetailRow(
-                  "Petrol Allowance",
-                  `₹${viewingPhysio.physioPetrolAlw}/km`,
-                )}
-                {renderDetailRow(
-                  "Vehicle Maintenance",
-                  `₹${viewingPhysio.physioVehicleMTC?.toLocaleString()}`,
-                )}
-                {renderDetailRow(
-                  "Incentive",
-                  `${viewingPhysio.physioIncentive}%`,
-                )}
-                {renderDetailRow(
-                  "Status",
-                  viewingPhysio.isActive ? "Active" : "Inactive",
-                )} */}
-          {/* </div> */}
-          {/* )} */}
+          {activeTab === "physiodetails" && (
+            <div className="mt-4">
+              <h2 className="font-semibold text-lg mb-3">
+                Completed Sessions ({completedSessions.length})
+              </h2>
 
-          {/*        
-      <DialogFooter className="mt-4">
-        <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
-          Close
-        </Button>
-      </DialogFooter> */}
-          {/* </div> */}
-          <div className="physio-details mt-4">
-            <h2 className="font-semibold text-lg mb-2">
-              Physiotherapist: {viewingPhysio?.physioName}
-            </h2>
+              {completedSessions.length === 0 ? (
+                <p>No completed sessions yet.</p>
+              ) : (
+                <div className="max-h-[55vh] overflow-y-auto space-y-3 pr-2">
+                  {completedSessions.map((session) => (
+                    <div
+                      key={session._id}
+                      className="p-3 border rounded shadow-sm bg-white"
+                    >
+                      <p>
+                        <strong>Session Code:</strong>{" "}
+                        {session.sessionCode || "-"}
+                      </p>
+                      <p>
+                        <strong>Patient Name:</strong>{" "}
+                        {session.patientId?.patientName || "-"}
+                      </p>
+                      <p>
+                        <strong>Date:</strong>{" "}
+                        {session.sessionDate
+                          ? new Date(session.sessionDate).toLocaleDateString(
+                              "en-IN",
+                            )
+                          : "-"}
+                      </p>
+                      <p>
+                        <strong>Time:</strong> {session.sessionTime || "-"}
+                      </p>
+                      <p>
+                        <strong>Status:</strong>{" "}
+                        {session.sessionStatusId?.sessionStatusName || "-"}
+                      </p>
+                      <p>
+                        <strong>Feedback:</strong>{" "}
+                        {session.sessionFeedbackPros || session.feedback || "-"}
+                      </p>
+                      <p>
+                        <strong>Goal:</strong>{" "}
+                        {session.patientId?.InitialShorttermGoal ||
+                          session.patientId?.shortTermGoals ||
+                          "N/A"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-            <h3 className="font-medium text-md mb-2">
-              Completed Sessions {completedSessions.length}
-            </h3>
+          {activeTab === "completed" && (
+            <div className="mt-4">
+              <h2 className="font-semibold text-lg mb-3">
+                Patients ({Object.keys(groupedSessions).length})
+              </h2>
 
-            {completedSessions.length === 0 ? (
-              <p>No completed sessions yet.</p>
-            ) : (
-              <div className="max-h-[45vh] overflow-y-auto space-y-2 pr-2">
-                {completedSessions.map((session) => (
-                  <div
-                    key={session._id}
-                    className="p-3 border rounded shadow-sm bg-white"
-                  >
-                    <p>
-                      <strong>Session Code:</strong> {session.sessionCode}
-                    </p>
-                    <p>
-                      <strong>Patient Name:</strong>{" "}
-                      {session.patientId?.patientName}
-                    </p>
-                    <p>
-                      <strong>Session Date:</strong>{" "}
-                      {new Date(session.sessionDate).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <strong>Session Time:</strong> {session.sessionTime}
-                    </p>
-                    <p>
-                      <strong>Status:</strong>
-                      {session.sessionStatusId?.sessionStatusName}
-                    </p>
-                    <p>
-                      <strong>Feedback: </strong>
-                      {session.sessionFeedbackPros}
-                    </p>
-                    <p>
-                      <strong>Goal:</strong>{" "}
-                      {session.patientId?.InitialShorttermGoal || "N/A"}
-                    </p>
-                  </div>
-                ))}
+              <div className="max-h-[55vh] overflow-y-auto space-y-3 pr-2">
+                {Object.keys(groupedSessions).length === 0 ? (
+                  <p>No completed sessions found.</p>
+                ) : (
+                  Object.entries(groupedSessions).map(([patientId, group]) => (
+                    <div key={patientId} className="border rounded-lg">
+                      <div
+                        onClick={() =>
+                          setExpandedPatient(
+                            expandedPatient === patientId ? null : patientId,
+                          )
+                        }
+                        className="flex justify-between items-center p-3 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                      >
+                        <div>
+                          <p className="font-semibold">{group.patientName}</p>
+                          <p className="text-xs text-gray-500">
+                            {group.sessions.length} Session
+                            {group.sessions.length > 1 ? "s" : ""}
+                          </p>
+                        </div>
+
+                        <div>
+                          {expandedPatient === patientId ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </div>
+                      </div>
+
+                      {expandedPatient === patientId && (
+                        <div className="p-3 space-y-2">
+                          {group.sessions.map((session) => (
+                            <div
+                              key={session._id}
+                              className="border rounded p-2 bg-white"
+                            >
+                              <p>
+                                <strong>Session:</strong>{" "}
+                                {session.sessionCode || "-"}
+                              </p>
+                              <p>
+                                <strong>Date:</strong>{" "}
+                                {session.sessionDate
+                                  ? new Date(
+                                      session.sessionDate,
+                                    ).toLocaleDateString("en-IN")
+                                  : "-"}
+                              </p>
+                              <p>
+                                <strong>Time:</strong>{" "}
+                                {session.sessionTime || "-"}
+                              </p>
+                              <p>
+                                <strong>Status:</strong>{" "}
+                                {session.sessionStatusId?.sessionStatusName ||
+                                  "-"}
+                              </p>
+                              <p>
+                                <strong>Feedback:</strong>{" "}
+                                {session.sessionFeedbackPros ||
+                                  session.feedback ||
+                                  "-"}
+                              </p>
+                              <p>
+                                <strong>Goal:</strong>{" "}
+                                {session.patientId?.InitialShorttermGoal ||
+                                  session.patientId?.shortTermGoals ||
+                                  "N/A"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

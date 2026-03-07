@@ -204,7 +204,7 @@ const Income = () => {
       .filter((p) =>
         selectedPhysioId === "ALL"
           ? true
-          : p.physioDetails?.some((val)=> val.physioId === selectedPhysioId),
+          : p.physioDetails?.some((val) => val.physioId === selectedPhysioId),
       )
       .filter(feeTypeMatch)
       .filter((p) =>
@@ -217,7 +217,7 @@ const Income = () => {
     selectedPatientId,
     feesType,
   ]);
-console.log(filteredPatients,"filteredPatients")
+  console.log(filteredPatients, "filteredPatients");
   const totalIncomeByFilter = filteredPatients.reduce(
     (sum, p) => sum + Number(p.totalIncome || 0),
     0,
@@ -651,6 +651,7 @@ console.log(filteredPatients,"filteredPatients")
 
     return [...pending, ...paid];
   }, [filteredBills]);
+
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -819,11 +820,23 @@ console.log(filteredPatients,"filteredPatients")
                           </td>{" "}
                           <td className="p-2 border whitespace-nowrap">
                             {" "}
-                            {selectedPhysioId !== "ALL" ? p.physioDetails?.find((physio) => physio.physioId === selectedPhysioId)?.physioName : p.physioDetails?.map((physio) => physio.physioName).join(", ") || "N/A"}{" "}
+                            {selectedPhysioId !== "ALL"
+                              ? p.physioDetails?.find(
+                                  (physio) =>
+                                    physio.physioId === selectedPhysioId,
+                                )?.physioName
+                              : p.physioDetails
+                                  ?.map((physio) => physio.physioName)
+                                  .join(", ") || "N/A"}{" "}
                           </td>{" "}
                           <td className="p-2 border text-center">
                             {" "}
-                            {selectedPhysioId !== "ALL" ? p.physioDetails?.find((physio) => physio.physioId === selectedPhysioId)?.sessionCount : p.totalCompletedSessions}{" "}
+                            {selectedPhysioId !== "ALL"
+                              ? p.physioDetails?.find(
+                                  (physio) =>
+                                    physio.physioId === selectedPhysioId,
+                                )?.sessionCount
+                              : p.totalCompletedSessions}{" "}
                           </td>{" "}
                           <td className="p-2 border text-center whitespace-nowrap">
                             {" "}
@@ -1090,11 +1103,15 @@ console.log(filteredPatients,"filteredPatients")
                                   ? new Date(
                                       b?.patientId?.sessionStartDate ||
                                         b?.startDate,
-                                    ).toLocaleDateString()
+                                    )
+                                      .toLocaleDateString("en-GB")
+                                      .replace(/\//g, "-")
                                   : "-"}
                                 {" - "}
                                 {b?.ToDate
-                                  ? new Date(b.ToDate).toLocaleDateString()
+                                  ? new Date(b.ToDate)
+                                      .toLocaleDateString("en-GB")
+                                      .replace(/\//g, "-")
                                   : "-"}
                               </td>
                               <td className="p-2 border text-center">
