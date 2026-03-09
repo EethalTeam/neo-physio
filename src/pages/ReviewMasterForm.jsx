@@ -749,7 +749,7 @@ const ReviewMasterForm = () => {
 
           <Button onClick={downloadReviewPDF}>Download Monthly PDF</Button>
         </div>
-        {user?.role !== "Physio" && permissions.isAdd && (
+        {permissions.isAdd && (
           <Button onClick={() => setIsFormOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" /> Schedule Review
           </Button>

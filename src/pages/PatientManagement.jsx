@@ -1288,137 +1288,118 @@ const PatientManagement = () => {
   };
 
   const handleEditPatient = (patient) => {
-    if (
-      user?.role === "HOD" ||
-      user?.role === "Admin" ||
-      user?.role === "SuperAdmin"
-    ) {
-      setEditingPatient(true);
-      const formData = {
-        _id: patient._id ? patient._id : null,
-        patientCode: patient.patientCode ? patient.patientCode : null,
-        patientName: patient.patientName ? patient.patientName : null,
-        patientAge: patient.patientAge ? patient.patientAge : null,
-        patientGenderId: patient.patientGenderId._id
-          ? patient.patientGenderId._id
-          : null,
-        patientNumber: patient.patientNumber ? patient.patientNumber : null,
-        patientAddress: patient.patientAddress ? patient.patientAddress : null,
-        // category: patient.category ? patient.category : null,
-        MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor
-          ? patient.MedicalHistoryAndRiskFactor
-          : null,
-        documents: patient.documents ? patient.documents : [],
-        consultationDate: patient.consultationDate
-          ? new Date(patient.consultationDate)
-          : "",
-        byStandar: patient.byStandar ? patient.byStandar : null,
-        Relation: patient.Relation ? patient.Relation : null,
-        patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
-        patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
-        patientCondition: patient.patientCondition
-          ? patient.patientCondition
-          : null,
-        Physiotherapist: patient.Physiotherapist
-          ? patient.Physiotherapist
-          : null,
-        physioId: patient?.physioId?._id ?? patient?.physioId ?? "",
-        reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
-        historyOfSurgery: patient.historyOfSurgery
-          ? patient.historyOfSurgery
-          : null,
-        historyOfSurgeryDetails: patient.historyOfSurgeryDetails
-          ? patient.historyOfSurgeryDetails
-          : null,
-        historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
-        historyOfFallDetails: patient.historyOfFallDetails
-          ? patient.historyOfFallDetails
-          : null,
-        otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
-        currMed: patient.currMed ? patient.currMed : null,
-        typesOfLifeStyle: patient.typesOfLifeStyle
-          ? patient.typesOfLifeStyle
-          : null,
-        smokingOrAlcohol: patient.smokingOrAlcohol
-          ? patient.smokingOrAlcohol
-          : false,
-        dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
-        Contraindications: patient.Contraindications
-          ? patient.Contraindications
-          : null,
-        goalDescription: patient.goalDescription
-          ? patient.goalDescription
-          : null,
-        painLevel: patient.painLevel ? patient.painLevel : null,
-        rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
-        muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
-        postureOrGaitAnalysis: patient.postureOrGaitAnalysis
-          ? patient.postureOrGaitAnalysis
-          : null,
-        functionalLimitations: patient.functionalLimitations
-          ? patient.functionalLimitations
-          : null,
-        static: patient.static ? patient.static : null,
-        dynamic: patient.dynamic ? patient.dynamic : null,
-        coordination: patient.coordination ? patient.coordination : null,
-        ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
-        shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
-        longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
-        RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
-        Frequency: patient.Frequency ? patient.Frequency : null,
-        Duration: patient.Duration ? patient.Duration : null,
-        modalities: patient.modalities ? patient.modalities : false,
-        modalitiestype: patient.modalitiestype ? patient.modalitiestype : null,
-        modalityList: patient.modalityList ? patient.modalityList : [],
-        targetedArea: patient.targetedArea ? patient.targetedArea : null,
-        noOfDays: patient.noOfDays ? patient.noOfDays : null,
-        hodNotes: patient.hodNotes ? patient.hodNotes : null,
-        goalLog: patient.goalLog ? patient.goalLog : [],
-        travelDetails: patient.travelDetails ? patient.travelDetails : null,
-        genderName: patient.patientGenderId
-          ? patient.patientGenderId.genderName
-          : null,
-        FeesTypeId: patient.FeesTypeId ? patient.FeesTypeId._id : null,
-        feesTypeName: patient.FeesTypeId
-          ? patient.FeesTypeId.feesTypeName
-          : null,
-        feeAmount: patient.feeAmount ? patient.feeAmount : null,
-        ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
-        sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
-      };
-      console.log(formData, "formData");
-      if (patient.consultationDate)
-        formData.consultationDate = new Date(patient.consultationDate);
-      if (patient.reviewDate)
-        formData.reviewDate = new Date(patient.reviewDate);
-      let radio = [];
-      const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
-        if (val.isExist) {
-          radio.push({
-            RiskFactorID: val.RiskFactorID._id,
-            isExist: val.isExist,
-          });
-        }
-        return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
-      });
-      setRadio(radio);
-      if (RiskFactor.length > 0) {
-        RiskFactor.map(
-          (val) =>
-            (formData[Object.keys(val)[0].toLowerCase()] =
-              val[Object.keys(val)[0]] == "true"),
-        );
+    setEditingPatient(true);
+    const formData = {
+      _id: patient._id ? patient._id : null,
+      patientCode: patient.patientCode ? patient.patientCode : null,
+      patientName: patient.patientName ? patient.patientName : null,
+      patientAge: patient.patientAge ? patient.patientAge : null,
+      patientGenderId: patient.patientGenderId._id
+        ? patient.patientGenderId._id
+        : null,
+      patientNumber: patient.patientNumber ? patient.patientNumber : null,
+      patientAddress: patient.patientAddress ? patient.patientAddress : null,
+      // category: patient.category ? patient.category : null,
+      MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor
+        ? patient.MedicalHistoryAndRiskFactor
+        : null,
+      documents: patient.documents ? patient.documents : [],
+      consultationDate: patient.consultationDate
+        ? new Date(patient.consultationDate)
+        : "",
+      byStandar: patient.byStandar ? patient.byStandar : null,
+      Relation: patient.Relation ? patient.Relation : null,
+      patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
+      patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
+      patientCondition: patient.patientCondition
+        ? patient.patientCondition
+        : null,
+      Physiotherapist: patient.Physiotherapist ? patient.Physiotherapist : null,
+      physioId: patient?.physioId?._id ?? patient?.physioId ?? "",
+      reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
+      historyOfSurgery: patient.historyOfSurgery
+        ? patient.historyOfSurgery
+        : null,
+      historyOfSurgeryDetails: patient.historyOfSurgeryDetails
+        ? patient.historyOfSurgeryDetails
+        : null,
+      historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
+      historyOfFallDetails: patient.historyOfFallDetails
+        ? patient.historyOfFallDetails
+        : null,
+      otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
+      currMed: patient.currMed ? patient.currMed : null,
+      typesOfLifeStyle: patient.typesOfLifeStyle
+        ? patient.typesOfLifeStyle
+        : null,
+      smokingOrAlcohol: patient.smokingOrAlcohol
+        ? patient.smokingOrAlcohol
+        : false,
+      dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
+      Contraindications: patient.Contraindications
+        ? patient.Contraindications
+        : null,
+      goalDescription: patient.goalDescription ? patient.goalDescription : null,
+      painLevel: patient.painLevel ? patient.painLevel : null,
+      rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
+      muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
+      postureOrGaitAnalysis: patient.postureOrGaitAnalysis
+        ? patient.postureOrGaitAnalysis
+        : null,
+      functionalLimitations: patient.functionalLimitations
+        ? patient.functionalLimitations
+        : null,
+      static: patient.static ? patient.static : null,
+      dynamic: patient.dynamic ? patient.dynamic : null,
+      coordination: patient.coordination ? patient.coordination : null,
+      ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
+      shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
+      longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
+      RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
+      Frequency: patient.Frequency ? patient.Frequency : null,
+      Duration: patient.Duration ? patient.Duration : null,
+      modalities: patient.modalities ? patient.modalities : false,
+      modalitiestype: patient.modalitiestype ? patient.modalitiestype : null,
+      modalityList: patient.modalityList ? patient.modalityList : [],
+      targetedArea: patient.targetedArea ? patient.targetedArea : null,
+      noOfDays: patient.noOfDays ? patient.noOfDays : null,
+      hodNotes: patient.hodNotes ? patient.hodNotes : null,
+      goalLog: patient.goalLog ? patient.goalLog : [],
+      travelDetails: patient.travelDetails ? patient.travelDetails : null,
+      genderName: patient.patientGenderId
+        ? patient.patientGenderId.genderName
+        : null,
+      FeesTypeId: patient.FeesTypeId ? patient.FeesTypeId._id : null,
+      feesTypeName: patient.FeesTypeId ? patient.FeesTypeId.feesTypeName : null,
+      feeAmount: patient.feeAmount ? patient.feeAmount : null,
+      ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
+      sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
+    };
+    console.log(formData, "formData");
+    if (patient.consultationDate)
+      formData.consultationDate = new Date(patient.consultationDate);
+    if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
+    let radio = [];
+    const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
+      if (val.isExist) {
+        radio.push({
+          RiskFactorID: val.RiskFactorID._id,
+          isExist: val.isExist,
+        });
       }
-      setPatientForm(formData);
-      setIsFormOpen(true);
-      setSelectedPatient(patient);
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to edit patient details.",
-        variant: "destructive",
-      });
+      return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
+    });
+    setRadio(radio);
+    if (RiskFactor.length > 0) {
+      RiskFactor.map(
+        (val) =>
+          (formData[Object.keys(val)[0].toLowerCase()] =
+            val[Object.keys(val)[0]] == "true"),
+      );
     }
+    setPatientForm(formData);
+    setIsFormOpen(true);
+    setSelectedPatient(patient);
   };
 
   const handleNewPatient = () => {
@@ -1617,58 +1598,34 @@ const PatientManagement = () => {
   console.log(reviewForm.feedback, "reviewForm.feedbackreviewForm.feedback");
   const [openAlert, setOpenAlert] = useState(false);
   const handleScheduleReview = (patient) => {
-    if (
-      user?.role === "HOD" ||
-      user?.role === "Admin" ||
-      user?.role === "SuperAdmin"
-    ) {
-      setReviewingPatient(patient);
-      setIsReviewOpen(true);
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to conduct reviews.",
-        variant: "destructive",
-      });
-    }
+    setReviewingPatient(patient);
+    setIsReviewOpen(true);
   };
   const FeesType =
     patientForm?.FeesTypeId?.feesTypeName || patientForm?.feesTypeName || "";
   const isPerSession =
     FeesType.replace(/\s+/g, "").toLowerCase() === "persession";
   const openAssignPhysioDialog = (patient) => {
-    if (
-      user?.role === "HOD" ||
-      user?.role === "Admin" ||
-      user?.role === "SuperAdmin"
-    ) {
-      setAssigningPatient(patient);
-      setAssignForm({
-        _id: patient._id ? patient._id : null,
-        Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
-        physioId: patient.physioId ? patient.physioId._id : "",
-        InitialShorttermGoal: patient.InitialShorttermGoal || "",
-        goalDuration: patient.goalDuration || "",
-        totalSessionDays: patient.totalSessionDays || "",
-        sessionStartDate: patient.sessionStartDate
-          ? new Date(patient.sessionStartDate)
-          : "",
-        sessionTime: patient.sessionTime || "",
-        goalDescription: patient.goalDescription || " ",
-        reviewFrequency: patient.reviewFrequency || "",
-        visitOrder: patient.visitOrder || "",
-        KmsfromHub: patient.KmsfromHub || "",
-        KmsfLPatienttoHub: patient.KmsfLPatienttoHub || "",
-        kmsFromPrevious: patient.kmsFromPrevious || "",
-      });
-      setIsAssignPhysioOpen(true);
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to assign physiotherapists.",
-        variant: "destructive",
-      });
-    }
+    setAssigningPatient(patient);
+    setAssignForm({
+      _id: patient._id ? patient._id : null,
+      Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
+      physioId: patient.physioId ? patient.physioId._id : "",
+      InitialShorttermGoal: patient.InitialShorttermGoal || "",
+      goalDuration: patient.goalDuration || "",
+      totalSessionDays: patient.totalSessionDays || "",
+      sessionStartDate: patient.sessionStartDate
+        ? new Date(patient.sessionStartDate)
+        : "",
+      sessionTime: patient.sessionTime || "",
+      goalDescription: patient.goalDescription || " ",
+      reviewFrequency: patient.reviewFrequency || "",
+      visitOrder: patient.visitOrder || "",
+      KmsfromHub: patient.KmsfromHub || "",
+      KmsfLPatienttoHub: patient.KmsfLPatienttoHub || "",
+      kmsFromPrevious: patient.kmsFromPrevious || "",
+    });
+    setIsAssignPhysioOpen(true);
   };
   const handleAssignPhysioSubmit = async (e) => {
     e.preventDefault();
@@ -2021,39 +1978,46 @@ const PatientManagement = () => {
   };
 
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       <div className="w-full flex justify-center">
-        <div className="flex items-center gap-2 p-1 rounded-lg border border-slate-800 overflow-x-auto max-w-full">
+        <div className="flex items-center gap-2 p-1 rounded-lg border border-slate-800 overflow-x-auto max-w-full w-full sm:w-auto">
           <TabButton id="patient" label="PATIENTS" icon={User2} />
           <TabButton id="recover" label="RECOVERED" icon={UserCheck} />
         </div>
       </div>
+
       {activeTab === "patient" && (
         <>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="md:flex justify-between items-center space-y-5"
+            className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center"
           >
-            <div>
-              <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 break-words">
                 Patient Management
               </h1>
-              <p className="text-gray-600 text-sm md:text-xs">
+              <p className="text-gray-600 text-sm sm:text-sm md:text-base">
                 Manage registered patients and their treatment plans.
               </p>
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setDownloadDialog(true)}>
+
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full md:w-auto md:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDownloadDialog(true)}
+                className="w-full sm:w-auto"
+              >
                 <FileText className="mr-2 h-4 w-4" />
                 Download
               </Button>
-              <div className="flex gap-2 items-center flex-wrap">
+
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center flex-wrap w-full sm:w-auto">
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="border rounded-md px-3 py-2 text-sm"
+                  className="border rounded-md px-3 py-2 text-sm w-full sm:w-auto"
                 >
                   {monthNames.map((month, index) => (
                     <option key={month} value={index + 1}>
@@ -2066,37 +2030,40 @@ const PatientManagement = () => {
                   type="number"
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="border rounded-md px-3 py-2 text-sm w-28"
+                  className="border rounded-md px-3 py-2 text-sm w-full sm:w-28"
                   min="2020"
                   max="2100"
                 />
 
-                <div className="flex gap-2">
-                  <Button onClick={downloadPatientsPDFs}>Download PDF</Button>
-                  <Button onClick={downloadPatientsExcel}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
+                  <Button onClick={downloadPatientsPDFs} className="w-full">
+                    Download PDF
+                  </Button>
+                  <Button onClick={downloadPatientsExcel} className="w-full">
                     Download Excel
                   </Button>
                 </div>
               </div>
-              {(user?.role === "Admin" || user?.role === "SuperAdmin") &&
-                Permissions.isAdd && (
-                  <Button onClick={handleNewPatient}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> New Patient
-                  </Button>
-                )}
+
+              {Permissions.isAdd && (
+                <Button onClick={handleNewPatient} className="w-full sm:w-auto">
+                  <PlusCircle className="mr-2 h-4 w-4" /> New Patient
+                </Button>
+              )}
             </div>
           </motion.div>
 
           <Card className="medical-card">
-            <CardHeader>
-              <CardTitle>Search Patients</CardTitle>
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">
+                Search Patients
+              </CardTitle>
             </CardHeader>
 
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                {/* Search Column */}
+            <CardContent className="px-4 sm:px-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-center">
                 <div className="relative w-full">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search by name, contact or Patient ID..."
                     value={searchTerm}
@@ -2105,19 +2072,15 @@ const PatientManagement = () => {
                   />
                 </div>
 
-                {/* Date Filter */}
-                {user?.role !== "Physio" && (
-                  <div className="w-full">
-                    <Input
-                      type="date"
-                      value={dateFilter}
-                      onChange={(e) => setDateFilter(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                )}
+                <div className="w-full">
+                  <Input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
 
-                {/* Physio Filter */}
                 <Select
                   value={selectedPhysioId}
                   onValueChange={(v) => setSelectedPhysioId(v)}
@@ -2144,98 +2107,29 @@ const PatientManagement = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <Card className="medical-card">
-              <CardHeader>
-                <CardTitle>Patients ({filteredPatients.length})</CardTitle>
+              <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="text-lg sm:text-xl">
+                  Patients ({filteredPatients.length})
+                </CardTitle>
                 <CardDescription>
                   All registered patients in the system
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredPatients.map((patient) => (
-                <motion.div key={patient.PatientIDPK} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><User className="text-blue-600" size={20} /></div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{patient.patientName}</h3>
-                      <p className="text-sm text-gray-600">{patient.patientCode}</p>
-                      <p className="text-sm text-gray-600">{patient.patientAge} years, {patient.patientGenderId.genderName}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 mb-4 flex-grow">
-                    <p className="text-sm"><strong>Contact:</strong> {patient.patientNumber}</p> */}
-                {/* <p className="text-sm"><strong>Category:</strong><span className="ml-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">{patient.category}</span></p> */}
-                {/* <p className="text-sm"><strong>Consultation:</strong> {patient.consultationDate ? format(new Date(patient.consultationDate), "PP") : 'Not set'}</p>
-                    <p className="text-sm"><strong>Next Review:</strong> {patient.reviewDate ? format(new Date(patient.reviewDate), "PP") : 'N/A'}</p>
-                    {patient.shortTermGoals && (
-                      <div className="text-sm mt-2 p-2 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
-                        <p><strong>Goal:</strong> {patient.InitialShorttermGoal} ({patient.goalDuration} days)</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-                      <Button size="sm" disabled={!!patient.physioId} 
-                       onClick={() => openAssignPhysioDialog(patient)} 
-                       className="w-full flex items-center gap-2">
-                        {patient.physioId ? (
-                          <>
-                          <UserCheck size={14}/> Physio Assigned</>
-                        ):(
-                          <>
-                          <UserPlus size={14} /> Assign Physio</>
-                        )}
-                        </Button>
-                    )}
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => handleViewConsultation(patient)} className="flex-1"><FileText size={14} /><span>Consultation</span></Button>
-                      <Button size="sm" onClick={() => handleScheduleReview(patient)} className="flex-1"><CalendarIcon size={14} /><span className='hidden md:inline lg:inline'>Review</span></Button>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button>
-                      {(user?.role === 'HOD' || user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-                        <>
-                       {
-                        Permissions.isEdit && 
-                         <Button size="sm" variant="outline" onClick={() => handleEditPatient(patient)} className="flex-1"><Edit size={14} /><span className="hidden md:inline lg:inline">Edit</span></Button>
-                       }
-                       
-                         </>
-                      )}
-                      {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
-                        <>
-                        {
-                          Permissions.isDelete && 
-                          <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" variant="destructive" className="flex-1"><Trash2 size={14} /><span className="hidden md:inline lg:inline">Delete</span></Button></AlertDialogTrigger>
-                          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the patient and all their records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDeletePatient(patient._id)}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                        </AlertDialog>
-                        }
-                        
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>*/}
 
+              <CardContent className="px-4 sm:px-6">
                 <div className="overflow-x-auto hidden sm:block">
                   <table className="min-w-full text-sm border rounded-lg">
                     <thead className="bg-gray-100 text-gray-700">
                       <tr>
                         <th className="px-3 py-2 text-left">Patient</th>
                         {user?.role !== "HOD" && (
-                          <th className="px-3 py-2 text-left  sm:table-cell">
-                            Age / Gender
-                          </th>
+                          <th className="px-3 py-2 text-left">Age / Gender</th>
                         )}
                         {user?.role !== "HOD" && (
                           <th className="px-3 py-2 text-left hidden md:table-cell">
                             Contact
                           </th>
                         )}
-                        {/* {user?.role === "HOD" && ( */}
                         <>
                           <th className="px-3 py-2 text-left hidden md:table-cell">
                             No of Sessions
@@ -2244,7 +2138,6 @@ const PatientManagement = () => {
                             Condition
                           </th>
                         </>
-                        {/* )} */}
                         {user?.role !== "HOD" && (
                           <th className="px-3 py-2 text-left hidden lg:table-cell">
                             Consultation
@@ -2254,7 +2147,7 @@ const PatientManagement = () => {
                           Review
                         </th>
                         <th className="px-3 py-2 text-left">Physio</th>
-                        <th className="px-3 py-2 text-center ">Actions</th>
+                        <th className="px-3 py-2 text-center">Actions</th>
                       </tr>
                     </thead>
 
@@ -2264,41 +2157,39 @@ const PatientManagement = () => {
                           key={patient.PatientIDPK}
                           className="border-t hover:bg-gray-50 align-top"
                         >
-                          {/* Patient */}
                           <td className="px-3 py-2">
-                            <div className="font-medium truncate max-w-[120px]">
+                            <div className="font-medium truncate max-w-[140px]">
                               {patient.patientName}
                             </div>
-                            <div className="text-xs text-gray-500 truncate max-w-[120px]">
+                            <div className="text-xs text-gray-500 truncate max-w-[140px]">
                               {patient.patientCode}
                             </div>
                           </td>
-                          {/* Age / Gender */}
+
                           {user?.role !== "HOD" && (
                             <>
-                              <td className="px-3 py-2  sm:table-cell">
+                              <td className="px-3 py-2">
                                 {patient.patientAge} /{" "}
                                 {patient.patientGenderId.genderName}
                               </td>
 
-                              <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                              <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
                                 {patient.patientNumber}
                               </td>
                             </>
                           )}
-                          {/* {user?.role === "HOD" && ( */}
+
                           <>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
                               {patient.sessionCount || 0}
                             </td>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
                               {patient.patientCondition}
                             </td>
                           </>
-                          {/* )} */}
-                          {/* Consultation */}
+
                           {user?.role !== "HOD" && (
-                            <td className="px-3 py-2 hidden lg:table-cell max-w-full">
+                            <td className="px-3 py-2 hidden lg:table-cell">
                               {patient.consultationDate
                                 ? format(
                                     new Date(patient.consultationDate),
@@ -2307,20 +2198,19 @@ const PatientManagement = () => {
                                 : "Not set"}
                             </td>
                           )}
-                          {/* Review */}
+
                           <td className="px-3 py-2 hidden lg:table-cell">
                             {patient.reviewDate
                               ? format(new Date(patient.reviewDate), "PP")
                               : "N/A"}
                           </td>
-                          {/* Physio Status / Assign */}
+
                           <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="flex flex-col sm:flex-row gap-2">
+                            <div className="flex flex-col gap-2 min-w-[100px]">
                               {patient.physioId?.physioName}
                             </div>
                           </td>
-                          {/* Mobile-only action buttons */}
-                          {/* Actions */}
+
                           <td className="px-3 py-2 hidden sm:table-cell">
                             <div className="flex flex-row flex-wrap gap-2 justify-center">
                               {patient.isConsentReceived ? (
@@ -2360,12 +2250,14 @@ const PatientManagement = () => {
                               >
                                 <FileText size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 onClick={() => handleScheduleReview(patient)}
                               >
                                 <CalendarIcon size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -2373,72 +2265,61 @@ const PatientManagement = () => {
                               >
                                 <History size={14} />
                               </Button>
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") &&
-                                Permissions.isEdit && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEditPatient(patient)}
-                                  >
-                                    <Edit size={14} />
-                                  </Button>
-                                )}
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") && (
+
+                              {Permissions.isEdit && (
                                 <Button
                                   size="sm"
-                                  onClick={() =>
-                                    openAssignPhysioDialog(patient)
-                                  }
+                                  variant="outline"
+                                  onClick={() => handleEditPatient(patient)}
                                 >
-                                  {patient.physioId ? (
-                                    <>
-                                      <UserCheck size={14} />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <UserPlus size={14} />
-                                    </>
-                                  )}
+                                  <Edit size={14} />
                                 </Button>
                               )}
-                              {(user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") &&
-                                Permissions.isDelete && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button size="sm" variant="destructive">
-                                        <Trash2 size={14} />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                          Delete patient?
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently delete the
-                                          patient.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>
-                                          Cancel
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() =>
-                                            handleDeletePatient(patient._id)
-                                          }
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
+
+                              <Button
+                                size="sm"
+                                onClick={() => openAssignPhysioDialog(patient)}
+                              >
+                                {patient.physioId ? (
+                                  <UserCheck size={14} />
+                                ) : (
+                                  <UserPlus size={14} />
                                 )}
+                              </Button>
+
+                              {Permissions.isDelete && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 size={14} />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="w-[95vw] max-w-md">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Delete patient?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the
+                                        patient.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                      <AlertDialogCancel className="w-full sm:w-auto">
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="w-full sm:w-auto"
+                                        onClick={() =>
+                                          handleDeletePatient(patient._id)
+                                        }
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2446,22 +2327,15 @@ const PatientManagement = () => {
                     </tbody>
                   </table>
                 </div>
+
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
                   <Card className="medical-card sm:hidden">
-                    <CardHeader>
-                      {/* <CardTitle>
-                    Consultations ({filteredPatients.length})
-                  </CardTitle> */}
-                      {/* <CardDescription>
-                    All registered consultations in the system
-                  </CardDescription> */}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <CardContent className="px-0 pt-0">
+                      <div className="grid grid-cols-1 gap-4">
                         {filteredPatients.map((patient) => (
                           <motion.div
                             key={patient.PatientIDPK}
@@ -2470,32 +2344,34 @@ const PatientManagement = () => {
                             transition={{ duration: 0.3 }}
                             className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
                           >
-                            <div className="flex items-center space-x-3 mb-3">
-                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div className="flex items-start gap-3 mb-3">
+                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                                 <User className="text-blue-600" size={20} />
                               </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-800">
+                              <div className="min-w-0">
+                                <h3 className="font-semibold text-gray-800 break-words">
                                   {patient.patientName}
                                 </h3>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-gray-600 break-all">
                                   {patient.patientCode}
                                 </p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-gray-600 break-words">
                                   {patient.patientAge} years,{" "}
                                   {patient.patientGenderId.genderName}
                                 </p>
                               </div>
                             </div>
+
                             <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm">
+                              <p className="text-sm break-words">
                                 <strong>Contact:</strong>{" "}
                                 {patient.patientNumber}
                               </p>
                             </div>
+
                             <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm">
-                                <strong>Consultation Date:</strong>
+                              <p className="text-sm break-words">
+                                <strong>Consultation Date:</strong>{" "}
                                 {patient.consultationDate
                                   ? format(
                                       new Date(patient.consultationDate),
@@ -2504,43 +2380,47 @@ const PatientManagement = () => {
                                   : "Not set"}
                               </p>
                             </div>
+
                             {user?.role === "HOD" && (
                               <>
                                 <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col sm:flex-row gap-2">
-                                    <p className="text-sm">
-                                      <strong>Condition:</strong>
+                                  <div className="flex flex-col gap-2">
+                                    <p className="text-sm break-words">
+                                      <strong>Condition:</strong>{" "}
                                       {patient.patientCondition}
                                     </p>
                                   </div>
                                 </div>
 
                                 <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col sm:flex-row gap-2">
-                                    <p className="text-sm">
-                                      <strong>No of Sessions:</strong>
+                                  <div className="flex flex-col gap-2">
+                                    <p className="text-sm break-words">
+                                      <strong>No of Sessions:</strong>{" "}
                                       {patient.totalSessionDays}
                                     </p>
                                   </div>
                                 </div>
                               </>
                             )}
-                            {/* Review */}
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm">
-                                <strong>Review Date:</strong>
 
+                            <div className="space-y-2 mb-4 flex-grow">
+                              <p className="text-sm break-words">
+                                <strong>Review Date:</strong>{" "}
                                 {patient.reviewDate
                                   ? format(new Date(patient.reviewDate), "PP")
                                   : "N/A"}
                               </p>
                             </div>
-                            <div className="px-3 py-2 whitespace-nowrap">
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <p>Physio: {patient.physioId?.physioName} </p>
+
+                            <div className="py-2">
+                              <div className="flex flex-col gap-2">
+                                <p className="break-words">
+                                  Physio: {patient.physioId?.physioName}
+                                </p>
                               </div>
                             </div>
-                            <div className="mt-2 flex flex-row flex-wrap gap-2 sm:hidden">
+
+                            <div className="mt-2 grid grid-cols-3 gap-2">
                               {patient.isConsentReceived ? (
                                 <Button
                                   size="sm"
@@ -2570,26 +2450,18 @@ const PatientManagement = () => {
                                   />
                                 </Button>
                               )}
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") && (
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    openAssignPhysioDialog(patient)
-                                  }
-                                >
-                                  {patient.physioId ? (
-                                    <>
-                                      <UserCheck size={14} />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <UserPlus size={14} />
-                                    </>
-                                  )}
-                                </Button>
-                              )}
+
+                              <Button
+                                size="sm"
+                                onClick={() => openAssignPhysioDialog(patient)}
+                              >
+                                {patient.physioId ? (
+                                  <UserCheck size={14} />
+                                ) : (
+                                  <UserPlus size={14} />
+                                )}
+                              </Button>
+
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -2597,12 +2469,14 @@ const PatientManagement = () => {
                               >
                                 <FileText size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 onClick={() => handleScheduleReview(patient)}
                               >
                                 <CalendarIcon size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -2610,18 +2484,17 @@ const PatientManagement = () => {
                               >
                                 <History size={14} />
                               </Button>
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") &&
-                                Permissions.isEdit && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEditPatient(patient)}
-                                  >
-                                    <Edit size={14} />
-                                  </Button>
-                                )}
+
+                              {Permissions.isEdit && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditPatient(patient)}
+                                >
+                                  <Edit size={14} />
+                                </Button>
+                              )}
+
                               {Permissions.isDelete && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
@@ -2629,7 +2502,7 @@ const PatientManagement = () => {
                                       <Trash2 size={14} />
                                     </Button>
                                   </AlertDialogTrigger>
-                                  <AlertDialogContent>
+                                  <AlertDialogContent className="w-[95vw] max-w-md">
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>
                                         Delete patient?
@@ -2639,11 +2512,12 @@ const PatientManagement = () => {
                                         patient.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
+                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                      <AlertDialogCancel className="w-full sm:w-auto">
                                         Cancel
                                       </AlertDialogCancel>
                                       <AlertDialogAction
+                                        className="w-full sm:w-auto"
                                         onClick={() =>
                                           handleDeletePatient(patient._id)
                                         }
@@ -2666,8 +2540,9 @@ const PatientManagement = () => {
           </motion.div>
         </>
       )}
+
       <Dialog open={downloadDialog} onOpenChange={setDownloadDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Download Patient Report</DialogTitle>
             <DialogDescription>
@@ -2683,7 +2558,7 @@ const PatientManagement = () => {
             >
               <FileText className="mr-2 h-4 w-4" />
               Patients of the Month
-            </Button>{" "}
+            </Button>
             <Button
               className="w-full justify-start"
               onClick={downloadPatientsOfLastMonth}
@@ -2699,7 +2574,7 @@ const PatientManagement = () => {
             >
               <FileText className="mr-2 h-4 w-4" />
               Patients of the Last 2 Month
-            </Button>{" "}
+            </Button>
             <Button
               className="w-full justify-start"
               onClick={downloadPatientsOfLast3Month}
@@ -2707,7 +2582,7 @@ const PatientManagement = () => {
             >
               <FileText className="mr-2 h-4 w-4" />
               Patients of the Last 3 Month
-            </Button>{" "}
+            </Button>
             <Button
               className="w-full justify-start"
               onClick={downloadPatientsLastYear}
@@ -2723,49 +2598,49 @@ const PatientManagement = () => {
               variant="outline"
               onClick={() => setDownloadDialog(false)}
               disabled={downloadLoading}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {activeTab === "recover" && (
         <>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="md:flex justify-between items-center space-y-5"
+            className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center"
           >
-            <div>
-              <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 break-words">
                 Recovered Patient Management
               </h1>
-              <p className="text-gray-600 text-sm md:text-xs">
+              <p className="text-gray-600 text-sm sm:text-sm md:text-base">
                 Manage registered patients and their treatment plans.
               </p>
             </div>
-            {(user?.role === "Admin" || user?.role === "SuperAdmin") && (
-              <>
-                {Permissions.isAdd && (
-                  <Button onClick={handleNewPatient}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> New Patient
-                  </Button>
-                )}
-              </>
+
+            {Permissions.isAdd && (
+              <Button onClick={handleNewPatient} className="w-full sm:w-auto">
+                <PlusCircle className="mr-2 h-4 w-4" /> New Patient
+              </Button>
             )}
           </motion.div>
 
           <Card className="medical-card">
-            <CardHeader>
-              <CardTitle>Search Patients</CardTitle>
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">
+                Search Patients
+              </CardTitle>
             </CardHeader>
 
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                {/* Search Column */}
+            <CardContent className="px-4 sm:px-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-center">
                 <div className="relative w-full">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search by name, contact or Patient ID..."
                     value={searchTerm}
@@ -2774,7 +2649,6 @@ const PatientManagement = () => {
                   />
                 </div>
 
-                {/* Date Filter */}
                 {user?.role !== "Physio" && (
                   <div className="w-full">
                     <Input
@@ -2786,7 +2660,6 @@ const PatientManagement = () => {
                   </div>
                 )}
 
-                {/* Physio Filter */}
                 <Select
                   value={selectedPhysioId}
                   onValueChange={(v) => setSelectedPhysioId(v)}
@@ -2813,24 +2686,23 @@ const PatientManagement = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <Card className="medical-card">
-              <CardHeader>
-                <CardTitle>
+              <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="text-lg sm:text-xl">
                   Recovered Patients ({recoveredPatients.length})
                 </CardTitle>
                 <CardDescription>
                   All registered patients in the system
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+
+              <CardContent className="px-4 sm:px-6">
                 <div className="overflow-x-auto hidden sm:block">
                   <table className="min-w-full text-sm border rounded-lg">
                     <thead className="bg-gray-100 text-gray-700">
                       <tr>
                         <th className="px-3 py-2 text-left">Patient</th>
                         {user?.role !== "HOD" && (
-                          <th className="px-3 py-2 text-left  sm:table-cell">
-                            Age / Gender
-                          </th>
+                          <th className="px-3 py-2 text-left">Age / Gender</th>
                         )}
                         {user?.role !== "HOD" && (
                           <th className="px-3 py-2 text-left hidden md:table-cell">
@@ -2845,7 +2717,6 @@ const PatientManagement = () => {
                             Condition
                           </th>
                         </>
-
                         {user?.role !== "HOD" && (
                           <th className="px-3 py-2 text-left hidden lg:table-cell">
                             Consultation
@@ -2855,7 +2726,7 @@ const PatientManagement = () => {
                           Review
                         </th>
                         <th className="px-3 py-2 text-left">Physio</th>
-                        <th className="px-3 py-2 text-center ">Actions</th>
+                        <th className="px-3 py-2 text-center">Actions</th>
                       </tr>
                     </thead>
 
@@ -2865,41 +2736,39 @@ const PatientManagement = () => {
                           key={patient.PatientIDPK}
                           className="border-t hover:bg-gray-50 align-top"
                         >
-                          {/* Patient */}
                           <td className="px-3 py-2">
-                            <div className="font-medium truncate max-w-[120px]">
+                            <div className="font-medium truncate max-w-[140px]">
                               {patient.patientName}
                             </div>
-                            <div className="text-xs text-gray-500 truncate max-w-[120px]">
+                            <div className="text-xs text-gray-500 truncate max-w-[140px]">
                               {patient.patientCode}
                             </div>
                           </td>
-                          {/* Age / Gender */}
+
                           {user?.role !== "HOD" && (
                             <>
-                              <td className="px-3 py-2  sm:table-cell">
+                              <td className="px-3 py-2">
                                 {patient.patientAge} /{" "}
                                 {patient.patientGenderId.genderName}
                               </td>
 
-                              <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                              <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
                                 {patient.patientNumber}
                               </td>
                             </>
                           )}
-                          {/* {user?.role === "HOD" && ( */}
+
                           <>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
                               {patient.sessionCount || 0}
                             </td>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[120px]">
+                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
                               {patient.patientCondition}
                             </td>
                           </>
-                          {/* )} */}
-                          {/* Consultation */}
+
                           {user?.role !== "HOD" && (
-                            <td className="px-3 py-2 hidden lg:table-cell max-w-full">
+                            <td className="px-3 py-2 hidden lg:table-cell">
                               {patient.consultationDate
                                 ? format(
                                     new Date(patient.consultationDate),
@@ -2908,20 +2777,19 @@ const PatientManagement = () => {
                                 : "Not set"}
                             </td>
                           )}
-                          {/* Review */}
+
                           <td className="px-3 py-2 hidden lg:table-cell">
                             {patient.reviewDate
                               ? format(new Date(patient.reviewDate), "PP")
                               : "N/A"}
                           </td>
-                          {/* Physio Status / Assign */}
+
                           <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="flex flex-col sm:flex-row gap-2">
+                            <div className="flex flex-col gap-2 min-w-[100px]">
                               {patient.physioId?.physioName}
                             </div>
                           </td>
-                          {/* Mobile-only action buttons */}
-                          {/* Actions */}
+
                           <td className="px-3 py-2 hidden sm:table-cell">
                             <div className="flex flex-row flex-wrap gap-2 justify-center">
                               {patient.isConsentReceived ? (
@@ -2961,12 +2829,14 @@ const PatientManagement = () => {
                               >
                                 <FileText size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 onClick={() => handleScheduleReview(patient)}
                               >
                                 <CalendarIcon size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -2974,72 +2844,61 @@ const PatientManagement = () => {
                               >
                                 <History size={14} />
                               </Button>
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") &&
-                                Permissions.isEdit && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEditPatient(patient)}
-                                  >
-                                    <Edit size={14} />
-                                  </Button>
-                                )}
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") && (
+
+                              {Permissions.isEdit && (
                                 <Button
                                   size="sm"
-                                  onClick={() =>
-                                    openAssignPhysioDialog(patient)
-                                  }
+                                  variant="outline"
+                                  onClick={() => handleEditPatient(patient)}
                                 >
-                                  {patient.physioId ? (
-                                    <>
-                                      <UserCheck size={14} />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <UserPlus size={14} />
-                                    </>
-                                  )}
+                                  <Edit size={14} />
                                 </Button>
                               )}
-                              {(user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") &&
-                                Permissions.isDelete && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button size="sm" variant="destructive">
-                                        <Trash2 size={14} />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                          Delete patient?
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently delete the
-                                          patient.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>
-                                          Cancel
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() =>
-                                            handleDeletePatient(patient._id)
-                                          }
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
+
+                              <Button
+                                size="sm"
+                                onClick={() => openAssignPhysioDialog(patient)}
+                              >
+                                {patient.physioId ? (
+                                  <UserCheck size={14} />
+                                ) : (
+                                  <UserPlus size={14} />
                                 )}
+                              </Button>
+
+                              {Permissions.isDelete && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="destructive">
+                                      <Trash2 size={14} />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="w-[95vw] max-w-md">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Delete patient?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the
+                                        patient.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                      <AlertDialogCancel className="w-full sm:w-auto">
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="w-full sm:w-auto"
+                                        onClick={() =>
+                                          handleDeletePatient(patient._id)
+                                        }
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -3047,22 +2906,15 @@ const PatientManagement = () => {
                     </tbody>
                   </table>
                 </div>
+
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
                   <Card className="medical-card sm:hidden">
-                    <CardHeader>
-                      {/* <CardTitle>
-                    Consultations ({filteredPatients.length})
-                  </CardTitle> */}
-                      {/* <CardDescription>
-                    All registered consultations in the system
-                  </CardDescription> */}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <CardContent className="px-0 pt-0">
+                      <div className="grid grid-cols-1 gap-4">
                         {recoveredPatients.map((patient) => (
                           <motion.div
                             key={patient.PatientIDPK}
@@ -3071,32 +2923,34 @@ const PatientManagement = () => {
                             transition={{ duration: 0.3 }}
                             className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
                           >
-                            <div className="flex items-center space-x-3 mb-3">
-                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div className="flex items-start gap-3 mb-3">
+                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                                 <User className="text-blue-600" size={20} />
                               </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-800">
+                              <div className="min-w-0">
+                                <h3 className="font-semibold text-gray-800 break-words">
                                   {patient.patientName}
                                 </h3>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-gray-600 break-all">
                                   {patient.patientCode}
                                 </p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-gray-600 break-words">
                                   {patient.patientAge} years,{" "}
                                   {patient.patientGenderId.genderName}
                                 </p>
                               </div>
                             </div>
+
                             <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm">
+                              <p className="text-sm break-words">
                                 <strong>Contact:</strong>{" "}
                                 {patient.patientNumber}
                               </p>
                             </div>
+
                             <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm">
-                                <strong>Consultation Date:</strong>
+                              <p className="text-sm break-words">
+                                <strong>Consultation Date:</strong>{" "}
                                 {patient.consultationDate
                                   ? format(
                                       new Date(patient.consultationDate),
@@ -3105,43 +2959,47 @@ const PatientManagement = () => {
                                   : "Not set"}
                               </p>
                             </div>
+
                             {user?.role === "HOD" && (
                               <>
                                 <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col sm:flex-row gap-2">
-                                    <p className="text-sm">
-                                      <strong>Condition:</strong>
+                                  <div className="flex flex-col gap-2">
+                                    <p className="text-sm break-words">
+                                      <strong>Condition:</strong>{" "}
                                       {patient.patientCondition}
                                     </p>
                                   </div>
                                 </div>
 
                                 <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col sm:flex-row gap-2">
-                                    <p className="text-sm">
-                                      <strong>No of Sessions:</strong>
+                                  <div className="flex flex-col gap-2">
+                                    <p className="text-sm break-words">
+                                      <strong>No of Sessions:</strong>{" "}
                                       {patient.totalSessionDays}
                                     </p>
                                   </div>
                                 </div>
                               </>
                             )}
-                            {/* Review */}
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm">
-                                <strong>Review Date:</strong>
 
+                            <div className="space-y-2 mb-4 flex-grow">
+                              <p className="text-sm break-words">
+                                <strong>Review Date:</strong>{" "}
                                 {patient.reviewDate
                                   ? format(new Date(patient.reviewDate), "PP")
                                   : "N/A"}
                               </p>
                             </div>
-                            <div className="px-3 py-2 whitespace-nowrap">
-                              <div className="flex flex-col sm:flex-row gap-2">
-                                <p>Physio: {patient.physioId?.physioName} </p>
+
+                            <div className="py-2">
+                              <div className="flex flex-col gap-2">
+                                <p className="break-words">
+                                  Physio: {patient.physioId?.physioName}
+                                </p>
                               </div>
                             </div>
-                            <div className="mt-2 flex flex-row flex-wrap gap-2 sm:hidden">
+
+                            <div className="mt-2 grid grid-cols-3 gap-2">
                               {patient.isConsentReceived ? (
                                 <Button
                                   size="sm"
@@ -3171,26 +3029,18 @@ const PatientManagement = () => {
                                   />
                                 </Button>
                               )}
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") && (
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    openAssignPhysioDialog(patient)
-                                  }
-                                >
-                                  {patient.physioId ? (
-                                    <>
-                                      <UserCheck size={14} />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <UserPlus size={14} />
-                                    </>
-                                  )}
-                                </Button>
-                              )}
+
+                              <Button
+                                size="sm"
+                                onClick={() => openAssignPhysioDialog(patient)}
+                              >
+                                {patient.physioId ? (
+                                  <UserCheck size={14} />
+                                ) : (
+                                  <UserPlus size={14} />
+                                )}
+                              </Button>
+
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -3198,12 +3048,14 @@ const PatientManagement = () => {
                               >
                                 <FileText size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 onClick={() => handleScheduleReview(patient)}
                               >
                                 <CalendarIcon size={14} />
                               </Button>
+
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -3211,18 +3063,17 @@ const PatientManagement = () => {
                               >
                                 <History size={14} />
                               </Button>
-                              {(user?.role === "HOD" ||
-                                user?.role === "Admin" ||
-                                user?.role === "SuperAdmin") &&
-                                Permissions.isEdit && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEditPatient(patient)}
-                                  >
-                                    <Edit size={14} />
-                                  </Button>
-                                )}
+
+                              {Permissions.isEdit && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditPatient(patient)}
+                                >
+                                  <Edit size={14} />
+                                </Button>
+                              )}
+
                               {Permissions.isDelete && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
@@ -3230,7 +3081,7 @@ const PatientManagement = () => {
                                       <Trash2 size={14} />
                                     </Button>
                                   </AlertDialogTrigger>
-                                  <AlertDialogContent>
+                                  <AlertDialogContent className="w-[95vw] max-w-md">
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>
                                         Delete patient?
@@ -3240,11 +3091,12 @@ const PatientManagement = () => {
                                         patient.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
+                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                      <AlertDialogCancel className="w-full sm:w-auto">
                                         Cancel
                                       </AlertDialogCancel>
                                       <AlertDialogAction
+                                        className="w-full sm:w-auto"
                                         onClick={() =>
                                           handleDeletePatient(patient._id)
                                         }
@@ -3267,6 +3119,7 @@ const PatientManagement = () => {
           </motion.div>
         </>
       )}
+
       <PatientDetailsDialog
         isOpen={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
@@ -3274,7 +3127,7 @@ const PatientManagement = () => {
       />
 
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>
               Review Goal for {reviewingPatient?.patientName}
@@ -3283,11 +3136,11 @@ const PatientManagement = () => {
               Update feedback and satisfaction for the current goal.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto pr-6 -mr-6">
+          <div className="flex-1 overflow-y-auto pr-1 sm:pr-4">
             <div className="space-y-4 pt-4">
               <div>
                 <Label className="font-semibold">Current Goal</Label>
-                <p className="text-sm text-gray-700 p-2 bg-gray-100 rounded-md mt-1">
+                <p className="text-sm text-gray-700 p-2 bg-gray-100 rounded-md mt-1 break-words">
                   {reviewingPatient?.shortTermGoals || "No current goal set."}
                 </p>
               </div>
@@ -3324,11 +3177,12 @@ const PatientManagement = () => {
               </div>
             </div>
           </div>
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-4 flex-col sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsReviewOpen(false)}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -3336,10 +3190,15 @@ const PatientManagement = () => {
               type="button"
               variant="secondary"
               onClick={handleUpdateFeedback}
+              className="w-full sm:w-auto"
             >
               Update Feedback Only
             </Button>
-            <Button type="button" onClick={handleLogAndOpenNewGoal}>
+            <Button
+              type="button"
+              onClick={handleLogAndOpenNewGoal}
+              className="w-full sm:w-auto"
+            >
               Log Goal & Set New One
             </Button>
           </DialogFooter>
@@ -3347,7 +3206,7 @@ const PatientManagement = () => {
       </Dialog>
 
       <Dialog open={isNewGoalOpen} onOpenChange={setIsNewGoalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] max-w-lg p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>
               Set Next Goal for {reviewingPatient?.patientName}
@@ -3373,7 +3232,7 @@ const PatientManagement = () => {
                 }
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="newGoalDuration">
                   New Goal Duration (days)
@@ -3393,94 +3252,26 @@ const PatientManagement = () => {
                   }
                 />
               </div>
-              {/* <div className="space-y-2">
-                <Label>Next Review Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !newGoalForm.nextReviewDate && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newGoalForm.nextReviewDate ? (
-                        format(newGoalForm.nextReviewDate, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newGoalForm.nextReviewDate}
-                      onSelect={(d) =>
-                        setNewGoalForm((p) => ({ ...p, nextReviewDate: d }))
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div> */}
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsNewGoalOpen(false)}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button type="submit">Set New Goal</Button>
+              <Button type="submit" className="w-full sm:w-auto">
+                Set New Goal
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="md:max-w-2xl max-h-[90vh] flex flex-col max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Patient History: {historyPatient?.name}</DialogTitle>
-            <DialogDescription>
-              Chronological log of all sessions and reviews.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto pr-6 -mr-6 mt-4">
-            <div className="relative pl-6">
-              <div
-                className="absolute left-0 top-0 h-full w-0.5 bg-gray-200"
-                style={{ transform: "translateX(2.5px)" }}
-              ></div>
-              {patientHistory.length > 0 ? (
-                patientHistory.map((item, index) => (
-                  <div key={index} className="mb-8 relative">
-                    <div
-                      className={`absolute left-0 top-1 h-3 w-3 rounded-full ${
-                        item.type === "session" ? "bg-blue-500" : "bg-green-500"
-                      }`}
-                    ></div>
-                    <div className="pl-6">
-                      <p className="text-xs text-gray-500">
-                        {format(new Date(item.date), "PPP")}
-                      </p>
-                      <h4 className="font-semibold text-md">{item.title}</h4>
-                      <p className="text-sm text-gray-600">{item.details}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-500">
-                  No history found for this patient.
-                </p>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog> */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="md:max-w-2xl max-h-[90vh] flex flex-col max-w-sm">
+        <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               Patient History: {historyPatient?.patientName || "Unknown"}
@@ -3490,9 +3281,8 @@ const PatientManagement = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-6 -mr-6 mt-4">
+          <div className="flex-1 overflow-y-auto pr-1 sm:pr-4 mt-4">
             <div className="relative pl-6">
-              {/* Timeline vertical line */}
               <div
                 className="absolute left-0 top-0 h-full w-0.5 bg-gray-200"
                 style={{ transform: "translateX(2.5px)" }}
@@ -3502,23 +3292,23 @@ const PatientManagement = () => {
                 patientHistory.map((item, index) => (
                   <div key={index} className="mb-8 relative">
                     <div className="pl-6">
-                      {/* Date */}
                       <p className="text-xs text-gray-500">
                         {item.date ? format(new Date(item.date), "PPP") : "N/A"}
                       </p>
-                      <p className="text-sm text-gray-700">
+                      <p className="text-sm text-gray-700 break-words">
                         {item.sessionFromTime && item.sessionToTime
                           ? `Session From - To Time: ${item.sessionFromTime} - ${item.sessionToTime}`
                           : "N/A"}
-                      </p>{" "}
-                      {/* Title */}
-                      <h4 className="font-semibold text-md">{item.title}</h4>
-                      <p className="text-sm text-gray-700">
+                      </p>
+                      <h4 className="font-semibold text-md break-words">
+                        {item.title}
+                      </h4>
+                      <p className="text-sm text-gray-700 break-words">
                         PHYSIO: {item.type === "session" ? item.physioName : ""}
                       </p>
-                      {/* Session status and feedback */}
+
                       {item.type === "session" && (
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 break-words">
                           Status: {item.status} <br />
                           Feedback:{" "}
                           <span style={{ color: item.color || "#4B5563" }}>
@@ -3526,9 +3316,11 @@ const PatientManagement = () => {
                           </span>
                         </p>
                       )}
-                      {/* Review details */}
+
                       {item.type === "review" && (
-                        <p className="text-sm text-gray-600">{item.details}</p>
+                        <p className="text-sm text-gray-600 break-words">
+                          {item.details}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -3543,14 +3335,14 @@ const PatientManagement = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen} className="">
-        <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[95vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {editingPatient ? "Edit Patient" : "Create New Patient"}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto pr-6 -mr-6">
+          <div className="flex-1 overflow-y-auto pr-1 sm:pr-4">
             <form onSubmit={handleFormSubmit} className="space-y-4">
               <Accordion
                 type="multiple"
@@ -3566,7 +3358,6 @@ const PatientManagement = () => {
                         <Input
                           name="patientCode"
                           value={patientForm.patientCode}
-                          // onChange={handleFormChange}
                           disabled
                         />
                       </div>
@@ -3598,9 +3389,6 @@ const PatientManagement = () => {
                                 handleDateChange("consultationDate", d)
                               }
                               initialFocus
-                              // disabled={(date) =>
-                              //   date < new Date(new Date().setHours(0, 0, 0, 0))
-                              // }
                             />
                           </PopoverContent>
                         </Popover>
@@ -3614,6 +3402,7 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Age</Label>
@@ -3635,7 +3424,7 @@ const PatientManagement = () => {
                             handleSelectChange("patientGenderId", v)
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Gender" />
                           </SelectTrigger>
                           <SelectContent>
@@ -3659,6 +3448,7 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Relation With Patient</Label>
@@ -3691,6 +3481,7 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Address</Label>
@@ -3709,6 +3500,7 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Fees Type</Label>
@@ -3725,7 +3517,7 @@ const PatientManagement = () => {
                             );
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Fees" />
                           </SelectTrigger>
 
@@ -3761,7 +3553,6 @@ const PatientManagement = () => {
                           onChange={handleFormChange}
                         />
                       </div>
-                      {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
                       <div className="space-y-2">
                         <Label>Review Date</Label>
                         <Popover>
@@ -3815,7 +3606,7 @@ const PatientManagement = () => {
                             }
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Reference" />
                           </SelectTrigger>
                           <SelectContent>
@@ -3833,10 +3624,10 @@ const PatientManagement = () => {
                           </SelectContent>
                         </Select>
                       </div>
+
                       {selectedPatient && (
                         <div className="space-y-2">
                           <Label>Is Recovered</Label>
-
                           <Button
                             type="button"
                             size="sm"
@@ -3849,7 +3640,7 @@ const PatientManagement = () => {
                               setPendingPatient(selectedPatient);
                               setOpenAlert(true);
                             }}
-                            className="flex-1 ml-5"
+                            className="w-full sm:w-auto"
                           >
                             {selectedPatient.isRecovered
                               ? "Mark Not Recovered"
@@ -3857,10 +3648,10 @@ const PatientManagement = () => {
                           </Button>
                         </div>
                       )}
+
                       {selectedPatient && (
                         <div className="space-y-2">
                           <Label>Is Consent Received</Label>
-
                           <Button
                             type="button"
                             size="sm"
@@ -3873,7 +3664,7 @@ const PatientManagement = () => {
                               setPendingPatient(selectedPatient);
                               setOpendialog(true);
                             }}
-                            className="flex-1 ml-5"
+                            className="w-full sm:w-auto"
                           >
                             {selectedPatient.isConsentReceived
                               ? "Mark Not Consent Received"
@@ -3975,7 +3766,7 @@ const PatientManagement = () => {
                         onValueChange={(v) =>
                           handleRadioChange("typesOfLifeStyle", v)
                         }
-                        className="flex gap-4"
+                        className="flex flex-col sm:flex-row gap-4"
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="sedentary" id="ls-sedentary" />
@@ -4055,9 +3846,6 @@ const PatientManagement = () => {
                         <Input
                           name="muscleStrength"
                           type="text"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
                           value={patientForm.muscleStrength}
                           onChange={handleFormChange}
                         />
@@ -4182,14 +3970,6 @@ const PatientManagement = () => {
                           onChange={handleFormChange}
                         />
                       </div>
-                      {/* <div className="space-y-2">
-                        <Label>Duration (weeks/months)</Label>
-                        <Input
-                          name="Duration"
-                          value={patientForm.Duration}
-                          onChange={handleFormChange}
-                        />
-                      </div> */}
                       <div className="space-y-2">
                         <Label>No of Days</Label>
                         <Input
@@ -4212,17 +3992,17 @@ const PatientManagement = () => {
                         true,
                       )}
                     </div>
+
                     {patientForm.modalities === true && (
                       <div className="space-y-2">
-                        {/* Step 1: Modalities Type */}
                         <Label htmlFor="modalitiestype">Modalities Type</Label>
                         <Select
-                          value={patientForm.modalitiestype} // store selected type here
+                          value={patientForm.modalitiestype}
                           onValueChange={(val) =>
                             setPatientForm((prev) => ({
                               ...prev,
                               modalitiestype: val,
-                              modalityList: [], // reset selected modalities when type changes
+                              modalityList: [],
                             }))
                           }
                         >
@@ -4239,15 +4019,14 @@ const PatientManagement = () => {
                           </SelectContent>
                         </Select>
 
-                        {/* Step 2: Show list of modalities filtered by selected type */}
                         {patientForm.modalitiestype && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
-                            className="space-y-2 pl-4"
+                            className="space-y-2 pl-0 sm:pl-4"
                           >
                             <Label>List of Modalities</Label>
-                            <div className="p-3 border rounded-md grid grid-cols-3 gap-2">
+                            <div className="p-3 border rounded-md grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                               {Array.isArray(modalities) &&
                                 modalities
                                   .filter(
@@ -4294,15 +4073,10 @@ const PatientManagement = () => {
                                         />
                                         <Label
                                           htmlFor={`mod-${mod._id}`}
-                                          className="text-sm font-normal"
+                                          className="text-sm font-normal break-words"
                                         >
                                           {mod.modalitiesName}
                                         </Label>
-                                        {/* {filteredMods.length === 0 && (
-                                          <p className="text-sm text-gray-500">
-                                            No modalities assigned.
-                                          </p>
-                                        )} */}
                                       </div>
                                     );
                                   })}
@@ -4349,6 +4123,7 @@ const PatientManagement = () => {
                   type="button"
                   variant="outline"
                   onClick={() => fileInputRef.current.click()}
+                  className="w-full sm:w-auto"
                 >
                   <Upload size={16} className="mr-2" /> Attach File
                 </Button>
@@ -4356,22 +4131,24 @@ const PatientManagement = () => {
                   {patientForm.documents.map((doc, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-2 text-sm text-gray-600"
+                      className="flex items-center gap-2 text-sm text-gray-600 break-all"
                     >
                       <Paperclip size={14} /> {doc}
                     </div>
                   ))}
                 </div>
               </div>
-              <DialogFooter className="pt-4">
+
+              <DialogFooter className="pt-4 flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsFormOpen(false)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="w-full sm:w-auto">
                   {editingPatient ? "Save Changes" : "Create Patient"}
                 </Button>
               </DialogFooter>
@@ -4381,7 +4158,7 @@ const PatientManagement = () => {
       </Dialog>
 
       <Dialog open={isAssignPhysioOpen} onOpenChange={setIsAssignPhysioOpen}>
-        <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>
               Assign Physio & Plan for {assigningPatient?.patientName}
@@ -4390,10 +4167,9 @@ const PatientManagement = () => {
               Schedule sessions, set goals, and configure travel details.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto pr-6 -mr-6">
+          <div className="flex-1 overflow-y-auto pr-1 sm:pr-4">
             <form
               onSubmit={handleAssignPhysioSubmit}
-              // onSubmit={handleFormSubmit}
               className="space-y-4 pt-4"
             >
               <Accordion
@@ -4405,14 +4181,14 @@ const PatientManagement = () => {
                   <AccordionTrigger>Treatment Plan</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
-                      <Label> Assign Physiotherapist</Label>
+                      <Label>Assign Physiotherapist</Label>
                       <Select
                         onValueChange={(v) =>
                           setAssignForm((p) => ({ ...p, physioId: v }))
                         }
                         value={assignForm.physioId}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select a physiotherapist" />
                         </SelectTrigger>
                         <SelectContent>
@@ -4424,7 +4200,6 @@ const PatientManagement = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* <div className="space-y-2"><Label>Physiotherapist Assigned</Label><Select onValueChange={(v) => handleSelectChange('Physiotherapist', v)} value={patientForm.Physiotherapist}><SelectTrigger><SelectValue placeholder="Select Physio" /></SelectTrigger><SelectContent>{physios.map(p => <SelectItem key={p._id} value={p._id.toString()}>{p.physioName}</SelectItem>)}</SelectContent></Select></div> */}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -4458,9 +4233,6 @@ const PatientManagement = () => {
                                 }))
                               }
                               initialFocus
-                              // disabled={(date) =>
-                              //   date < new Date(new Date().setHours(0, 0, 0, 0))
-                              // }
                             />
                           </PopoverContent>
                         </Popover>
@@ -4480,6 +4252,7 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="totalSessionDays">
@@ -4522,56 +4295,9 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-                    {/* <div className="space-y-2">
-                      <Label htmlFor="InitialShorttermGoal">
-                        Initial Short-term Goal
-                      </Label>
-                      <Input
-                        id="InitialShorttermGoal"
-                        placeholder="e.g., Walk for 15 mins without pain"
-                        value={assignForm.InitialShorttermGoal}
-                        onChange={(e) =>
-                          setAssignForm((p) => ({
-                            ...p,
-                            InitialShorttermGoal: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="goalDuration">
-                        Goal Duration (in days)
-                      </Label>
-                      <Input
-                        id="goalDuration"
-                        type="number"
-                        placeholder="e.g., 10"
-                        value={assignForm.goalDuration}
-                        onChange={(e) =>
-                          setAssignForm((p) => ({
-                            ...p,
-                            goalDuration: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="goalDescription">Goal Description</Label>
-                      <textarea
-                        id="goalDescription"
-                        className="w-full p-2 border rounded-md min-h-[100px]"
-                        placeholder="Describe the exercises and focus for this goal..."
-                        value={assignForm.goalDescription}
-                        onChange={(e) =>
-                          setAssignForm((p) => ({
-                            ...p,
-                            goalDescription: e.target.value,
-                          }))
-                        }
-                      />
-                    </div> */}
                   </AccordionContent>
                 </AccordionItem>
+
                 <AccordionItem value="travel">
                   <AccordionTrigger>Travel Details</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
@@ -4594,7 +4320,7 @@ const PatientManagement = () => {
                         }
                       />
                     </div>
-                    {/* {assignForm.visitOrder == 1 && ( */}
+
                     <div className="space-y-2">
                       <Label htmlFor="KmsfromHub">Kms from Hub</Label>
                       <Input
@@ -4613,7 +4339,7 @@ const PatientManagement = () => {
                         }
                       />
                     </div>
-                    {/* )} */}
+
                     {assignForm.visitOrder > 1 && (
                       <div className="space-y-2">
                         <Label htmlFor="kmsFromPrevious">
@@ -4636,6 +4362,7 @@ const PatientManagement = () => {
                         />
                       </div>
                     )}
+
                     <div className="space-y-2">
                       <Label htmlFor="KmsfLPatienttoHub">
                         Kms from Last Patient to Hub
@@ -4659,22 +4386,27 @@ const PatientManagement = () => {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-              <DialogFooter className="pt-4">
+
+              <DialogFooter className="pt-4 flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsAssignPhysioOpen(false)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Assign & Save Plan</Button>
+                <Button type="submit" className="w-full sm:w-auto">
+                  Assign & Save Plan
+                </Button>
               </DialogFooter>
             </form>
           </div>
         </DialogContent>
       </Dialog>
+
       <AlertDialog open={openDialog} onOpenChange={setOpendialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
             <AlertDialogDescription>
@@ -4687,10 +4419,13 @@ const PatientManagement = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
 
             <AlertDialogAction
+              className="w-full sm:w-auto"
               onClick={() => handleConsentToggle(pendingPatient)}
             >
               Confirm
@@ -4698,8 +4433,9 @@ const PatientManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       <AlertDialog open={openAlert} onOpenChange={setOpenAlert}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
 
@@ -4710,10 +4446,8 @@ const PatientManagement = () => {
                 {!pendingPatient?.isRecovered ? "Recovered" : "Not Recovered"}?
               </div>
 
-              {/* Show ONLY when marking as Recovered */}
               {!pendingPatient?.isRecovered && (
                 <>
-                  {/* Dropdown */}
                   <div className="space-y-1">
                     <Label>Recovered Type</Label>
 
@@ -4734,7 +4468,6 @@ const PatientManagement = () => {
                     </Select>
                   </div>
 
-                  {/* Input shown only if Other */}
                   {recoveredType === "Other" && (
                     <div className="space-y-1">
                       <Label>Specify Reason</Label>
@@ -4752,8 +4485,9 @@ const PatientManagement = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel
+              className="w-full sm:w-auto"
               onClick={() => {
                 setRecoveredType("");
                 setOtherReason("");
@@ -4763,6 +4497,7 @@ const PatientManagement = () => {
             </AlertDialogCancel>
 
             <AlertDialogAction
+              className="w-full sm:w-auto"
               disabled={
                 !pendingPatient?.isRecovered &&
                 (!recoveredType || (recoveredType === "Other" && !otherReason))

@@ -345,28 +345,26 @@ const Consulation = () => {
 
   //api call and delete Patients
   const deletePatient = async (id) => {
-    if (user?.role === "Admin" || user?.role === "SuperAdmin") {
-      try {
-        const response = await apiRequest("Consultation/deleteConsultation", {
-          method: "POST",
-          body: JSON.stringify({ _id: id }),
-        });
-        toast({
-          title: "Deleted",
-          description: "Patients has been removed.",
-          variant: "destructive",
-        });
-        getAllConsultation();
+    try {
+      const response = await apiRequest("Consultation/deleteConsultation", {
+        method: "POST",
+        body: JSON.stringify({ _id: id }),
+      });
+      toast({
+        title: "Deleted",
+        description: "Patients has been removed.",
+        variant: "destructive",
+      });
+      getAllConsultation();
 
-        // setFilteredPatients(response);
-        // setPhysios(response);
-        // setSessions(response);
+      // setFilteredPatients(response);
+      // setPhysios(response);
+      // setSessions(response);
 
-        return response;
-      } catch (error) {
-        console.error("Error:", error);
-        throw error;
-      }
+      return response;
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
     }
   };
 
@@ -596,130 +594,111 @@ const Consulation = () => {
   };
 
   const handleEditPatient = (patient) => {
-    if (
-      user?.role === "HOD" ||
-      user?.role === "Admin" ||
-      user?.role === "SuperAdmin"
-    ) {
-      setEditingPatient(true);
-      const formData = {
-        _id: patient._id ? patient._id : null,
-        patientCode: patient.patientCode ? patient.patientCode : null,
-        patientName: patient.patientName ? patient.patientName : null,
-        patientAge: patient.patientAge ? patient.patientAge : null,
-        patientGenderId: patient.patientGenderId._id
-          ? patient.patientGenderId._id
-          : null,
-        patientNumber: patient.patientNumber ? patient.patientNumber : null,
-        patientAddress: patient.patientAddress ? patient.patientAddress : null,
-        // category: patient.category ? patient.category : null,
-        MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor
-          ? patient.MedicalHistoryAndRiskFactor
-          : null,
-        documents: patient.documents ? patient.documents : [],
-        consultationDate: patient.consultationDate
-          ? new Date(patient.consultationDate)
-          : "",
-        byStandar: patient.byStandar ? patient.byStandar : null,
-        Relation: patient.Relation ? patient.Relation : null,
-        patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
-        patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
-        patientCondition: patient.patientCondition
-          ? patient.patientCondition
-          : null,
-        Physiotherapist: patient.Physiotherapist
-          ? patient.Physiotherapist
-          : null,
-        reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
-        historyOfSurgery: patient.historyOfSurgery
-          ? patient.historyOfSurgery
-          : null,
-        historyOfSurgeryDetails: patient.historyOfSurgeryDetails
-          ? patient.historyOfSurgeryDetails
-          : null,
-        historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
-        historyOfFallDetails: patient.historyOfFallDetails
-          ? patient.historyOfFallDetails
-          : null,
-        otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
-        currMed: patient.currMed ? patient.currMed : null,
-        typesOfLifeStyle: patient.typesOfLifeStyle
-          ? patient.typesOfLifeStyle
-          : null,
-        smokingOrAlcohol: patient.smokingOrAlcohol
-          ? patient.smokingOrAlcohol
-          : false,
-        dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
-        Contraindications: patient.Contraindications
-          ? patient.Contraindications
-          : null,
-        goalDescription: patient.goalDescription
-          ? patient.goalDescription
-          : null,
-        painLevel: patient.painLevel ? patient.painLevel : null,
-        rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
-        muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
-        postureOrGaitAnalysis: patient.postureOrGaitAnalysis
-          ? patient.postureOrGaitAnalysis
-          : null,
-        functionalLimitations: patient.functionalLimitations
-          ? patient.functionalLimitations
-          : null,
-        ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
-        shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
-        longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
-        RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
-        Frequency: patient.Frequency ? patient.Frequency : null,
-        Duration: patient.Duration ? patient.Duration : null,
-        Modalities: patient.Modalities ? patient.Modalities : false,
-        modalityList: patient.modalityList ? patient.modalityList : [],
-        targetedArea: patient.targetedArea ? patient.targetedArea : null,
-        noOfDays: patient.noOfDays ? patient.noOfDays : null,
-        hodNotes: patient.hodNotes ? patient.hodNotes : null,
-        goalLog: patient.goalLog ? patient.goalLog : [],
-        travelDetails: patient.travelDetails ? patient.travelDetails : null,
-        genderName: patient.patientGenderId
-          ? patient.patientGenderId.genderName
-          : null,
-        FeesTypeId: patient.FeesTypeId ? patient.FeesTypeId._id : null,
-        feesTypeName: patient.FeesTypeId
-          ? patient.FeesTypeId.feesTypeName
-          : null,
-        feeAmount: patient.feeAmount ? patient.feeAmount : null,
-        ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
-        sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
-      };
-      if (patient.consultationDate)
-        formData.consultationDate = new Date(patient.consultationDate);
-      if (patient.reviewDate)
-        formData.reviewDate = new Date(patient.reviewDate);
-      let radio = [];
-      const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
-        if (val.isExist) {
-          radio.push({
-            RiskFactorID: val.RiskFactorID._id,
-            isExist: val.isExist,
-          });
-        }
-        return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
-      });
-      setRadio(radio);
-      if (RiskFactor.length > 0) {
-        RiskFactor.map(
-          (val) =>
-            (formData[Object.keys(val)[0].toLowerCase()] =
-              val[Object.keys(val)[0]] == "true"),
-        );
+    setEditingPatient(true);
+    const formData = {
+      _id: patient._id ? patient._id : null,
+      patientCode: patient.patientCode ? patient.patientCode : null,
+      patientName: patient.patientName ? patient.patientName : null,
+      patientAge: patient.patientAge ? patient.patientAge : null,
+      patientGenderId: patient.patientGenderId._id
+        ? patient.patientGenderId._id
+        : null,
+      patientNumber: patient.patientNumber ? patient.patientNumber : null,
+      patientAddress: patient.patientAddress ? patient.patientAddress : null,
+      // category: patient.category ? patient.category : null,
+      MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor
+        ? patient.MedicalHistoryAndRiskFactor
+        : null,
+      documents: patient.documents ? patient.documents : [],
+      consultationDate: patient.consultationDate
+        ? new Date(patient.consultationDate)
+        : "",
+      byStandar: patient.byStandar ? patient.byStandar : null,
+      Relation: patient.Relation ? patient.Relation : null,
+      patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
+      patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
+      patientCondition: patient.patientCondition
+        ? patient.patientCondition
+        : null,
+      Physiotherapist: patient.Physiotherapist ? patient.Physiotherapist : null,
+      reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
+      historyOfSurgery: patient.historyOfSurgery
+        ? patient.historyOfSurgery
+        : null,
+      historyOfSurgeryDetails: patient.historyOfSurgeryDetails
+        ? patient.historyOfSurgeryDetails
+        : null,
+      historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
+      historyOfFallDetails: patient.historyOfFallDetails
+        ? patient.historyOfFallDetails
+        : null,
+      otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
+      currMed: patient.currMed ? patient.currMed : null,
+      typesOfLifeStyle: patient.typesOfLifeStyle
+        ? patient.typesOfLifeStyle
+        : null,
+      smokingOrAlcohol: patient.smokingOrAlcohol
+        ? patient.smokingOrAlcohol
+        : false,
+      dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
+      Contraindications: patient.Contraindications
+        ? patient.Contraindications
+        : null,
+      goalDescription: patient.goalDescription ? patient.goalDescription : null,
+      painLevel: patient.painLevel ? patient.painLevel : null,
+      rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
+      muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
+      postureOrGaitAnalysis: patient.postureOrGaitAnalysis
+        ? patient.postureOrGaitAnalysis
+        : null,
+      functionalLimitations: patient.functionalLimitations
+        ? patient.functionalLimitations
+        : null,
+      ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
+      shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
+      longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
+      RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
+      Frequency: patient.Frequency ? patient.Frequency : null,
+      Duration: patient.Duration ? patient.Duration : null,
+      Modalities: patient.Modalities ? patient.Modalities : false,
+      modalityList: patient.modalityList ? patient.modalityList : [],
+      targetedArea: patient.targetedArea ? patient.targetedArea : null,
+      noOfDays: patient.noOfDays ? patient.noOfDays : null,
+      hodNotes: patient.hodNotes ? patient.hodNotes : null,
+      goalLog: patient.goalLog ? patient.goalLog : [],
+      travelDetails: patient.travelDetails ? patient.travelDetails : null,
+      genderName: patient.patientGenderId
+        ? patient.patientGenderId.genderName
+        : null,
+      FeesTypeId: patient.FeesTypeId ? patient.FeesTypeId._id : null,
+      feesTypeName: patient.FeesTypeId ? patient.FeesTypeId.feesTypeName : null,
+      feeAmount: patient.feeAmount ? patient.feeAmount : null,
+      ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
+      sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
+    };
+    if (patient.consultationDate)
+      formData.consultationDate = new Date(patient.consultationDate);
+    if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
+    let radio = [];
+    const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
+      if (val.isExist) {
+        radio.push({
+          RiskFactorID: val.RiskFactorID._id,
+          isExist: val.isExist,
+        });
       }
-      setPatientForm(formData);
-      setIsFormOpen(true);
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to edit patient details.",
-        variant: "destructive",
-      });
+      return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
+    });
+    setRadio(radio);
+    if (RiskFactor.length > 0) {
+      RiskFactor.map(
+        (val) =>
+          (formData[Object.keys(val)[0].toLowerCase()] =
+            val[Object.keys(val)[0]] == "true"),
+      );
     }
+    setPatientForm(formData);
+    setIsFormOpen(true);
   };
 
   const handleNewPatient = () => {
@@ -837,101 +816,64 @@ const Consulation = () => {
     setReviewForm(initialReviewState);
   };
 
-  const handleScheduleReview = (patient) => {
-    if (
-      user?.role === "HOD" ||
-      user?.role === "Admin" ||
-      user?.role === "SuperAdmin"
-    ) {
-      setReviewingPatient(patient);
-      setIsReviewOpen(true);
-    } else {
+  const openLead = async (patient) => {
+    try {
+      // Call backend to revert the patient
+      const response = await apiRequest("Consultation/revertConsultation", {
+        method: "POST",
+        body: JSON.stringify({ id: patient._id, status: "Pending" }), // optional: send "Pending" status
+      });
+
+      const data = response; // API returns updated patient
+
+      // Remove from Consultant page
+      setPatients((prev) => prev.filter((p) => p._id !== patient._id));
+      setFilteredPatients((prev) => prev.filter((p) => p._id !== patient._id));
+
       toast({
-        title: "Access Denied",
-        description: "You do not have permission to conduct reviews.",
+        title: "Reverted",
+        description: `${
+          patient.patientName || "Patient"
+        } has been reverted to lead.`,
+        variant: "default",
+      });
+
+      // Navigate to Lead page and send reverted patient data
+      navigate("/leads", {
+        state: { refresh: true, patient: data.leadDetails },
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Something went wrong",
         variant: "destructive",
       });
-    }
-  };
-
-  const openLead = async (patient) => {
-    if (
-      user?.role === "HOD" ||
-      user?.role === "Admin" ||
-      user?.role === "SuperAdmin"
-    ) {
-      try {
-        // Call backend to revert the patient
-        const response = await apiRequest("Consultation/revertConsultation", {
-          method: "POST",
-          body: JSON.stringify({ id: patient._id, status: "Pending" }), // optional: send "Pending" status
-        });
-
-        const data = response; // API returns updated patient
-
-        // Remove from Consultant page
-        setPatients((prev) => prev.filter((p) => p._id !== patient._id));
-        setFilteredPatients((prev) =>
-          prev.filter((p) => p._id !== patient._id),
-        );
-
-        toast({
-          title: "Reverted",
-          description: `${
-            patient.patientName || "Patient"
-          } has been reverted to lead.`,
-          variant: "default",
-        });
-
-        // Navigate to Lead page and send reverted patient data
-        navigate("/leads", {
-          state: { refresh: true, patient: data.leadDetails },
-        });
-      } catch (error) {
-        console.error("Error:", error);
-        toast({
-          title: "Error",
-          description: error.message || "Something went wrong",
-          variant: "destructive",
-        });
-      }
     }
   };
 
   const openAssignPhysioDialog = (patient) => {
-    if (
-      user?.role === "HOD" ||
-      user?.role === "Admin" ||
-      user?.role === "SuperAdmin"
-    ) {
-      setAssigningPatient(patient);
-      setAssignForm({
-        _id: patient._id ? patient._id : null,
-        Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
-        physioId: patient.physioId ? patient.physioId._id : "",
-        InitialShorttermGoal: patient.InitialShorttermGoal || "",
-        goalDuration: patient.goalDuration || "",
-        totalSessionDays: patient.totalSessionDays || "",
-        consultationNumber: patient.patientNumber || "",
-        sessionStartDate: patient.sessionStartDate
-          ? new Date(patient.sessionStartDate)
-          : "",
-        sessionTime: patient.sessionTime || "",
-        goalDescription: patient.goalDescription || " ",
-        reviewFrequency: patient.reviewFrequency || "",
-        visitOrder: patient.visitOrder || "",
-        KmsfromHub: patient.KmsfromHub || "",
-        KmsfLPatienttoHub: patient.KmsfLPatienttoHub || "",
-        kmsFromPrevious: patient.kmsFromPrevious || "",
-      });
-      setIsAssignPhysioOpen(true);
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to assign physiotherapists.",
-        variant: "destructive",
-      });
-    }
+    setAssigningPatient(patient);
+    setAssignForm({
+      _id: patient._id ? patient._id : null,
+      Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
+      physioId: patient.physioId ? patient.physioId._id : "",
+      InitialShorttermGoal: patient.InitialShorttermGoal || "",
+      goalDuration: patient.goalDuration || "",
+      totalSessionDays: patient.totalSessionDays || "",
+      consultationNumber: patient.patientNumber || "",
+      sessionStartDate: patient.sessionStartDate
+        ? new Date(patient.sessionStartDate)
+        : "",
+      sessionTime: patient.sessionTime || "",
+      goalDescription: patient.goalDescription || " ",
+      reviewFrequency: patient.reviewFrequency || "",
+      visitOrder: patient.visitOrder || "",
+      KmsfromHub: patient.KmsfromHub || "",
+      KmsfLPatienttoHub: patient.KmsfLPatienttoHub || "",
+      kmsFromPrevious: patient.kmsFromPrevious || "",
+    });
+    setIsAssignPhysioOpen(true);
   };
 
   const handleAssignPhysioSubmit = (e) => {
@@ -1250,66 +1192,53 @@ const Consulation = () => {
                     </div> */}
                     <div className="flex space-x-2">
                       {/* <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button> */}
-                      {(user?.role === "HOD" ||
-                        user?.role === "Admin" ||
-                        user?.role === "SuperAdmin") && (
-                        <>
-                          {Permissions.isEdit && (
+
+                      {Permissions.isEdit && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditPatient(patient)}
+                          className="flex-1"
+                        >
+                          <Edit size={14} />
+                          <span className="hidden md:inline lg:inline">
+                            Edit
+                          </span>
+                        </Button>
+                      )}
+
+                      {Permissions.isDelete && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
                             <Button
                               size="sm"
-                              variant="outline"
-                              onClick={() => handleEditPatient(patient)}
+                              variant="destructive"
                               className="flex-1"
                             >
-                              <Edit size={14} />
+                              <Trash2 size={14} />
                               <span className="hidden md:inline lg:inline">
-                                Edit
+                                Delete
                               </span>
                             </Button>
-                          )}
-                        </>
-                      )}
-                      {(user?.role === "Admin" ||
-                        user?.role === "SuperAdmin") && (
-                        <>
-                          {Permissions.isDelete && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="flex-1"
-                                >
-                                  <Trash2 size={14} />
-                                  <span className="hidden md:inline lg:inline">
-                                    Delete
-                                  </span>
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you sure?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete the patient and
-                                    all their records.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      handleDeletePatient(patient._id)
-                                    }
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete the patient and all
+                                their records.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeletePatient(patient._id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                   </div>

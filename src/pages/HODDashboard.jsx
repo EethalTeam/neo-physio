@@ -50,6 +50,8 @@ import {
   StickyNote,
   UserCircle,
   UserMinus,
+  BellRing,
+  PhoneCall,
 } from "lucide-react";
 
 import {
@@ -80,6 +82,7 @@ const HODDashboard = () => {
   });
 
   const [allReviews, setAllReviews] = useState([]);
+  const [cbNotifications, setCbNotifications] = useState([]);
 
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
@@ -94,7 +97,7 @@ const HODDashboard = () => {
     reviewCode: "",
     patientId: "",
     physioId: "",
-    sessionDate: null, // review date
+    sessionDate: null,
     reviewTime: "",
     reviewTypeId: "",
     reviewStatusId: "",
@@ -105,9 +108,6 @@ const HODDashboard = () => {
 
   const [sessionForm, setSessionForm] = useState(initialFormState);
 
-  // -------------------------
-  // DASHBOARD STATS
-  // -------------------------
   useEffect(() => {
     getAllDashBoard();
   }, []);
@@ -124,9 +124,6 @@ const HODDashboard = () => {
     }
   };
 
-  // -------------------------
-  // MASTER DATA
-  // -------------------------
   useEffect(() => {
     getReviews();
     getPatients();
@@ -134,6 +131,7 @@ const HODDashboard = () => {
     getReviewStatus();
     getReviewTypes();
     getRedFlags();
+    getCbNotifications();
   }, []);
 
   const getReviews = async () => {
@@ -221,9 +219,42 @@ const HODDashboard = () => {
     }
   };
 
-  // -------------------------
-  // FILTERED LISTS
-  // -------------------------
+  const getCbNotifications = async () => {
+    try {
+      const res = await apiRequest("Lead/getAllLead", {
+        method: "POST",
+      });
+
+      const leads = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.leads)
+          ? res.leads
+          : [];
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const filtered = leads.filter((lead) => {
+        if (!lead?.cbDate) return false;
+
+        const cbDate = new Date(lead.cbDate);
+        cbDate.setHours(0, 0, 0, 0);
+
+        const threeDaysBefore = new Date(cbDate);
+        threeDaysBefore.setDate(cbDate.getDate() - 3);
+
+        return today >= threeDaysBefore && today <= cbDate;
+      });
+
+      filtered.sort((a, b) => new Date(a.cbDate) - new Date(b.cbDate));
+
+      setCbNotifications(filtered);
+    } catch (error) {
+      console.log("getCbNotifications error:", error);
+      setCbNotifications([]);
+    }
+  };
+
   const pendingReviews = useMemo(() => {
     return allReviews.filter(
       (r) => r.reviewStatusId?.reviewStatusName === "Pending",
@@ -231,7 +262,6 @@ const HODDashboard = () => {
   }, [allReviews]);
 
   const alertReviews = useMemo(() => {
-    // you can change rule: reviewTypeName === "RedFlags" OR redFlags length > 0
     return allReviews.filter(
       (r) =>
         (Array.isArray(r.redFlags) && r.redFlags.length > 0) ||
@@ -239,13 +269,21 @@ const HODDashboard = () => {
     );
   }, [allReviews]);
 
-  // -------------------------
-  // HELPERS
-  // -------------------------
   const getRedFlagNames = (feedbackRedFlags = []) => {
     return feedbackRedFlags
       .map((rf) => rf?.redFlagId?.redflagName)
       .filter(Boolean);
+  };
+
+  const getDaysLeft = (cbDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const target = new Date(cbDate);
+    target.setHours(0, 0, 0, 0);
+
+    const diffTime = target - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const ReviewTypeBadge = ({ reviewTypeName }) => (
@@ -289,11 +327,7 @@ const HODDashboard = () => {
     );
   };
 
-  // -------------------------
-  // ACTIONS
-  // -------------------------
   const handleReviewAction = (reviewId, action) => {
-    // UI-only example (you can call your backend if you want)
     setAllReviews((prev) =>
       prev.map((r) => (r._id === reviewId ? { ...r, status: action } : r)),
     );
@@ -377,7 +411,6 @@ const HODDashboard = () => {
     if (editingReview) {
       UpdateReview({ ...sessionForm, _id: editingReview._id });
     } else {
-      // createReview(sessionForm)  // add your create api if you have
       toast({ title: "Info", description: "Create API not connected here." });
     }
 
@@ -390,9 +423,6 @@ const HODDashboard = () => {
     return patients.find((p) => p._id === sessionForm.patientId);
   }, [patients, sessionForm.patientId]);
 
-  // -------------------------
-  // UI CARDS
-  // -------------------------
   const statCards = [
     {
       title: "Total Patients",
@@ -429,6 +459,13 @@ const HODDashboard = () => {
       color: "text-red-600",
       bgColor: "bg-red-100",
     },
+    {
+      title: "CB Notifications",
+      value: cbNotifications.length,
+      icon: BellRing,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-100",
+    },
   ];
 
   return (
@@ -444,7 +481,6 @@ const HODDashboard = () => {
         </p>
       </motion.div>
 
-      {/* Quick buttons */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <button
           onClick={() => navigate("/reviewform")}
@@ -495,7 +531,6 @@ const HODDashboard = () => {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
@@ -529,9 +564,7 @@ const HODDashboard = () => {
         })}
       </div>
 
-      {/* Pending + Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Reviews */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -569,25 +602,6 @@ const HODDashboard = () => {
                             : "-"}
                         </p>
                       </div>
-
-                      {/* <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleReviewAction(review._id, "done")}
-                        >
-                          Done
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleReviewAction(review._id, "postponed")
-                          }
-                        >
-                          Postpone
-                        </Button>
-                      </div> */}
                     </div>
                   ))
                 )}
@@ -596,7 +610,6 @@ const HODDashboard = () => {
           </Card>
         </motion.div>
 
-        {/* Session Alerts */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -609,7 +622,6 @@ const HODDashboard = () => {
             </CardHeader>
 
             <CardContent>
-              {/* MOBILE: Cards */}
               <div className="block md:hidden space-y-3">
                 {alertReviews.length === 0 ? (
                   <p className="text-sm text-gray-500">No alerts today.</p>
@@ -720,13 +732,11 @@ const HODDashboard = () => {
                 )}
               </div>
 
-              {/* DESKTOP: Single row grid */}
               <div className="hidden md:block">
                 {alertReviews.length === 0 ? (
                   <p className="text-sm text-gray-500">No alerts today.</p>
                 ) : (
                   <>
-                    {/* header row */}
                     <div className="grid grid-cols-9 text-xs font-semibold text-gray-600 border-b pb-2">
                       <div className="p-2">Patient</div>
                       <div className="p-2">Physio</div>
@@ -844,7 +854,83 @@ const HODDashboard = () => {
         </motion.div>
       </div>
 
-      {/* Edit Dialog */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+      >
+        <Card className="medical-card">
+          <CardHeader>
+            <CardTitle>CB Notifications</CardTitle>
+            <CardDescription>
+              Callback reminders for the next 3 days
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {cbNotifications.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No callback notifications.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {cbNotifications.map((lead) => {
+                  const daysLeft = getDaysLeft(lead.cbDate);
+
+                  return (
+                    <div
+                      key={lead._id}
+                      className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 hover:bg-gray-50 transition"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <PhoneCall className="h-4 w-4 text-orange-600" />
+                          <p className="font-semibold text-gray-800">
+                            {lead.leadName}
+                          </p>
+                        </div>
+
+                        <p className="text-sm text-gray-500 mt-1">
+                          {lead.leadCode} • {lead.leadContactNo}
+                        </p>
+
+                        <p className="text-sm text-gray-600">
+                          {lead.physioCategoryId?.physioCateName || "-"} •{" "}
+                          {lead.leadSourceId?.leadSourceName || "-"}
+                        </p>
+
+                        <p className="text-sm text-gray-600">
+                          Status: {lead.LeadStatusId?.leadStatusName || "-"}
+                        </p>
+                      </div>
+
+                      <div className="text-left md:text-right">
+                        <p className="text-sm font-medium text-red-600">
+                          CB Date:{" "}
+                          {new Date(lead.cbDate).toLocaleDateString("en-GB")}
+                        </p>
+
+                        <p className="text-xs mt-1">
+                          {daysLeft === 0 ? (
+                            <span className="text-red-600 font-semibold">
+                              Callback is today
+                            </span>
+                          ) : (
+                            <span className="text-orange-600 font-semibold">
+                              {daysLeft} day(s) left
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide">
           <DialogHeader>

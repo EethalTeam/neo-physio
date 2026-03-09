@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [cbNotifications, setCbNotifications] = useState([]);
 
   const [patients, setPatients] = useState([]);
 
@@ -44,6 +45,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchTodayRevenue();
+    getCbNotifications();
   }, []);
 
   const [stats, setStats] = useState({
@@ -90,6 +92,50 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error("fetchIncomeByDate error:", err);
     }
+  };
+  const getCbNotifications = async () => {
+    try {
+      const res = await apiRequest("Lead/getAllLead", {
+        method: "POST",
+      });
+
+      const leads = Array.isArray(res) ? res : res.leads || [];
+
+      console.log("all leads:", leads);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const filtered = leads.filter((lead) => {
+        if (!lead.cbDate) return false;
+
+        const cbDate = new Date(lead.cbDate);
+        cbDate.setHours(0, 0, 0, 0);
+
+        const threeDaysBefore = new Date(cbDate);
+        threeDaysBefore.setDate(cbDate.getDate() - 3);
+
+        return today >= threeDaysBefore && today <= cbDate;
+      });
+
+      console.log("filtered cb notifications:", filtered);
+
+      filtered.sort((a, b) => new Date(a.cbDate) - new Date(b.cbDate));
+
+      setCbNotifications(filtered);
+    } catch (error) {
+      console.error("getCbNotifications error:", error);
+    }
+  };
+  const getDaysLeft = (cbDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const target = new Date(cbDate);
+    target.setHours(0, 0, 0, 0);
+
+    const diffTime = target - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   useEffect(() => {
@@ -316,19 +362,70 @@ const AdminDashboard = () => {
         </Card>
 
         {/* Optional: show list of patients revenue (if you want later) */}
-        {/* <Card className="medical-card">
+        <Card className="medical-card">
           <CardHeader>
-            <CardTitle>Revenue Patients Count</CardTitle>
+            <CardTitle>CB Notifications</CardTitle>
             <CardDescription>
-              Patients in selected date range: {patients.length}
+              Callback reminders for the next 3 days
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            <p className="text-sm text-gray-600">
-              (If you want, we can show top 5 income patients here.)
-            </p>
+            {cbNotifications.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No callback notifications.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {cbNotifications.map((lead) => {
+                  const daysLeft = getDaysLeft(lead.cbDate);
+
+                  return (
+                    <div
+                      key={lead._id}
+                      className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 hover:bg-gray-50 transition"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-800">
+                          {lead.leadName}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {lead.leadCode} • {lead.leadContactNo}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {lead.physioCategoryId?.physioCateName || "-"} •{" "}
+                          {lead.leadSourceId?.leadSourceName || "-"}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Status: {lead.LeadStatusId?.leadStatusName || "-"}
+                        </p>
+                      </div>
+
+                      <div className="text-left md:text-right">
+                        <p className="text-sm font-medium text-red-600">
+                          CB Date:{" "}
+                          {new Date(lead.cbDate).toLocaleDateString("en-GB")}
+                        </p>
+
+                        <p className="text-xs mt-1">
+                          {daysLeft === 0 ? (
+                            <span className="text-red-600 font-semibold">
+                              Callback is today
+                            </span>
+                          ) : (
+                            <span className="text-orange-600 font-semibold">
+                              {daysLeft} day(s) left
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
-        </Card> */}
+        </Card>
       </div>
     </div>
   );

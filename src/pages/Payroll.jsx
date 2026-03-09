@@ -523,94 +523,103 @@ const Payroll = () => {
     }
   };
   return (
-    // <div className="space-y-6">
-    <div className="space-y-6 overflow-x-hidden">
-      {/* // <div className="min-h-screen w-full overflow-x-hidden"> */}
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 pb-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex justify-between items-center"
+        className="flex flex-col gap-2 sm:gap-3"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
             Payroll Management
           </h1>
-          <p className="text-gray-600 text-sm md:text-xs">
+          <p className="text-gray-600 text-xs sm:text-sm">
             Generate monthly payslips and calculate revenue for employees.
           </p>
         </div>
       </motion.div>
 
-      <Card className="medical-card  ">
-        <CardHeader>
-          <CardTitle>Generate Payroll</CardTitle>
-          <CardDescription>
+      <Card className="medical-card w-full max-w-full overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">
+            Generate Payroll
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Select a month and year to calculate payroll.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center gap-4">
-          {/* <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4"> */}
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <Select
-              value={selectedMonth.toString()}
-              onValueChange={(val) => setSelectedMonth(parseInt(val))}
-            >
-              {/* <SelectTrigger className="w-40"> */}
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m, i) => (
-                  <SelectItem key={i} value={i.toString()}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedYear.toString()}
-              onValueChange={(val) => setSelectedYear(parseInt(val))}
-            >
-              {/* <SelectTrigger className="w-28"> */}
-              <SelectTrigger className="w-full sm:w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((y) => (
-                  <SelectItem key={y} value={y.toString()}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="ml-auto">
-            <p className="text-xs text-gray-500">Total Net Salary</p>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-              ₹{Number(totalNetPay || 0).toLocaleString("en-IN")}
-            </h2>
+
+        <CardContent className="w-full">
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 shrink-0" />
+                <Select
+                  value={selectedMonth.toString()}
+                  onValueChange={(val) => setSelectedMonth(parseInt(val))}
+                >
+                  <SelectTrigger className="w-full min-w-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((m, i) => (
+                      <SelectItem key={i} value={i.toString()}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 min-w-0">
+                <Select
+                  value={selectedYear.toString()}
+                  onValueChange={(val) => setSelectedYear(parseInt(val))}
+                >
+                  <SelectTrigger className="w-full min-w-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="w-full rounded-lg border bg-slate-50 px-3 py-3">
+              <p className="text-[11px] sm:text-xs text-gray-500">
+                Total Net Salary
+              </p>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 break-words">
+                ₹{Number(totalNetPay || 0).toLocaleString("en-IN")}
+              </h2>
+            </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* desktop table */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
+        className="hidden xl:block"
       >
-        <Card className="medical-card hidden sm:block">
+        <Card className="medical-card w-full">
           <CardHeader>
             <CardTitle>
               Payroll for {months[selectedMonth]} {selectedYear}
             </CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="w-full overflow-x-auto">
+              <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b">
                     <th className="text-left p-3 font-semibold text-gray-600">
@@ -664,10 +673,13 @@ const Payroll = () => {
                           {emp.totalSessions}
                         </td>
                         <td className="p-3 text-right text-green-600 font-medium">
-                          ₹{Number(emp.grossRevenue || 0).toLocaleString()}
+                          ₹
+                          {Number(emp.grossRevenue || 0).toLocaleString(
+                            "en-IN",
+                          )}
                         </td>
                         <td className="p-3 text-right text-blue-600 font-bold">
-                          ₹{Number(emp.netPay || 0).toLocaleString()}
+                          ₹{Number(emp.netPay || 0).toLocaleString("en-IN")}
                         </td>
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -675,7 +687,7 @@ const Payroll = () => {
                               size="sm"
                               onClick={() => handleViewPayslip(emp)}
                             >
-                              <FileSpreadsheet size={14} className="mr-2" />{" "}
+                              <FileSpreadsheet size={14} className="mr-2" />
                               View Payslip
                             </Button>
 
@@ -729,165 +741,177 @@ const Payroll = () => {
         </Card>
       </motion.div>
 
+      {/* mobile + tablet cards */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
+        className="xl:hidden"
       >
-        <Card className="medical-card sm:hidden">
-          <CardHeader>
-            <CardTitle>
+        <Card className="medical-card w-full max-w-full overflow-hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm sm:text-base">
               Payroll for {months[selectedMonth]} {selectedYear}
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="space-y-4">
-            {payrollUi.map((emp) => (
-              <motion.div
-                key={emp._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card className="border rounded-xl">
-                  <CardContent className="p-4 space-y-3">
-                    {/* Employee Info */}
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          {emp.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {emp.specialization}
-                        </p>
-                      </div>
-                      {/* 
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          emp.role === "HOD"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {emp.role}
-                      </span> */}
-                    </div>
+          <CardContent className="space-y-3">
+            {payrollUi
+              .filter((emp) => emp.role !== "SuperAdmin")
+              .map((emp) => (
+                <motion.div
+                  key={emp._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="w-full border rounded-xl shadow-sm overflow-hidden">
+                    <CardContent className="p-3 sm:p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-sm sm:text-base font-semibold text-gray-800 break-words">
+                            {emp.name}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-gray-500 break-words">
+                            {emp.specialization}
+                          </p>
+                        </div>
 
-                    {/* Payroll Details */}
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Sessions</span>
-                        <span className="font-medium">
-                          {emp.totalSessions ?? 0}
+                        <span
+                          className={`shrink-0 px-2 py-1 rounded-full text-[10px] sm:text-xs font-medium ${
+                            emp.role === "HOD"
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {emp.role}
                         </span>
                       </div>
 
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Gross Revenue</span>
-                        <span className="text-green-600 font-medium">
-                          ₹{emp.grossRevenue.toLocaleString()}
-                        </span>
+                      <div className="space-y-2 text-xs sm:text-sm">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-gray-600">Sessions</span>
+                          <span className="font-medium">
+                            {emp.totalSessions ?? 0}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between gap-3">
+                          <span className="text-gray-600">Gross Revenue</span>
+                          <span className="text-green-600 font-medium text-right break-words">
+                            ₹
+                            {Number(emp.grossRevenue || 0).toLocaleString(
+                              "en-IN",
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between gap-3">
+                          <span className="text-gray-600">Net Pay</span>
+                          <span className="text-blue-600 font-bold text-right break-words">
+                            ₹{Number(emp.netPay || 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Net Pay</span>
-                        <span className="text-blue-600 font-bold">
-                          ₹{emp.netPay.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-center gap-2">
-                        {Permissions.isEdit && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openEdit(emp)}
-                          >
-                            <Edit size={14} className="m-2" />
-                          </Button>
-                        )}
-                        {Permissions.isDelete && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                <Trash2 size={14} />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete patient?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete the Debit.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(emp._id)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleViewPayslip(emp)}
+                        >
+                          <FileSpreadsheet size={14} className="mr-2" />
+                          View Payslip
+                        </Button>
 
-                    {/* Action */}
-                    <Button
-                      size="sm"
-                      className="w-full mt-3"
-                      onClick={() => handleViewPayslip(emp)}
-                    >
-                      <FileSpreadsheet size={14} className="mr-2" />
-                      View Payslip
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                        <div className="flex items-center justify-center sm:justify-end gap-2">
+                          {Permissions.isEdit && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openEdit(emp)}
+                            >
+                              <Edit size={14} />
+                            </Button>
+                          )}
+
+                          {Permissions.isDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  <Trash2 size={14} />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete payroll?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the payroll.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(emp._id)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
           </CardContent>
         </Card>
       </motion.div>
 
       <Dialog open={isPayslipOpen} onOpenChange={setIsPayslipOpen}>
-        {/* <DialogContent className="max-w-2xl"> */}
-        <DialogContent className="w-[95vw] max-w-2xl overflow-y-auto max-h-[90vh]">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Payslip for {selectedPayslip?.name}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
+              Payslip for {selectedPayslip?.name}
+            </DialogTitle>
             <DialogDescription>
               Period: {months[selectedMonth]} {selectedYear}
             </DialogDescription>
           </DialogHeader>
+
           {selectedPayslip && (
-            // <div className="mt-4" id="payslip-content">
             <div className="mt-4 overflow-x-auto" id="payslip-content">
-              <div className="border rounded-lg p-6 bg-white">
-                <div className="flex justify-between items-start pb-4 border-b">
+              <div className="border rounded-lg p-4 sm:p-6 bg-white">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-4 border-b">
                   <div className="flex items-center gap-3">
                     <img
                       src={Logo}
                       alt="NEO Physio Logo"
-                      className="h-12 w-12 object-contain"
+                      className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                     />
-
                     <div>
-                      <h2 className="text-2xl font-bold text-blue-600">
+                      <h2 className="text-xl sm:text-2xl font-bold text-blue-600">
                         NEO Physio
                       </h2>
                       <p className="text-sm text-gray-500">Coimbatore</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <h3 className="text-lg font-semibold">Payslip</h3>
+
+                  <div className="text-left sm:text-right">
+                    <h3 className="text-base sm:text-lg font-semibold">
+                      Payslip
+                    </h3>
                     <p className="text-sm">
                       Date: {new Date().toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mt-4">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <div>
                     <p className="font-semibold">{selectedPayslip.name}</p>
                     <p className="text-sm text-gray-600">
@@ -898,6 +922,7 @@ const Payroll = () => {
                     </p>
                   </div>
                 </div>
+
                 <div className="mt-6 hidden sm:block">
                   <table className="w-full">
                     <thead>
@@ -910,34 +935,6 @@ const Payroll = () => {
                         </th>
                       </tr>
                     </thead>
-                    {/* <tbody>
-                      <tr className="border-b">
-                        <td className="p-2">Completed Sessions</td>
-                        <td className="p-2 text-right">
-                          {selectedPayslip.totalSessions}
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="p-2">Rate per Session</td>
-                        <td className="p-2 text-right">
-                          ₹{selectedPayslip.ratePerSession.toLocaleString()}
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="p-2 font-semibold">Gross Revenue</td>
-                        <td className="p-2 text-right font-semibold">
-                          ₹{selectedPayslip.grossRevenue.toLocaleString()}
-                        </td>
-                      </tr>
-                      <tr className="border-b">
-                        <td className="p-2 text-red-600">
-                          Deductions (TDS, etc.)
-                        </td>
-                        <td className="p-2 text-right text-red-600">
-                          - ₹{selectedPayslip.deductions.toLocaleString()}
-                        </td>
-                      </tr>
-                    </tbody> */}
                     <tbody>
                       <tr className="border-b">
                         <td className="p-2">Completed Sessions</td>
@@ -945,53 +942,48 @@ const Payroll = () => {
                           {selectedPayslip?.totalSessions ?? 0}
                         </td>
                       </tr>
-
                       <tr className="border-b">
                         <td className="p-2">Basic Salary</td>
                         <td className="p-2 text-right">
                           ₹
                           {Number(
                             selectedPayslip?.basicSalary || 0,
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                       </tr>
-
                       <tr className="border-b">
                         <td className="p-2">Vehicle Maintenance</td>
                         <td className="p-2 text-right">
                           ₹
                           {Number(
                             selectedPayslip?.vehicleMaintanance || 0,
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                       </tr>
-
                       <tr className="border-b">
                         <td className="p-2">Petrol Allowance</td>
                         <td className="p-2 text-right">
                           ₹
                           {Number(
                             selectedPayslip?.petrolAmount || 0,
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                       </tr>
-
                       <tr className="border-b">
                         <td className="p-2">Incentive</td>
                         <td className="p-2 text-right">
                           ₹
                           {Number(
                             selectedPayslip?.incentive || 0,
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                       </tr>
-
                       <tr className="border-b">
-                        <td className="p-2 text-600">No of Leave Days</td>
+                        <td className="p-2 text-gray-600">No of Leave Days</td>
                         <td className="p-2 text-right text-gray-600">
                           {Number(
                             selectedPayslip?.leaveDays || 0,
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                       </tr>
                       <tr className="border-b">
@@ -1000,78 +992,117 @@ const Payroll = () => {
                           - ₹
                           {Number(
                             selectedPayslip?.deducted || 0,
-                          ).toLocaleString()}
+                          ).toLocaleString("en-IN")}
                         </td>
                       </tr>
-
                       <tr className="border-b">
                         <td className="p-2 font-semibold">Gross Revenue</td>
                         <td className="p-2 text-right font-semibold">
                           ₹
-                          {(
-                            selectedPayslip?.grossRevenue ?? 0
-                          ).toLocaleString()}
+                          {Number(
+                            selectedPayslip?.grossRevenue || 0,
+                          ).toLocaleString("en-IN")}
                         </td>
                       </tr>
-
-                      {/* <tr className="border-b">
-                        <td className="p-2 text-red-600">
-                          Deductions (TDS, etc.)
-                        </td>
-                        <td className="p-2 text-right text-red-600">
-                          - ₹
-                          {(selectedPayslip?.deductions ?? 0).toLocaleString()}
-                        </td>
-                      </tr> */}
                     </tbody>
-
                     <tfoot>
                       <tr className="bg-gray-100">
                         <td className="p-2 font-bold text-lg">Net Payable</td>
                         <td className="p-2 text-right font-bold text-lg">
                           ₹
-                          {Number(
-                            selectedPayslip?.netPay || 0,
-                          ).toLocaleString()}
+                          {Number(selectedPayslip?.netPay || 0).toLocaleString(
+                            "en-IN",
+                          )}
                         </td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
-                {/* MOBILE CARD VIEW */}
+
                 <div className="sm:hidden mt-6 space-y-3">
                   <div className="border rounded-lg p-3 flex justify-between">
                     <span className="text-gray-600">Sessions</span>
                     <span className="font-medium">
-                      {selectedPayslip.totalSessions}
+                      {selectedPayslip?.totalSessions ?? 0}
                     </span>
                   </div>
 
                   <div className="border rounded-lg p-3 flex justify-between">
-                    <span className="text-gray-600">Rate / Session</span>
+                    <span className="text-gray-600">Basic Salary</span>
                     <span className="font-medium">
-                      ₹{(selectedPayslip?.ratePerSession ?? 0).toLocaleString()}
+                      ₹
+                      {Number(selectedPayslip?.basicSalary || 0).toLocaleString(
+                        "en-IN",
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="border rounded-lg p-3 flex justify-between">
+                    <span className="text-gray-600">Vehicle Maintenance</span>
+                    <span className="font-medium">
+                      ₹
+                      {Number(
+                        selectedPayslip?.vehicleMaintanance || 0,
+                      ).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  <div className="border rounded-lg p-3 flex justify-between">
+                    <span className="text-gray-600">Petrol Allowance</span>
+                    <span className="font-medium">
+                      ₹
+                      {Number(
+                        selectedPayslip?.petrolAmount || 0,
+                      ).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  <div className="border rounded-lg p-3 flex justify-between">
+                    <span className="text-gray-600">Incentive</span>
+                    <span className="font-medium">
+                      ₹
+                      {Number(selectedPayslip?.incentive || 0).toLocaleString(
+                        "en-IN",
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="border rounded-lg p-3 flex justify-between">
+                    <span className="text-gray-600">Leave Days</span>
+                    <span className="font-medium">
+                      {Number(selectedPayslip?.leaveDays || 0).toLocaleString(
+                        "en-IN",
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="border rounded-lg p-3 flex justify-between">
+                    <span className="text-red-600">Leave Deduction</span>
+                    <span className="font-medium text-red-600">
+                      - ₹
+                      {Number(selectedPayslip?.deducted || 0).toLocaleString(
+                        "en-IN",
+                      )}
                     </span>
                   </div>
 
                   <div className="border rounded-lg p-3 flex justify-between">
                     <span className="text-gray-600">Gross Revenue</span>
                     <span className="font-medium text-green-600">
-                      ₹{selectedPayslip.grossRevenue.toLocaleString()}
+                      ₹
+                      {Number(
+                        selectedPayslip?.grossRevenue || 0,
+                      ).toLocaleString("en-IN")}
                     </span>
                   </div>
-
-                  {/* <div className="border rounded-lg p-3 flex justify-between">
-                    <span className="text-red-600">Deductions</span>
-                    <span className="font-medium text-red-600">
-                      - ₹{selectedPayslip.deductions.toLocaleString()}
-                    </span>
-                  </div> */}
 
                   <div className="border rounded-lg p-4 bg-blue-50 flex justify-between">
                     <span className="font-bold text-blue-800">Net Pay</span>
                     <span className="font-bold text-blue-800 text-lg">
-                      ₹{selectedPayslip.netPay.toLocaleString()}
+                      ₹
+                      {Number(selectedPayslip?.netPay || 0).toLocaleString(
+                        "en-IN",
+                      )}
                     </span>
                   </div>
                 </div>
@@ -1083,18 +1114,24 @@ const Payroll = () => {
               </div>
             </div>
           )}
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={handlePrint}>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={handlePrint}
+              className="w-full sm:w-auto"
+            >
               <Printer size={16} className="mr-2" /> Print
             </Button>
-            <Button onClick={handleDownload}>
+            <Button onClick={handleDownload} className="w-full sm:w-auto">
               <Download size={16} className="mr-2" /> Download PDF
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="w-[95vw] max-w-xl">
+        <DialogContent className="w-[95vw] max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Payroll</DialogTitle>
             <DialogDescription>
@@ -1191,7 +1228,7 @@ const Payroll = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>PF</Label>
               <Input
                 name="PF"
@@ -1203,11 +1240,17 @@ const Payroll = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button onClick={saveEdit}>Save</Button>
+            <Button onClick={saveEdit} className="w-full sm:w-auto">
+              Save
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

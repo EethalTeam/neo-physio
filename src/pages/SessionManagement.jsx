@@ -449,16 +449,18 @@ const SessionManagement = () => {
 
   const updateSession = async (data) => {
     try {
+      console.log(data, "update session payload");
+
       await apiRequest("Session/updateSession", {
         method: "POST",
         body: JSON.stringify(data),
       });
+
       getSession();
     } catch (error) {
       console.log(error, "error from frontend update Session");
     }
   };
-
   const deleteSession = async (data) => {
     try {
       await apiRequest("Session/deleteSession", {
@@ -905,6 +907,7 @@ const SessionManagement = () => {
   const handleEditSession = (session) => {
     setEditingSession(session);
     setSessionForm({
+      _id: session._id || "",
       sessionCode: session.sessionCode || "",
       patientId: session.patientId?._id || "",
       physioId: session.physioId?._id || "",
@@ -918,7 +921,6 @@ const SessionManagement = () => {
     });
     setIsFormOpen(true);
   };
-
   const renderPhysioBadge = (physioId) => {
     const physio = (getPhysioCounts || []).find((p) => p.physioId === physioId);
     if (!physio) return <span>Physio not found</span>;

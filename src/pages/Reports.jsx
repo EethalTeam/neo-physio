@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -7,8 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-// import DateRangePicker from "@/components/DateRangePicker";
-
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,115 +16,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
-
 import {
-  BarChart3,
   Download,
   Calendar,
   Users,
-  DollarSign,
-  CheckSquare,
-  XSquare,
-  BookUser,
-  UserPlus,
   TrendingUp,
-  DogIcon,
+  BookUser,
   User,
+  DollarSign,
+  Wallet,
+  Activity,
+  CheckSquare,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { getMonth } from "date-fns";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const Reports = () => {
+  const { user } = useAuth();
+
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+
   const [expensesData, setExpensesData] = useState([]);
+  const [sessions, setSessions] = useState([]);
 
-  const handlePeriodChange = async (ranges) => {
-    if (!ranges?.selection) return;
-
-    const normalizeDate = (date) => {
-      const d = new Date(date);
-      d.setHours(0, 0, 0, 0); // remove time
-      return d;
-    };
-
-    const start = normalizeDate(ranges.selection.startDate);
-    const end = normalizeDate(ranges.selection.endDate);
-
-    setSelectedRange({ startDate: start, endDate: end, key: "selection" });
-
-    try {
-      // Fetch sessions for selected range
-      const sessionsRes = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({
-          physioId: user._id,
-          startDate: selectedRange.startDate,
-          endDate: selectedRange.endDate,
-        }),
-      });
-
-      const expensesRes = await apiRequest("Expense/getAllExpense", {
-        method: "POST",
-        body: JSON.stringify({
-          startDate,
-          endDate,
-        }),
-      });
-
-      // Update states
-      setSessions(sessionsRes || []);
-      setExpensesData(expensesRes || []);
-
-      // Calculate stats
-      const totalPatients = sessionsRes.reduce(
-        (sum, s) => sum + (s.patientCount || 1),
-        0,
-      );
-      const totalPhysio = new Set(sessionsRes.map((s) => s.physioId)).size;
-      const completedSessions = sessionsRes.filter(
-        (s) => s.sessionStatusId?.sessionStatusName === "Completed",
-      ).length;
-      const cancelledSessions = sessionsRes.filter(
-        (s) => s.sessionStatusId?.sessionStatusName === "Canceled",
-      ).length;
-
-      setStats((prev) => ({
-        ...prev,
-        patient: totalPatients,
-        physio: totalPhysio,
-        sessionCompleted: completedSessions,
-        cancelledSessions,
-      }));
-
-      // Update funnel
-      const newEnquiries = sessionsRes.filter(
-        (s) => s.type === "Enquiry",
-      ).length;
-      const newConsultations = sessionsRes.filter(
-        (s) => s.type === "Consultation",
-      ).length;
-      const newPatients = sessionsRes.filter(
-        (s) => s.type === "Patient",
-      ).length;
-      const conversionRate =
-        newEnquiries > 0 ? ((newPatients / newEnquiries) * 100).toFixed(2) : 0;
-
-      setFunnel({
-        newEnquiries,
-        newConsultations,
-        newPatients,
-        conversionRate,
-      });
-    } catch (err) {
-      console.error("Error loading reports for selected period:", err);
-    }
-  };
-
-  // const [selectedRange, setSelectedRange] = useState({
-  //   startDate: new Date(),
-  //   endDate: new Date(),
-  //   key: "selection",
-  // });
+  const [todaySessionCount, setTodaySessionCount] = useState(0);
 
   const [stats, setStats] = useState({
     lead: 0,
@@ -136,31 +61,142 @@ const Reports = () => {
     physio: 0,
     monthlyRevenue: 0,
     monthlyExpenses: 0,
-    // physio: 0,
     patientRecovered: 0,
     patientRecoveredOthers: 0,
     completedReview: 0,
     cancelledSessions: 0,
     patientRecover: 0,
     sessionCompleted: 0,
+    pendingreviews: 0,
   });
-  const loadDashboardData = async () => {
-    try {
-      const sessionRes = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({
-          physioId: user._id,
-        }),
-      });
 
-      processDashboardData(sessionRes);
-    } catch (err) {
-      console.error("Monthly summary load failed:", err);
-    }
-  };
   const [summary, setSummary] = useState({
     cancelledSessions: 0,
   });
+
+  const [reportData, setReportData] = useState({
+    patientHistory: [],
+    feedback: [],
+  });
+
+  const [funnel, setFunnel] = useState({
+    newEnquiries: 0,
+    newConsultations: 0,
+    newPatients: 0,
+    conversionRate: 0,
+  });
+
+  const [selectedMonth, setSelectedMonth] = useState(String(currentMonth));
+  const [selectedYear, setSelectedYear] = useState(String(currentYear));
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const years = [];
+  for (let y = currentYear - 5; y <= currentYear + 2; y++) {
+    years.push(String(y));
+  }
+
+  const PIE_COLORS = [
+    "#3b82f6",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#8b5cf6",
+    "#06b6d4",
+  ];
+
+  const handleExportCSV = () => {
+    const rows = [
+      ["Metric", "Value"],
+      ["Total Patients", stats.patient],
+      ["Total Physio", stats.physio],
+      ["Total Sessions", stats.monthlySessions],
+      ["Completed Sessions", stats.sessionCompleted],
+      ["Cancelled Sessions", stats.cancelledSessions],
+      ["Monthly Revenue", stats.monthlyRevenue],
+      ["Monthly Expenses", stats.monthlyExpenses],
+      ["Recovered Patients", stats.patientRecover],
+      ["Pending Reviews", stats.pendingreviews],
+      ["Completed Reviews", stats.completedReview],
+      ["Today's Sessions", todaySessionCount],
+      ["Average Patient per Physio", avgPatient],
+    ];
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `report_${monthNames[selectedMonth]}_${selectedYear}.csv`,
+    );
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("Physio Report", 14, 20);
+
+    doc.setFontSize(12);
+    doc.text(`Month: ${monthNames[selectedMonth]} ${selectedYear}`, 14, 30);
+
+    const tableData = [
+      ["Total Patients", stats.patient],
+      ["Total Physio", stats.physio],
+      ["Total Sessions", stats.monthlySessions],
+      ["Completed Sessions", stats.sessionCompleted],
+      ["Cancelled Sessions", stats.cancelledSessions],
+      ["Monthly Revenue", `Rs${stats.monthlyRevenue}`],
+      ["Monthly Expenses", `Rs${stats.monthlyExpenses}`],
+      ["Recovered Patients", stats.patientRecover],
+      ["Pending Reviews", stats.pendingreviews],
+      ["Completed Reviews", stats.completedReview],
+      ["Today's Sessions", todaySessionCount],
+      ["Avg Patient / Physio", avgPatient],
+    ];
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["Metric", "Value"]],
+      body: tableData,
+    });
+
+    doc.save(`report_${monthNames[selectedMonth]}_${selectedYear}.pdf`);
+  };
+
+  const getAllDashBoard = async () => {
+    try {
+      const response = await apiRequest("DashBoard/getAllDashBoard", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setStats((prev) => ({ ...prev, ...response }));
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
   const processDashboardData = (sessionsData) => {
     if (!Array.isArray(sessionsData)) return;
 
@@ -172,18 +208,6 @@ const Reports = () => {
       cancelledSessions: cancelledSessions.length,
     });
   };
-  // console.log("Summary", summary);
-
-  useEffect(() => {
-    getAllDashBoard();
-    funnelmonthly();
-    loadDashboardData();
-    getSession();
-    getAllExpenses();
-  }, []);
-  const [sessions, setSessions] = useState([]);
-
-  const [todaySessionCount, setTodaySessionCount] = useState(0);
 
   const getSession = async () => {
     try {
@@ -192,7 +216,7 @@ const Reports = () => {
       const response = await apiRequest("Session/getAllSession", {
         method: "POST",
         body: JSON.stringify({
-          physioId: user._id,
+          physioId: user?._id,
           storedRole,
         }),
       });
@@ -205,149 +229,73 @@ const Reports = () => {
 
       const todaySessions = response.filter((s) => {
         if (!s.sessionDate) return false;
-
         const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
-        // console.log(sessionDay, "sessionDay" + today, "Today");
-
         return sessionDay === today;
       });
-      // setFilteredSessions(todaySessions);
+
       setTodaySessionCount(todaySessions.length);
+      processDashboardData(response);
     } catch (error) {
       console.error("Error fetching sessions:", error);
     }
   };
-  const getAllDashBoard = async (data) => {
+  const getMonthlyRevenue = async () => {
     try {
-      const response = await apiRequest("DashBoard/getAllDashBoard", {
+      const month = Number(selectedMonth);
+      const year = Number(selectedYear);
+
+      const fromDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+      const toDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
+
+      const res = await apiRequest("DashBoard/getIncomeByDate", {
         method: "POST",
-        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fromDate, toDate }),
       });
-      setStats(response);
-      // console.log(response, "response");
+
+      setStats((prev) => ({
+        ...prev,
+        monthlyRevenue: Number(res?.totalCompletedAmount || 0),
+      }));
     } catch (error) {
-      console.error("Error:", error);
-      throw error;
+      console.error("Error fetching monthly revenue:", error);
+      setStats((prev) => ({
+        ...prev,
+        monthlyRevenue: 0,
+      }));
+    }
+  };
+  const getAllExpenses = async () => {
+    try {
+      const res = await apiRequest("Expense/getAllExpense", {
+        method: "POST",
+      });
+
+      if (Array.isArray(res?.data)) {
+        setExpensesData(res.data);
+      } else {
+        setExpensesData([]);
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      setExpensesData([]);
     }
   };
 
-  const statCards = [
-    // {
-    //   title: "Total Leads",
-    //   value: stats.lead,
-    //   icon: UserPlus,
-    //   color: "text-blue-600",
-    //   bgColor: "bg-blue-100",
-    // },
-    {
-      title: "Total Patients",
-      value: stats.patient,
-      icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-    },
-    {
-      title: "Total Physio",
-      value: stats.physio,
-      icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-    },
-
-    // {
-    //   title: "Total Sessions",
-    //   value: stats.session,
-    //   icon: Calendar,
-    //   color: "text-purple-600",
-    //   bgColor: "bg-purple-100",
-    // },
-    // {
-    //   title: "Monthly Revenue",
-    //   value: `₹${stats.monthlyRevenue}`,
-    //   icon: DollarSign,
-    //   color: "text-emerald-600",
-    //   bgColor: "bg-emerald-100",
-    // },
-    // {
-    //   title: "Completed Sessions",
-    //   value: stats.sessionCompleted,
-    //   icon: TrendingUp,
-    //   color: "text-indigo-600",
-    //   bgColor: "bg-indigo-100",
-    // },
-  ];
-
-  const { user } = useAuth();
-  const [reportData, setReportData] = useState({
-    revenue: [],
-    sessions: [],
-    patients: [],
-    feedback: [],
-    patientHistory: [],
-  });
-  // const [hodStats, setHodStats] = useState({
-  //   completedReviews: 0,
-  //   cancelledSessions: 0,
-  // });
-  const [selectedPeriod, setSelectedPeriod] = useState("monthly");
-
-  const handleCustomRangeChange = ([startDate, endDate]) => {
-    if (!startDate || !endDate) return;
-
-    setSelectedRange({
-      startDate,
-      endDate,
-    });
-  };
-
-  const handleExportCSV = () => {
-    toast({
-      title:
-        "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀",
-    });
-  };
-
-  const handleExportPDF = () => {
-    toast({
-      title:
-        "🚧 This feature isn't implemented yet—but don't worry! You can request it in your next prompt! 🚀",
-    });
-  };
-
-  const getTotalRevenue = () => {
-    if (reportData.revenue.length === 0) return 0;
-    return reportData.revenue.reduce((sum, item) => sum + item.amount, 0);
-  };
-
-  const getTotalSessions = () => {
-    if (reportData.sessions.length === 0) return 0;
-    return reportData.sessions.reduce(
-      (sum, item) => sum + item.completed + item.scheduled,
-      0,
-    );
-  };
-  const [funnel, setFunnel] = useState({
-    newEnquiries: 0,
-    newConsultations: 0,
-    newPatients: 0,
-    conversionRate: 0,
-  });
   const funnelmonthly = async () => {
     try {
-      const today = new Date();
-
       const res = await apiRequest("DashBoard/monthlyfunnel", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          month: today.getMonth() + 1, // 1–12
-          year: today.getFullYear(), // 2026
+          month: Number(selectedMonth) + 1,
+          year: Number(selectedYear),
         }),
       });
-
-      console.log("Monthly funnel response:", res);
 
       setFunnel({
         newEnquiries: res?.newEnquiries?.length ?? 0,
@@ -363,150 +311,196 @@ const Reports = () => {
       });
     } catch (error) {
       console.error("Funnel error:", error);
+      setFunnel({
+        newEnquiries: 0,
+        newConsultations: 0,
+        newPatients: 0,
+        conversionRate: 0,
+      });
     }
   };
 
-  const getTotalPatients = () => {
-    if (reportData.patients.length === 0) return 0;
-    return reportData.patients.reduce(
-      (sum, item) => sum + item.new + item.returning,
+  useEffect(() => {
+    getAllDashBoard();
+    getSession();
+    getAllExpenses();
+  }, []);
+
+  useEffect(() => {
+    funnelmonthly();
+    getMonthlyRevenue();
+  }, [selectedMonth, selectedYear]);
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      if (!s.sessionDate) return false;
+      const d = new Date(s.sessionDate);
+      return (
+        d.getMonth() === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear)
+      );
+    });
+  }, [sessions, selectedMonth, selectedYear]);
+
+  const filteredExpenses = useMemo(() => {
+    return expensesData.filter((exp) => {
+      if (!exp.expenseDate) return false;
+      const d = new Date(exp.expenseDate);
+      return (
+        d.getMonth() === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear)
+      );
+    });
+  }, [expensesData, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    const totalPatients = new Set(
+      filteredSessions
+        .map((s) => s.patientId?._id || s.patientId)
+        .filter(Boolean),
+    ).size;
+
+    const totalPhysio = new Set(
+      filteredSessions
+        .map((s) => s.physioId?._id || s.physioId)
+        .filter(Boolean),
+    ).size;
+
+    const completedSessions = filteredSessions.filter(
+      (s) => s.sessionStatusId?.sessionStatusName === "Completed",
+    ).length;
+
+    const cancelledSessions = filteredSessions.filter(
+      (s) => s.sessionStatusId?.sessionStatusName === "Canceled",
+    ).length;
+
+    const monthlyExpenses = filteredExpenses.reduce(
+      (sum, exp) => sum + Number(exp.expenseAmount || 0),
       0,
     );
-  };
-  const monthname = [
-    "January",
-    "Febuary",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const getDateRange = (period) => {
-    const now = new Date();
-    let startDate;
-    let endDate = new Date();
-
-    switch (period) {
-      case "weekly":
-        startDate = new Date();
-        startDate.setDate(now.getDate() - 6);
-        break;
-
-      case "monthly":
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-
-      case "quarterly":
-        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-        startDate = new Date(now.getFullYear(), quarterStart, 1);
-        break;
-
-      case "yearly":
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-
-    return { startDate, endDate };
-  };
-  const [selectedRange, setSelectedRange] = useState(() =>
-    getDateRange("monthly"),
-  );
-  useEffect(() => {
-    if (!sessions.length) return;
-
-    const revenue = calculateRevenueByPeriod(sessions, selectedRange);
-    const expenses = calculateExpensesByPeriod(expensesData, selectedRange);
 
     setStats((prev) => ({
       ...prev,
-      monthlyRevenue: revenue,
-      monthlyExpenses: expenses,
+      patient: totalPatients,
+      physio: totalPhysio,
+      monthlySessions: filteredSessions.length,
+      sessionCompleted: completedSessions,
+      cancelledSessions,
+      monthlyExpenses,
     }));
-  }, [selectedRange, sessions, expensesData]);
 
-  useEffect(() => {
-    if (selectedPeriod === "custom") return;
-
-    const range = getDateRange(selectedPeriod);
-    setSelectedRange(range);
-  }, [selectedPeriod]);
-
-  const calculateRevenueByPeriod = (sessions, periodOrRange) => {
-    let startDate, endDate;
-
-    if (periodOrRange.startDate && periodOrRange.endDate) {
-      // Custom range selected
-      startDate = periodOrRange.startDate;
-      endDate = periodOrRange.endDate;
-    } else {
-      // Fallback to predefined periods
-      ({ startDate, endDate } = getDateRange(periodOrRange));
-    }
-
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-
-    return sessions.reduce((revenue, s) => {
-      if (s.sessionStatusId?.sessionStatusName !== "Completed") return revenue;
-
-      const sessionDate = new Date(s.sessionDate);
-      sessionDate.setHours(0, 0, 0, 0);
-
-      if (sessionDate < startDate || sessionDate > endDate) return revenue;
-
-      if (s.feeType === "PerSession") revenue += Number(s.feeAmount || 0);
-      else if (s.feeType === "PerMonth") revenue += Number(s.monthlyFee || 0);
-
-      return revenue;
-    }, 0);
-  };
-
-  const getAllExpenses = async () => {
-    try {
-      const res = await apiRequest("Expense/getAllExpense", {
-        method: "POST", // or GET if you set up GET endpoint
-      });
-
-      if (Array.isArray(res)) {
-        setExpensesData(res);
-      }
-    } catch (error) {
-      console.error("Error fetching expenses:", error);
-    }
-  };
-
-  const calculateExpensesByPeriod = (expenses, period) => {
-    const { startDate, endDate } = getDateRange(period);
-
-    return expenses.reduce((total, exp) => {
-      const d = new Date(exp.expenseDate);
-      if (d >= startDate && d <= endDate) {
-        total += Number(exp.expenseAmount || 0); // use expenseAmount from your schema
-      }
-      return total;
-    }, 0);
-  };
-
-  const month = new Date().getMonth();
-  const year = new Date().getFullYear();
+    setSummary({
+      cancelledSessions,
+    });
+  }, [filteredSessions, filteredExpenses]);
   const avgPatient =
     stats.physio > 0
       ? Math.floor((stats.patient / stats.physio).toFixed(1))
       : 0;
 
-  console.log(avgPatient, "Average Patients per Physiotherapist");
+  const expensePieData = useMemo(() => {
+    const map = {};
+
+    filteredExpenses.forEach((exp) => {
+      const key =
+        exp?.ExpenseCategoryId?.ExpenseCategoryName ||
+        exp?.ExpenseTypeID?.ExpenseTypeName ||
+        "Others";
+
+      map[key] = (map[key] || 0) + Number(exp.expenseAmount || 0);
+    });
+
+    return Object.entries(map).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [filteredExpenses]);
+  const statCards = [
+    {
+      title: "Total Patients",
+      value: stats.patient,
+      icon: Users,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
+      title: "Total Physio",
+      value: stats.physio,
+      icon: Users,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+    {
+      title: "Total Sessions",
+      value: stats.monthlySessions,
+      icon: Activity,
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
+    },
+    {
+      title: "Completed Sessions",
+      value: stats.sessionCompleted,
+      icon: CheckSquare,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-100",
+    },
+    {
+      title: "Monthly Revenue",
+      value: `₹${Number(stats.monthlyRevenue || 0).toLocaleString("en-IN")}`,
+      icon: DollarSign,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100",
+    },
+    {
+      title: "Monthly Expenses",
+      value: `₹${Number(stats.monthlyExpenses || 0).toLocaleString("en-IN")}`,
+      icon: Wallet,
+      color: "text-red-600",
+      bgColor: "bg-red-100",
+    },
+    {
+      title: "Pending Reviews",
+      value: stats.pendingreviews,
+      icon: BookUser,
+      color: "text-orange-600",
+      bgColor: "bg-orange-100",
+    },
+    {
+      title: "Completed Reviews",
+      value: stats.completedReview,
+      icon: TrendingUp,
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-100",
+    },
+    {
+      title: "Recovered Patients",
+      value: stats.patientRecover ?? 0,
+      icon: User,
+      color: "text-teal-600",
+      bgColor: "bg-teal-100",
+    },
+    {
+      title: "Cancelled Sessions",
+      value: summary.cancelledSessions,
+      icon: Calendar,
+      color: "text-rose-600",
+      bgColor: "bg-rose-100",
+    },
+    {
+      title: "Today Session Count",
+      value: todaySessionCount,
+      icon: Calendar,
+      color: "text-lime-600",
+      bgColor: "bg-lime-100",
+    },
+    {
+      title: "Avg Patient / Physio",
+      value: avgPatient,
+      icon: Users,
+      color: "text-violet-600",
+      bgColor: "bg-violet-100",
+    },
+  ];
 
   return (
     <div className="space-y-6 p-2 md:p-0">
@@ -526,25 +520,32 @@ const Reports = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-full md:w-40">
               <Calendar className="h-4 w-4 mr-2" />
-              <SelectValue />
+              <SelectValue placeholder="Select Month" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="quarterly">Quarterly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
+              {monthNames.map((month, index) => (
+                <SelectItem key={month} value={String(index)}>
+                  {month}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <div className="flex w-full md:w-auto space-x-2">
-            {/* <DateRangePicker
-              period={selectedPeriod}
-              onPeriodChange={setSelectedPeriod}
-              onRangeChange={handleCustomRangeChange}
-            /> */}
-          </div>
+
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-full md:w-32">
+              <SelectValue placeholder="Select Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <div className="flex w-full md:w-auto space-x-2">
             <Button
@@ -566,8 +567,9 @@ const Reports = () => {
           </div>
         </div>
       </motion.div>
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+
+      {/* NORMAL CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -575,7 +577,7 @@ const Reports = () => {
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.5, delay: index * 0.05 }}
             >
               <Card className="medical-card hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -591,7 +593,7 @@ const Reports = () => {
                     {stat.value}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Updated for selected date
+                    {monthNames[Number(selectedMonth)]} {selectedYear}
                   </p>
                 </CardContent>
               </Card>
@@ -600,9 +602,10 @@ const Reports = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-6">
+      {/* FUNNEL NORMAL CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
               New Enquiries
             </CardTitle>
@@ -611,12 +614,14 @@ const Reports = () => {
             <div className="text-2xl font-bold text-gray-800">
               {funnel.newEnquiries}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {monthNames[Number(selectedMonth)]} {selectedYear}
+            </p>
           </CardContent>
         </Card>
 
         <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
               New Consultations
             </CardTitle>
@@ -625,12 +630,14 @@ const Reports = () => {
             <div className="text-2xl font-bold text-gray-800">
               {funnel.newConsultations}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {monthNames[Number(selectedMonth)]} {selectedYear}
+            </p>
           </CardContent>
         </Card>
 
         <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
               New Patients
             </CardTitle>
@@ -639,12 +646,14 @@ const Reports = () => {
             <div className="text-2xl font-bold text-gray-800">
               {funnel.newPatients}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {monthNames[Number(selectedMonth)]} {selectedYear}
+            </p>
           </CardContent>
         </Card>
 
         <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
               Lead Conversion Rate
             </CardTitle>
@@ -653,352 +662,100 @@ const Reports = () => {
             <div className="text-2xl font-bold text-gray-800">
               {funnel.conversionRate}%
             </div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {monthNames[Number(selectedMonth)]} {selectedYear}
+            </p>
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-6">
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Pending Reviews
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.pendingreviews}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
-          </CardContent>
-        </Card>
 
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Completed Reviews
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.completedReview}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
-          </CardContent>
-        </Card>
-
-        <Card className="medical-card hover:shadow-lg transition-shadow p-4">
-          <CardContent className="p-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Left Column: Total Count (always show) */}
-              <div className="border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0 md:pr-4">
-                <p className="text-sm font-medium text-gray-600">
-                  Total Recovered
-                </p>
-                <div className="text-center md:text-left lg:text-center">
-                  <div className="text-2xl font-bold text-gray-800">
-                    {stats.patientRecover ?? 0}
-                  </div>
-                  <div className="text-sm font-medium text-gray-600">
-                    Total Patients
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Recovered Type Breakdown (only if patientRecovered > 0) */}
-              {stats.patientRecovered > 0 && (
-                <div className="pt-2 md:pt-0">
-                  <p className="text-sm font-medium text-gray-600">
-                    Recovered Type
-                  </p>
-                  <div className="flex justify-between items-end text-center">
-                    <div className="flex-1">
-                      <div className="text-lg font-bold text-gray-800">
-                        {stats.patientRecovered}
-                      </div>
-                      <div className="text-sm font-medium text-gray-600">
-                        Fully
-                      </div>
-                    </div>
-
-                    <div className="flex-1 border-l border-gray-50">
-                      <div className="text-lg font-bold text-gray-700">
-                        {stats.patientRecoveredOthers ?? 0}
-                      </div>
-                      <div className="text-sm font-medium text-gray-800">
-                        Others
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
-          </CardContent>
-        </Card>
-
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Lead Conversion Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {funnel.conversionRate}%
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-6">
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total session(Monthly)
-            </CardTitle>
-            <div className={`p-2 rounded-full ${stats.bgColor}`}>
-              <User className={`h-4 w-4 ${stats.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.monthlySessions}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
-          </CardContent>
-        </Card>
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Cancelled session(Monthly)
-            </CardTitle>
-            <div className={`p-2 rounded-full ${stats.bgColor}`}>
-              <User className={`h-4 w-4 ${stats.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {summary.cancelledSessions}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
-          </CardContent>
-        </Card>
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Today Session Count
-            </CardTitle>
-            <div className={`p-2 rounded-full ${stats.bgColor}`}>
-              <User className={`h-4 w-4 ${stats.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {todaySessionCount}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{`${monthname[month]}-${year}`}</p>
-          </CardContent>
-        </Card>{" "}
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Average Patient per Physiotherapist
-            </CardTitle>
-            <div className={`p-2 rounded-full ${stats.bgColor}`}>
-              <User className={`h-4 w-4 ${stats.color}`} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">{avgPatient}</div>
-            <p className="text-xs text-gray-500 mt-1">Updated in real-time</p>
-          </CardContent>
-        </Card>
-      </div>
-      {/* Charts and Detailed Reports */}
+      {/* EXPENSE PIE CHART */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {user?.role !== "HOD" && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Card className="medical-card">
-              <CardHeader>
-                <CardTitle>Revenue Trends</CardTitle>
-                <CardDescription>Monthly revenue breakdown</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {reportData.revenue.map((item) => (
-                    <div
-                      key={item.month}
-                      className="flex items-center justify-between"
+        <Card className="medical-card">
+          <CardHeader>
+            <CardTitle>Expense Breakdown</CardTitle>
+            <CardDescription>
+              {monthNames[Number(selectedMonth)]} {selectedYear}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {expensePieData.length === 0 ? (
+              <div className="h-[320px] flex items-center justify-center text-sm text-gray-500">
+                No expense data for selected month
+              </div>
+            ) : (
+              <div className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={expensePieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={({ name, percent }) =>
+                        `${name} ${(percent * 100).toFixed(0)}%`
+                      }
                     >
-                      {" "}
-                      <span className="text-sm text-gray-600">
-                        {item.month}
-                      </span>{" "}
-                      <div className="flex items-center space-x-2">
-                        {" "}
-                        <div className="w-32 bg-gray-200 rounded-full h-2.5">
-                          {" "}
-                          {(() => {
-                            const maxRevenue = Math.max(
-                              ...reportData.revenue.map((r) => r.amount),
-                            );
-                            const width =
-                              maxRevenue > 0
-                                ? (item.amount / maxRevenue) * 100
-                                : 0;
-                            return (
-                              <div
-                                className="bg-green-500 rounded-full h-2.5"
-                                style={{ width: `${width}%` }}
-                              ></div>
-                            );
-                          })()}{" "}
-                        </div>{" "}
-                        <span className="text-xs font-medium">
-                          ₹{item.amount.toLocaleString()}
-                        </span>{" "}
-                      </div>{" "}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {user?.role !== "HOD" && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <Card className="medical-card">
-              <CardHeader>
-                <CardTitle>Session History</CardTitle>
-                <CardDescription>
-                  Completed vs. Scheduled sessions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {reportData.sessions.map((item) => (
-                    <div
-                      key={item.month}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="text-sm text-gray-600">
-                        {item.month}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        {" "}
-                        <div className="w-32 bg-gray-200 rounded-full h-2.5">
-                          {" "}
-                          {(() => {
-                            const total = item.completed + item.scheduled;
-                            const width =
-                              total > 0 ? (item.completed / total) * 100 : 0;
-                            return (
-                              <div
-                                className="bg-blue-500 rounded-full h-2.5"
-                                style={{ width: `${width}%` }}
-                              ></div>
-                            );
-                          })()}{" "}
-                        </div>{" "}
-                        <span className="text-xs font-medium">
-                          {item.completed} / {item.scheduled}
-                        </span>{" "}
-                      </div>{" "}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {user?.role === "HOD" && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <Card className="medical-card">
-              <CardHeader>
-                <CardTitle>Patient History Log</CardTitle>
-                <CardDescription>Recent patient activities</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {reportData.patientHistory.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-full ${item.action.includes("New") ? "bg-blue-100" : "bg-green-100"}`}
-                      >
-                        <BookUser
-                          className={`h-5 w-5 ${item.action.includes("New") ? "text-blue-600" : "text-green-600"}`}
+                      {expensePieData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={PIE_COLORS[index % PIE_COLORS.length]}
                         />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">{item.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {item.action} on{" "}
-                          {new Date(item.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) =>
+                        `₹${Number(value).toLocaleString("en-IN")}`
+                      }
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20, x: user?.role === "HOD" ? -20 : 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <Card className="medical-card">
-            <CardHeader>
-              <CardTitle>Patient Feedback Summary</CardTitle>
-              <CardDescription>Overall patient satisfaction</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {reportData.feedback.map((item) => (
+        <Card className="medical-card">
+          <CardHeader>
+            <CardTitle>Expense Summary</CardTitle>
+            <CardDescription>Category wise amounts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {expensePieData.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No expense summary available.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {expensePieData.map((item, index) => (
                   <div
-                    key={item.category}
-                    className="flex items-center justify-between"
+                    key={item.name}
+                    className="flex items-center justify-between border rounded-lg p-3"
                   >
-                    {" "}
-                    <span className="text-sm text-gray-600">
-                      {item.category}
-                    </span>{" "}
-                    <div className="flex items-center space-x-2">
-                      {" "}
-                      <div className="w-32 bg-gray-200 rounded-full h-2.5">
-                        {" "}
-                        <div
-                          className="bg-purple-500 rounded-full h-2.5"
-                          style={{ width: `${item.percentage}%` }}
-                        ></div>{" "}
-                      </div>{" "}
-                      <span className="text-xs font-medium">
-                        {item.percentage}%
-                      </span>{" "}
-                    </div>{" "}
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="w-4 h-4 rounded-full"
+                        style={{
+                          backgroundColor:
+                            PIE_COLORS[index % PIE_COLORS.length],
+                        }}
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        {item.name}
+                      </span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-800">
+                      ₹{Number(item.value).toLocaleString("en-IN")}
+                    </span>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
