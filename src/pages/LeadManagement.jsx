@@ -590,27 +590,27 @@ const LeadManagement = () => {
                   <td className="p-3">{lead.leadContactNo}</td>
                   <td className="p-3">
                     <span className="text-xs font-extralight border-2 border-blue-200 p-2 bg-blue-200 text-blue-700 rounded-2xl">
-                      {lead.physioCategoryId.physioCateName}
+                      {lead?.physioCategoryId?.physioCateName || "-"}
                     </span>
                   </td>
                   <td className="p-3">{lead.leadSourceId.leadSourceName}</td>
                   <td>
                     <span
                       style={{
-                        backgroundColor: lead.LeadStatusId.leadStatusColor
+                        backgroundColor: lead?.LeadStatusId?.leadStatusColor
                           ? lead.LeadStatusId.leadStatusColor
                           : "white",
                       }}
                       className="text-xs font-extralight border-2  p-2 rounded-2xl"
                     >
                       {" "}
-                      {lead.LeadStatusId.leadStatusName}
+                      {lead?.LeadStatusId?.leadStatusName || "-"}
                     </span>
                   </td>
                   {/* <td><span style={{backgroundColor:lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' ,color:lead.LeadStatusId.leadStatusTextColor}} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td> */}
                   <td className="p-3 flex gap-2">
                     {/* <Button onClick={openNewLeadDialog}>Qualified</Button> */}
-                    {lead.LeadStatusId.leadStatusName !== "Qualified" && (
+                    {lead?.LeadStatusId?.leadStatusName !== "Qualified" && (
                       <>
                         {Permissions.isEdit && (
                           <Button
@@ -663,7 +663,7 @@ const LeadManagement = () => {
                       </DialogContent>
                     </Dialog>
 
-                    {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                    {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                       Permissions.isEdit && (
                         <Button
                           size="sm"
@@ -673,7 +673,7 @@ const LeadManagement = () => {
                           <Edit size={14} />
                         </Button>
                       )}
-                    {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                    {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                       Permissions.isDelete && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -752,10 +752,10 @@ const LeadManagement = () => {
                       className="text-[10px] px-2 py-[2px] rounded-md inline-block"
                       style={{
                         backgroundColor:
-                          lead.LeadStatusId.leadStatusColor || "#e5e7eb",
+                          lead?.LeadStatusId?.leadStatusColor || "#e5e7eb",
                       }}
                     >
-                      {lead.LeadStatusId.leadStatusName}
+                      {lead?.LeadStatusId?.leadStatusName}
                     </span>
                   </p>
                 </div>
@@ -763,7 +763,7 @@ const LeadManagement = () => {
                 {/* Right Section – Buttons */}
                 <div className="flex items-center gap-2 me-4 justify-center">
                   {/* Qualify */}
-                  {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                  {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                     Permissions.isEdit && (
                       <Button
                         size="icon"
@@ -779,7 +779,7 @@ const LeadManagement = () => {
                     )}
 
                   {/* Edit */}
-                  {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                  {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                     Permissions.isEdit && (
                       <Button size="icon" variant="outline" className="h-8 w-8">
                         <Edit size={14} onClick={() => handleEdit(lead)} />
@@ -787,7 +787,7 @@ const LeadManagement = () => {
                     )}
 
                   {/* Delete */}
-                  {lead.LeadStatusId.leadStatusName !== "Qualified" &&
+                  {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                     Permissions.isDelete && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>

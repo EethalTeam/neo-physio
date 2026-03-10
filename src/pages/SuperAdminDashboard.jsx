@@ -15,8 +15,20 @@ import {
   TrendingUp,
   Activity,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import { FaWhatsapp } from "react-icons/fa";
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
@@ -246,6 +258,75 @@ const SuperAdminDashboard = () => {
       bgColor: "bg-indigo-100",
     },
   ];
+  const [loading, setLoading] = useState(false);
+  const [linkpop, setLinkpop] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState("");
+
+  const handleGenerateLink = async () => {
+    try {
+      setLoading(true);
+
+      const response = await apiRequest("Link/createSecureLink", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+
+      console.log("Generate link response:", response);
+
+      const link =
+        response?.link ||
+        response?.data?.link ||
+        response?.secureLink ||
+        response?.url ||
+        "";
+      console.log(link, "link");
+      if (!link) {
+        toast({
+          title: "Error",
+          description: "Link not found in API response.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setGeneratedLink(link);
+      setLinkpop(true);
+
+      toast({
+        title: "Success",
+        description: "Link generated successfully.",
+      });
+    } catch (error) {
+      console.error("Generate link error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate link.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  const copyLink = async (generatedLink) => {
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      console.log("Copied");
+    } catch (err) {
+      console.error("Unable to copy", err);
+    }
+  };
+  const copyAndShareToWhatsApp = async (generatedLink) => {
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      const message = encodeURIComponent(
+        `Hi, here is the link: ${generatedLink}`,
+      );
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${message}`;
+      window.location.href = whatsappUrl;
+    } catch (err) {
+      console.error("Action failed", err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -253,15 +334,40 @@ const SuperAdminDashboard = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
       >
-        <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">
-          SuperAdmin Dashboard
-        </h1>
-        <p className="text-gray-600">
-          Complete overview of your physiotherapy service management
-        </p>
-      </motion.div>
+        <div>
+          <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">
+            SuperAdmin Dashboard
+          </h1>
+          <p className="text-gray-600">
+            Complete overview of your physiotherapy service management
+          </p>
+        </div>
 
+        <Button onClick={handleGenerateLink} disabled={loading}>
+          {loading ? "Generating..." : "Generate Link"}
+        </Button>
+      </motion.div>
+      <Dialog open={linkpop} onOpenChange={setLinkpop}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Generated Link</DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Input value={generatedLink} readOnly />
+
+            <Button onClick={() => copyLink(generatedLink)}>Copy</Button>
+
+            <Button
+              onClick={() => copyAndShareToWhatsApp(generatedLink)}
+              className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
+            >
+              <FaWhatsapp className="h-5 w-5" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Date Filter */}
       <Card className="medical-card">
         <CardContent className="pt-6">

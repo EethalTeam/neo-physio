@@ -427,7 +427,7 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               }
-            />
+            />{" "}
           </Routes>
         </Router>
         <Toaster />
