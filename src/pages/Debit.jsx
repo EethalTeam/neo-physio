@@ -330,7 +330,7 @@ const Debit = () => {
                   align="start"
                   sideOffset={6}
                   avoidCollisions={false}
-                  className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg"
+                  className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
                 >
                   {months.map((m) => (
                     <SelectItem key={m.value} value={String(m.value)}>

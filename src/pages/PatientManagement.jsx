@@ -2020,7 +2020,11 @@ const PatientManagement = () => {
                   className="border rounded-md px-3 py-2 text-sm w-full sm:w-auto"
                 >
                   {monthNames.map((month, index) => (
-                    <option key={month} value={index + 1}>
+                    <option
+                      key={month}
+                      value={index + 1}
+                      className=" h-[200px]"
+                    >
                       {month}
                     </option>
                   ))}

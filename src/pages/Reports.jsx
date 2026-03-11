@@ -773,7 +773,14 @@ const Reports = () => {
             <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Select Reference" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              position="popper"
+              side="bottom"
+              align="start"
+              sideOffset={6}
+              avoidCollisions={false}
+              className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+            >
               <SelectItem value="all">All References</SelectItem>
               {referenceList.map((ref) => (
                 <SelectItem key={ref._id} value={String(ref._id)}>
@@ -803,7 +810,14 @@ const Reports = () => {
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Select Month" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              position="popper"
+              side="bottom"
+              align="start"
+              sideOffset={6}
+              avoidCollisions={false}
+              className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+            >
               {monthNames.map((month, index) => (
                 <SelectItem key={month} value={String(index)}>
                   {month}
@@ -816,7 +830,14 @@ const Reports = () => {
             <SelectTrigger className="w-full md:w-32">
               <SelectValue placeholder="Select Year" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              position="popper"
+              side="bottom"
+              align="start"
+              sideOffset={6}
+              avoidCollisions={false}
+              className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+            >
               {years.map((year) => (
                 <SelectItem key={year} value={year}>
                   {year}

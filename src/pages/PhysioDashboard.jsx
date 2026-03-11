@@ -185,13 +185,13 @@ const PhysioDashboard = () => {
       color: "text-orange-600",
       bgColor: "bg-orange-100",
     },
-    {
-      title: "Active Patients",
-      value: stats.activePatients,
-      icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-    },
+    // {
+    //   title: "Active Patients",
+    //   value: stats.activePatients,
+    //   icon: Users,
+    //   color: "text-green-600",
+    //   bgColor: "bg-green-100",
+    // },
     // {
     //   title: "Total Patients",
     //   value: stats.totalPatient,

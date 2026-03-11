@@ -796,14 +796,14 @@ const ExpenseManagement = () => {
   }, [expenseTransactions]);
 
   const yearOptions = useMemo(() => {
-    const years = new Set(
-      transactions
-        .filter((tx) => tx.date)
-        .map((tx) => getYear(new Date(tx.date))),
-    );
+    // const years = new Set(
+    //   transactions
+    //     .filter((tx) => tx.date)
+    //     .map((tx) => getYear(new Date(tx.date))),
+    // );
 
-    years.add(new Date().getFullYear());
-
+    // years.add(new Date().getFullYear());
+    const years = [2030, 2029, 2028, 2027, 2026];
     return Array.from(years)
       .sort((a, b) => b - a)
       .map(String);
@@ -880,7 +880,14 @@ const ExpenseManagement = () => {
                   <SelectTrigger id="year-select" className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={6}
+                    avoidCollisions={false}
+                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                  >
                     {yearOptions.map((year) => (
                       <SelectItem key={year} value={year}>
                         {year}
@@ -896,7 +903,14 @@ const ExpenseManagement = () => {
                   <SelectTrigger id="month-select" className="w-[180px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={6}
+                    avoidCollisions={false}
+                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                  >
                     {reportMonthOptions.map((month) => (
                       <SelectItem key={month.value} value={month.value}>
                         {month.label}

@@ -973,7 +973,14 @@ const Income = () => {
                   <SelectTrigger className="w-56">
                     <SelectValue placeholder="Filter by Patients" />
                   </SelectTrigger>
-                  <SelectContent className="h-[200px]">
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={6}
+                    avoidCollisions={false}
+                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                  >
                     <SelectItem value="ALL">All Patients</SelectItem>
                     {patients.map((p) => (
                       <SelectItem key={p._id} value={p._id}>
@@ -990,7 +997,14 @@ const Income = () => {
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="Select Month" />
                   </SelectTrigger>
-                  <SelectContent className="h-[200px]">
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={6}
+                    avoidCollisions={false}
+                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                  >
                     {months.map((m, idx) => (
                       <SelectItem key={idx} value={String(idx + 1)}>
                         {m}
@@ -1006,7 +1020,14 @@ const Income = () => {
                   <SelectTrigger className="w-28">
                     <SelectValue placeholder="Select Year" />
                   </SelectTrigger>
-                  <SelectContent className="h-[200px]">
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={6}
+                    avoidCollisions={false}
+                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                  >
                     {[
                       2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
                       2035, 2036, 2037, 2038, 2039, 2040,

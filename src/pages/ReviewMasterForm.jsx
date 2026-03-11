@@ -722,7 +722,14 @@ const ReviewMasterForm = () => {
               <SelectTrigger>
                 <SelectValue placeholder="Select month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={6}
+                avoidCollisions={false}
+                className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+              >
                 {monthOptions.map((month) => (
                   <SelectItem key={month.value} value={month.value}>
                     {month.label}
@@ -737,7 +744,14 @@ const ReviewMasterForm = () => {
               <SelectTrigger>
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={6}
+                avoidCollisions={false}
+                className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+              >
                 {yearOptions.map((year) => (
                   <SelectItem key={year} value={year}>
                     {year}

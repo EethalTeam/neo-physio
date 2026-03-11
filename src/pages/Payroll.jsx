@@ -562,7 +562,14 @@ const Payroll = () => {
                   <SelectTrigger className="w-full min-w-0">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={6}
+                    avoidCollisions={false}
+                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                  >
                     {months.map((m, i) => (
                       <SelectItem key={i} value={i.toString()}>
                         {m}
@@ -580,7 +587,14 @@ const Payroll = () => {
                   <SelectTrigger className="w-full min-w-0">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    align="start"
+                    sideOffset={6}
+                    avoidCollisions={false}
+                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                  >
                     {years.map((y) => (
                       <SelectItem key={y} value={y.toString()}>
                         {y}

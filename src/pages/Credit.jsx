@@ -383,10 +383,10 @@ const Credit = () => {
               value={String(selectedMonth)}
               onValueChange={(v) => setSelectedMonth(Number(v))}
             >
-              <SelectTrigger className="w-full sm:w-44">
+              <SelectTrigger className="w-full sm:w-44 ">
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="h-[200px]">
                 {months.map((m) => (
                   <SelectItem key={m.value} value={String(m.value)}>
                     {m.label}
@@ -403,7 +403,7 @@ const Credit = () => {
             <SelectTrigger className="w-full sm:w-32">
               <SelectValue placeholder="Year" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="h-[200px]">
               {years.map((y) => (
                 <SelectItem key={y} value={String(y)}>
                   {y}
