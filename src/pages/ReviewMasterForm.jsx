@@ -1604,9 +1604,9 @@ const ReviewMasterForm = () => {
                       setSessionForm((p) => ({ ...p, sessionDate: d }))
                     }
                     initialFocus
-                    disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }
+                    // disabled={(date) =>
+                    //   date < new Date(new Date().setHours(0, 0, 0, 0))
+                    // }
                   />
                 </PopoverContent>
               </Popover>
@@ -1642,59 +1642,68 @@ const ReviewMasterForm = () => {
                   "No current goal set."}
               </p>
             </div>
-            <div className="space-y-2">
-              <Label>Feedback</Label>
-              <Input
-                name="feedback"
-                type="text"
-                value={sessionForm.feedback}
-                onChange={(e) =>
-                  setSessionForm((p) => ({ ...p, feedback: e.target.value }))
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Satisfaction (%)</Label>
-              <div className="flex items-center gap-2 flex-wrap">
-                {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((p) => (
-                  <Button
-                    key={p}
-                    type="button"
-                    variant={
-                      sessionForm.Satisfaction === p ? "default" : "outline"
+            {editingReview ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Feedback</Label>
+                  <Input
+                    name="feedback"
+                    type="text"
+                    value={sessionForm.feedback}
+                    onChange={(e) =>
+                      setSessionForm((p) => ({
+                        ...p,
+                        feedback: e.target.value,
+                      }))
                     }
-                    size="sm"
-                    onClick={() =>
-                      setSessionForm((f) => ({ ...f, Satisfaction: p }))
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Satisfaction (%)</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((p) => (
+                      <Button
+                        key={p}
+                        type="button"
+                        variant={
+                          sessionForm.Satisfaction === p ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() =>
+                          setSessionForm((f) => ({ ...f, Satisfaction: p }))
+                        }
+                      >
+                        {p}%
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Review Status</Label>
+                  <Select
+                    value={sessionForm.reviewStatusId}
+                    onValueChange={(v) =>
+                      setSessionForm((p) => ({ ...p, reviewStatusId: v }))
                     }
+                    required
                   >
-                    {p}%
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Review Status</Label>
-              <Select
-                value={sessionForm.reviewStatusId}
-                onValueChange={(v) =>
-                  setSessionForm((p) => ({ ...p, reviewStatusId: v }))
-                }
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a review Status Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {reviewStatuses.map((rt) => (
-                    <SelectItem key={rt._id} value={rt._id}>
-                      {rt.reviewStatusName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a review Status Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {reviewStatuses.map((rt) => (
+                        <SelectItem key={rt._id} value={rt._id}>
+                          {rt.reviewStatusName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            ) : (
+              ""
+            )}
             <DialogFooter>
               <Button
                 type="button"
