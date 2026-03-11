@@ -38,6 +38,12 @@ import {
   Activity,
   CalendarClock,
   MessageCircle,
+  UserCircle,
+  Banknote,
+  IndianRupee,
+  CalendarX,
+  ArrowUpCircle,
+  ArrowDownCircle,
 } from "lucide-react";
 import {
   Accordion,
@@ -111,6 +117,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     CreditCard,
     CalendarClock,
     MessageCircle,
+    UserCircle,
+    IndianRupee,
+    Fuel,
+    Banknote,
+    CalendarX,
+    ArrowDownCircle,
+    ArrowUpCircle,
   };
   const getAllMenus = async () => {
     try {
@@ -177,8 +190,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       label: "Masters",
       isMenu: true,
       submenu: [
-        { icon: ClipboardCheck, label: "Debit", path: "/debit" },
-        { icon: ClipboardCheck, label: "Credit", path: "/credit" },
+        { icon: ArrowDownCircle, label: "Debit", path: "/debit" },
+        { icon: ArrowUpCircle, label: "Credit", path: "/credit" },
 
         { icon: Layers, label: "Categories", path: "/categories" },
         { icon: AlertTriangle, label: "Red Flags", path: "/red-flags" },
@@ -220,19 +233,19 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     const roleBasedItems = {
       SuperAdmin: [
         { icon: UserPlus, label: "Leads", path: "/leads" },
-        { icon: Users, label: "Patients", path: "/patients" },
+        { icon: UserCircle, label: "Patients", path: "/patients" },
         { icon: CalendarClock, label: "Sessions", path: "/sessions" },
         { icon: Stethoscope, label: "Physios", path: "/physios" },
         { icon: Settings, label: "Machinery", path: "/machinery" },
         { icon: Share2, label: "References", path: "/references" },
-        { icon: ClipboardCheck, label: "Leave Assign", path: "/leavephysio" },
-        { icon: ClipboardCheck, label: "Income", path: "/income" },
+        { icon: CalendarX, label: "Leave Assign", path: "/leavephysio" },
+        { icon: IndianRupee, label: "Income", path: "/income" },
+        { icon: Fuel, label: "Petrol Allowance", path: "/petrol-allowance" },
 
         mastersSubmenu,
         Adminpannel,
         { icon: Wallet, label: "Expenses", path: "/expenses" },
-        { icon: Fuel, label: "Petrol Allowance", path: "/petrol-allowance" },
-        { icon: FileSpreadsheet, label: "Payroll", path: "/payroll" },
+        { icon: Banknote, label: "Payroll", path: "/payroll" },
         { icon: BarChart3, label: "Reports", path: "/reports" },
         { icon: MessageCircle, label: "Consultation", path: "/consultation" },
       ],
@@ -243,12 +256,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Stethoscope, label: "Physios", path: "/physios" },
         { icon: Settings, label: "Machinery", path: "/machinery" },
         { icon: Share2, label: "References", path: "/references" },
-        { icon: ClipboardCheck, label: "Income", path: "/income" },
-        { icon: ClipboardCheck, label: "Leave Assign", path: "/leavephysio" },
+        { icon: IndianRupee, label: "Income", path: "/income" },
+        { icon: CalendarX, label: "Leave Assign", path: "/leavephysio" },
 
         mastersSubmenu,
         { icon: Flag, label: "Red Flags", path: "/red-flags" },
-        { icon: FileSpreadsheet, label: "Payroll", path: "/payroll" },
+        { icon: Banknote, label: "Payroll", path: "/payroll" },
         { icon: BarChart3, label: "Reports", path: "/reports" },
         { icon: Map, label: "Country", path: "/country" },
         { icon: MessageCircle, label: "Consultation", path: "/consultation" },
@@ -260,8 +273,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: Flag, label: "Red Flags", path: "/red-flags" },
         { icon: BarChart3, label: "Reports", path: "/reports" },
         { icon: MessageCircle, label: "Consultation", path: "/consultation" },
-        { icon: ClipboardCheck, label: "Leave Assign", path: "/leavephysio" },
-        { icon: ClipboardCheck, label: "Income", path: "/income" },
+        { icon: CalendarX, label: "Leave Assign", path: "/leavephysio" },
+        { icon: IndianRupee, label: "Income", path: "/income" },
       ],
       Physio: [
         { icon: CalendarClock, label: "My Sessions", path: "/sessions" },

@@ -40,17 +40,19 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 const Reports = () => {
   const { user } = useAuth();
 
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
-
+  const [selectedReference, setSelectedReference] = useState("all");
+  const [referenceList, setReferenceList] = useState([]);
   const [expensesData, setExpensesData] = useState([]);
   const [sessions, setSessions] = useState([]);
-
+  const [patientList, setPatientList] = useState([]);
   const [todaySessionCount, setTodaySessionCount] = useState(0);
 
   const [stats, setStats] = useState({
@@ -69,7 +71,28 @@ const Reports = () => {
     sessionCompleted: 0,
     pendingreviews: 0,
   });
+  const getAllPatients = async () => {
+    try {
+      const res = await apiRequest("Patient/getAllPatient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
 
+      if (Array.isArray(res)) {
+        setPatientList(res);
+      } else if (Array.isArray(res?.data)) {
+        setPatientList(res.data);
+      } else {
+        setPatientList([]);
+      }
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      setPatientList([]);
+    }
+  };
   const [summary, setSummary] = useState({
     cancelledSessions: 0,
   });
@@ -85,6 +108,26 @@ const Reports = () => {
     newPatients: 0,
     conversionRate: 0,
   });
+
+  const getAllReference = async (data) => {
+    try {
+      const response = await apiRequest("References/getALLReferences", {
+        method: "POST",
+        body: JSON.stringify(data || {}),
+      });
+
+      if (Array.isArray(response)) {
+        setReferenceList(response);
+      } else if (Array.isArray(response?.data)) {
+        setReferenceList(response.data);
+      } else {
+        setReferenceList([]);
+      }
+    } catch (error) {
+      console.error("Error fetching references:", error);
+      setReferenceList([]);
+    }
+  };
 
   const [selectedMonth, setSelectedMonth] = useState(String(currentMonth));
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
@@ -117,7 +160,183 @@ const Reports = () => {
     "#8b5cf6",
     "#06b6d4",
   ];
+  const getSessionReferenceId = (session) => {
+    return (
+      session?.sourceId?._id ||
+      session?.sourceId ||
+      session?.referenceId?._id ||
+      session?.referenceId ||
+      session?.leadId?.sourceId?._id ||
+      session?.leadId?.sourceId ||
+      session?.patientId?.sourceId?._id ||
+      session?.patientId?.sourceId ||
+      null
+    );
+  };
 
+  const getSessionReferenceName = (session) => {
+    return (
+      session?.sourceId?.sourceName ||
+      session?.referenceId?.sourceName ||
+      session?.leadId?.sourceId?.sourceName ||
+      session?.patientId?.sourceId?.sourceName ||
+      "N/A"
+    );
+  };
+
+  const handleExportPatientList = () => {
+    console.log("Clicking is work");
+
+    if (filteredPatientList.length === 0) {
+      toast({
+        title: "No data",
+        description: "No patients found for the selected reference.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedReferenceName =
+      selectedReference === "all"
+        ? "All References"
+        : referenceList.find(
+            (ref) => String(ref._id) === String(selectedReference),
+          )?.sourceName || "Reference";
+
+    const selectedMonthName = `${monthNames[Number(selectedMonth)]} ${selectedYear}`;
+    const totalPatients = filteredPatientList.length;
+
+    const exportData = filteredPatientList.map((patient, index) => ({
+      "S.No": index + 1,
+      "Patient Code": patient?.patientCode || "N/A",
+      "Patient Name": patient?.patientName || "N/A",
+      "Mobile Number": patient?.patientNumber || "N/A",
+      Gender: patient?.patientGenderId?.genderName || "N/A",
+      Age: patient?.patientAge || "N/A",
+      Address: patient?.patientAddress || "N/A",
+      Condition: patient?.patientCondition || "N/A",
+      Physio: patient?.physioId?.physioName || "N/A",
+      Reference: patient?.ReferenceId?.sourceName || "N/A",
+      "Session Count": patient?.sessionCount ?? 0,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData, { origin: "A5" });
+
+    XLSX.utils.sheet_add_aoa(worksheet, [
+      ["Reference:", selectedReferenceName],
+      ["Month:", selectedMonthName],
+      ["Total Patients:", totalPatients],
+    ]);
+
+    worksheet["!cols"] = [
+      { wch: 8 },
+      { wch: 15 },
+      { wch: 25 },
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 12 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Patients");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
+
+    saveAs(
+      fileData,
+      `Patient_List_${selectedReferenceName.replace(/\s+/g, "_")}_${selectedMonthName}.xlsx`,
+    );
+  };
+  const handleExportPatientListPDF = () => {
+    if (filteredPatientList.length === 0) {
+      toast({
+        title: "No data",
+        description: "No patients found for the selected reference.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const doc = new jsPDF("l", "mm", "a4");
+
+    const selectedReferenceName =
+      selectedReference === "all"
+        ? "All References"
+        : referenceList.find(
+            (ref) => String(ref._id) === String(selectedReference),
+          )?.sourceName || "Reference";
+
+    const selectedMonthName = `${monthNames[Number(selectedMonth)]} ${selectedYear}`;
+    const totalPatients = filteredPatientList.length;
+
+    doc.setFontSize(16);
+    doc.text("Reference Wise Patient List", 14, 15);
+
+    doc.setFontSize(11);
+    doc.text(`Reference: ${selectedReferenceName}`, 14, 24);
+    doc.text(`Month: ${selectedMonthName}`, 14, 31);
+    doc.text(`Total Patients: ${totalPatients}`, 14, 38);
+    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 45);
+
+    const tableData = filteredPatientList.map((patient, index) => [
+      index + 1,
+      patient?.patientCode || "N/A",
+      patient?.patientName || "N/A",
+      patient?.patientNumber || "N/A",
+      patient?.patientGenderId?.genderName || "N/A",
+      patient?.patientAge || "N/A",
+      patient?.patientCondition || "N/A",
+      patient?.physioId?.physioName || "N/A",
+      patient?.ReferenceId?.sourceName || "N/A",
+      patient?.sessionCount ?? 0,
+    ]);
+
+    autoTable(doc, {
+      startY: 55,
+      head: [
+        [
+          "S.No",
+          "Patient Code",
+          "Patient Name",
+          "Mobile",
+          "Gender",
+          "Age",
+          "Condition",
+          "Physio",
+          "Reference",
+          "Sessions",
+        ],
+      ],
+      body: tableData,
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: "linebreak",
+        valign: "middle",
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+    });
+
+    doc.save(
+      `Patient_List_${selectedReferenceName.replace(/\s+/g, "_")}_${selectedMonthName}.pdf`,
+    );
+  };
   const handleExportCSV = () => {
     const rows = [
       ["Metric", "Value"],
@@ -323,6 +542,8 @@ const Reports = () => {
   useEffect(() => {
     getAllDashBoard();
     getSession();
+    getAllPatients();
+    getAllReference();
     getAllExpenses();
   }, []);
 
@@ -501,6 +722,31 @@ const Reports = () => {
       bgColor: "bg-violet-100",
     },
   ];
+  const filteredPatientList = useMemo(() => {
+    return patientList.filter((patient) => {
+      const matchesReference =
+        selectedReference === "all" ||
+        String(patient?.ReferenceId?._id || patient?.ReferenceId || "") ===
+          String(selectedReference);
+
+      if (!matchesReference) return false;
+
+      const patientDate =
+        patient?.createdAt ||
+        patient?.consultationDate ||
+        patient?.sessionStartDate ||
+        null;
+
+      if (!patientDate) return false;
+
+      const d = new Date(patientDate);
+
+      return (
+        d.getMonth() === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear)
+      );
+    });
+  }, [patientList, selectedReference, selectedMonth, selectedYear]);
 
   return (
     <div className="space-y-6 p-2 md:p-0">
@@ -520,6 +766,38 @@ const Reports = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={selectedReference}
+            onValueChange={setSelectedReference}
+          >
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue placeholder="Select Reference" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All References</SelectItem>
+              {referenceList.map((ref) => (
+                <SelectItem key={ref._id} value={String(ref._id)}>
+                  {ref.sourceName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            className="flex-1 md:flex-none"
+            onClick={handleExportPatientList}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            XLSX
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 md:flex-none"
+            onClick={handleExportPatientListPDF}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-full md:w-40">
               <Calendar className="h-4 w-4 mr-2" />
@@ -556,6 +834,7 @@ const Reports = () => {
               <Download className="h-4 w-4 mr-2" />
               CSV
             </Button>
+
             <Button
               variant="outline"
               className="flex-1 md:flex-none"
