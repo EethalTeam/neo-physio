@@ -44,16 +44,21 @@ import {
   Search,
   FileText,
   List,
+  Download,
+  BarChart3,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import { format, getYear, getMonth } from "date-fns";
-import { Pie } from "react-chartjs-2";
+import { Pie, Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
@@ -61,11 +66,17 @@ import {
 } from "chart.js";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
@@ -78,6 +89,9 @@ const ExpenseManagement = () => {
 
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [patientList, setPatientList] = useState([]);
+  const [selectedReference, setSelectedReference] = useState("all");
+
   const [masters, setMasters] = useState({
     patients: [],
     physio: [],
@@ -305,7 +319,10 @@ const ExpenseManagement = () => {
         method: "POST",
         body: JSON.stringify(data || {}),
       });
-      setMasters((prev) => ({ ...prev, patients: response || [] }));
+
+      const patients = response || [];
+      setPatientList(patients);
+      setMasters((prev) => ({ ...prev, patients }));
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -319,8 +336,6 @@ const ExpenseManagement = () => {
         body: JSON.stringify(data || {}),
       });
 
-      console.log("Machine API response:", response);
-
       setMasters((prev) => ({ ...prev, machines: response || [] }));
     } catch (error) {
       console.error("Error:", error);
@@ -329,6 +344,11 @@ const ExpenseManagement = () => {
   };
 
   const handleFormChange = (name, value) => {
+    if (name === "linkedEntity") {
+      setFormState((prev) => ({ ...prev, linkedEntity: value || {} }));
+      return;
+    }
+
     if (name.startsWith("linkedEntity.")) {
       const key = name.split(".")[1];
       setFormState((prev) => ({
@@ -341,6 +361,11 @@ const ExpenseManagement = () => {
   };
 
   const handleFilterChange = (name, value) => {
+    if (name === "linkedEntity") {
+      setFilterState((prev) => ({ ...prev, linkedEntity: value || {} }));
+      return;
+    }
+
     if (name.startsWith("linkedEntity.")) {
       const key = name.split(".")[1];
       setFilterState((prev) => ({
@@ -525,8 +550,363 @@ const ExpenseManagement = () => {
     );
   }, [advancedFilteredTransactions]);
 
+  const referenceList = useMemo(
+    () => masters.references || [],
+    [masters.references],
+  );
+
+  const filteredPatientList = useMemo(() => {
+    let filtered = [...patientList];
+
+    if (selectedReference !== "all") {
+      filtered = filtered.filter(
+        (patient) =>
+          patient?.ReferenceId?._id?.toString() ===
+          selectedReference.toString(),
+      );
+    }
+
+    return filtered;
+  }, [patientList, selectedReference]);
+
+  const expenseByCategory = useMemo(() => {
+    const data = expenseTransactions.reduce((acc, tx) => {
+      acc[tx.category] = (acc[tx.category] || 0) + Number(tx.amount || 0);
+      return acc;
+    }, {});
+
+    return {
+      labels: Object.keys(data),
+      datasets: [
+        {
+          data: Object.values(data),
+          backgroundColor: [
+            "#3b82f6",
+            "#ef4444",
+            "#f97316",
+            "#8b5cf6",
+            "#10b981",
+            "#f59e0b",
+            "#6366f1",
+          ],
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [expenseTransactions]);
+
+  const incomeVsExpensePieData = useMemo(() => {
+    return {
+      labels: ["Income", "Expense"],
+      datasets: [
+        {
+          data: [totalIncome, totalExpense],
+          backgroundColor: ["#22c55e", "#ef4444"],
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [totalIncome, totalExpense]);
+
+  const monthWise12MonthsData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const labels = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const incomeData = Array(12).fill(0);
+    const expenseData = Array(12).fill(0);
+
+    transactions.forEach((tx) => {
+      if (!tx.date) return;
+      const txDate = new Date(tx.date);
+      const year = txDate.getFullYear();
+      const month = txDate.getMonth();
+
+      if (year === selectedYearNumber) {
+        if (tx.type === "Income") {
+          incomeData[month] += Number(tx.amount || 0);
+        } else {
+          expenseData[month] += Number(tx.amount || 0);
+        }
+      }
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Income",
+          data: incomeData,
+          borderColor: "#22c55e",
+          backgroundColor: "rgba(34,197,94,0.2)",
+          tension: 0.3,
+          fill: false,
+        },
+        {
+          label: "Expense",
+          data: expenseData,
+          borderColor: "#ef4444",
+          backgroundColor: "rgba(239,68,68,0.2)",
+          tension: 0.3,
+          fill: false,
+        },
+      ],
+    };
+  }, [transactions, selectedYear]);
+
+  const currentVsPreviousMonthData = useMemo(() => {
+    const currentYear = Number(selectedYear);
+    const currentMonth = Number(selectedMonth);
+
+    let prevMonth = currentMonth - 1;
+    let prevYear = currentYear;
+
+    if (prevMonth < 0) {
+      prevMonth = 11;
+      prevYear = currentYear - 1;
+    }
+
+    let currentIncome = 0;
+    let currentExpense = 0;
+    let previousIncome = 0;
+    let previousExpense = 0;
+
+    transactions.forEach((tx) => {
+      if (!tx.date) return;
+      const txDate = new Date(tx.date);
+      const year = txDate.getFullYear();
+      const month = txDate.getMonth();
+      const amount = Number(tx.amount || 0);
+
+      if (year === currentYear && month === currentMonth) {
+        if (tx.type === "Income") currentIncome += amount;
+        else currentExpense += amount;
+      }
+
+      if (year === prevYear && month === prevMonth) {
+        if (tx.type === "Income") previousIncome += amount;
+        else previousExpense += amount;
+      }
+    });
+    const monthOptions = [
+      { value: "all", label: "All Months" },
+      { value: "0", label: "January" },
+      { value: "1", label: "February" },
+      { value: "2", label: "March" },
+      { value: "3", label: "April" },
+      { value: "4", label: "May" },
+      { value: "5", label: "June" },
+      { value: "6", label: "July" },
+      { value: "7", label: "August" },
+      { value: "8", label: "September" },
+      { value: "9", label: "October" },
+      { value: "10", label: "November" },
+      { value: "11", label: "December" },
+    ];
+    const reportMonthOptions = monthOptions.filter((m) => m.value !== "all");
+
+    const currentLabel =
+      reportMonthOptions.find((m) => Number(m.value) === currentMonth)?.label ||
+      "Current Month";
+    const previousLabel =
+      monthOptions.find((m) => Number(m.value) === prevMonth)?.label ||
+      "Previous Month";
+
+    return {
+      labels: [previousLabel, currentLabel],
+      datasets: [
+        {
+          label: "Income",
+          data: [previousIncome, currentIncome],
+          backgroundColor: "#22c55e",
+        },
+        {
+          label: "Expense",
+          data: [previousExpense, currentExpense],
+          backgroundColor: "#ef4444",
+        },
+      ],
+    };
+  }, [transactions, selectedYear, selectedMonth]);
+
+  const handleExportPatientList = () => {
+    if (filteredPatientList.length === 0) {
+      toast({
+        title: "No data",
+        description: "No patients found for the selected reference.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const reportMonthOptions = monthOptions.filter((m) => m.value !== "all");
+
+    const selectedMonthLabel =
+      reportMonthOptions.find((m) => m.value === selectedMonth)?.label || "";
+
+    const selectedReferenceName =
+      selectedReference === "all"
+        ? "All_References"
+        : referenceList.find(
+            (ref) => String(ref._id) === String(selectedReference),
+          )?.sourceName || "Selected_Reference";
+
+    const exportData = filteredPatientList.map((patient, index) => ({
+      "S.No": index + 1,
+      "Patient Code": patient?.patientCode || "N/A",
+      "Patient Name": patient?.patientName || "N/A",
+      "Mobile Number": patient?.patientNumber || "N/A",
+      Gender: patient?.patientGenderId?.genderName || "N/A",
+      Age: patient?.patientAge || "N/A",
+      Address: patient?.patientAddress || "N/A",
+      Condition: patient?.patientCondition || "N/A",
+      Physio: patient?.physioId?.physioName || "N/A",
+      Reference: patient?.ReferenceId?.sourceName || "N/A",
+      "Session Count": patient?.sessionCount ?? 0,
+    }));
+
+    exportData.push(
+      {},
+      {
+        "S.No": "",
+        "Patient Code": "",
+        "Patient Name": "",
+        "Mobile Number": "",
+        Gender: "",
+        Age: "",
+        Address: "",
+        Condition: "",
+        Physio: "",
+        Reference: "Total Patients",
+        "Session Count": filteredPatientList.length,
+      },
+    );
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    worksheet["!cols"] = [
+      { wch: 8 },
+      { wch: 15 },
+      { wch: 24 },
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 8 },
+      { wch: 28 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 14 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Patient List");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+    });
+
+    saveAs(
+      fileData,
+      `Patient_List_${selectedReferenceName}_${selectedMonthLabel}_${selectedYear}.xlsx`,
+    );
+  };
+
+  const handleExportPatientListPDF = () => {
+    if (filteredPatientList.length === 0) {
+      toast({
+        title: "No data",
+        description: "No patients found for the selected reference.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const doc = new jsPDF("l", "mm", "a4");
+    const reportMonthOptions = monthOptions.filter((m) => m.value !== "all");
+
+    const selectedMonthLabel =
+      reportMonthOptions.find((m) => m.value === selectedMonth)?.label || "";
+
+    const selectedReferenceName =
+      selectedReference === "all"
+        ? "All References"
+        : referenceList.find(
+            (ref) => String(ref._id) === String(selectedReference),
+          )?.sourceName || "Selected Reference";
+
+    doc.setFontSize(16);
+    doc.text("Reference Wise Patient List", 14, 15);
+
+    doc.setFontSize(10);
+    doc.text(`Month: ${selectedMonthLabel} ${selectedYear}`, 14, 23);
+    doc.text(`Reference: ${selectedReferenceName}`, 14, 29);
+    doc.text(`Total Patients: ${filteredPatientList.length}`, 14, 35);
+
+    const tableBody = filteredPatientList.map((patient, index) => [
+      index + 1,
+      patient?.patientCode || "N/A",
+      patient?.patientName || "N/A",
+      patient?.patientNumber || "N/A",
+      patient?.patientGenderId?.genderName || "N/A",
+      patient?.patientAge || "N/A",
+      patient?.patientAddress || "N/A",
+      patient?.patientCondition || "N/A",
+      patient?.physioId?.physioName || "N/A",
+      patient?.ReferenceId?.sourceName || "N/A",
+      patient?.sessionCount ?? 0,
+    ]);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [
+        [
+          "S.No",
+          "Patient Code",
+          "Patient Name",
+          "Mobile",
+          "Gender",
+          "Age",
+          "Address",
+          "Condition",
+          "Physio",
+          "Reference",
+          "Session Count",
+        ],
+      ],
+      body: tableBody,
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+      },
+    });
+
+    doc.save(
+      `Patient_List_${selectedReferenceName}_${selectedMonthLabel}_${selectedYear}.pdf`,
+    );
+  };
+
   const renderDynamicFields = (state, handler, isFilter = false) => {
     const category = state?.ExpenseCategoryName || "";
+
     if (!category)
       return !isFilter ? (
         <div className="space-y-2">
@@ -627,6 +1007,7 @@ const ExpenseManagement = () => {
             {commonFields}
           </>
         );
+
       case "Machine Maintenance":
         return (
           <>
@@ -652,9 +1033,8 @@ const ExpenseManagement = () => {
                 <SelectContent>
                   {(masters.machines || []).map((m) => (
                     <SelectItem key={m._id} value={m._id}>
-                      {m.modalityId?.modalitiesName.trim() ||
-                        m.modalityId?.modalitiesName.trim() ||
-                        // m.machineDescription?.trim() ||
+                      {m?.modalityId?.modalitiesName?.trim() ||
+                        m?.machineName ||
                         "Unnamed Machine"}
                     </SelectItem>
                   ))}
@@ -664,6 +1044,7 @@ const ExpenseManagement = () => {
             {commonFields}
           </>
         );
+
       case "Referral Commission":
         return (
           <>
@@ -691,6 +1072,7 @@ const ExpenseManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Patient Name</Label>
               <Select
@@ -721,94 +1103,114 @@ const ExpenseManagement = () => {
         return commonFields;
     }
   };
-
   const TransactionTable = ({ data, type }) => (
-    <div className="table-responsive-wrapper overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b">
-            <th className="p-3 text-left font-semibold text-gray-600">Date</th>
-            <th className="p-3 text-left font-semibold text-gray-600">
-              Category
-            </th>
-            <th className="p-3 text-left font-semibold text-gray-600">
-              Description
-            </th>
-            <th className="p-3 text-right font-semibold text-gray-600">
-              Amount
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.length > 0 ? (
-            data.map((tx) => (
-              <tr key={tx.id} className="border-b hover:bg-gray-50/50">
-                <td className="p-3 text-gray-700">
-                  {tx.date ? format(new Date(tx.date), "dd MMM, yyyy") : "-"}
-                </td>
-                <td className="p-3 text-gray-700">{tx.category}</td>
-                <td className="p-3 text-gray-500 max-w-xs truncate">
-                  {tx.description}
-                </td>
-                <td
-                  className={`p-3 text-right font-medium ${
-                    type === "Income" ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  ₹{Number(tx.amount || 0).toLocaleString()}
+    <div className="w-full min-w-0 overflow-hidden rounded-xl border bg-white">
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full min-w-[700px] text-sm">
+          <thead className="bg-slate-50">
+            <tr className="border-b">
+              <th className="p-3 text-left font-semibold text-gray-600">
+                Date
+              </th>
+              <th className="p-3 text-left font-semibold text-gray-600">
+                Category
+              </th>
+              <th className="p-3 text-left font-semibold text-gray-600">
+                Description
+              </th>
+              <th className="p-3 text-right font-semibold text-gray-600">
+                Amount
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.length > 0 ? (
+              data.map((tx) => (
+                <tr key={tx.id} className="border-b hover:bg-gray-50/50">
+                  <td className="p-3 text-gray-700">
+                    {tx.date ? format(new Date(tx.date), "dd MMM, yyyy") : "-"}
+                  </td>
+                  <td className="p-3 text-gray-700">{tx.category}</td>
+                  <td className="max-w-xs truncate p-3 text-gray-500">
+                    {tx.description}
+                  </td>
+                  <td
+                    className={`p-3 text-right font-medium ${
+                      type === "Income" ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    ₹{Number(tx.amount || 0).toLocaleString()}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="4" className="p-6 text-center text-gray-500">
+                  No records found
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="4" className="p-6 text-center text-gray-500">
-                No records found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="space-y-3 p-3 md:hidden">
+        {data.length > 0 ? (
+          data.map((tx) => (
+            <div
+              key={tx.id}
+              className="w-full min-w-0 rounded-xl border bg-white p-3 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] text-gray-500">Date</p>
+                  <p className="text-sm font-medium text-gray-800">
+                    {tx.date ? format(new Date(tx.date), "dd MMM, yyyy") : "-"}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-[11px] text-gray-500">Amount</p>
+                  <p
+                    className={`text-sm font-bold ${
+                      type === "Income" ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    ₹{Number(tx.amount || 0).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <p className="text-[11px] text-gray-500">Category</p>
+                <p className="break-words text-sm text-gray-800">
+                  {tx.category || "-"}
+                </p>
+              </div>
+
+              <div className="mt-3">
+                <p className="text-[11px] text-gray-500">Description</p>
+                <p className="break-words text-sm text-gray-700">
+                  {tx.description || "-"}
+                </p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="py-6 text-center text-sm text-gray-500">
+            No records found
+          </div>
+        )}
+      </div>
     </div>
   );
 
-  const expenseByCategory = useMemo(() => {
-    const data = expenseTransactions.reduce((acc, tx) => {
-      acc[tx.category] = (acc[tx.category] || 0) + Number(tx.amount || 0);
-      return acc;
-    }, {});
-    return {
-      labels: Object.keys(data),
-      datasets: [
-        {
-          data: Object.values(data),
-          backgroundColor: [
-            "#3b82f6",
-            "#ef4444",
-            "#f97316",
-            "#8b5cf6",
-            "#10b981",
-            "#f59e0b",
-            "#6366f1",
-          ],
-        },
-      ],
-    };
-  }, [expenseTransactions]);
-
   const yearOptions = useMemo(() => {
-    // const years = new Set(
-    //   transactions
-    //     .filter((tx) => tx.date)
-    //     .map((tx) => getYear(new Date(tx.date))),
-    // );
-
-    // years.add(new Date().getFullYear());
-    const years = [2030, 2029, 2028, 2027, 2026];
+    const years = [2030, 2029, 2028, 2027, 2026, 2025, 2024];
     return Array.from(years)
       .sort((a, b) => b - a)
       .map(String);
-  }, [transactions]);
-
+  }, []);
   const monthOptions = [
     { value: "all", label: "All Months" },
     { value: "0", label: "January" },
@@ -824,22 +1226,22 @@ const ExpenseManagement = () => {
     { value: "10", label: "November" },
     { value: "11", label: "December" },
   ];
-
   const reportMonthOptions = monthOptions.filter((m) => m.value !== "all");
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden px-2 pb-4 sm:space-y-6 sm:px-4 md:px-6">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex md:flex-row flex-col md:justify-between items-start space-y-5"
+        className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
       >
-        <div>
-          <h1 className="md:text-3xl text-lg font-bold text-gray-900 flex items-center gap-3">
-            <Wallet size={30} /> Expense Management
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2 text-lg font-bold text-gray-900 sm:gap-3 sm:text-2xl md:text-3xl">
+            <Wallet size={24} className="shrink-0 sm:h-7 sm:w-7" />
+            <span className="truncate">Expense Management</span>
           </h1>
-          <p className="text-gray-600 md:mt-1 mt-3">
+          <p className="mt-1 text-sm text-gray-600 sm:mt-2 sm:text-base">
             Track all income and expenses in one place.
           </p>
         </div>
@@ -847,112 +1249,205 @@ const ExpenseManagement = () => {
         {Permissions.isAdd && (
           <Button
             onClick={openNewDialog}
-            className="shadow-lg shadow-blue-500/20 hover:shadow-xl transition-shadow"
+            className="w-full shadow-lg shadow-blue-500/20 transition-shadow hover:shadow-xl md:w-auto"
           >
-            <PlusCircle size={18} className="mr-2" /> Add Transaction
+            <PlusCircle size={18} className="mr-2" />
+            Add Transaction
           </Button>
         )}
       </motion.div>
 
-      <Tabs defaultValue="monthly_report">
-        <TabsList className="grid w-full md:grid-cols-6 grid-cols-2 gap-2 mb-20 md:mb-0">
-          <TabsTrigger value="monthly_report">Monthly Report</TabsTrigger>
-          <TabsTrigger value="all_records">All Data</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="income">Income</TabsTrigger>
-          <TabsTrigger value="expense_chart">Expense Chart</TabsTrigger>
-          <TabsTrigger value="advanced_filter">Advanced Filter</TabsTrigger>
+      <Tabs defaultValue="monthly_report" className="w-full min-w-0">
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-xl bg-muted p-1 sm:grid-cols-3 xl:grid-cols-7">
+          <TabsTrigger
+            value="monthly_report"
+            className="w-full whitespace-normal break-words px-2 py-2 text-[11px] leading-tight sm:text-sm"
+          >
+            Monthly Report
+          </TabsTrigger>
+          <TabsTrigger
+            value="all_records"
+            className="w-full whitespace-normal break-words px-2 py-2 text-[11px] leading-tight sm:text-sm"
+          >
+            All Data
+          </TabsTrigger>
+          <TabsTrigger
+            value="expenses"
+            className="w-full whitespace-normal break-words px-2 py-2 text-[11px] leading-tight sm:text-sm"
+          >
+            Expenses
+          </TabsTrigger>
+          <TabsTrigger
+            value="income"
+            className="w-full whitespace-normal break-words px-2 py-2 text-[11px] leading-tight sm:text-sm"
+          >
+            Income
+          </TabsTrigger>
+          <TabsTrigger
+            value="expense_chart"
+            className="w-full whitespace-normal break-words px-2 py-2 text-[11px] leading-tight sm:text-sm"
+          >
+            Expense Chart
+          </TabsTrigger>
+          <TabsTrigger
+            value="summary_charts"
+            className="w-full whitespace-normal break-words px-2 py-2 text-[11px] leading-tight sm:text-sm"
+          >
+            Summary Charts
+          </TabsTrigger>
+          <TabsTrigger
+            value="advanced_filter"
+            className="w-full whitespace-normal break-words px-2 py-2 text-[11px] leading-tight sm:text-sm"
+          >
+            Advanced Filter
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="monthly_report">
-          <Card>
-            <CardHeader className="flex-row items-center space-x-4 space-y-0">
+        <TabsContent
+          value="monthly_report"
+          className="mt-4 space-y-4 sm:space-y-6"
+        >
+          <Card className="rounded-2xl">
+            <CardHeader className="pb-3 sm:pb-4">
               <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-gray-500" />
-                <h3 className="text-lg font-semibold">Report Filters</h3>
+                <Filter className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
+                <h3 className="text-sm font-semibold sm:text-lg">
+                  Report Filters
+                </h3>
               </div>
             </CardHeader>
 
-            <CardContent className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="year-select">Year:</Label>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger id="year-select" className="w-[120px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    align="start"
-                    sideOffset={6}
-                    avoidCollisions={false}
-                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="year-select">Year</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger id="year-select" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      side="bottom"
+                      align="start"
+                      sideOffset={6}
+                      avoidCollisions={false}
+                      className="z-[99999] max-h-72 overflow-auto border bg-white shadow-lg"
+                    >
+                      {yearOptions.map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="month-select">Month</Label>
+                  <Select
+                    value={selectedMonth}
+                    onValueChange={setSelectedMonth}
                   >
-                    {yearOptions.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <SelectTrigger id="month-select" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      side="bottom"
+                      align="start"
+                      sideOffset={6}
+                      avoidCollisions={false}
+                      className="z-[99999] max-h-72 overflow-auto border bg-white shadow-lg"
+                    >
+                      {reportMonthOptions.map((month) => (
+                        <SelectItem key={month.value} value={month.value}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Reference</Label>
+                  <Select
+                    value={selectedReference}
+                    onValueChange={setSelectedReference}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Reference" />
+                    </SelectTrigger>
+                    <SelectContent
+                      position="popper"
+                      side="bottom"
+                      align="start"
+                      sideOffset={6}
+                      avoidCollisions={false}
+                      className="z-[99999] max-h-72 overflow-auto border bg-white shadow-lg"
+                    >
+                      <SelectItem value="all">All References</SelectItem>
+                      {referenceList.map((ref) => (
+                        <SelectItem key={ref._id} value={String(ref._id)}>
+                          {ref.sourceName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Label htmlFor="month-select">Month:</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger id="month-select" className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    align="start"
-                    sideOffset={6}
-                    avoidCollisions={false}
-                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
-                  >
-                    {reportMonthOptions.map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={handleExportPatientList}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  XLSX
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={handleExportPatientListPDF}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
               </div>
             </CardContent>
           </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <Card>
-              <CardHeader className="flex-row items-center justify-between pb-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <Card className="rounded-2xl">
+              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Monthly Income
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="break-all text-xl font-bold text-green-600 sm:text-2xl">
                   ₹{totalIncome.toLocaleString()}
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex-row items-center justify-between pb-2">
+            <Card className="rounded-2xl">
+              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Monthly Expense
                 </CardTitle>
                 <TrendingDown className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="break-all text-xl font-bold text-red-600 sm:text-2xl">
                   ₹{totalExpense.toLocaleString()}
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex-row items-center justify-between pb-2">
+            <Card className="rounded-2xl sm:col-span-2 xl:col-span-1">
+              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Monthly Net
                 </CardTitle>
@@ -964,7 +1459,7 @@ const ExpenseManagement = () => {
               </CardHeader>
               <CardContent>
                 <div
-                  className={`text-2xl font-bold ${
+                  className={`break-all text-xl font-bold sm:text-2xl ${
                     netBalance >= 0 ? "text-blue-600" : "text-orange-600"
                   }`}
                 >
@@ -975,24 +1470,25 @@ const ExpenseManagement = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="all_records">
-          <Card>
+        <TabsContent value="all_records" className="mt-4">
+          <Card className="rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <List size={18} /> All Expense / Income Records
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <List size={18} />
+                All Expense / Income Records
               </CardTitle>
               <CardDescription>
                 Showing all available data from backend
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 pb-4 sm:px-6">
               <TransactionTable data={transactions} type="Expense" />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="expenses">
-          <Card>
+        <TabsContent value="expenses" className="mt-4">
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Expense Records</CardTitle>
               <CardDescription>
@@ -1002,14 +1498,14 @@ const ExpenseManagement = () => {
                 {selectedYear}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 pb-4 sm:px-6">
               <TransactionTable data={expenseTransactions} type="Expense" />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="income">
-          <Card>
+        <TabsContent value="income" className="mt-4">
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Income Records</CardTitle>
               <CardDescription>
@@ -1019,14 +1515,14 @@ const ExpenseManagement = () => {
                 {selectedYear}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 pb-4 sm:px-6">
               <TransactionTable data={incomeTransactions} type="Income" />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="expense_chart">
-          <Card>
+        <TabsContent value="expense_chart" className="mt-4 w-[280px]">
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle className="text-lg md:text-2xl">
                 Expense Breakdown
@@ -1038,33 +1534,185 @@ const ExpenseManagement = () => {
                 {selectedYear}
               </CardDescription>
             </CardHeader>
-            <CardContent
-              className="flex justify-center items-center"
-              style={{ height: "300px" }}
-            >
-              {expenseTransactions.length > 0 ? (
-                <Pie
-                  data={expenseByCategory}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: "right" } },
-                  }}
-                />
-              ) : (
-                <p className="text-gray-500">
-                  No expense data for the selected period.
-                </p>
-              )}
+            <CardContent className="p-3 sm:p-6">
+              <div className="h-[220px] w-full sm:h-[280px] md:h-[350px]">
+                {expenseTransactions.length > 0 ? (
+                  <Pie
+                    data={expenseByCategory}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "bottom",
+                          labels: {
+                            boxWidth: 12,
+                            font: {
+                              size: 10,
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-center text-sm text-gray-500">
+                    No expense data for the selected period.
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="advanced_filter">
-          <Card>
+        <TabsContent value="summary_charts" className="mt-4">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 2xl:grid-cols-2">
+            <Card className="rounded-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
+                  <PieChartIcon className="h-5 w-5" />
+                  Income vs Expense
+                </CardTitle>
+                <CardDescription>
+                  Combined pie chart for selected month
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                <div className="h-[260px] w-full sm:h-[320px] md:h-[350px]">
+                  <Pie
+                    data={incomeVsExpensePieData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "bottom",
+                          labels: {
+                            boxWidth: 12,
+                            font: {
+                              size: 10,
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
+                  <BarChart3 className="h-5 w-5" />
+                  Previous vs Current Month
+                </CardTitle>
+                <CardDescription>
+                  Compare income and expense between 2 months
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                <div className="h-[260px] w-full sm:h-[320px] md:h-[350px]">
+                  <Bar
+                    data={currentVsPreviousMonthData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "top",
+                          labels: {
+                            boxWidth: 12,
+                            font: {
+                              size: 10,
+                            },
+                          },
+                        },
+                      },
+                      scales: {
+                        x: {
+                          ticks: {
+                            font: {
+                              size: 10,
+                            },
+                          },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            font: {
+                              size: 10,
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl 2xl:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
+                  <BarChart3 className="h-5 w-5" />
+                  12 Months Income vs Expense
+                </CardTitle>
+                <CardDescription>
+                  Full year monthly comparison for {selectedYear}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6">
+                <div className="h-[240px] w-full sm:h-[320px] md:h-[420px]">
+                  <Line
+                    data={monthWise12MonthsData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "top",
+                          labels: {
+                            boxWidth: 12,
+                            font: {
+                              size: 10,
+                            },
+                          },
+                        },
+                      },
+                      scales: {
+                        x: {
+                          ticks: {
+                            font: {
+                              size: 10,
+                            },
+                            maxRotation: 0,
+                            minRotation: 0,
+                          },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            font: {
+                              size: 10,
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="advanced_filter" className="mt-4 space-y-4">
+          <Card className="rounded-2xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg md:text-2xl">
-                <Search /> Advanced Expense Filter
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
+                <Search className="h-5 w-5" />
+                Advanced Expense Filter
               </CardTitle>
               <CardDescription>
                 Drill down into your expenses with specific criteria.
@@ -1072,15 +1720,15 @@ const ExpenseManagement = () => {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <div className="p-4 border rounded-lg bg-gray-50/50 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-4 rounded-xl border bg-gray-50/50 p-3 sm:p-4">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Year</Label>
                     <Select
                       value={filterState.year}
                       onValueChange={(val) => handleFilterChange("year", val)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1099,7 +1747,7 @@ const ExpenseManagement = () => {
                       value={filterState.month}
                       onValueChange={(val) => handleFilterChange("month", val)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1136,7 +1784,7 @@ const ExpenseManagement = () => {
                         handleFilterChange("linkedEntity", {});
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="All Categories" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1151,16 +1799,23 @@ const ExpenseManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {renderDynamicFields(filterState, handleFilterChange, true)}
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleApplyAdvancedFilter}>
+              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={handleApplyAdvancedFilter}
+                >
                   Apply Filter
                 </Button>
-                <Button variant="outline" onClick={clearAdvancedFilter}>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={clearAdvancedFilter}
+                >
                   Clear Filter
                 </Button>
               </div>
@@ -1168,29 +1823,30 @@ const ExpenseManagement = () => {
           </Card>
 
           {advancedFilteredTransactions && (
-            <Card className="mt-6">
+            <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Filtered Results</CardTitle>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="flex items-center gap-3 rounded-lg border p-4">
-                    <FileText className="h-6 w-6 text-blue-500" />
+
+                <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
+                  <div className="flex items-center gap-3 rounded-xl border p-4">
+                    <FileText className="h-5 w-5 text-blue-500 sm:h-6 sm:w-6" />
                     <div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground sm:text-sm">
                         Transactions
                       </p>
-                      <p className="text-xl font-bold">
+                      <p className="text-lg font-bold sm:text-xl">
                         {advancedFilteredTransactions.length}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 rounded-lg border p-4">
-                    <TrendingDown className="h-6 w-6 text-red-500" />
+                  <div className="flex items-center gap-3 rounded-xl border p-4">
+                    <TrendingDown className="h-5 w-5 text-red-500 sm:h-6 sm:w-6" />
                     <div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground sm:text-sm">
                         Total Expense
                       </p>
-                      <p className="text-xl font-bold text-red-600">
+                      <p className="break-all text-lg font-bold text-red-600 sm:text-xl">
                         ₹{advancedFilterTotal.toLocaleString()}
                       </p>
                     </div>
@@ -1198,7 +1854,7 @@ const ExpenseManagement = () => {
                 </div>
               </CardHeader>
 
-              <CardContent>
+              <CardContent className="px-3 pb-4 sm:px-6">
                 <TransactionTable
                   data={advancedFilteredTransactions}
                   type="Expense"
@@ -1210,67 +1866,71 @@ const ExpenseManagement = () => {
       </Tabs>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[92vh] w-[96vw] max-w-lg overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {editingTx ? "Edit Transaction" : "Add New Transaction"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Fill in the details for the transaction.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                value={
-                  formState.ExpenseTypeID
-                    ? JSON.stringify({
-                        id: formState.ExpenseTypeID,
-                        name: formState.ExpenseTypeName,
-                      })
-                    : ""
-                }
-                onValueChange={(v) => {
-                  const selected = JSON.parse(v);
-                  handleSelectChange("ExpenseTypeID", selected.id);
-                  handleSelectChange("ExpenseTypeName", selected.name);
-                  handleSelectChange("ExpenseCategoryId", "");
-                  handleSelectChange("ExpenseCategoryName", "");
-                  handleSelectChange("linkedEntity", {});
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {expenseType.map((exp) => (
-                    <SelectItem
-                      key={exp._id}
-                      value={JSON.stringify({
-                        id: exp._id,
-                        name: exp.ExpenseTypeName,
-                      })}
-                    >
-                      {exp.ExpenseTypeName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <form onSubmit={handleFormSubmit} className="space-y-4 pt-2 sm:pt-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={
+                    formState.ExpenseTypeID
+                      ? JSON.stringify({
+                          id: formState.ExpenseTypeID,
+                          name: formState.ExpenseTypeName,
+                        })
+                      : ""
+                  }
+                  onValueChange={(v) => {
+                    const selected = JSON.parse(v);
+                    handleSelectChange("ExpenseTypeID", selected.id);
+                    handleSelectChange("ExpenseTypeName", selected.name);
+                    handleSelectChange("ExpenseCategoryId", "");
+                    handleSelectChange("ExpenseCategoryName", "");
+                    handleSelectChange("linkedEntity", {});
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {expenseType.map((exp) => (
+                      <SelectItem
+                        key={exp._id}
+                        value={JSON.stringify({
+                          id: exp._id,
+                          name: exp.ExpenseTypeName,
+                        })}
+                      >
+                        {exp.ExpenseTypeName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
+                <Label>Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal"
+                      className="w-full justify-start overflow-hidden text-left font-normal"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formState.expenseDate ? (
-                        format(formState.expenseDate, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
+                      <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="truncate">
+                        {formState.expenseDate
+                          ? format(formState.expenseDate, "PPP")
+                          : "Pick a date"}
+                      </span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -1285,7 +1945,7 @@ const ExpenseManagement = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="expenseAmount">Amount (₹)</Label>
                 <Input
@@ -1321,7 +1981,7 @@ const ExpenseManagement = () => {
                       handleSelectChange("linkedEntity", {});
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1344,15 +2004,16 @@ const ExpenseManagement = () => {
 
             {renderDynamicFields(formState, handleFormChange)}
 
-            <DialogFooter>
+            <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => setIsFormOpen(false)}
               >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" className="w-full sm:w-auto">
                 {editingTx ? "Save Changes" : "Add Transaction"}
               </Button>
             </DialogFooter>

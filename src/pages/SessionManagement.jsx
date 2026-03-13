@@ -34,7 +34,6 @@ import {
   Calendar as CalendarIcon,
   Play,
   Square,
-  MessageSquare,
   Search,
   PlusCircle,
   Edit,
@@ -45,6 +44,9 @@ import {
   FileText,
   StopCircle,
   XCircleIcon,
+  TrendingUp,
+  CheckSquare,
+  Activity,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -461,6 +463,7 @@ const SessionManagement = () => {
       console.log(error, "error from frontend update Session");
     }
   };
+
   const deleteSession = async (data) => {
     try {
       await apiRequest("Session/deleteSession", {
@@ -921,6 +924,7 @@ const SessionManagement = () => {
     });
     setIsFormOpen(true);
   };
+
   const renderPhysioBadge = (physioId) => {
     const physio = (getPhysioCounts || []).find((p) => p.physioId === physioId);
     if (!physio) return <span>Physio not found</span>;
@@ -945,6 +949,7 @@ const SessionManagement = () => {
       </span>
     );
   };
+
   const handleSessionCancelRevert = async (sessionId) => {
     try {
       const response = await SessionCancelRevert(sessionId);
@@ -1004,6 +1009,7 @@ const SessionManagement = () => {
       });
     }
   };
+
   const handleDeleteSession = (id) => {
     deleteSession({ _id: id });
     toast({
@@ -1018,6 +1024,46 @@ const SessionManagement = () => {
     setSessionForm(initialFormState);
     setIsFormOpen(true);
   };
+
+  const getCompletionPercentage = (completed, total) => {
+    if (!total || Number(total) === 0) return "0.00";
+    return ((Number(completed) / Number(total)) * 100).toFixed(2);
+  };
+
+  const overallScheduledCount = filteredSessions.length;
+
+  const overallCompletedCount = filteredSessions.filter(
+    (s) => s.sessionStatusId?.sessionStatusName === "Completed",
+  ).length;
+
+  const overallCompletionPercentage = getCompletionPercentage(
+    overallCompletedCount,
+    overallScheduledCount,
+  );
+
+  const summaryCards = [
+    {
+      title: "Scheduled Sessions",
+      value: overallScheduledCount,
+      icon: Activity,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+    {
+      title: "Completed Sessions",
+      value: overallCompletedCount,
+      icon: CheckSquare,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+    {
+      title: "Completion %",
+      value: `${overallCompletionPercentage}%`,
+      icon: TrendingUp,
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-100",
+    },
+  ];
 
   return (
     <div className="md:space-y-6 space-y-10">
@@ -1093,6 +1139,29 @@ const SessionManagement = () => {
         </CardContent>
       </Card>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Card key={card.title} className="medical-card">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">{card.title}</p>
+                    <p className="text-2xl font-bold text-gray-800 mt-1">
+                      {card.value}
+                    </p>
+                  </div>
+                  <div className={`p-3 rounded-full ${card.bgColor}`}>
+                    <Icon className={`h-5 w-5 ${card.color}`} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
       {msg && user?.role === "Physio" && (
         <Card className="medical-card max-w-fit md:max-w-full">
           <CardContent>
@@ -1129,269 +1198,292 @@ const SessionManagement = () => {
                       <th className="text-left p-2">Machine</th>
                       <th className="text-left p-2">Status</th>
                       <th className="text-left p-2">Session</th>
+                      {/* <th className="text-left p-2">Completion %</th> */}
                       <th className="text-left p-2">Feedback</th>
                       <th className="text-left p-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSessions.map((session) => (
-                      <tr
-                        key={session._id}
-                        className="border-b hover:bg-gray-50"
-                      >
-                        <td className="p-2">
-                          {session.sessionCode ||
-                            session.incompleteData?.sessionCode ||
-                            "-"}
-                        </td>
-                        <td className="p-2">
-                          {session.patientId?.patientName ||
-                            session.incompleteData?.patientId?.patientName ||
-                            "-"}
-                        </td>
+                    {filteredSessions.map((session) => {
+                      const patientId = session.patientId?._id;
+                      const physioId = session.physioId?._id;
+                      const sessionKey = `${patientId}-${physioId}`;
+                      const sessionStats = sessionCountMap[sessionKey] || {
+                        total: 0,
+                        completed: 0,
+                      };
+                      const completionPercentage = getCompletionPercentage(
+                        sessionStats.completed,
+                        sessionStats.total,
+                      );
 
-                        {user?.role !== "Physio" && (
+                      return (
+                        <tr
+                          key={session._id}
+                          className="border-b hover:bg-gray-50"
+                        >
                           <td className="p-2">
-                            {renderPhysioBadge(session.physioId?._id)}
+                            {session.sessionCode ||
+                              session.incompleteData?.sessionCode ||
+                              "-"}
                           </td>
-                        )}
+                          <td className="p-2">
+                            {session.patientId?.patientName ||
+                              session.incompleteData?.patientId?.patientName ||
+                              "-"}
+                          </td>
 
-                        <td className="p-2">
-                          <div>
-                            <p className="text-sm">
-                              {session.sessionDate
-                                ? session.sessionDate
-                                    .split("T")[0]
-                                    .split("-")
-                                    .reverse()
-                                    .join("-")
-                                : "-"}
-                              (
-                              {session.sessionDay ||
-                                session.incompleteData?.sessionDay ||
-                                "-"}
-                              )
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {session.sessionTime
-                                ? Converttime(session.sessionTime)
-                                : "-"}
-                            </p>
-                          </div>
-                        </td>
+                          {user?.role !== "Physio" && (
+                            <td className="p-2">
+                              {renderPhysioBadge(session.physioId?._id)}
+                            </td>
+                          )}
 
-                        <td className="p-2">
-                          {session.machineId?.machineName || "-"}
-                        </td>
-
-                        <td className="p-2">
-                          <span
-                            className="px-2 py-1 rounded-full text-xs"
-                            style={{
-                              backgroundColor:
-                                session?.sessionStatusId?.sessionStatusColor ||
-                                "white",
-                              color:
-                                session?.sessionStatusId
-                                  ?.sessionStatusTextColor || "black",
-                            }}
-                          >
-                            {session?.sessionStatusId?.sessionStatusName || ""}
-                          </span>
-                        </td>
-
-                        <td className="p-2">
-                          {session.monthlySessionCount || "-"}
-                        </td>
-
-                        <td className="p-2">
-                          <div className="text-xs space-y-1">
-                            {session.sessionFeedbackPros && (
-                              <p className="text-green-600">
-                                ✓ {session.sessionFeedbackPros}
-                              </p>
-                            )}
-                            {session.sessionFeedbackCons && (
-                              <p className="text-yellow-600">
-                                {session.sessionFeedbackCons}
-                              </p>
-                            )}
-
-                            {session.redFlags?.length > 0
-                              ? session.redFlags.map(
-                                  (flag) =>
-                                    flag.isOccurred && (
-                                      <p
-                                        key={flag._id}
-                                        className="text-red-600"
-                                      >
-                                        ⚠ {flag.redFlagId?.redflagName}
-                                      </p>
-                                    ),
+                          <td className="p-2">
+                            <div>
+                              <p className="text-sm">
+                                {session.sessionDate
+                                  ? session.sessionDate
+                                      .split("T")[0]
+                                      .split("-")
+                                      .reverse()
+                                      .join("-")
+                                  : "-"}
+                                (
+                                {session.sessionDay ||
+                                  session.incompleteData?.sessionDay ||
+                                  "-"}
                                 )
-                              : !session.sessionFeedbackPros &&
-                                !session.sessionFeedbackCons &&
-                                !(session.redFlags || []).length && (
-                                  <span className="text-gray-400">
-                                    No feedback
-                                  </span>
-                                )}
-                          </div>
-                        </td>
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {session.sessionTime
+                                  ? Converttime(session.sessionTime)
+                                  : "-"}
+                              </p>
+                            </div>
+                          </td>
 
-                        <td className="p-2">
-                          <div className="flex space-x-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                handleViewConsultation(session.patientId)
-                              }
+                          <td className="p-2">
+                            {session.machineId?.machineName || "-"}
+                          </td>
+
+                          <td className="p-2">
+                            <span
+                              className="px-2 py-1 rounded-full text-xs"
+                              style={{
+                                backgroundColor:
+                                  session?.sessionStatusId
+                                    ?.sessionStatusColor || "white",
+                                color:
+                                  session?.sessionStatusId
+                                    ?.sessionStatusTextColor || "black",
+                              }}
                             >
-                              <FileText size={14} />
-                            </Button>
+                              {session?.sessionStatusId?.sessionStatusName ||
+                                ""}
+                            </span>
+                          </td>
 
-                            {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                              "scheduled" && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() =>
-                                  handleSessionAction(session, "Attended")
-                                }
-                              >
-                                <Play size={12} />
-                              </Button>
-                            )}
+                          <td className="p-2">{sessionStats.total || "-"}</td>
 
-                            {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                              "attended" && (
+                          {/* <td className="p-2">
+                            <span className="font-medium text-cyan-700">
+                              {completionPercentage}%
+                            </span>
+                          </td> */}
+
+                          <td className="p-2">
+                            <div className="text-xs space-y-1">
+                              {session.sessionFeedbackPros && (
+                                <p className="text-green-600">
+                                  ✓ {session.sessionFeedbackPros}
+                                </p>
+                              )}
+                              {session.sessionFeedbackCons && (
+                                <p className="text-yellow-600">
+                                  {session.sessionFeedbackCons}
+                                </p>
+                              )}
+
+                              {session.redFlags?.length > 0
+                                ? session.redFlags.map(
+                                    (flag) =>
+                                      flag.isOccurred && (
+                                        <p
+                                          key={flag._id}
+                                          className="text-red-600"
+                                        >
+                                          ⚠ {flag.redFlagId?.redflagName}
+                                        </p>
+                                      ),
+                                  )
+                                : !session.sessionFeedbackPros &&
+                                  !session.sessionFeedbackCons &&
+                                  !(session.redFlags || []).length && (
+                                    <span className="text-gray-400">
+                                      No feedback
+                                    </span>
+                                  )}
+                            </div>
+                          </td>
+
+                          <td className="p-2">
+                            <div className="flex space-x-1">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  handleSessionAction(session, "Completed")
+                                  handleViewConsultation(session.patientId)
                                 }
                               >
-                                <Square size={12} />
+                                <FileText size={14} />
                               </Button>
-                            )}
 
-                            {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                              "attended" &&
-                              user?.role !== "Physio" && (
+                              {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                "scheduled" && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleSessionAction(session, "Attended")
+                                  }
+                                >
+                                  <Play size={12} />
+                                </Button>
+                              )}
+
+                              {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                "attended" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleSessionAction(session, "Completed")
+                                  }
+                                >
+                                  <Square size={12} />
+                                </Button>
+                              )}
+
+                              {session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                "attended" &&
+                                user?.role !== "Physio" && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() =>
+                                      handleSessionAction(session, "Scheduled")
+                                    }
+                                  >
+                                    <StopCircle size={12} />
+                                  </Button>
+                                )}
+
+                              {(session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                "scheduled" ||
+                                session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                  "attended") && (
                                 <Button
                                   size="sm"
                                   variant="destructive"
                                   onClick={() =>
-                                    handleSessionAction(session, "Scheduled")
+                                    handleSessionAction(session, "Canceled")
                                   }
                                 >
-                                  <StopCircle size={12} />
+                                  <XCircle size={12} />
                                 </Button>
                               )}
 
-                            {(session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                              "scheduled" ||
-                              session?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                                "attended") && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() =>
-                                  handleSessionAction(session, "Canceled")
-                                }
-                              >
-                                <XCircle size={12} />
-                              </Button>
-                            )}
-
-                            {user?.role !== "Physio" &&
-                              session.sessionStatusId?.sessionStatusName ===
-                                "Canceled" && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      className="bg-green-600 hover:bg-green-700 text-white"
-                                    >
-                                      <XCircleIcon size={12} />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Are you sure?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will change the cancelled session
-                                        to scheduled.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleSessionCancelRevert(session._id)
-                                        }
+                              {user?.role !== "Physio" &&
+                                session.sessionStatusId?.sessionStatusName ===
+                                  "Canceled" && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        className="bg-green-600 hover:bg-green-700 text-white"
                                       >
-                                        Revert Cancel
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
+                                        <XCircleIcon size={12} />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Are you sure?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will change the cancelled session
+                                          to scheduled.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() =>
+                                            handleSessionCancelRevert(
+                                              session._id,
+                                            )
+                                          }
+                                        >
+                                          Revert Cancel
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
 
-                            {user?.role !== "Physio" && Permissions.isEdit && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditSession(session)}
-                              >
-                                <Edit size={12} />
-                              </Button>
-                            )}
+                              {user?.role !== "Physio" &&
+                                Permissions.isEdit && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditSession(session)}
+                                  >
+                                    <Edit size={12} />
+                                  </Button>
+                                )}
 
-                            {user?.role !== "Physio" &&
-                              Permissions.isDelete && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive">
-                                      <Trash2 size={12} />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Are you sure?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the
-                                        session.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() =>
-                                          handleDeleteSession(session._id)
-                                        }
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {user?.role !== "Physio" &&
+                                Permissions.isDelete && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        <Trash2 size={12} />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Are you sure?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete the
+                                          session.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() =>
+                                            handleDeleteSession(session._id)
+                                          }
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1413,224 +1505,253 @@ const SessionManagement = () => {
           </CardHeader>
           <CardContent>
             <div className="md:hidden space-y-4">
-              {filteredSessions.map((session) => (
-                <Card
-                  key={session._id}
-                  className="p-4 shadow-lg rounded-2xl border"
-                >
-                  <div className="mb-2">
-                    <p className="text-base font-bold">
-                      {session.patientId?.patientName || "-"}
-                    </p>
+              {filteredSessions.map((session) => {
+                const patientId = session.patientId?._id;
+                const physioId = session.physioId?._id;
+                const sessionKey = `${patientId}-${physioId}`;
+                const sessionStats = sessionCountMap[sessionKey] || {
+                  total: 0,
+                  completed: 0,
+                };
+                const completionPercentage = getCompletionPercentage(
+                  sessionStats.completed,
+                  sessionStats.total,
+                );
 
-                    {user?.role !== "Physio" && (
-                      <p className="text-sm text-gray-500">
-                        Physio:
-                        <span className="font-medium">
-                          {session.physioId?.physioName || "-"}
-                        </span>
+                return (
+                  <Card
+                    key={session._id}
+                    className="p-4 shadow-lg rounded-2xl border"
+                  >
+                    <div className="mb-2">
+                      <p className="text-base font-bold">
+                        {session.patientId?.patientName || "-"}
                       </p>
-                    )}
-                  </div>
 
-                  <p className="text-sm text-gray-500">
-                    Session
-                    <span className="font-medium text-gray-800 ml-1">
-                      {session.monthlySessionCount || "-"}
-                    </span>
-                  </p>
+                      {user?.role !== "Physio" && (
+                        <p className="text-sm text-gray-500">
+                          Physio:
+                          <span className="font-medium">
+                            {session.physioId?.physioName || "-"}
+                          </span>
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="bg-gray-100 rounded-md p-2 text-xs mb-2">
-                    <p className="font-semibold">
-                      {session.sessionDate
-                        ? new Date(session.sessionDate).toLocaleDateString(
-                            "en-GB",
-                          ) + ` (${session.sessionDay || "-"})`
-                        : "-"}
+                    <p className="text-sm text-gray-500">
+                      Session
+                      <span className="font-medium text-gray-800 ml-1">
+                        {sessionStats.total || "-"}
+                      </span>
                     </p>
-                    <p className="text-gray-700">
-                      {session.sessionTime
-                        ? Converttime(session.sessionTime)
-                        : "-"}
-                    </p>
-                  </div>
 
-                  <div className="flex justify-between text-xs mb-2">
-                    <p className="font-medium">
-                      Machine: {session.machineId?.machineName || "-"}
-                    </p>
-                    <span
-                      className="px-2 py-1 rounded-sm text-[10px]"
-                      style={{
-                        backgroundColor:
-                          session.sessionStatusId?.sessionStatusColor ||
-                          "white",
-                        color:
-                          session.sessionStatusId?.sessionStatusTextColor ||
-                          "black",
-                      }}
-                    >
-                      {session.sessionStatusId?.sessionStatusName || "-"}
-                    </span>
-                  </div>
+                    {/* <p className="text-sm text-gray-500">
+                      Completion %
+                      <span className="font-medium text-cyan-700 ml-1">
+                        {completionPercentage}%
+                      </span>
+                    </p> */}
 
-                  <div className="text-xs space-y-1">
-                    {session.sessionFeedbackPros && (
-                      <p className="text-green-600">
-                        ✓ {session.sessionFeedbackPros}
+                    <div className="bg-gray-100 rounded-md p-2 text-xs mb-2 mt-2">
+                      <p className="font-semibold">
+                        {session.sessionDate
+                          ? new Date(session.sessionDate).toLocaleDateString(
+                              "en-GB",
+                            ) + ` (${session.sessionDay || "-"})`
+                          : "-"}
                       </p>
-                    )}
-                    {session.sessionFeedbackCons && (
-                      <p className="text-yellow-600">
-                        {session.sessionFeedbackCons}
+                      <p className="text-gray-700">
+                        {session.sessionTime
+                          ? Converttime(session.sessionTime)
+                          : "-"}
                       </p>
-                    )}
+                    </div>
 
-                    {session.redFlags?.length > 0
-                      ? session.redFlags.map(
-                          (flag) =>
-                            flag.isOccurred && (
-                              <p key={flag._id} className="text-red-600">
-                                ⚠ {flag.redFlagId?.redflagName}
-                              </p>
-                            ),
-                        )
-                      : !session.sessionFeedbackPros &&
-                        !session.sessionFeedbackCons &&
-                        !(session.redFlags || []).length && (
-                          <span className="text-gray-400">No feedback</span>
-                        )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleViewConsultation(session.patientId)}
-                    >
-                      <FileText size={14} />
-                    </Button>
-
-                    {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                      "scheduled" && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => handleSessionAction(session, "Attended")}
+                    <div className="flex justify-between text-xs mb-2">
+                      <p className="font-medium">
+                        Machine: {session.machineId?.machineName || "-"}
+                      </p>
+                      <span
+                        className="px-2 py-1 rounded-sm text-[10px]"
+                        style={{
+                          backgroundColor:
+                            session.sessionStatusId?.sessionStatusColor ||
+                            "white",
+                          color:
+                            session.sessionStatusId?.sessionStatusTextColor ||
+                            "black",
+                        }}
                       >
-                        <Play size={12} />
-                      </Button>
-                    )}
+                        {session.sessionStatusId?.sessionStatusName || "-"}
+                      </span>
+                    </div>
 
-                    {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                      "attended" && (
+                    <div className="text-xs space-y-1">
+                      {session.sessionFeedbackPros && (
+                        <p className="text-green-600">
+                          ✓ {session.sessionFeedbackPros}
+                        </p>
+                      )}
+                      {session.sessionFeedbackCons && (
+                        <p className="text-yellow-600">
+                          {session.sessionFeedbackCons}
+                        </p>
+                      )}
+
+                      {session.redFlags?.length > 0
+                        ? session.redFlags.map(
+                            (flag) =>
+                              flag.isOccurred && (
+                                <p key={flag._id} className="text-red-600">
+                                  ⚠ {flag.redFlagId?.redflagName}
+                                </p>
+                              ),
+                          )
+                        : !session.sessionFeedbackPros &&
+                          !session.sessionFeedbackCons &&
+                          !(session.redFlags || []).length && (
+                            <span className="text-gray-400">No feedback</span>
+                          )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mt-3">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          handleSessionAction(session, "Completed")
+                          handleViewConsultation(session.patientId)
                         }
                       >
-                        <Square size={12} />
+                        <FileText size={14} />
                       </Button>
-                    )}
 
-                    {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                      "attended" &&
-                      (user?.role === "Admin" || user?.role === "HOD") && (
+                      {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                        "scheduled" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() =>
+                            handleSessionAction(session, "Attended")
+                          }
+                        >
+                          <Play size={12} />
+                        </Button>
+                      )}
+
+                      {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                        "attended" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleSessionAction(session, "Completed")
+                          }
+                        >
+                          <Square size={12} />
+                        </Button>
+                      )}
+
+                      {session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                        "attended" &&
+                        (user?.role === "Admin" || user?.role === "HOD") && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() =>
+                              handleSessionAction(session, "Scheduled")
+                            }
+                          >
+                            <StopCircle size={12} />
+                          </Button>
+                        )}
+
+                      {(session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                        "scheduled" ||
+                        session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                          "attended") && (
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() =>
-                            handleSessionAction(session, "Scheduled")
+                            handleSessionAction(session, "Canceled")
                           }
                         >
-                          <StopCircle size={12} />
+                          <XCircle size={12} />
                         </Button>
                       )}
 
-                    {(session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                      "scheduled" ||
-                      session.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                        "attended") && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleSessionAction(session, "Canceled")}
-                      >
-                        <XCircle size={12} />
-                      </Button>
-                    )}
+                      {user?.role !== "Physio" &&
+                        session.sessionStatusId?.sessionStatusName ===
+                          "Canceled" && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                <XCircleIcon size={12} />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Are you sure?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will change the cancelled session to
+                                  scheduled.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleSessionCancelRevert(session._id)
+                                  }
+                                >
+                                  Revert Cancel
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
 
-                    {user?.role !== "Physio" &&
-                      session.sessionStatusId?.sessionStatusName ===
-                        "Canceled" && (
+                      {user?.role !== "Physio" && Permissions.isEdit && (
+                        <Button onClick={() => handleEditSession(session)}>
+                          <Edit size={12} />
+                        </Button>
+                      )}
+
+                      {user?.role !== "Physio" && Permissions.isDelete && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <XCircleIcon size={12} />
+                            <Button size="sm" variant="destructive">
+                              <Trash2 size={12} />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will change the cancelled session to
-                                scheduled.
+                                This will permanently delete the session.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() =>
-                                  handleSessionCancelRevert(session._id)
-                                }
+                                onClick={() => handleDeleteSession(session._id)}
                               >
-                                Revert Cancel
+                                Delete
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       )}
-
-                    {user?.role !== "Physio" && Permissions.isEdit && (
-                      <Button onClick={() => handleEditSession(session)}>
-                        <Edit size={12} />
-                      </Button>
-                    )}
-
-                    {user?.role !== "Physio" && Permissions.isDelete && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">
-                            <Trash2 size={12} />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete the session.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteSession(session._id)}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
-                </Card>
-              ))}
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
