@@ -1284,7 +1284,9 @@ const SessionManagement = () => {
                             </span>
                           </td>
 
-                          <td className="p-2">{sessionStats.total || "-"}</td>
+                          <td className="p-2">
+                            {session?.monthlySessionCount || "-"}
+                          </td>
 
                           {/* <td className="p-2">
                             <span className="font-medium text-cyan-700">
