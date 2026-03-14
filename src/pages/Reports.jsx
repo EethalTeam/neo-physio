@@ -993,7 +993,7 @@ const Reports = () => {
       Physio: getReviewPhysioName(review),
       Reference: getReviewReferenceName(review),
       Status: getReviewStatusName(review),
-      Notes: review?.feedback || review?.feedback || feedback,
+      Notes: review?.feedback || "N/A",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData, { origin: "A6" });
@@ -1063,7 +1063,7 @@ const Reports = () => {
       getReviewPhysioName(review),
       getReviewReferenceName(review),
       getReviewStatusName(review),
-      review?.feedback || review?.feedback || feedback,
+      review?.feedback || "N/A",
     ]);
 
     autoTable(doc, {

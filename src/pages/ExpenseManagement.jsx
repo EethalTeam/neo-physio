@@ -1520,35 +1520,44 @@ const ExpenseManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="expense_chart" className="mt-4 w-[280px]">
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-lg md:text-2xl">
+        <TabsContent
+          value="expense_chart"
+          className="mt-4 w-full min-w-0 max-w-full overflow-hidden"
+        >
+          <Card className="w-full min-w-0 max-w-full rounded-2xl overflow-hidden">
+            <CardHeader className="px-3 py-3">
+              <CardTitle className="text-sm font-semibold sm:text-base md:text-2xl">
                 Expense Breakdown
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-[11px] leading-relaxed break-words sm:text-sm">
                 Expenses by category for{" "}
                 {reportMonthOptions.find((m) => m.value === selectedMonth)
                   ?.label || ""}{" "}
                 {selectedYear}
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-3 sm:p-6">
-              <div className="h-[220px] w-full sm:h-[280px] md:h-[350px]">
+
+            <CardContent className="w-full max-w-full overflow-hidden px-2 pb-3 pt-0 sm:px-4 md:px-6">
+              <div className="relative h-[200px] w-full max-w-full overflow-hidden sm:h-[260px] md:h-[350px]">
                 {expenseTransactions.length > 0 ? (
                   <Pie
                     data={expenseByCategory}
                     options={{
                       responsive: true,
                       maintainAspectRatio: false,
+                      resizeDelay: 0,
+                      layout: {
+                        padding: 2,
+                      },
                       plugins: {
                         legend: {
                           position: "bottom",
+                          align: "center",
                           labels: {
-                            boxWidth: 12,
+                            boxWidth: 8,
+                            padding: 6,
                             font: {
-                              size: 10,
+                              size: 8,
                             },
                           },
                         },
@@ -1556,7 +1565,7 @@ const ExpenseManagement = () => {
                     }}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-center text-sm text-gray-500">
+                  <div className="flex h-full items-center justify-center px-2 text-center text-xs text-gray-500">
                     No expense data for the selected period.
                   </div>
                 )}
@@ -1564,7 +1573,6 @@ const ExpenseManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="summary_charts" className="mt-4">
           <div className="grid grid-cols-1 gap-4 sm:gap-6 2xl:grid-cols-2">
             <Card className="rounded-2xl">

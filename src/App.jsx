@@ -50,6 +50,7 @@ import Income from "./pages/Income";
 import LeavephysioManagement from "./pages/LeavephysioManagement";
 import Debit from "./pages/Debit";
 import Credit from "./pages/Credit";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -429,6 +430,7 @@ function App() {
               }
             />{" "}
           </Routes>
+          <Footer />
         </Router>
         <Toaster />
       </AuthProvider>
