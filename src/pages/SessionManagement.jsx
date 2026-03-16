@@ -1057,7 +1057,7 @@ const SessionManagement = () => {
       bgColor: "bg-green-100",
     },
     {
-      title: "Completion %",
+      title: "Session Completion Rate (SCR)",
       value: `${overallCompletionPercentage}%`,
       icon: TrendingUp,
       color: "text-cyan-600",

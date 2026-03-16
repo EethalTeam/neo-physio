@@ -1715,9 +1715,6 @@ const PatientManagement = () => {
     setHistoryPatient(patient);
     setIsHistoryOpen(true);
 
-    console.log("Fetching history for patient:", patient.patientName);
-    console.log("Sending patientId:", patient._id);
-
     try {
       const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
         method: "POST",
@@ -1726,53 +1723,97 @@ const PatientManagement = () => {
 
       const sessionsArr = Array.isArray(allSessions) ? allSessions : [];
 
-      const sortedSessions = sessionsArr.sort(
-        (a, b) => new Date(b.sessionDate) - new Date(a.sessionDate),
+      // oldest to newest for correct carry-forward calculation
+      const sortedSessions = [...sessionsArr].sort(
+        (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
       );
 
-      const patientSessions = sortedSessions.map((s) => ({
-        type: "session",
-        date: s.sessionDate,
-        title: `Session ${s.sessionCount || ""}`,
-        status: s.sessionStatusId?.sessionStatusName || "N/A",
-        color: s.sessionStatusId?.sessionStatusColor,
+      let runningCount = 0;
+      let previousStatus = "";
 
-        // ✅ add BOTH (so UI always works)
-        physioId: s.physioId || null,
-        physioName: s.physioId?.physioName || "N/A",
+      const patientSessions = sortedSessions.map((s, index) => {
+        const currentStatus =
+          s.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
 
-        sessionFromTime: s.sessionFromTime || "N/A",
-        sessionToTime: s.sessionToTime || "N/A",
+        // first record
+        if (index === 0) {
+          runningCount = 1;
+        } else {
+          // if previous session was canceled, carry forward same count
+          if (previousStatus === "canceled") {
+            runningCount = runningCount;
+          } else {
+            runningCount += 1;
+          }
+        }
 
-        feedback:
-          s.sessionFeedbackPros ||
-          s.sessionCancelReason ||
-          s.sessionFeedbackCons ||
-          "No feedback",
-      }));
+        previousStatus = currentStatus;
 
-      const totalSessions = patientSessions.length;
-      const completedSessions = patientSessions.filter(
-        (x) => (x.status || "").toLowerCase() === "completed",
-      ).length;
+        return {
+          type: "session",
+          date: s.sessionDate,
+          originalSessionCount: s.sessionCount || 0, // raw DB value
+          displaySessionCount: runningCount, // corrected UI value
+          title: `Session ${runningCount}`,
+          status: s.sessionStatusId?.sessionStatusName || "N/A",
+          color: s.sessionStatusId?.sessionStatusColor || "#4B5563",
+          physioName: s.physioId?.physioName || "N/A",
+          sessionFromTime: s.sessionFromTime || null,
+          sessionToTime: s.sessionToTime || null,
+          feedback:
+            s.sessionFeedbackPros ||
+            s.sessionCancelReason ||
+            s.sessionFeedbackCons ||
+            "No feedback",
+        };
+      });
 
       const patientGoalLog = (patient.goalLog || []).map((log) => ({
         type: "review",
         date: log.date,
-        title: `HOD Review - ${log.status}`,
-        details: `Goal: ${log.goal}. Feedback: ${log.feedback || "N/A"}. Satisfaction: ${
-          log.satisfaction || "N/A"
-        }%`,
+        title: `HOD Review - ${log.status || "N/A"}`,
+        details: `Goal: ${log.goal || "N/A"}. Feedback: ${
+          log.feedback || "N/A"
+        }. Satisfaction: ${log.satisfaction || "N/A"}%`,
       }));
 
+      // newest first for display
       const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
         (a, b) => new Date(b.date) - new Date(a.date),
       );
-      console.log("first history item:", combinedHistory[0]);
+
+      const totalRecords = patientSessions.length;
+
+      const completedRecords = patientSessions.filter(
+        (item) => (item.status || "").toLowerCase() === "completed",
+      ).length;
+
+      const canceledRecords = patientSessions.filter(
+        (item) => (item.status || "").toLowerCase() === "canceled",
+      ).length;
+
+      const currentSessionNumber = patientSessions.length
+        ? Math.max(
+            ...patientSessions.map((item) => item.displaySessionCount || 0),
+          )
+        : 0;
+
       setPatientHistory(combinedHistory);
-      setSessionCount({ total: totalSessions, completed: completedSessions });
+      setSessionCount({
+        totalRecords,
+        completed: completedRecords,
+        canceled: canceledRecords,
+        current: currentSessionNumber,
+      });
     } catch (error) {
       console.error("Failed to fetch sessions:", error);
+      setPatientHistory([]);
+      setSessionCount({
+        totalRecords: 0,
+        completed: 0,
+        canceled: 0,
+        current: 0,
+      });
     }
   };
 
@@ -3285,46 +3326,83 @@ const PatientManagement = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-1 sm:pr-4 mt-4">
+          <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+            <div className="rounded-lg border p-2 bg-slate-50">
+              <p className="text-gray-500">Total Records</p>
+              <p className="font-semibold">{sessionCount?.totalRecords ?? 0}</p>
+            </div>
+
+            <div className="rounded-lg border p-2 bg-slate-50">
+              <p className="text-gray-500">Completed</p>
+              <p className="font-semibold">{sessionCount?.completed ?? 0}</p>
+            </div>
+
+            <div className="rounded-lg border p-2 bg-slate-50">
+              <p className="text-gray-500">Canceled</p>
+              <p className="font-semibold">{sessionCount?.canceled ?? 0}</p>
+            </div>
+
+            <div className="rounded-lg border p-2 bg-slate-50">
+              <p className="text-gray-500">Current Session No</p>
+              <p className="font-semibold">{sessionCount?.current ?? 0}</p>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto pr-1 sm:pr-4 mt-2">
             <div className="relative pl-6">
               <div
                 className="absolute left-0 top-0 h-full w-0.5 bg-gray-200"
                 style={{ transform: "translateX(2.5px)" }}
-              ></div>
+              />
 
               {patientHistory && patientHistory.length > 0 ? (
                 patientHistory.map((item, index) => (
                   <div key={index} className="mb-8 relative">
+                    <div className="absolute left-0 top-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow" />
+
                     <div className="pl-6">
                       <p className="text-xs text-gray-500">
                         {item.date ? format(new Date(item.date), "PPP") : "N/A"}
                       </p>
-                      <p className="text-sm text-gray-700 break-words">
-                        {item.sessionFromTime && item.sessionToTime
-                          ? `Session From - To Time: ${item.sessionFromTime} - ${item.sessionToTime}`
-                          : "N/A"}
-                      </p>
-                      <h4 className="font-semibold text-md break-words">
-                        {item.title}
-                      </h4>
-                      <p className="text-sm text-gray-700 break-words">
-                        PHYSIO: {item.type === "session" ? item.physioName : ""}
-                      </p>
 
                       {item.type === "session" && (
-                        <p className="text-sm text-gray-600 break-words">
-                          Status: {item.status} <br />
-                          Feedback:{" "}
-                          <span style={{ color: item.color || "#4B5563" }}>
-                            {item.feedback || item.sessionCancelReason || "N/A"}
-                          </span>
-                        </p>
+                        <>
+                          <p className="text-sm text-gray-700 break-words">
+                            {item.sessionFromTime && item.sessionToTime
+                              ? `Session From - To Time: ${item.sessionFromTime} - ${item.sessionToTime}`
+                              : "Session From - To Time: N/A - N/A"}
+                          </p>
+
+                          <h4 className="font-semibold text-md break-words">
+                            {item.title}
+                          </h4>
+
+                          <p className="text-sm text-gray-700 break-words">
+                            PHYSIO: {item.physioName || "N/A"}
+                          </p>
+
+                          <p className="text-sm text-gray-600 break-words">
+                            Status: {item.status || "N/A"}
+                          </p>
+
+                          <p className="text-sm text-gray-600 break-words">
+                            Feedback:{" "}
+                            <span style={{ color: item.color || "#4B5563" }}>
+                              {item.feedback || "N/A"}
+                            </span>
+                          </p>
+                        </>
                       )}
 
                       {item.type === "review" && (
-                        <p className="text-sm text-gray-600 break-words">
-                          {item.details}
-                        </p>
+                        <>
+                          <h4 className="font-semibold text-md break-words">
+                            {item.title}
+                          </h4>
+                          <p className="text-sm text-gray-600 break-words">
+                            {item.details}
+                          </p>
+                        </>
                       )}
                     </div>
                   </div>
@@ -3338,7 +3416,6 @@ const PatientManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
-
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="w-[95vw] max-w-4xl max-h-[95vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>

@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import neoLogo from "../Assets/images/logo_png.png";
 const Income = () => {
   const [patients, setPatients] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -504,6 +505,26 @@ const Income = () => {
       }),
     });
   };
+  const fetchBilledSessionsForBill = async (bill) => {
+    try {
+      const patientId = getId(bill?.patientId);
+      if (!patientId || !bill?._id) return [];
+
+      const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
+        method: "POST",
+        body: JSON.stringify({ patientId }),
+      });
+
+      const sessionsArr = Array.isArray(allSessions) ? allSessions : [];
+
+      return sessionsArr
+        .filter((s) => s.isBilled === true && getId(s.billId) === bill._id)
+        .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
+    } catch (error) {
+      console.error("Failed to fetch billed sessions for PDF:", error);
+      return [];
+    }
+  };
   const handleDownloadBill = async () => {
     const bill = billPreview.bill;
     if (!bill) return;
@@ -511,16 +532,16 @@ const Income = () => {
     try {
       setBillPreview((s) => ({ ...s, loading: true }));
 
-      let completedSessions = [];
+      let billedSessions = [];
 
       if (billPreview.includeSessions) {
-        completedSessions = await fetchCompletedSessionsForBill(bill);
+        billedSessions = await fetchBilledSessionsForBill(bill);
       }
 
       downloadBillPdf({
         bill,
         includeSessions: billPreview.includeSessions,
-        completedSessions,
+        billedSessions,
       });
 
       setBillPreview((s) => ({ ...s, open: false, loading: false }));
@@ -529,89 +550,150 @@ const Income = () => {
       setBillPreview((s) => ({ ...s, loading: false }));
     }
   };
-  const downloadBillPdf = ({
-    bill,
-    includeSessions,
-    completedSessions = [],
-  }) => {
-    const doc = new jsPDF();
+  const downloadBillPdf = ({ bill, includeSessions, billedSessions = [] }) => {
+    try {
+      const doc = new jsPDF();
 
-    const patientName = bill?.patientId?.patientName || "N/A";
-    const patientCode = bill?.patientId?.patientCode || "";
-    const physioName = bill?.physioId?.physioName || "N/A";
+      const patientName = bill?.patientId?.patientName || "N/A";
+      const patientCode = bill?.patientId?.patientCode || "";
+      const physioName = bill?.physioId?.physioName || "N/A";
 
-    const totalSessions = Number(bill?.TotalSessionCount || 0);
-    const rate = Number(bill?.ratePerSession || 0);
-    const totalAmount = Number(bill?.TotalBilledAmount || 0);
-    const deducted = Number(bill?.DeductedFromAdvance || 0);
-    const net = Number(bill?.NetBilledAmount || 0);
-    const received = Number(bill?.ReceivedAmount || 0);
-    const pending = Math.max(net - received, 0);
+      const totalSessions = Number(bill?.TotalSessionCount || 0);
+      const rate = Number(bill?.ratePerSession || 0);
+      const totalAmount = Number(bill?.TotalBilledAmount || 0);
+      const deducted = Number(bill?.DeductedFromAdvance || 0);
+      const net = Number(bill?.NetBilledAmount || 0);
+      const received = Number(bill?.ReceivedAmount || 0);
+      const pending = Math.max(net - received, 0);
 
-    // Header
-    doc.setFontSize(16);
-    doc.text("NEO-PHYSIO - BILL", 14, 16);
+      const fromDate = bill?.startDate || bill?.patientId?.sessionStartDate;
+      const toDate = bill?.ToDate;
 
-    doc.setFontSize(11);
-    doc.text(`Patient: ${patientName} (${patientCode})`, 14, 26);
-    doc.text(`Physio: ${physioName}`, 14, 32);
-    doc.text(
-      `Bill Month: ${months[selectedBillMonth - 1]} ${selectedBillYear}`,
-      14,
-      38,
-    );
+      doc.addImage(neoLogo, "PNG", 160, 8, 35, 20);
 
-    // Summary
-    autoTable(doc, {
-      startY: 45,
-      head: [["Item", "Value"]],
-      body: [
-        ["Total Sessions", String(totalSessions)],
-        ["Rate / Session", `Rs. ${rate.toFixed(2)}`],
-        ["Total Amount", `Rs. ${totalAmount.toFixed(2)}`],
-        ["Deducted From Advance", `Rs. ${deducted.toFixed(2)}`],
-        ["Net Billed Amount", `Rs. ${net.toFixed(2)}`],
-        ["Received Amount", `Rs. ${received.toFixed(2)}`],
-        ["Pending Amount", `Rs. ${pending.toFixed(2)}`],
-        ["Payment Status", bill?.paymentStatus || "N/A"],
-        ["Payment Type", bill?.paymentType || "-"],
-      ],
-      styles: { fontSize: 10 },
-    });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("NEO-PHYSIO - BILL", 14, 16);
 
-    // Sessions + feedback
-    if (includeSessions) {
-      const rows = completedSessions.map((s, idx) => [
-        idx + 1,
-        fmt(s.sessionDate),
-        s?.sessionFeedbackPros || s?.Feedback || "—",
-      ]);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.text(`Patient: ${patientName} (${patientCode})`, 14, 28);
+      doc.text(`Physio: ${physioName}`, 14, 36);
+      doc.text(`Bill Period: ${fmt(fromDate)} - ${fmt(toDate)}`, 14, 44);
 
-      const nextY = doc.lastAutoTable.finalY + 10;
+      const rows = [];
 
-      doc.setFontSize(12);
-      doc.text("Completed Sessions (with feedback)", 14, nextY);
+      if (totalSessions > 0) {
+        rows.push(["Total Sessions", String(totalSessions)]);
+      }
+
+      if (rate > 0) {
+        rows.push(["Rate / Session", `Rs. ${rate.toFixed(2)}`]);
+      }
+
+      if (totalAmount > 0) {
+        rows.push(["Total Amount", `Rs. ${totalAmount.toFixed(2)}`]);
+      }
+
+      if (deducted > 0) {
+        rows.push(["Deducted From Advance", `Rs. ${deducted.toFixed(2)}`]);
+      }
+
+      if (net > 0) {
+        rows.push(["Net Billed Amount", `Rs. ${net.toFixed(2)}`]);
+      }
+
+      if (received > 0) {
+        rows.push(["Received Amount", `Rs. ${received.toFixed(2)}`]);
+      }
+
+      if (pending > 0) {
+        rows.push(["Pending Amount", `Rs. ${pending.toFixed(2)}`]);
+      }
+
+      if (bill?.paymentStatus) {
+        rows.push(["Payment Status", bill.paymentStatus]);
+      }
+
+      if (bill?.paymentType) {
+        rows.push(["Payment Type", bill.paymentType]);
+      }
 
       autoTable(doc, {
-        startY: nextY + 4,
-        head: [["#", "Session Date", "Feedback"]],
-        body: rows.length ? rows : [["", "No completed sessions", ""]],
-        styles: { fontSize: 9 },
-        columnStyles: {
-          0: { cellWidth: 10 },
-          1: { cellWidth: 35 },
-          2: { cellWidth: 130 },
+        startY: 52,
+        head: [["Item", "Value"]],
+        body: rows.length ? rows : [["No bill details available", ""]],
+        styles: {
+          fontSize: 10,
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
         },
       });
+
+      if (includeSessions) {
+        const sessionRows = billedSessions.map((s, idx) => [
+          idx + 1,
+          fmt(s.sessionDate),
+          s?.sessionStatusId?.sessionStatusName || "N/A",
+          s?.sessionFromTime && s?.sessionToTime
+            ? `${s.sessionFromTime} - ${s.sessionToTime}`
+            : "N/A",
+          s?.sessionFeedbackPros ||
+            s?.sessionFeedbackCons ||
+            s?.sessionCancelReason ||
+            "—",
+        ]);
+
+        const nextY = doc.lastAutoTable.finalY + 10;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("Billed Sessions", 14, nextY);
+
+        autoTable(doc, {
+          startY: nextY + 4,
+          head: [["#", "Session Date", "Status", "Time", "Feedback"]],
+          body: sessionRows.length
+            ? sessionRows
+            : [["", "No billed sessions", "", "", ""]],
+          styles: {
+            fontSize: 8,
+            cellPadding: 3,
+          },
+          headStyles: {
+            fillColor: [41, 128, 185],
+            textColor: [255, 255, 255],
+            fontStyle: "bold",
+          },
+          alternateRowStyles: {
+            fillColor: [245, 245, 245],
+          },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 28 },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 35 },
+            4: { cellWidth: 85 },
+          },
+        });
+      }
+
+      const fileName =
+        `Bill_${patientName}_${fmt(fromDate)}_to_${fmt(toDate)}.pdf`
+          .replaceAll(" ", "_")
+          .replace(/[^\w\-.]/g, "");
+
+      doc.save(fileName);
+    } catch (error) {
+      console.error("PDF generation error:", error);
     }
-
-    // filename
-    const fileName =
-      `Bill_${patientName}_${selectedBillMonth}-${selectedBillYear}.pdf`
-        .replaceAll(" ", "_")
-        .replace(/[^\w\-\.]/g, "");
-
-    doc.save(fileName);
   };
   const billedAmountFromBills = filteredPatients.reduce(
     (sum, p) => sum + Number(p.Billed || 0),

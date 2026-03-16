@@ -385,7 +385,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
               <span className="flex flex-col text-blue-600">
                 <span className="text-xl font-bold">NEO DESK</span>
-                <span className="text-xs text-blue-300">V-1.4.7</span>
+                <span className="text-xs text-blue-300">V-1.4.8</span>
               </span>
             </motion.div>
           ) : (
@@ -415,7 +415,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           </button> */}
         </div>
 
-        <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden ">
+        <nav className="mt-4 flex-1 overflow-y-auto overflow-x-hidden pb-24">
           <Accordion
             type="single"
             collapsible

@@ -1261,7 +1261,9 @@ const Reports = () => {
       ["Average Patient per Physio", avgPatient],
       ["Total Leave Days", totalLeaveDays],
       [
-        isHodSelected ? "Review Completion %" : "Completion %",
+        isHodSelected
+          ? "Review Completion Rate (RCR)"
+          : "Session Completion Rate (SCR)",
         `${getCompletionPercentage(stats.sessionCompleted, stats.monthlySessions)}%`,
       ],
     ];
@@ -1320,7 +1322,9 @@ const Reports = () => {
       ["Avg Patient / Physio", avgPatient],
       ["Total Leave Days", totalLeaveDays],
       [
-        isHodSelected ? "Review Completion %" : "Completion %",
+        isHodSelected
+          ? "Review Completion Rate (RCR)"
+          : "Session Completion Rate (SCR)",
         `${getCompletionPercentage(stats.sessionCompleted, stats.monthlySessions)}%`,
       ],
     ];
@@ -1358,7 +1362,7 @@ const Reports = () => {
       "Canceled Sessions": item.cancelledSessions,
       "Leave Entries": item.leaveCount,
       "Leave Days": item.leaveDays,
-      "Completion %": item.completionPercentage,
+      "Session Completion Rate ": item.completionPercentage,
     }));
 
     const summarySheet = XLSX.utils.json_to_sheet(summaryData, {
@@ -1543,7 +1547,7 @@ const Reports = () => {
           "Canceled",
           "Leave Entries",
           "Leave Days",
-          "Completion %",
+          "Session Completion Rate",
         ],
       ],
       body: summaryTable,
@@ -1665,7 +1669,9 @@ const Reports = () => {
   console.log(isHodSelected, "isHodSelected");
   const statCards = [
     {
-      title: isHodSelected ? "Review Completion %" : "Completion %",
+      title: isHodSelected
+        ? "Review Completion Rate (RCR)"
+        : "Session Completion Rate (SCR)",
       value: `${getCompletionPercentage(
         stats.sessionCompleted,
         stats.monthlySessions,
@@ -2144,7 +2150,9 @@ const Reports = () => {
                         </div>
 
                         <div className="rounded-lg bg-cyan-50 px-4 py-3">
-                          <p className="text-xs text-gray-500">Completion %</p>
+                          <p className="text-xs text-gray-500">
+                            Session Completion Rate(SCR)
+                          </p>
                           <p className="text-lg font-bold text-cyan-700">
                             {item.completionPercentage}%
                           </p>
