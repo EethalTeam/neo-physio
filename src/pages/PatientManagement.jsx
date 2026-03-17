@@ -2017,7 +2017,58 @@ const PatientManagement = () => {
       console.error("not able to getall Machine", error);
     }
   };
+  const getNthSessionFromToday = ({ currentSession, targetSession }) => {
+    let date = new Date();
 
+    // ✅ cycle logic (no negative ever)
+    let sessionsToAdd =
+      (targetSession - (currentSession % targetSession)) % targetSession;
+
+    // 👉 if exactly divisible, we want NEXT cycle (26 not 0)
+    if (sessionsToAdd === 0) {
+      sessionsToAdd = targetSession;
+    }
+
+    let added = 0;
+
+    // skip Sunday logic
+    while (added < sessionsToAdd) {
+      if (date.getDay() !== 0) {
+        added++;
+        if (added === sessionsToAdd) break;
+      }
+      date.setDate(date.getDate() + 1);
+    }
+
+    return {
+      session: targetSession,
+      date: formatDate(date),
+      sessionsNeeded: sessionsToAdd,
+    };
+  };
+  const getNext26thSession = (patient) => {
+    const currentSession = patient.sessionCount || 0;
+    const sessionsNeeded = 26 - currentSession;
+
+    if (sessionsNeeded <= 0) {
+      return {
+        date: "Completed",
+        sessionsNeeded: 0,
+      };
+    }
+
+    const startDate = patient.consultationDate
+      ? new Date(patient.consultationDate)
+      : new Date();
+
+    const nextDate = new Date(startDate);
+    nextDate.setDate(nextDate.getDate() + sessionsNeeded);
+
+    return {
+      date: format(nextDate, "PP"),
+      sessionsNeeded,
+    };
+  };
   return (
     <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       <div className="w-full flex justify-center">
@@ -2180,6 +2231,9 @@ const PatientManagement = () => {
                             No of Sessions
                           </th>
                           <th className="px-3 py-2 text-left hidden md:table-cell">
+                            Next 26th session date
+                          </th>
+                          <th className="px-3 py-2 text-left hidden md:table-cell">
                             Condition
                           </th>
                         </>
@@ -2195,391 +2249,428 @@ const PatientManagement = () => {
                         <th className="px-3 py-2 text-center">Actions</th>
                       </tr>
                     </thead>
-
                     <tbody>
-                      {filteredPatients.map((patient) => (
-                        <tr
-                          key={patient.PatientIDPK}
-                          className="border-t hover:bg-gray-50 align-top"
-                        >
-                          <td className="px-3 py-2">
-                            <div className="font-medium truncate max-w-[140px]">
-                              {patient.patientName}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate max-w-[140px]">
-                              {patient.patientCode}
-                            </div>
-                          </td>
+                      {filteredPatients.map((patient) => {
+                        const result = getNthSessionFromToday({
+                          currentSession: patient.sessionCount || 0,
+                          targetSession: 26,
+                        });
 
-                          {user?.role !== "HOD" && (
+                        return (
+                          <tr
+                            key={patient.PatientIDPK}
+                            className="border-t hover:bg-gray-50 align-top"
+                          >
+                            <td className="px-3 py-2">
+                              <div className="font-medium truncate max-w-[140px]">
+                                {patient.patientName}
+                              </div>
+                              <div className="text-xs text-gray-500 truncate max-w-[140px]">
+                                {patient.patientCode}
+                              </div>
+                            </td>
+
+                            {user?.role !== "HOD" && (
+                              <>
+                                <td className="px-3 py-2">
+                                  {patient.patientAge} /{" "}
+                                  {patient.patientGenderId.genderName}
+                                </td>
+
+                                <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
+                                  {patient.patientNumber}
+                                </td>
+                              </>
+                            )}
+
                             <>
-                              <td className="px-3 py-2">
-                                {patient.patientAge} /{" "}
-                                {patient.patientGenderId.genderName}
+                              <td className="px-3 py-2 hidden md:table-cell">
+                                {patient.sessionCount || 0}
                               </td>
 
-                              <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
-                                {patient.patientNumber}
+                              <td>
+                                Session {result.session}
+                                <br />
+                                <span className="text-xs text-gray-500">
+                                  {result.date} ({result.sessionsNeeded}{" "}
+                                  sessions left)
+                                </span>
+                              </td>
+
+                              <td className="px-3 py-2 hidden md:table-cell">
+                                {patient.patientCondition}
                               </td>
                             </>
-                          )}
 
-                          <>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
-                              {patient.sessionCount || 0}
-                            </td>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
-                              {patient.patientCondition}
-                            </td>
-                          </>
-
-                          {user?.role !== "HOD" && (
-                            <td className="px-3 py-2 hidden lg:table-cell">
-                              {patient.consultationDate
-                                ? format(
-                                    new Date(patient.consultationDate),
-                                    "PP",
-                                  )
-                                : "Not set"}
-                            </td>
-                          )}
-
-                          <td className="px-3 py-2 hidden lg:table-cell">
-                            {patient.reviewDate
-                              ? format(new Date(patient.reviewDate), "PP")
-                              : "N/A"}
-                          </td>
-
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="flex flex-col gap-2 min-w-[100px]">
-                              {patient.physioId?.physioName}
-                            </div>
-                          </td>
-
-                          <td className="px-3 py-2 hidden sm:table-cell">
-                            <div className="flex flex-row flex-wrap gap-2 justify-center">
-                              {patient.isConsentReceived ? (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <CheckCircle
-                                    size={14}
-                                    className="text-green-600 pointer-events-none"
-                                  />
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <Circle
-                                    size={14}
-                                    className="pointer-events-none"
-                                  />
-                                </Button>
-                              )}
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewConsultation(patient)}
-                              >
-                                <FileText size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                onClick={() => handleScheduleReview(patient)}
-                              >
-                                <CalendarIcon size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewHistory(patient)}
-                              >
-                                <History size={14} />
-                              </Button>
-
-                              {Permissions.isEdit && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditPatient(patient)}
-                                >
-                                  <Edit size={14} />
-                                </Button>
-                              )}
-
-                              <Button
-                                size="sm"
-                                onClick={() => openAssignPhysioDialog(patient)}
-                              >
-                                {patient.physioId ? (
-                                  <UserCheck size={14} />
-                                ) : (
-                                  <UserPlus size={14} />
-                                )}
-                              </Button>
-
-                              {Permissions.isDelete && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive">
-                                      <Trash2 size={14} />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="w-[95vw] max-w-md">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Delete patient?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the
-                                        patient.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                      <AlertDialogCancel className="w-full sm:w-auto">
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        className="w-full sm:w-auto"
-                                        onClick={() =>
-                                          handleDeletePatient(patient._id)
-                                        }
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  <Card className="medical-card sm:hidden">
-                    <CardContent className="px-0 pt-0">
-                      <div className="grid grid-cols-1 gap-4">
-                        {filteredPatients.map((patient) => (
-                          <motion.div
-                            key={patient.PatientIDPK}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3 }}
-                            className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
-                          >
-                            <div className="flex items-start gap-3 mb-3">
-                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                                <User className="text-blue-600" size={20} />
-                              </div>
-                              <div className="min-w-0">
-                                <h3 className="font-semibold text-gray-800 break-words">
-                                  {patient.patientName}
-                                </h3>
-                                <p className="text-sm text-gray-600 break-all">
-                                  {patient.patientCode}
-                                </p>
-                                <p className="text-sm text-gray-600 break-words">
-                                  {patient.patientAge} years,{" "}
-                                  {patient.patientGenderId.genderName}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Contact:</strong>{" "}
-                                {patient.patientNumber}
-                              </p>
-                            </div>
-
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Consultation Date:</strong>{" "}
+                            {user?.role !== "HOD" && (
+                              <td className="px-3 py-2 hidden lg:table-cell">
                                 {patient.consultationDate
                                   ? format(
                                       new Date(patient.consultationDate),
                                       "PP",
                                     )
                                   : "Not set"}
-                              </p>
-                            </div>
-
-                            {user?.role === "HOD" && (
-                              <>
-                                <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col gap-2">
-                                    <p className="text-sm break-words">
-                                      <strong>Condition:</strong>{" "}
-                                      {patient.patientCondition}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col gap-2">
-                                    <p className="text-sm break-words">
-                                      <strong>No of Sessions:</strong>{" "}
-                                      {patient.totalSessionDays}
-                                    </p>
-                                  </div>
-                                </div>
-                              </>
+                              </td>
                             )}
 
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Review Date:</strong>{" "}
-                                {patient.reviewDate
-                                  ? format(new Date(patient.reviewDate), "PP")
-                                  : "N/A"}
-                              </p>
-                            </div>
+                            <td className="px-3 py-2 hidden lg:table-cell">
+                              {patient.reviewDate
+                                ? format(new Date(patient.reviewDate), "PP")
+                                : "N/A"}
+                            </td>
 
-                            <div className="py-2">
-                              <div className="flex flex-col gap-2">
-                                <p className="break-words">
-                                  Physio: {patient.physioId?.physioName}
-                                </p>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <div className="flex flex-col gap-2 min-w-[100px]">
+                                {patient.physioId?.physioName}
                               </div>
-                            </div>
+                            </td>
 
-                            <div className="mt-2 grid grid-cols-3 gap-2">
-                              {patient.isConsentReceived ? (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <CheckCircle
-                                    size={14}
-                                    className="text-green-600 pointer-events-none"
-                                  />
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <Circle
-                                    size={14}
-                                    className="pointer-events-none"
-                                  />
-                                </Button>
-                              )}
-
-                              <Button
-                                size="sm"
-                                onClick={() => openAssignPhysioDialog(patient)}
-                              >
-                                {patient.physioId ? (
-                                  <UserCheck size={14} />
+                            <td className="px-3 py-2 hidden sm:table-cell">
+                              <div className="flex flex-row flex-wrap gap-2 justify-center">
+                                {patient.isConsentReceived ? (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => {
+                                      setPendingPatient(patient);
+                                      setOpendialog(true);
+                                    }}
+                                  >
+                                    <CheckCircle
+                                      size={14}
+                                      className="text-green-600 pointer-events-none"
+                                    />
+                                  </Button>
                                 ) : (
-                                  <UserPlus size={14} />
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={() => {
+                                      setPendingPatient(patient);
+                                      setOpendialog(true);
+                                    }}
+                                  >
+                                    <Circle
+                                      size={14}
+                                      className="pointer-events-none"
+                                    />
+                                  </Button>
                                 )}
-                              </Button>
 
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewConsultation(patient)}
-                              >
-                                <FileText size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                onClick={() => handleScheduleReview(patient)}
-                              >
-                                <CalendarIcon size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewHistory(patient)}
-                              >
-                                <History size={14} />
-                              </Button>
-
-                              {Permissions.isEdit && (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => handleEditPatient(patient)}
+                                  onClick={() =>
+                                    handleViewConsultation(patient)
+                                  }
                                 >
-                                  <Edit size={14} />
+                                  <FileText size={14} />
                                 </Button>
-                              )}
 
-                              {Permissions.isDelete && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive">
-                                      <Trash2 size={14} />
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleScheduleReview(patient)}
+                                >
+                                  <CalendarIcon size={14} />
+                                </Button>
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewHistory(patient)}
+                                >
+                                  <History size={14} />
+                                </Button>
+
+                                {Permissions.isEdit && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditPatient(patient)}
+                                  >
+                                    <Edit size={14} />
+                                  </Button>
+                                )}
+
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    openAssignPhysioDialog(patient)
+                                  }
+                                >
+                                  {patient.physioId ? (
+                                    <UserCheck size={14} />
+                                  ) : (
+                                    <UserPlus size={14} />
+                                  )}
+                                </Button>
+
+                                {Permissions.isDelete && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive">
+                                        <Trash2 size={14} />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="w-[95vw] max-w-md">
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Delete patient?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete the
+                                          patient.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                        <AlertDialogCancel className="w-full sm:w-auto">
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          className="w-full sm:w-auto"
+                                          onClick={() =>
+                                            handleDeletePatient(patient._id)
+                                          }
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {filteredPatients.map((patient) => {
+                  const result = getNext26thSession(patient);
+
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                      <Card className="medical-card sm:hidden">
+                        <CardContent className="px-0 pt-0">
+                          <div className="grid grid-cols-1 gap-4">
+                            {filteredPatients.map((patient) => (
+                              <motion.div
+                                key={patient.PatientIDPK}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                                className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+                              >
+                                <div className="flex items-start gap-3 mb-3">
+                                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                                    <User className="text-blue-600" size={20} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h3 className="font-semibold text-gray-800 break-words">
+                                      {patient.patientName}
+                                    </h3>
+                                    <p className="text-sm text-gray-600 break-all">
+                                      {patient.patientCode}
+                                    </p>
+                                    <p className="text-sm text-gray-600 break-words">
+                                      {patient.patientAge} years,{" "}
+                                      {patient.patientGenderId.genderName}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="space-y-2 mb-4 flex-grow">
+                                  <p className="text-sm break-words">
+                                    <strong>Contact:</strong>{" "}
+                                    {patient.patientNumber}
+                                  </p>
+                                </div>
+                                {/* <div className="space-y-2 mb-4 flex-grow">
+                                  <p className="text-sm break-words">
+                                    <strong>Consultation Date:</strong>{" "}
+                                    {patient.consultationDate
+                                      ? format(
+                                          new Date(patient.consultationDate),
+                                          "PP",
+                                        )
+                                      : "Not set"}
+                                  </p>
+                                </div> */}
+                                <>
+                                  <div className="space-y-2 mb-4 flex-grow">
+                                    <div className="flex flex-col gap-2">
+                                      <p className="text-sm break-words">
+                                        <strong>Condition:</strong>{" "}
+                                        {patient.patientCondition}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2 mb-4 flex-grow">
+                                    <div className="flex flex-col gap-2">
+                                      <p className="text-sm break-words">
+                                        <strong>No of Sessions:</strong>{" "}
+                                        {patient.sessionCount}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </>
+                                <div className="space-y-2 mb-4 flex-grow">
+                                  <div className="flex flex-col gap-2">
+                                    <p className="text-sm break-words">
+                                      <strong>Next 26th Session:</strong>{" "}
+                                      <span className="text-xs text-gray-500">
+                                        {result.date} ({result.sessionsNeeded}{" "}
+                                        sessions left)
+                                      </span>
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="space-y-2 mb-4 flex-grow">
+                                  <p className="text-sm break-words">
+                                    <strong>Review Date:</strong>{" "}
+                                    {patient.reviewDate
+                                      ? format(
+                                          new Date(patient.reviewDate),
+                                          "PP",
+                                        )
+                                      : "N/A"}
+                                  </p>
+                                </div>{" "}
+                                <div className="py-2">
+                                  <div className="flex flex-col gap-2">
+                                    <p className="break-words">
+                                      Physio: {patient.physioId?.physioName}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-2 grid grid-cols-3 gap-2">
+                                  {patient.isConsentReceived ? (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => {
+                                        setPendingPatient(patient);
+                                        setOpendialog(true);
+                                      }}
+                                    >
+                                      <CheckCircle
+                                        size={14}
+                                        className="text-green-600 pointer-events-none"
+                                      />
                                     </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="w-[95vw] max-w-md">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Delete patient?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the
-                                        patient.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                      <AlertDialogCancel className="w-full sm:w-auto">
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        className="w-full sm:w-auto"
-                                        onClick={() =>
-                                          handleDeletePatient(patient._id)
-                                        }
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      onClick={() => {
+                                        setPendingPatient(patient);
+                                        setOpendialog(true);
+                                      }}
+                                    >
+                                      <Circle
+                                        size={14}
+                                        className="pointer-events-none"
+                                      />
+                                    </Button>
+                                  )}
+
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      openAssignPhysioDialog(patient)
+                                    }
+                                  >
+                                    {patient.physioId ? (
+                                      <UserCheck size={14} />
+                                    ) : (
+                                      <UserPlus size={14} />
+                                    )}
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleViewConsultation(patient)
+                                    }
+                                  >
+                                    <FileText size={14} />
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      handleScheduleReview(patient)
+                                    }
+                                  >
+                                    <CalendarIcon size={14} />
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleViewHistory(patient)}
+                                  >
+                                    <History size={14} />
+                                  </Button>
+
+                                  {Permissions.isEdit && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleEditPatient(patient)}
+                                    >
+                                      <Edit size={14} />
+                                    </Button>
+                                  )}
+
+                                  {Permissions.isDelete && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button size="sm" variant="destructive">
+                                          <Trash2 size={14} />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent className="w-[95vw] max-w-md">
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>
+                                            Delete patient?
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This will permanently delete the
+                                            patient.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                          <AlertDialogCancel className="w-full sm:w-auto">
+                                            Cancel
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction
+                                            className="w-full sm:w-auto"
+                                            onClick={() =>
+                                              handleDeletePatient(patient._id)
+                                            }
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
               </CardContent>
             </Card>
           </motion.div>
@@ -2736,7 +2827,7 @@ const PatientManagement = () => {
                   Recovered Patients ({recoveredPatients.length})
                 </CardTitle>
                 <CardDescription>
-                  All registered patients in the system
+                  All Recovered patients in the system
                 </CardDescription>
               </CardHeader>
 
@@ -3020,7 +3111,7 @@ const PatientManagement = () => {
                                   <div className="flex flex-col gap-2">
                                     <p className="text-sm break-words">
                                       <strong>No of Sessions:</strong>{" "}
-                                      {patient.totalSessionDays}
+                                      {patient.sessionCount}
                                     </p>
                                   </div>
                                 </div>
@@ -3033,6 +3124,12 @@ const PatientManagement = () => {
                                 {patient.reviewDate
                                   ? format(new Date(patient.reviewDate), "PP")
                                   : "N/A"}
+                              </p>
+                            </div>
+                            <div className="space-y-2 mb-4 flex-grow">
+                              <p className="text-sm break-words">
+                                <strong>Session Count:</strong>{" "}
+                                {patient.sessionCount || 0}
                               </p>
                             </div>
 

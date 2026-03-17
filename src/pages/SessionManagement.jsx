@@ -1510,15 +1510,6 @@ const SessionManagement = () => {
               {filteredSessions.map((session) => {
                 const patientId = session.patientId?._id;
                 const physioId = session.physioId?._id;
-                const sessionKey = `${patientId}-${physioId}`;
-                const sessionStats = sessionCountMap[sessionKey] || {
-                  total: 0,
-                  completed: 0,
-                };
-                const completionPercentage = getCompletionPercentage(
-                  sessionStats.completed,
-                  sessionStats.total,
-                );
 
                 return (
                   <Card
@@ -1543,7 +1534,7 @@ const SessionManagement = () => {
                     <p className="text-sm text-gray-500">
                       Session
                       <span className="font-medium text-gray-800 ml-1">
-                        {sessionStats.total || "-"}
+                        {session.monthlySessionCount || "-"}
                       </span>
                     </p>
 

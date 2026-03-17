@@ -24,10 +24,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import neoLogo from "../Assets/images/logo_png.png";
+import { toast } from "@/components/ui/use-toast";
+
 const Income = () => {
   const [patients, setPatients] = useState([]);
   const [sessions, setSessions] = useState([]);
-
+  const [badDebtDialog, setBadDebtDialog] = useState({
+    open: false,
+    billId: null,
+  });
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -326,11 +331,16 @@ const Income = () => {
   }, [filteredBills]);
 
   const totalPendingAmt = useMemo(() => {
-    return filteredBills.reduce((sum, b) => {
-      const pending =
-        Number(b.NetBilledAmount || 0) - Number(b.ReceivedAmount || 0);
-      return sum + Math.max(pending, 0);
-    }, 0);
+    return filteredBills
+      .filter((b) => !b.isBadDebt) // 🚫 exclude bad debt
+      .reduce((sum, b) => {
+        const net = Number(b?.NetBilledAmount || 0);
+        const received = Number(b?.ReceivedAmount || 0);
+
+        const pending = Math.max(net - received, 0);
+
+        return sum + pending;
+      }, 0);
   }, [filteredBills]);
   const billSessions = useMemo(() => {
     return sessions.filter((s) => {
@@ -733,7 +743,87 @@ const Income = () => {
 
     return [...pending, ...paid];
   }, [filteredBills]);
+  // const handleMarkBadDebt = async (billId) => {
+  //   try {
+  //     const res = await apiRequest("Bill/markBadDebt", {
+  //       method: "POST",
+  //       body: JSON.stringify({ billId }),
+  //     });
 
+  //     if (!res.success) {
+  //       throw new Error(res.message || "Failed to mark bad debt");
+  //     }
+
+  //     toast({
+  //       title: "Success",
+  //       description: res.message || "Marked as Bad Debt",
+  //       variant: "default", // optional
+  //     });
+
+  //     setBills((prev) =>
+  //       prev.map((b) =>
+  //         b._id === billId
+  //           ? {
+  //               ...b,
+  //               isBadDebt: true,
+  //             }
+  //           : b,
+  //       ),
+  //     );
+  //   } catch (error) {
+  //     console.error(error);
+
+  //     toast({
+  //       title: "Error",
+  //       description: error.message || "Something went wrong",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+  const confirmMarkBadDebt = async () => {
+    const billId = badDebtDialog.billId;
+    if (!billId) return;
+
+    try {
+      const res = await apiRequest("Bill/markBadDebt", {
+        method: "POST",
+        body: JSON.stringify({ billId }),
+      });
+
+      if (!res.success) {
+        throw new Error(res.message || "Failed to mark bad debt");
+      }
+
+      toast({
+        title: "Marked",
+        description: res.message || "Marked as Bad Debt",
+      });
+
+      setBills((prev) =>
+        prev.map((b) => (b._id === billId ? { ...b, isBadDebt: true } : b)),
+      );
+
+      setBadDebtDialog({ open: false, billId: null });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+  const totalBadDebtAmount = useMemo(() => {
+    return filteredBills
+      .filter((b) => b.isBadDebt)
+      .reduce((sum, b) => {
+        const net = Number(b?.NetBilledAmount || 0);
+        const received = Number(b?.ReceivedAmount || 0);
+
+        const badDebt = Math.max(net - received, 0);
+
+        return sum + badDebt;
+      }, 0);
+  }, [filteredBills]);
   return (
     <div className="p-4 space-y-4 flex flex-col">
       <div className="w-full flex justify-center">
@@ -1039,6 +1129,12 @@ const Income = () => {
                   <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
                 </h3>{" "}
                 <h3 className="text-lg font-semibold">
+                  Total Bad Debt:{" "}
+                  <span className="ml-2 text-red-600">
+                    ₹{totalBadDebtAmount.toFixed(2)}
+                  </span>
+                </h3>
+                <h3 className="text-lg font-semibold">
                   Total Billed Amount:{" "}
                   <span className="ml-2">
                     ₹{totalGeneratedBillAmount.toFixed(2)}
@@ -1170,6 +1266,7 @@ const Income = () => {
                             Receive Payment
                           </th>
                           <th className="px-3 py-2 text-left">Bill Send</th>
+                          <th className="px-3 py-2 text-left">IS Bad debt</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1238,14 +1335,20 @@ const Income = () => {
                               </td>
                               <td className="p-2 border text-center whitespace-nowrap bg-[#ED3421]">
                                 ₹
-                                {Number(
-                                  b?.NetBilledAmount -
-                                    (b?.ReceivedAmount +
-                                      b?.DeductedFromAdvance || 0),
-                                ).toFixed(2)}
+                                {b?.isBadDebt
+                                  ? "0.00"
+                                  : Number(
+                                      b?.NetBilledAmount -
+                                        ((b?.ReceivedAmount || 0) +
+                                          (b?.DeductedFromAdvance || 0)),
+                                    ).toFixed(2)}
                               </td>
                               <td className="p-2 border whitespace-nowrap">
-                                {b?.paymentStatus || "N/A"}
+                                <td className="p-2 border whitespace-nowrap">
+                                  {b?.isBadDebt
+                                    ? "Bad Debt"
+                                    : b?.paymentStatus || "N/A"}
+                                </td>
                               </td>
                               <td className="p-2 border whitespace-nowrap">
                                 {b?.paymentType || "-"}
@@ -1320,6 +1423,33 @@ const Income = () => {
                                   )}
                                 </Button>
                               </td>
+                              <Button
+                                onClick={() =>
+                                  setBadDebtDialog({
+                                    open: true,
+                                    billId: b._id,
+                                  })
+                                }
+                                disabled={
+                                  b?.isBadDebt ||
+                                  Number(b?.ReceivedAmount || 0) >=
+                                    Number(b?.NetBilledAmount || 0)
+                                }
+                                className={`px-2 py-1 text-xs rounded ${
+                                  b?.isBadDebt ||
+                                  Number(b?.ReceivedAmount || 0) >=
+                                    Number(b?.NetBilledAmount || 0)
+                                    ? "bg-gray-900 cursor-not-allowed"
+                                    : "bg-red-500 text-white hover:bg-red-600"
+                                }`}
+                              >
+                                {b?.isBadDebt
+                                  ? "Bad Debt"
+                                  : Number(b?.ReceivedAmount || 0) >=
+                                      Number(b?.NetBilledAmount || 0)
+                                    ? "Paid"
+                                    : "Mark Bad Debt"}
+                              </Button>
                             </tr>
                           ))
                         )}{" "}
@@ -1674,6 +1804,35 @@ const Income = () => {
             </Button>
             <Button onClick={handleDownloadBill} disabled={billPreview.loading}>
               {billPreview.loading ? "Preparing..." : "Download PDF"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={badDebtDialog.open}
+        onOpenChange={(open) =>
+          setBadDebtDialog({ open, billId: open ? badDebtDialog.billId : null })
+        }
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark as Bad Debt?</DialogTitle>
+            <DialogDescription>
+              This action will mark the bill as bad debt. This cannot be easily
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBadDebtDialog({ open: false, billId: null })}
+            >
+              Cancel
+            </Button>
+
+            <Button variant="destructive" onClick={confirmMarkBadDebt}>
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
