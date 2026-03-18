@@ -83,7 +83,7 @@ ChartJS.register(
   ArcElement,
 );
 
-const BussinessOverview = () => {
+const BusinessOverview = () => {
   const navigate = useNavigate();
   const { user, getPermissionsByPath } = useAuth();
 
@@ -2032,4 +2032,4 @@ const BussinessOverview = () => {
   );
 };
 
-export default BussinessOverview;
+export default BusinessOverview;
