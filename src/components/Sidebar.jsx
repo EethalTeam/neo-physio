@@ -244,7 +244,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
         mastersSubmenu,
         Adminpannel,
-        { icon: Wallet, label: "Expenses", path: "/expenses" },
+        { icon: Wallet, label: "Business Overview", path: "/BusinessOverview" },
         { icon: Banknote, label: "Payroll", path: "/payroll" },
         { icon: BarChart3, label: "Reports", path: "/reports" },
         { icon: MessageCircle, label: "Consultation", path: "/consultation" },
@@ -385,7 +385,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
               <span className="flex flex-col text-blue-600">
                 <span className="text-xl font-bold">NEO DESK</span>
-                <span className="text-xs text-blue-300">V-1.4.8</span>
+                <span className="text-xs text-blue-300">V-1.4.9</span>
               </span>
             </motion.div>
           ) : (

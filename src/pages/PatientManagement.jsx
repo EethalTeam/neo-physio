@@ -99,6 +99,17 @@ const PatientManagement = () => {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [openRecoveryChoice, setOpenRecoveryChoice] = useState(false);
+  const [selectedPatientForRecovery, setSelectedPatientForRecovery] =
+    useState(null);
+  const [openRecoverDialog, setOpenRecoverDialog] = useState(false);
+  const [pendingPatient, setPendingPatient] = useState(null);
+  const [openDialog, setOpendialog] = useState(false);
+
+  const handleMarkNotRecoveredClick = (patient) => {
+    setSelectedPatientForRecovery(patient);
+    setOpenRecoveryChoice(true);
+  };
   // format date safely
   const fmtDate = (d) => {
     if (!d) return "-";
@@ -1559,7 +1570,53 @@ const PatientManagement = () => {
     //   setIsNewGoalOpen(true);
   };
   // };
+  const handleRecoveryOption = async (type) => {
+    if (!selectedPatientForRecovery?._id) return;
 
+    try {
+      if (type === "fresh") {
+        await apiRequest("Patient/startFreshCycle", {
+          method: "POST",
+          body: JSON.stringify({
+            patientId: selectedPatientForRecovery._id,
+            physioId:
+              selectedPatientForRecovery?.physioId?._id ||
+              selectedPatientForRecovery?.physioId,
+          }),
+        });
+
+        toast({
+          title: "Fresh Cycle Started",
+          description: `${selectedPatientForRecovery.patientName} started with a new cycle.`,
+        });
+      }
+
+      if (type === "continue") {
+        await apiRequest("Patient/continueOldCycle", {
+          method: "POST",
+          body: JSON.stringify({
+            patientId: selectedPatientForRecovery._id,
+          }),
+        });
+
+        toast({
+          title: "Old Cycle Continued",
+          description: `${selectedPatientForRecovery.patientName} continued the old cycle.`,
+        });
+      }
+
+      setOpenRecoveryChoice(false);
+      setSelectedPatientForRecovery(null);
+      getAllPatient();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update recovery option.",
+        variant: "destructive",
+      });
+    }
+  };
   const handleNewGoalSubmit = async (e, review) => {
     e.preventDefault();
     console.log(review, "reviewForm");
@@ -1723,87 +1780,110 @@ const PatientManagement = () => {
 
       const sessionsArr = Array.isArray(allSessions) ? allSessions : [];
 
-      // oldest to newest for correct carry-forward calculation
-      const sortedSessions = [...sessionsArr].sort(
-        (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
+      // group by cycle
+      const groupedByCycle = sessionsArr.reduce((acc, session) => {
+        const cycleKey = session.cycleId?._id || session.cycleId || "no-cycle";
+
+        if (!acc[cycleKey]) acc[cycleKey] = [];
+        acc[cycleKey].push(session);
+        return acc;
+      }, {});
+
+      // convert grouped cycles into display structure
+      const cycleHistory = Object.entries(groupedByCycle).map(
+        ([cycleId, cycleSessions], cycleIndex) => {
+          const sortedSessions = [...cycleSessions].sort(
+            (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
+          );
+
+          let runningCount = 0;
+          let previousStatus = "";
+
+          const sessions = sortedSessions.map((s, index) => {
+            const currentStatus =
+              s.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
+
+            if (index === 0) {
+              runningCount = 1;
+            } else {
+              if (previousStatus === "canceled") {
+                runningCount = runningCount;
+              } else {
+                runningCount += 1;
+              }
+            }
+
+            previousStatus = currentStatus;
+
+            return {
+              ...s,
+              type: "session",
+              cycleId,
+              date: s.sessionDate,
+              originalSessionCount: s.sessionCount || 0,
+              displaySessionCount: runningCount,
+              title: `Session ${runningCount}`,
+              status: s.sessionStatusId?.sessionStatusName || "N/A",
+              color: s.sessionStatusId?.sessionStatusColor || "#4B5563",
+              physioName: s.physioId?.physioName || "N/A",
+              sessionFromTime: s.sessionFromTime || null,
+              sessionToTime: s.sessionToTime || null,
+              feedback:
+                s.sessionFeedbackPros ||
+                s.sessionCancelReason ||
+                s.sessionFeedbackCons ||
+                "No feedback",
+            };
+          });
+
+          const firstDate = sessions[0]?.date || null;
+          const lastDate = sessions[sessions.length - 1]?.date || null;
+
+          return {
+            cycleId,
+            cycleTitle: `Cycle ${cycleIndex + 1}`,
+            firstDate,
+            lastDate,
+            totalSessions: sessions.length,
+            sessions,
+          };
+        },
       );
 
-      let runningCount = 0;
-      let previousStatus = "";
-
-      const patientSessions = sortedSessions.map((s, index) => {
-        const currentStatus =
-          s.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
-
-        // first record
-        if (index === 0) {
-          runningCount = 1;
-        } else {
-          // if previous session was canceled, carry forward same count
-          if (previousStatus === "canceled") {
-            runningCount = runningCount;
-          } else {
-            runningCount += 1;
-          }
-        }
-
-        previousStatus = currentStatus;
-
-        return {
-          type: "session",
-          date: s.sessionDate,
-          originalSessionCount: s.sessionCount || 0, // raw DB value
-          displaySessionCount: runningCount, // corrected UI value
-          title: `Session ${runningCount}`,
-          status: s.sessionStatusId?.sessionStatusName || "N/A",
-          color: s.sessionStatusId?.sessionStatusColor || "#4B5563",
-          physioName: s.physioId?.physioName || "N/A",
-          sessionFromTime: s.sessionFromTime || null,
-          sessionToTime: s.sessionToTime || null,
-          feedback:
-            s.sessionFeedbackPros ||
-            s.sessionCancelReason ||
-            s.sessionFeedbackCons ||
-            "No feedback",
-        };
-      });
-
-      const patientGoalLog = (patient.goalLog || []).map((log) => ({
-        type: "review",
-        date: log.date,
-        title: `HOD Review - ${log.status || "N/A"}`,
-        details: `Goal: ${log.goal || "N/A"}. Feedback: ${
-          log.feedback || "N/A"
-        }. Satisfaction: ${log.satisfaction || "N/A"}%`,
-      }));
-
-      // newest first for display
-      const combinedHistory = [...patientSessions, ...patientGoalLog].sort(
-        (a, b) => new Date(b.date) - new Date(a.date),
+      // sort cycles by latest session date descending
+      cycleHistory.sort(
+        (a, b) => new Date(b.lastDate || 0) - new Date(a.lastDate || 0),
       );
 
-      const totalRecords = patientSessions.length;
+      setPatientHistory(cycleHistory);
 
-      const completedRecords = patientSessions.filter(
-        (item) => (item.status || "").toLowerCase() === "completed",
-      ).length;
+      const totalRecords = cycleHistory.reduce(
+        (sum, cycle) => sum + cycle.sessions.length,
+        0,
+      );
 
-      const canceledRecords = patientSessions.filter(
-        (item) => (item.status || "").toLowerCase() === "canceled",
-      ).length;
+      const completedRecords = cycleHistory.reduce(
+        (sum, cycle) =>
+          sum +
+          cycle.sessions.filter(
+            (item) => (item.status || "").toLowerCase() === "completed",
+          ).length,
+        0,
+      );
 
-      const currentSessionNumber = patientSessions.length
-        ? Math.max(
-            ...patientSessions.map((item) => item.displaySessionCount || 0),
-          )
-        : 0;
+      const canceledRecords = cycleHistory.reduce(
+        (sum, cycle) =>
+          sum +
+          cycle.sessions.filter(
+            (item) => (item.status || "").toLowerCase() === "canceled",
+          ).length,
+        0,
+      );
 
-      setPatientHistory(combinedHistory);
       setSessionCount({
         totalRecords,
         completed: completedRecords,
         canceled: canceledRecords,
-        current: currentSessionNumber,
       });
     } catch (error) {
       console.error("Failed to fetch sessions:", error);
@@ -1812,7 +1892,6 @@ const PatientManagement = () => {
         totalRecords: 0,
         completed: 0,
         canceled: 0,
-        current: 0,
       });
     }
   };
@@ -1857,50 +1936,54 @@ const PatientManagement = () => {
       console.log(error, "error from frontend get All Modalities");
     }
   };
-  const handleToggleStatus = async (payload) => {
-    try {
-      const res = await apiRequest("Patient/updatePatient", {
-        method: "POST",
-        body: JSON.stringify({
-          _id: payload.patientId || payload._id,
-          isRecovered: payload.isRecovered,
-          recoveredType: payload.recoveredType || null,
-          stopReason: payload.stopReason || null,
-        }),
-      });
-
-      if (res) {
-        toast({
-          title: "Status Updated",
-          description: `${payload.patientName || "Patient"} is now ${
-            payload.isRecovered ? "Recovered" : "Not Recovered"
-          }.`,
-        });
-
-        setPatients((prev) =>
-          prev.map((p) =>
-            p._id === payload._id
-              ? {
-                  ...p,
-                  isRecovered: payload.isRecovered,
-                  recoveredType: payload.recoveredType || null,
-                  stopReason: payload.stopReason || null,
-                }
-              : p,
-          ),
-        );
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update patient status.",
-        variant: "destructive",
-      });
-    }
+  const handleToggleStatus = async (patient) => {
+    setPendingPatient(patient);
+    setRecoveredType("");
+    setOtherReason("");
+    setOpenAlert(true);
   };
+  // const handleToggleStatus = async (payload) => {
+  //   try {
+  //     const res = await apiRequest("Patient/updatePatient", {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         _id: payload.patientId || payload._id,
+  //         isRecovered: payload.isRecovered,
+  //         recoveredType: payload.recoveredType || null,
+  //         stopReason: payload.stopReason || null,
+  //       }),
+  //     });
 
-  const [openDialog, setOpendialog] = useState(false);
-  const [pendingPatient, setPendingPatient] = useState(null);
+  //     if (res) {
+  //       toast({
+  //         title: "Status Updated",
+  //         description: `${payload.patientName || "Patient"} is now ${
+  //           payload.isRecovered ? "Recovered" : "Not Recovered"
+  //         }.`,
+  //       });
+
+  //       setPatients((prev) =>
+  //         prev.map((p) =>
+  //           p._id === payload._id
+  //             ? {
+  //                 ...p,
+  //                 isRecovered: payload.isRecovered,
+  //                 recoveredType: payload.recoveredType || null,
+  //                 stopReason: payload.stopReason || null,
+  //               }
+  //             : p,
+  //         ),
+  //       );
+  //     }
+  //   } catch (error) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to update patient status.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+
   const handleConsentToggle = async (patient) => {
     try {
       const newStatus = !patient.isConsentReceived;
@@ -3453,54 +3536,41 @@ const PatientManagement = () => {
               />
 
               {patientHistory && patientHistory.length > 0 ? (
-                patientHistory.map((item, index) => (
-                  <div key={index} className="mb-8 relative">
-                    <div className="absolute left-0 top-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow" />
+                patientHistory.map((cycle) => (
+                  <div
+                    key={cycle.cycleId}
+                    className="mb-6 border rounded-lg p-4"
+                  >
+                    <h3 className="text-lg font-semibold text-blue-600 mb-2">
+                      {cycle.cycleTitle}
+                    </h3>
 
-                    <div className="pl-6">
-                      <p className="text-xs text-gray-500">
-                        {item.date ? format(new Date(item.date), "PPP") : "N/A"}
-                      </p>
+                    <p className="text-sm text-gray-500 mb-4">
+                      {formatDate(cycle.firstDate)} to{" "}
+                      {formatDate(cycle.lastDate)}
+                    </p>
 
-                      {item.type === "session" && (
-                        <>
-                          <p className="text-sm text-gray-700 break-words">
-                            {item.sessionFromTime && item.sessionToTime
-                              ? `Session From - To Time: ${item.sessionFromTime} - ${item.sessionToTime}`
-                              : "Session From - To Time: N/A - N/A"}
-                          </p>
-
-                          <h4 className="font-semibold text-md break-words">
-                            {item.title}
-                          </h4>
-
-                          <p className="text-sm text-gray-700 break-words">
-                            PHYSIO: {item.physioName || "N/A"}
-                          </p>
-
-                          <p className="text-sm text-gray-600 break-words">
-                            Status: {item.status || "N/A"}
-                          </p>
-
-                          <p className="text-sm text-gray-600 break-words">
-                            Feedback:{" "}
-                            <span style={{ color: item.color || "#4B5563" }}>
-                              {item.feedback || "N/A"}
-                            </span>
-                          </p>
-                        </>
-                      )}
-
-                      {item.type === "review" && (
-                        <>
-                          <h4 className="font-semibold text-md break-words">
-                            {item.title}
-                          </h4>
-                          <p className="text-sm text-gray-600 break-words">
-                            {item.details}
-                          </p>
-                        </>
-                      )}
+                    <div className="space-y-3">
+                      {cycle.sessions.map((item, index) => (
+                        <div
+                          key={item._id || index}
+                          className="border rounded-md p-3 flex flex-col gap-1"
+                        >
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-sm text-gray-600">
+                            Date: {formatDate(item.date)}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Status: {item.status}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Physio: {item.physioName}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Feedback: {item.feedback}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))
@@ -3807,21 +3877,15 @@ const PatientManagement = () => {
                         <div className="space-y-2">
                           <Label>Is Recovered</Label>
                           <Button
-                            type="button"
-                            size="sm"
-                            variant={
+                            onClick={() => handleToggleStatus(selectedPatient)}
+                            className={
                               selectedPatient.isRecovered
-                                ? "secondary"
-                                : "default"
+                                ? "bg-yellow-500 hover:bg-yellow-600"
+                                : "bg-green-500 hover:bg-green-600"
                             }
-                            onClick={() => {
-                              setPendingPatient(selectedPatient);
-                              setOpenAlert(true);
-                            }}
-                            className="w-full sm:w-auto"
                           >
                             {selectedPatient.isRecovered
-                              ? "Mark Not Recovered"
+                              ? "Not Recovered"
                               : "Mark Recovered"}
                           </Button>
                         </div>
@@ -4641,18 +4705,18 @@ const PatientManagement = () => {
                         <SelectItem value="Patient Recovered">
                           Patient Recovered
                         </SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Other">Stop</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {recoveredType === "Other" && (
                     <div className="space-y-1">
-                      <Label>Specify Reason</Label>
+                      <Label>Stop Reason</Label>
                       <Input
                         type="text"
                         className="w-full border rounded px-2 py-1"
-                        placeholder="Enter reason"
+                        placeholder="Enter stop reason"
                         value={otherReason}
                         onChange={(e) => setOtherReason(e.target.value)}
                       />
@@ -4669,6 +4733,8 @@ const PatientManagement = () => {
               onClick={() => {
                 setRecoveredType("");
                 setOtherReason("");
+                setPendingPatient(null);
+                setOpenAlert(false);
               }}
             >
               Cancel
@@ -4678,30 +4744,47 @@ const PatientManagement = () => {
               className="w-full sm:w-auto"
               disabled={
                 !pendingPatient?.isRecovered &&
-                (!recoveredType || (recoveredType === "Other" && !otherReason))
+                (!recoveredType ||
+                  (recoveredType === "Other" && !otherReason.trim()))
               }
-              onClick={() => {
-                const payload = {
-                  patientId: pendingPatient._id,
-                  isRecovered: !pendingPatient.isRecovered,
-                  recoveredType,
-                  otherReason: recoveredType === "Other" ? otherReason : "",
-                };
+              onClick={async () => {
+                try {
+                  // ACTIVE -> MARK AS RECOVERED
+                  if (!pendingPatient?.isRecovered) {
+                    await apiRequest("Patient/updatePatient", {
+                      method: "POST",
+                      body: JSON.stringify({
+                        _id: pendingPatient._id,
+                        isRecovered: true,
+                        recoveredType,
+                        stopReason:
+                          recoveredType === "Other" ? otherReason : null,
+                      }),
+                    });
 
-                console.log("Payload:", payload);
+                    toast({
+                      title: "Recovered",
+                      description: `${pendingPatient.patientName} marked as recovered.`,
+                    });
+                  } else {
+                    // ALREADY RECOVERED -> OPEN FRESH / CONTINUE DIALOG
+                    setSelectedPatientForRecovery(pendingPatient);
+                    setOpenRecoveryChoice(true);
+                  }
 
-                handleToggleStatus({
-                  _id: pendingPatient._id,
-                  patientName: pendingPatient.patientName,
-                  isRecovered: !pendingPatient.isRecovered,
-                  recoveredType: !pendingPatient.isRecovered
-                    ? recoveredType
-                    : null,
-                  stopReason: recoveredType === "Other" ? otherReason : null,
-                });
-
-                setRecoveredType("");
-                setOtherReason("");
+                  setRecoveredType("");
+                  setOtherReason("");
+                  setOpenAlert(false);
+                  setPendingPatient(null);
+                  getAllPatient();
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description:
+                      error?.message || "Failed to update patient status.",
+                    variant: "destructive",
+                  });
+                }
               }}
             >
               Confirm
@@ -4709,6 +4792,46 @@ const PatientManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={openRecoveryChoice} onOpenChange={setOpenRecoveryChoice}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choose Recovery Option</DialogTitle>
+            <DialogDescription>
+              This patient already has old treatment history. What do you want
+              to do?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 py-4">
+            <Button
+              onClick={() => handleRecoveryOption("fresh")}
+              className="w-full"
+            >
+              Start Fresh
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => handleRecoveryOption("continue")}
+              className="w-full"
+            >
+              Continue Old
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setOpenRecoveryChoice(false);
+                setSelectedPatientForRecovery(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

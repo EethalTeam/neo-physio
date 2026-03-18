@@ -83,7 +83,7 @@ ChartJS.register(
   ArcElement,
 );
 
-const ExpenseManagement = () => {
+const BussinessOverview = () => {
   const navigate = useNavigate();
   const { user, getPermissionsByPath } = useAuth();
 
@@ -1239,7 +1239,7 @@ const ExpenseManagement = () => {
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-lg font-bold text-gray-900 sm:gap-3 sm:text-2xl md:text-3xl">
             <Wallet size={24} className="shrink-0 sm:h-7 sm:w-7" />
-            <span className="truncate">Expense Management</span>
+            <span className="truncate">Business Overview</span>
           </h1>
           <p className="mt-1 text-sm text-gray-600 sm:mt-2 sm:text-base">
             Track all income and expenses in one place.
@@ -2032,4 +2032,4 @@ const ExpenseManagement = () => {
   );
 };
 
-export default ExpenseManagement;
+export default BussinessOverview;

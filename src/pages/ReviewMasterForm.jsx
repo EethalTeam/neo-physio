@@ -579,6 +579,7 @@ const ReviewMasterForm = () => {
 
     try {
       const newDate = sessionForm.sessionDate;
+
       if (!newDate) {
         toast({
           title: "Error",
@@ -588,11 +589,15 @@ const ReviewMasterForm = () => {
         return;
       }
 
+      const formattedDate = `${newDate.getFullYear()}-${String(
+        newDate.getMonth() + 1,
+      ).padStart(2, "0")}-${String(newDate.getDate()).padStart(2, "0")}`;
+
       await apiRequest("Review/updateReviewDate", {
         method: "POST",
         body: JSON.stringify({
           _id: review._id,
-          reviewDate: newDate.toISOString(),
+          reviewDate: formattedDate,
         }),
       });
 
@@ -603,6 +608,7 @@ const ReviewMasterForm = () => {
 
       setIsEditDate(false);
       setEditingReview(null);
+      setSessionForm((p) => ({ ...p, sessionDate: null }));
       getReviews();
     } catch (error) {
       console.error(error);

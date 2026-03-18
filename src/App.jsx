@@ -26,7 +26,7 @@ import Payroll from "@/pages/Payroll";
 import RedFlagsMaster from "@/pages/RedFlagsMaster";
 import PetrolAllowance from "@/pages/PetrolAllowance";
 import MonthlySummary from "@/pages/MonthlySummary";
-import ExpenseManagement from "@/pages/ExpenseManagement";
+import BusinessOverview from "@/pages/BusinessOverview";
 import CategoryMaster from "@/pages/CategoryMaster";
 import Country from "@/pages/Country";
 import State from "@/pages/State";
@@ -348,11 +348,11 @@ function App() {
               }
             />
             <Route
-              path="/expenses"
+              path="/BusinessOverview"
               element={
                 <ProtectedRoute allowedRoles={["SuperAdmin", "Admin"]}>
                   <Layout>
-                    <ExpenseManagement />
+                    <BusinessOverview />
                   </Layout>
                 </ProtectedRoute>
               }
