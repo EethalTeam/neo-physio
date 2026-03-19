@@ -35,7 +35,6 @@ const Gender = () => {
       useEffect(()=>{
           getPermissionsByPath(window.location.pathname).then(res=>{
               if(res){
-                console.log(res,"res")
                   setPermissions(res)
               }else{
                   navigate('/dashboard')
@@ -66,7 +65,7 @@ const Gender = () => {
   }
   const deleteGender = async (id) => {
     try {
-      console.log("Deleting ID:", id);
+      
       const response = await apiRequest("Gender/deleteGender", {
         method: 'POST',
         body: JSON.stringify({ _id: id }),
@@ -82,7 +81,7 @@ const Gender = () => {
   }
 
   const handleChangeGender = (e) => {
-    console.log(e.target.name, e.target.value, e, "e in change ")
+    
     const { name, value } = e.target;
     setGenderForm(prev => ({ ...prev, [name]: value }));
   };

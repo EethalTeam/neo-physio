@@ -63,14 +63,12 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
         body: JSON.stringify({ patientId }),
       });
       setReviews(response);
-      console.log(response, "Patient reviews");
     } catch (error) {
       console.log(error, "Error fetching patient reviews");
     }
   };
 
   useEffect(() => {
-    console.log("Patient Passes to Dialog", patient);
     if (patient?._id) getReviewById(patient._id);
   }, [patient]);
 
@@ -115,7 +113,6 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
     }
   };
 
-  console.log(patient, "patient");
   if (!patient) return null;
   const user = JSON.parse(localStorage.getItem("user"));
   const reviewDateValue = (() => {

@@ -223,7 +223,7 @@ const Income = () => {
     selectedPatientId,
     feesType,
   ]);
-  console.log(filteredPatients, "filteredPatients");
+  // console.log(filteredPatients, "filteredPatients");
   const totalIncomeByFilter = filteredPatients.reduce(
     (sum, p) => sum + Number(p.totalIncome || 0),
     0,

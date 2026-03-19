@@ -36,7 +36,7 @@ const RiskFactor = () => {
     useEffect(() => {
       getPermissionsByPath(window.location.pathname).then(res => {
         if (res) {
-          console.log(res, "res")
+          
           setPermissions(res)
         } else {
           navigate('/dashboard')
@@ -69,7 +69,7 @@ const RiskFactor = () => {
   }
   const deleteRiskFactor = async (id) => {
     try {
-      console.log("Deleting ID:", id);
+      
       const response = await apiRequest("RiskFactor/deleteRiskFactor", {
         method: 'POST',
         body: JSON.stringify({ _id: id }),
@@ -85,7 +85,7 @@ const RiskFactor = () => {
   }
 
   const handleChangeRisk = (e) => {
-    console.log(e.target.name, e.target.value, e, "e in change ")
+    
     const { name, value } = e.target;
     setRiskForm(prev => ({ ...prev, [name]: value }));
   };

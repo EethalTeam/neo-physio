@@ -78,7 +78,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         return acc;
       }
     }, {});
-    console.log(rolepath, "rolepath");
     setMenuPermissions(rolepath);
   }, [roles]);
 
@@ -179,7 +178,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     }
     return hasAccess(item.path) ? item : null;
   }).filter(Boolean);
-  console.log(filteredMenuItems, "filteredMenuItems");
   const getMenuItems = () => {
     const baseItems = [
       { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },

@@ -176,7 +176,6 @@ export const AuthProvider = ({ children }) => {
 
 
   const getPermissionsByPath = async (path) => {
-    console.log(user, "user")
     const RoleName = user.role; // read role from localStorage
     if (!RoleName) return null;
 

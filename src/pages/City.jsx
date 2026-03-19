@@ -64,7 +64,6 @@ const getState = async () => {
       useEffect(()=>{
           getPermissionsByPath(window.location.pathname).then(res=>{
               if(res){
-                console.log(res,"res")
                   setPermissions(res)
               }else{
                   navigate('/dashboard')
@@ -94,7 +93,6 @@ const getState = async () => {
   }
     const deleteCity = async(id)=>{
     try {
-        console.log("Deleting ID:", id); 
       const response = await apiRequest("City/deleteCity", {
         method: 'POST',
         body: JSON.stringify({_id:id}),
@@ -109,7 +107,6 @@ const getState = async () => {
   }
 
   const handleChangeCity = (e) => {
-    console.log(e.target.name, e.target.value,e, "e in change ")
     const { name, value } = e.target;
     setCityForm(prev => ({ ...prev, [name]: value }));
   };

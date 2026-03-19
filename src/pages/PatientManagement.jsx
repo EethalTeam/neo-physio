@@ -540,9 +540,9 @@ const PatientManagement = () => {
     sourceName: "",
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
-  console.log(patientForm, "patientForm");
-  console.log(patientForm.FeesTypeId, "FeesTypeId");
-  console.log(patientForm.ReferenceId, "ReferenceId");
+  // console.log(patientForm, "patientForm");
+  // console.log(patientForm.FeesTypeId, "FeesTypeId");
+  // console.log(patientForm.ReferenceId, "ReferenceId");
   const assignedPhysioId = patientForm.physioId;
 
   const modalitiesOptions = [
@@ -586,7 +586,7 @@ const PatientManagement = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        console.log(res, "res");
+        ;
         setPermissions(res);
       } else {
         navigate("/dashboard");

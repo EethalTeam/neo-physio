@@ -88,7 +88,7 @@ const AdminDashboard = () => {
       }));
 
       setPatients(res.patients || []);
-      console.log(" Completed Revenue:", res.totalCompletedAmount);
+      // console.log(" Completed Revenue:", res.totalCompletedAmount);
     } catch (err) {
       console.error("fetchIncomeByDate error:", err);
     }
@@ -101,7 +101,7 @@ const AdminDashboard = () => {
 
       const leads = Array.isArray(res) ? res : res.leads || [];
 
-      console.log("all leads:", leads);
+      // console.log("all leads:", leads);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -118,7 +118,7 @@ const AdminDashboard = () => {
         return today >= threeDaysBefore && today <= cbDate;
       });
 
-      console.log("filtered cb notifications:", filtered);
+      // console.log("filtered cb notifications:", filtered);
 
       filtered.sort((a, b) => new Date(a.cbDate) - new Date(b.cbDate));
 

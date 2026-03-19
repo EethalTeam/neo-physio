@@ -440,7 +440,6 @@ function App() {
 
 function DashboardRouter() {
   const userRole = localStorage.getItem("userRole");
-  console.log(userRole, "userRole");
   switch (userRole) {
     case "SuperAdmin":
       return <SuperAdminDashboard />;

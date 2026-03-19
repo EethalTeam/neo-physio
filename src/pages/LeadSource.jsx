@@ -31,7 +31,7 @@ const LeadSource = () => {
     useEffect(() => {
       getPermissionsByPath(window.location.pathname).then(res => {
         if (res) {
-          console.log(res, "res")
+          
           setPermissions(res)
         } else {
           navigate('/dashboard')
@@ -68,7 +68,7 @@ const LeadSource = () => {
   }
     const deleteLeadSource = async(id)=>{
     try {
-        console.log("Deleting ID:", id); 
+         
       const response = await apiRequest("LeadSource/deleteLeadSource", {
         method: 'POST',
         body: JSON.stringify({_id:id}),
@@ -83,7 +83,7 @@ const LeadSource = () => {
   }
 
   const handleChangeLead = (e) => {
-    console.log(e.target.name, e.target.value,e, "e in change ")
+    
     const { name, value } = e.target;
     setLeadForm(prev => ({ ...prev, [name]: value }));
   };

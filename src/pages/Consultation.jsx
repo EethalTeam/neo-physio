@@ -106,7 +106,6 @@ const Consulation = () => {
     kmsFromPrevious: "",
   };
   const [assignForm, setAssignForm] = useState(initialAssignState);
-  console.log(assignForm, "assignForm");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewingPatient, setViewingPatient] = useState(null);
 
@@ -431,7 +430,6 @@ const Consulation = () => {
   // }
 
   const AssignPhysio = async (data) => {
-    console.log(data, "data");
 
     try {
       const response = await apiRequest("Consultation/AssignPhysio", {
@@ -978,7 +976,7 @@ const Consulation = () => {
     //   }
     //   return p;
     // }));
-    console.log(assignForm, "...assigningPatient,...assignForm");
+    // console.log(assignForm, "...assigningPatient,...assignForm");
 
     AssignPhysio(assignForm);
     toast({

@@ -91,7 +91,7 @@ const Header = ({ toggleSidebar }) => {
 
 useEffect(() => {
   if (!user?._id) return;
-  console.log(user,"user")
+
   socket.emit("joinRoom", {employeeId:user._id});
 
   fetchNotifications();
@@ -178,7 +178,6 @@ useEffect(() => {
     }
   };
   const [previewUrl, setPreviewUrl] = useState(null);
-  console.log(previewUrl, "previewUrl");
 
   useEffect(() => {
     if (physioData?.physioPic) {

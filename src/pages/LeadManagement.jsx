@@ -69,7 +69,6 @@ const LeadManagement = () => {
   const [editingLead, setEditingLead] = useState(null);
   const [reference, setReference] = useState([]);
   const [ConsultationDate, setConsultationDate] = useState("");
-  console.log(ConsultationDate, "ConsultationDate");
   const [open, setOpen] = useState(false);
   const [LeadQualify, setLeadQualify] = useState({});
 
@@ -97,7 +96,7 @@ const LeadManagement = () => {
   };
   const [leadStatus, setLeadStatus] = useState([]);
   const [leadForm, setLeadForm] = useState(initialFormState);
-  console.log(leadForm.LeadStatusId, "leadForm LeadStatusId");
+  // console.log(leadForm.LeadStatusId, "leadForm LeadStatusId");
 
   //  Load dropdown data
   useEffect(() => {
@@ -120,7 +119,6 @@ const LeadManagement = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        console.log(res, "res");
         setPermissions(res);
       } else {
         navigate("/dashboard");
@@ -172,7 +170,7 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      console.log(res, "res");
+      ;
       if (res) {
         getLead();
         toast({

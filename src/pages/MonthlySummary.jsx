@@ -55,7 +55,7 @@ const MonthlySummary = () => {
           year: selectedYear,
         }),
       });
-      console.log(sessionRes, "sessionRes");
+      // console.log(sessionRes, "sessionRes");
       processDashboardData(sessionRes);
       setSummary(sessionRes);
     } catch (err) {

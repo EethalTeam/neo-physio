@@ -36,7 +36,7 @@ const SessionStatus = () => {
     useEffect(() => {
       getPermissionsByPath(window.location.pathname).then(res => {
         if (res) {
-          console.log(res, "res")
+          
           setPermissions(res)
         } else {
           navigate('/dashboard')

@@ -57,7 +57,7 @@ const getCountries = async () => {
       useEffect(() => {
         getPermissionsByPath(window.location.pathname).then(res => {
           if (res) {
-            console.log(res, "res")
+            
             setPermissions(res)
           } else {
             navigate('/dashboard')
@@ -87,7 +87,7 @@ const getCountries = async () => {
   }
     const deleteState = async(id)=>{
     try {
-        console.log("Deleting ID:", id); 
+         
       const response = await apiRequest("State/deleteState", {
         method: 'POST',
         body: JSON.stringify({_id:id}),
@@ -102,7 +102,7 @@ const getCountries = async () => {
   }
 
   const handleChangeState = (e) => {
-    console.log(e.target.name, e.target.value,e, "e in change ")
+    
     const { name, value } = e.target;
     setStateForm(prev => ({ ...prev, [name]: value }));
   };

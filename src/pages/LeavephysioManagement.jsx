@@ -167,7 +167,7 @@ const LeavephysioManagement = () => {
         body: JSON.stringify({}),
       });
 
-      console.log(response, "response Leave");
+      // console.log(response, "response Leave");
 
       if (response?.Leaves && Array.isArray(response.Leaves)) {
         const normal = response.Leaves.map((leave) => ({
@@ -180,10 +180,10 @@ const LeavephysioManagement = () => {
         }));
         setLeaveData(normal);
 
-        console.log(normal, "normal LeaveData");
+        // console.log(normal, "normal LeaveData");
       } else {
         setLeaveData([]);
-        console.log([], "No leave data found");
+        // console.log([], "No leave data found");
       }
 
       setShowModal(true);
@@ -506,7 +506,7 @@ const LeavephysioManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      console.log(data, "data of cancel");
+      // console.log(data, "data of cancel");
       getSession();
       return response;
     } catch (error) {
@@ -636,7 +636,7 @@ const LeavephysioManagement = () => {
       });
     });
   }, [patients]);
-  console.log(selectedPatientId, "setSelectedPatientId");
+  // console.log(selectedPatientId, "setSelectedPatientId");
   const upsertPlan = (patientId, patch) => {
     setLeaveSessionPlan((prev) => {
       const index = prev.findIndex((x) => x.patientId === patientId);
