@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { config } from '@/components/CustomComponents/config';
 import { apiRequest } from '@/components/CustomComponents/apiRequest'
 import { toast } from '@/components/ui/use-toast';
+import socket from '@/socket/Socket.js';
 
 const AuthContext = createContext();
 
@@ -94,8 +95,8 @@ export const AuthProvider = ({ children }) => {
         });
         throw new Error(data.message || "Login failed");
       } else {
-        //  socket.connect();
-        // socket.emit("joinRoom", { employeeId:data.employee._id });
+         socket.connect();
+        // socket.emit("joinRoom", { employeeId:data.physio._id });
         setUser(data.physio);
         setIsAuthenticated(true);
         localStorage.setItem('user', JSON.stringify(data.physio));

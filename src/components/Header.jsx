@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Logo from "@/Assets/images/Logo_png.png";
+import socket from '@/socket/Socket.js';
 
 import { apiRequest } from "../components/CustomComponents/apiRequest";
 const Header = ({ toggleSidebar }) => {
@@ -84,9 +85,32 @@ const Header = ({ toggleSidebar }) => {
       });
     }
   };
-  useEffect(() => {
+  // useEffect(() => {
+  //   fetchNotifications();
+  // }, [user._id]);
+
+useEffect(() => {
+  if (!user?._id) return;
+  console.log(user,"user")
+  socket.emit("joinRoom", {employeeId:user._id});
+
+  fetchNotifications();
+
+  socket.on("receiveNotification", (newNotification) => {
+    console.log("Real-time notification received:", newNotification);
+    
     fetchNotifications();
-  }, [user._id]);
+
+    toast({
+      title: "New Notification",
+      description: newNotification.message,
+    });
+  });
+
+  return () => {
+    socket.off("receiveNotification");
+  };
+}, [user?._id]);
 
   const markAsRead = async (notificationId) => {
     try {
