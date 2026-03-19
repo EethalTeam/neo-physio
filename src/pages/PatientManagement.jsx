@@ -29,6 +29,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import Logo from "@/Assets/images/Logo_png.png";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -105,10 +107,94 @@ const PatientManagement = () => {
   const [openRecoverDialog, setOpenRecoverDialog] = useState(false);
   const [pendingPatient, setPendingPatient] = useState(null);
   const [openDialog, setOpendialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState("");
+  const handleMarkRecoveredClick = (patient) => {
+    setPendingPatient(patient);
+    setPendingAction("recover");
+    setRecoveredType("");
+    setOtherReason("");
+    setOpenAlert(true);
+  };
+  const handleToggleClick = (patient) => {
+    setPendingPatient(patient);
+
+    if (patient.isRecovered) {
+      setPendingAction("notRecover");
+    } else {
+      setPendingAction("recover");
+    }
+
+    setRecoveredType("");
+    setOtherReason("");
+    setOpenAlert(true);
+  };
+  const handleConfirmRecoveryStatus = async () => {
+    if (!pendingPatient?._id) return;
+
+    try {
+      // ✅ RECOVER
+      if (pendingAction === "recover") {
+        const res = await apiRequest("Patient/updatePatient", {
+          method: "POST",
+          body: JSON.stringify({
+            _id: pendingPatient._id,
+            isRecovered: true,
+            recoveredType: recoveredType || null,
+            stopReason:
+              recoveredType === "other" ? otherReason.trim() || null : null,
+          }),
+        });
+
+        if (res) {
+          toast({
+            title: "Recovered",
+            description: `${pendingPatient.patientName} marked as recovered`,
+          });
+
+          setOpenAlert(false);
+          getAllPatient();
+        }
+      }
+
+      // ❌ NOT RECOVER
+      if (pendingAction === "notRecover") {
+        const res = await apiRequest("Patient/updatePatient", {
+          method: "POST",
+          body: JSON.stringify({
+            _id: pendingPatient._id,
+            isRecovered: false,
+          }),
+        });
+
+        if (res) {
+          toast({
+            title: "Not Recovered",
+            description: `${pendingPatient.patientName} marked as not recovered`,
+          });
+
+          setOpenAlert(false);
+
+          // 👉 OPEN NEXT FLOW
+          setSelectedPatientForRecovery(pendingPatient);
+          setOpenRecoveryChoice(true);
+
+          getAllPatient();
+        }
+      }
+
+      setPendingPatient(null);
+      setPendingAction("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleMarkNotRecoveredClick = (patient) => {
-    setSelectedPatientForRecovery(patient);
-    setOpenRecoveryChoice(true);
+    setPendingPatient(patient);
+    setPendingAction("notRecover");
+    setRecoveredType("");
+    setOtherReason("");
+    setOpenAlert(true);
   };
   // format date safely
   const fmtDate = (d) => {
@@ -116,6 +202,17 @@ const PatientManagement = () => {
     const x = new Date(d);
     if (isNaN(x.getTime())) return "-";
     return x.toLocaleDateString("en-GB");
+  };
+  const getBase64FromUrl = async (url) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   };
   const monthNames = [
     "January",
@@ -132,18 +229,36 @@ const PatientManagement = () => {
     "December",
   ];
   // build PDF from patient list
-  const downloadPatientsPdf = ({ title, rows, fileName }) => {
+  const downloadPatientsPdf = async ({ title, rows, fileName }) => {
     const doc = new jsPDF();
 
-    doc.setFontSize(14);
-    doc.text("NEO-PHYSIO - PATIENT REPORT", 14, 14);
+    let logoBase64 = "";
+    try {
+      logoBase64 = await getBase64FromUrl(Logo);
+    } catch (err) {
+      console.log("Logo not loaded");
+    }
 
-    doc.setFontSize(11);
-    doc.text(title, 14, 22);
-    doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 28);
+    if (logoBase64) {
+      doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
+    }
+
+    doc.setFontSize(16);
+    doc.setTextColor(41, 128, 185);
+    doc.text("NEO PHYSIO", 40, 18);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, 40, 25);
+
+    doc.setFontSize(10);
+    doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
+
+    doc.setDrawColor(41, 128, 185);
+    doc.line(14, 38, 195, 38);
 
     autoTable(doc, {
-      startY: 35,
+      startY: 42,
       head: [
         [
           "#",
@@ -171,6 +286,9 @@ const PatientManagement = () => {
           ])
         : [["", "No data", "", "", "", "", "", "", ""]],
       styles: { fontSize: 8 },
+      headStyles: {
+        fillColor: [41, 128, 185],
+      },
       columnStyles: {
         0: { cellWidth: 8 },
         1: { cellWidth: 22 },
@@ -183,6 +301,10 @@ const PatientManagement = () => {
         8: { cellWidth: 16 },
       },
     });
+
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(9);
+    doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
 
     doc.save(fileName);
   };
@@ -641,16 +763,42 @@ const PatientManagement = () => {
 
       const doc = new jsPDF("landscape");
 
-      doc.setFontSize(16);
-      doc.text("NEO-PHYSIO - MONTHLY PATIENT REPORT", 14, 15);
+      // ✅ LOAD LOGO
+      let logoBase64 = "";
+      try {
+        logoBase64 = await getBase64FromUrl(Logo);
+      } catch (err) {
+        console.log("Logo not loaded");
+      }
 
-      doc.setFontSize(11);
+      // ✅ ADD LOGO
+      if (logoBase64) {
+        doc.addImage(logoBase64, "PNG", 14, 10, 25, 25);
+      }
+
+      // ✅ COMPANY NAME
+      doc.setFontSize(18);
+      doc.setTextColor(41, 128, 185);
+      doc.text("NEO PHYSIO", 45, 18);
+
+      // ✅ TITLE
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Monthly Patient Report", 45, 25);
+
+      // ✅ MONTH + DATE
+      doc.setFontSize(10);
       doc.text(
         `Month: ${monthNames[selectedMonth - 1]} ${selectedYear}`,
         14,
-        23,
+        35,
       );
-      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 30);
+
+      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 42);
+
+      // ✅ LINE (PRO LOOK)
+      doc.setDrawColor(41, 128, 185);
+      doc.line(14, 45, 285, 45);
 
       const columns = [
         "S.No",
@@ -670,8 +818,9 @@ const PatientManagement = () => {
       ];
 
       const rows = report.map((p, index) => {
-        const { sessionStartDate, sessionEndDate, lastSessionDate } =
-          getSessionDateRange(p.sessions);
+        const { sessionStartDate, sessionEndDate } = getSessionDateRange(
+          p.sessions,
+        );
 
         return [
           index + 1,
@@ -690,8 +839,9 @@ const PatientManagement = () => {
           p.recovered || (p.isRecovered ? "Recovered" : "Active"),
         ];
       });
+
       autoTable(doc, {
-        startY: 36,
+        startY: 50, // 🔥 moved down because of header
         head: [columns],
         body: rows,
         styles: {
@@ -701,23 +851,12 @@ const PatientManagement = () => {
         headStyles: {
           fillColor: [41, 128, 185],
         },
-        columnStyles: {
-          0: { cellWidth: 10 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 28 },
-          3: { cellWidth: 10 },
-          4: { cellWidth: 14 },
-          5: { cellWidth: 22 },
-          6: { cellWidth: 28 },
-          7: { cellWidth: 24 },
-          8: { cellWidth: 18 },
-          9: { cellWidth: 18 },
-          10: { cellWidth: 16 },
-          11: { cellWidth: 16 },
-          12: { cellWidth: 16 },
-          13: { cellWidth: 16 },
-        },
       });
+
+      // ✅ FOOTER
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(9);
+      doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
 
       doc.save(
         `Patients_Report_${monthNames[selectedMonth - 1]}_${selectedYear}.pdf`,
@@ -1413,6 +1552,120 @@ const PatientManagement = () => {
     setSelectedPatient(patient);
   };
 
+  const handleDownloadRecoveredPatientsPDF = async () => {
+    if (!recoveredPatients || recoveredPatients.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No recovered patients available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    let logoBase64 = "";
+    try {
+      logoBase64 = await getBase64FromUrl(Logo);
+    } catch (err) {
+      console.log("Logo not loaded");
+    }
+
+    if (logoBase64) {
+      doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
+    }
+
+    doc.setFontSize(18);
+    doc.setTextColor(41, 128, 185);
+    doc.text("NEO PHYSIO", 40, 18);
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Recovered Patients Report", 40, 26);
+
+    doc.setFontSize(10);
+    doc.text(`Downloaded on: ${format(new Date(), "PPpp")}`, 14, 35);
+
+    // TABLE
+    const tableColumn = [
+      "Patient Code",
+      "Name",
+      "Age/Gender",
+      "Contact",
+      "Condition",
+      "Recovered Date",
+      "Physio",
+      "Sessions",
+    ];
+
+    const tableRows = recoveredPatients.map((p) => [
+      p.patientCode || "-",
+      p.patientName || "-",
+      `${p.patientAge || "-"} / ${p.patientGenderId?.genderName || "-"}`,
+      p.patientNumber || "-",
+      p.patientCondition || "-",
+      p.recoveredAt ? format(new Date(p.recoveredAt), "PP") : "N/A",
+      p.physioId?.physioName || "-",
+      p.sessionCount || 0,
+    ]);
+
+    autoTable(doc, {
+      startY: 42,
+      head: [tableColumn],
+      body: tableRows,
+      styles: {
+        fontSize: 8,
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+      },
+    });
+
+    // FOOTER
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(9);
+    doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
+
+    doc.save("NEO_PHYSIO_Recovered_Patients.pdf");
+  };
+  const handleDownloadRecovered = () => {
+    if (!recoveredPatients || recoveredPatients.length === 0) {
+      alert("No recovered patients available");
+      return;
+    }
+
+    const data = recoveredPatients.map((p) => ({
+      PatientCode: p.patientCode,
+      Name: p.patientName,
+      Age: p.patientAge,
+      Gender: p.patientGenderId?.genderName,
+      Contact: p.patientNumber,
+      Condition: p.patientCondition,
+      Sessions: p.sessionCount || 0,
+      Physio: p.physioId?.physioName,
+      ReviewDate: p.reviewDate
+        ? format(new Date(p.reviewDate), "dd-MM-yyyy")
+        : "N/A",
+      RecoveredDate: p.recoveredAt
+        ? format(new Date(p.recoveredAt), "dd-MM-yyyy")
+        : "N/A",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Recovered Patients");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+
+    saveAs(fileData, "Recovered_Patients.xlsx");
+  };
   const handleNewPatient = () => {
     setEditingPatient(null);
     setPatientForm({ ...initialFormState, patientCode: generatePatientId() });
@@ -1615,6 +1868,18 @@ const PatientManagement = () => {
         description: "Failed to update recovery option.",
         variant: "destructive",
       });
+    }
+  };
+  const getSessionStyle = (status) => {
+    switch (status?.toLowerCase()) {
+      case "completed":
+        return "bg-green-100 border-green-300";
+      case "canceled":
+        return "bg-red-100 border-red-300";
+      case "scheduled":
+        return "bg-blue-100 border-blue-300";
+      default:
+        return "bg-white border-gray-200";
     }
   };
   const handleNewGoalSubmit = async (e, review) => {
@@ -2841,7 +3106,16 @@ const PatientManagement = () => {
                 Manage registered patients and their treatment plans.
               </p>
             </div>
-
+            <Button onClick={handleDownloadRecovered}>
+              Download Recovered Patients
+            </Button>
+            <Button
+              onClick={handleDownloadRecoveredPatientsPDF}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Download Recovered PDF
+            </Button>
             {Permissions.isAdd && (
               <Button onClick={handleNewPatient} className="w-full sm:w-auto">
                 <PlusCircle className="mr-2 h-4 w-4" /> New Patient
@@ -2943,6 +3217,9 @@ const PatientManagement = () => {
                         )}
                         <th className="px-3 py-2 text-left hidden lg:table-cell">
                           Review
+                        </th>{" "}
+                        <th className="px-3 py-2 text-left hidden lg:table-cell">
+                          Recovered Date
                         </th>
                         <th className="px-3 py-2 text-left">Physio</th>
                         <th className="px-3 py-2 text-center">Actions</th>
@@ -3002,7 +3279,11 @@ const PatientManagement = () => {
                               ? format(new Date(patient.reviewDate), "PP")
                               : "N/A"}
                           </td>
-
+                          <td className="px-3 py-2 hidden lg:table-cell">
+                            {patient.recoveredAt
+                              ? format(new Date(patient.recoveredAt), "PP")
+                              : "N/A"}
+                          </td>
                           <td className="px-3 py-2 whitespace-nowrap">
                             <div className="flex flex-col gap-2 min-w-[100px]">
                               {patient.physioId?.physioName}
@@ -3206,6 +3487,14 @@ const PatientManagement = () => {
                                 <strong>Review Date:</strong>{" "}
                                 {patient.reviewDate
                                   ? format(new Date(patient.reviewDate), "PP")
+                                  : "N/A"}
+                              </p>
+                            </div>
+                            <div className="space-y-2 mb-4 flex-grow">
+                              <p className="text-sm break-words">
+                                <strong>Recovered Date:</strong>{" "}
+                                {patient.recoveredAt
+                                  ? format(new Date(patient.recoveredAt), "PP")
                                   : "N/A"}
                               </p>
                             </div>
@@ -3554,18 +3843,25 @@ const PatientManagement = () => {
                       {cycle.sessions.map((item, index) => (
                         <div
                           key={item._id || index}
-                          className="border rounded-md p-3 flex flex-col gap-1"
+                          className={`border rounded-md p-3 flex flex-col gap-1 ${getSessionStyle(
+                            item.status,
+                          )}`}
                         >
                           <div className="font-medium">{item.title}</div>
+
                           <div className="text-sm text-gray-600">
                             Date: {formatDate(item.date)}
                           </div>
-                          <div className="text-sm text-gray-600">
-                            Status: {item.status}
+
+                          <div className="text-sm font-medium">
+                            Status:{" "}
+                            <span className="capitalize">{item.status}</span>
                           </div>
+
                           <div className="text-sm text-gray-600">
                             Physio: {item.physioName}
                           </div>
+
                           <div className="text-sm text-gray-600">
                             Feedback: {item.feedback}
                           </div>
@@ -3877,15 +4173,11 @@ const PatientManagement = () => {
                         <div className="space-y-2">
                           <Label>Is Recovered</Label>
                           <Button
-                            onClick={() => handleToggleStatus(selectedPatient)}
-                            className={
-                              selectedPatient.isRecovered
-                                ? "bg-yellow-500 hover:bg-yellow-600"
-                                : "bg-green-500 hover:bg-green-600"
-                            }
+                            type="button"
+                            onClick={() => handleToggleClick(selectedPatient)}
                           >
                             {selectedPatient.isRecovered
-                              ? "Not Recovered"
+                              ? "Mark Not Recovered"
                               : "Mark Recovered"}
                           </Button>
                         </div>

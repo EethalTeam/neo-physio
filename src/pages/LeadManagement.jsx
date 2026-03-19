@@ -423,7 +423,8 @@ const LeadManagement = () => {
       return false;
     }
 
-    if (!leadForm.leadSourceId) {
+    // Lead Source validation
+    if (leadForm.leadSourceName !== "Reference" && !leadForm.leadSourceId) {
       toast({
         title: "Alert",
         description: "Please select Lead Source",
@@ -432,6 +433,7 @@ const LeadManagement = () => {
       return false;
     }
 
+    // Reference validation
     if (leadForm.leadSourceName === "Reference" && !leadForm.ReferenceId) {
       toast({
         title: "Alert",
@@ -440,6 +442,7 @@ const LeadManagement = () => {
       });
       return false;
     }
+
     if (editingLead) {
       updateLead(leadForm);
     } else {
@@ -464,33 +467,40 @@ const LeadManagement = () => {
   //  Edit
   const handleEdit = (lead) => {
     setEditingLead(true);
+
+    const hasReference = !!lead.ReferenceId?._id;
+    const derivedLeadSourceName =
+      lead.leadSourceId?.leadSourceName ||
+      lead.leadSourceName ||
+      (hasReference ? "Reference" : "");
+
     setLeadForm({
-      // _id:lead._id?lead._id:'',
       leadName: lead.leadName || "",
       leadAge: lead.leadAge || "",
       leadGenderId: lead?.leadGenderId?._id || "",
       leadContactNo: lead.leadContactNo || "",
       leadAddress: lead.leadAddress || "",
       physioCategoryId: lead?.physioCategoryId?._id || "",
-      leadSourceId: lead.leadSourceId ? lead.leadSourceId?._id : "",
+      leadSourceId: lead.leadSourceId?._id || "",
       leadMedicalHistory: lead.leadMedicalHistory || "",
       leadId: lead._id || "",
       physioCateName: lead?.physioCategoryId?.physioCateName || "",
       genderName: lead?.leadGenderId?.genderName || "",
-      leadSourceName: lead.leadSourceId.leadSourceName
-        ? lead.leadSourceId.leadSourceName
-        : null,
-      ReferenceId: lead.ReferenceId ? lead.ReferenceId._id : "",
-      sourceName: lead.ReferenceId ? lead.ReferenceId.sourceName : null,
-      LeadStatusId: lead.LeadStatusId ? lead.LeadStatusId._id : null,
-      leadStatusName: lead.LeadStatusId
-        ? lead.LeadStatusId.leadSourceName
-        : null,
+      leadSourceId: lead.leadSourceId?._id || null,
+      leadSourceName:
+        lead.leadSourceName ||
+        lead.leadSourceId?.leadSourceName ||
+        (lead.ReferenceId ? "Reference" : ""),
+      ReferenceId: lead.ReferenceId?._id || "",
+      sourceName: lead.ReferenceId?.sourceName || "",
+      LeadStatusId: lead.LeadStatusId?._id || "",
+      leadStatusName: lead.LeadStatusId?.leadStatusName || "",
       leadDocuments: lead.leadDocuments || [],
       cbDate: lead.cbDate
         ? new Date(lead.cbDate).toISOString().split("T")[0]
         : "",
     });
+
     setIsFormOpen(true);
   };
 
@@ -593,7 +603,12 @@ const LeadManagement = () => {
                       {lead?.physioCategoryId?.physioCateName || "-"}
                     </span>
                   </td>
-                  <td className="p-3">{lead.leadSourceId.leadSourceName}</td>
+                  <td className="p-3">
+                    {lead.ReferenceId?.sourceName ||
+                      lead.leadSourceName ||
+                      lead.leadSourceId?.leadSourceName ||
+                      "-"}
+                  </td>
                   <td>
                     <span
                       style={{
@@ -991,20 +1006,37 @@ const LeadManagement = () => {
                 </Select> */}
 
                 <Select
-                  value={JSON.stringify({
-                    LeadIDPK: leadForm.leadSourceId,
-                    name: leadForm.leadSourceName,
-                  })}
+                  value={
+                    leadForm.leadSourceName
+                      ? JSON.stringify({
+                          LeadIDPK:
+                            leadForm.leadSourceId ||
+                            (leadForm.leadSourceName === "Reference"
+                              ? "reference"
+                              : ""),
+                          name: leadForm.leadSourceName,
+                        })
+                      : ""
+                  }
                   onValueChange={(v) => {
                     const selected = JSON.parse(v);
+
+                    if (selected.name === "Reference") {
+                      handleSelectChange("leadSourceId", null);
+                      handleSelectChange("leadSourceName", "Reference");
+                      return;
+                    }
+
                     handleSelectChange("leadSourceId", selected.LeadIDPK);
                     handleSelectChange("leadSourceName", selected.name);
+                    handleSelectChange("ReferenceId", "");
+                    handleSelectChange("sourceName", "");
                   }}
                 >
-                  {" "}
                   <SelectTrigger>
                     <SelectValue placeholder="Select Lead Source" />
                   </SelectTrigger>
+
                   <SelectContent>
                     {leadSource.map((leads) => (
                       <SelectItem
@@ -1017,17 +1049,32 @@ const LeadManagement = () => {
                         {leads.leadSourceName}
                       </SelectItem>
                     ))}
+
+                    {/* ✅ ADD THIS */}
+                    <SelectItem
+                      value={JSON.stringify({
+                        LeadIDPK: "reference",
+                        name: "Reference",
+                      })}
+                    >
+                      Reference
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {leadForm.leadSourceName === "Reference" ? (
+              {leadForm.leadSourceName === "Reference" ||
+              leadForm.ReferenceId ? (
                 <div className="space-y-2">
                   <Label>Reference</Label>
                   <Select
-                    value={JSON.stringify({
-                      id: leadForm.ReferenceId,
-                      name: leadForm.sourceName,
-                    })}
+                    value={
+                      leadForm.ReferenceId
+                        ? JSON.stringify({
+                            id: leadForm.ReferenceId,
+                            name: leadForm.sourceName,
+                          })
+                        : ""
+                    }
                     onValueChange={(v) => {
                       const selected = JSON.parse(v);
                       handleSelectChange("ReferenceId", selected.id);

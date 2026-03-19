@@ -46,24 +46,24 @@ const Login = () => {
 
   //api for physio Code
 
-  useEffect(() => {
-    getPhysio();
-  }, []);
+  // useEffect(() => {
+  //   getPhysio();
+  // }, []);
 
-  const getPhysio = async (data) => {
-    try {
-      // const getcode = {
-      //   physioCode:data.physioCode
-      // }
-      const response = await apiRequest("Physio/getAllPhysio", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      setPhysio(response.physios || []);
-    } catch (error) {
-      console.error("Error loading physios:", error);
-    }
-  };
+  // const getPhysio = async (data) => {
+  //   try {
+  //     // const getcode = {
+  //     //   physioCode:data.physioCode
+  //     // }
+  //     const response = await apiRequest("Physio/getAllPhysio", {
+  //       method: "POST",
+  //       body: JSON.stringify({}),
+  //     });
+  //     setPhysio(response.physios || []);
+  //   } catch (error) {
+  //     console.error("Error loading physios:", error);
+  //   }
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
