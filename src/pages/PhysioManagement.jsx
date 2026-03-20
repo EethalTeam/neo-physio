@@ -821,7 +821,9 @@ const PhysioManagement = () => {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Emp Code</Label>
+                  <Label>
+                    Emp Code<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="EmpCode"
                     type="text"
@@ -831,7 +833,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Physio Pic</Label>
+                  <Label>
+                    Physio Pic<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioPic"
                     type="file"
@@ -843,7 +847,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>
+                    Name<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioName"
                     value={physioForm.physioName}
@@ -852,7 +858,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Date Of Birth</Label>
+                  <Label>
+                    Date Of Birth<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioDob"
                     type="date"
@@ -862,7 +870,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div>
-                  <Label>Gender</Label>
+                  <Label>
+                    Gender<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Select
                     value={physioForm.physioGenderId}
                     onValueChange={(v) =>
@@ -883,7 +893,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Contact No</Label>
+                  <Label>
+                    Contact No<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     type="tel"
                     name="physioContactNo"
@@ -895,7 +907,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Alt No</Label>
+                  <Label>
+                    Alt No<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     type="tel"
                     name="physioAltno"
@@ -916,7 +930,10 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Relation with Alt No</Label>
+                  <Label>
+                    Relation with Alt No
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     type="text"
                     name="physiorelationAltno"
@@ -933,7 +950,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Alt No 2</Label>
+                  <Label>
+                    Alt No 2<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     type="tel"
                     name="physioAltno2"
@@ -954,7 +973,10 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Relation with Alt No 2</Label>
+                  <Label>
+                    Relation with Alt No 2
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     type="text"
                     name="physiorelationAltno2"
@@ -971,7 +993,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">
+                    Password<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -996,7 +1020,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Role</Label>
+                  <Label>
+                    Role<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Select
                     value={physioForm.roleId}
                     onValueChange={(v) => handleSelectChange("roleId", v)}
@@ -1017,7 +1043,9 @@ const PhysioManagement = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Designation</Label>
+                  <Label>
+                    Designation<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioSpcl"
                     value={physioForm.physioSpcl}
@@ -1026,7 +1054,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Qualifications</Label>
+                  <Label>
+                    Qualifications<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioQulifi"
                     value={physioForm.physioQulifi}
@@ -1035,7 +1065,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Experience</Label>
+                  <Label>
+                    Experience<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioExp"
                     value={physioForm.physioExp}
@@ -1046,7 +1078,9 @@ const PhysioManagement = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>PAN</Label>
+                  <Label>
+                    PAN<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioPAN"
                     value={physioForm.physioPAN}
@@ -1055,7 +1089,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Aadhaar</Label>
+                  <Label>
+                    Aadhaar<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioAadhar"
                     value={physioForm.physioAadhar}
@@ -1072,7 +1108,9 @@ const PhysioManagement = () => {
 
               <div className="pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Salary (₹)</Label>
+                  <Label>
+                    Salary (₹)<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioSalary"
                     type="number"
@@ -1083,7 +1121,10 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Probation Period (months)</Label>
+                  <Label>
+                    Probation Period (months)
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioProbation"
                     type="number"
@@ -1094,7 +1135,10 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Next Increment Date</Label>
+                  <Label>
+                    Next Increment Date
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1129,7 +1173,10 @@ const PhysioManagement = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Petrol Allowance (₹/km)</Label>
+                  <Label>
+                    Petrol Allowance (₹/km)
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioPetrolAlw"
                     type="number"
@@ -1141,7 +1188,10 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Vehicle Maintenance (₹)</Label>
+                  <Label>
+                    Vehicle Maintenance (₹)
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioVehicleMTC"
                     type="number"
@@ -1153,7 +1203,9 @@ const PhysioManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Incentive (%)</Label>
+                  <Label>
+                    Incentive (%)<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="physioIncentive"
                     type="number"

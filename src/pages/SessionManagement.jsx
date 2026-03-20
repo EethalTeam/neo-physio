@@ -451,16 +451,25 @@ const SessionManagement = () => {
 
   const updateSession = async (data) => {
     try {
-      console.log(data, "update session payload");
-
       await apiRequest("Session/updateSession", {
         method: "POST",
         body: JSON.stringify(data),
       });
 
       getSession();
+
+      toast({
+        title: "Updated",
+        description: "Session updated successfully",
+      });
     } catch (error) {
-      console.log(error, "error from frontend update Session");
+      console.log(error);
+
+      toast({
+        title: "Error",
+        description: "Failed to update session",
+        variant: "destructive",
+      });
     }
   };
 
@@ -470,9 +479,21 @@ const SessionManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
+
       getSession();
+
+      toast({
+        title: "Deleted",
+        description: "Session deleted successfully",
+      });
     } catch (error) {
-      console.log(error, "error Session delete");
+      console.log(error);
+
+      toast({
+        title: "Error",
+        description: "Failed to delete session",
+        variant: "destructive",
+      });
     }
   };
 
@@ -509,23 +530,48 @@ const SessionManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
+
       getSession();
+
+      toast({
+        title: "Session Started",
+        description: "Session marked as attended",
+      });
+
       return response;
     } catch (error) {
-      console.log(error, "error from frontend SessionStart");
+      console.log(error);
+
+      toast({
+        title: "Error",
+        description: "Failed to start session",
+        variant: "destructive",
+      });
     }
   };
-
   const SessionCancel = async (data) => {
     try {
       const response = await apiRequest("Session/SessionCancel", {
         method: "POST",
         body: JSON.stringify(data),
       });
+
       getSession();
+
+      toast({
+        title: "Canceled",
+        description: "Session canceled successfully",
+      });
+
       return response;
     } catch (error) {
-      console.log(error, "error from frontend SessionCancel");
+      console.log(error);
+
+      toast({
+        title: "Error",
+        description: "Failed to cancel session",
+        variant: "destructive",
+      });
     }
   };
 
@@ -872,17 +918,41 @@ const SessionManagement = () => {
 
     handleActionEnd(feedback, "Completed", sessionId);
   };
-
   const handleFormSubmit = (e) => {
     e.preventDefault();
 
     if (!sessionForm.patientId) {
-      alert("select the patient");
+      toast({
+        title: "Validation Alert",
+        description: "Please select a patient",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!sessionForm.physioId) {
-      alert("select the physio");
+      toast({
+        title: "Validation Alert",
+        description: "Please select a physiotherapist",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!sessionForm.sessionDate || sessionForm.sessionDate.length === 0) {
+      toast({
+        title: "Validation Alert",
+        description: "Please select at least one session date",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!sessionForm.sessionTime) {
+      toast({
+        title: "Validation Alert",
+        description: "Please select session time",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -894,17 +964,35 @@ const SessionManagement = () => {
       sessionDate: sessionForm.sessionDate,
     };
 
-    if (editingSession) {
-      updateSession({ ...sessionForm });
-      toast({ title: "Success", description: "Session updated." });
-    } else {
-      getCreateSession({ ...formData });
-      toast({ title: "Success", description: "New session scheduled." });
-    }
+    try {
+      if (editingSession) {
+        updateSession({ ...sessionForm });
 
-    setIsFormOpen(false);
-    setEditingSession(null);
-    setSessionForm(initialFormState);
+        toast({
+          title: "Success",
+          description: "Session updated successfully",
+        });
+      } else {
+        getCreateSession({ ...formData });
+
+        toast({
+          title: "Success",
+          description: "Session scheduled successfully",
+        });
+      }
+
+      setIsFormOpen(false);
+      setEditingSession(null);
+      setSessionForm(initialFormState);
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditSession = (session) => {
@@ -2170,7 +2258,9 @@ const SessionManagement = () => {
 
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label>Patient</Label>
+              <Label>
+                Patient<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Select
                 onValueChange={(v) =>
                   setSessionForm((p) => ({ ...p, patientId: v }))
@@ -2192,7 +2282,9 @@ const SessionManagement = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Physiotherapist</Label>
+              <Label>
+                Physiotherapist<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Select
                 onValueChange={(v) =>
                   setSessionForm((p) => ({ ...p, physioId: v }))
@@ -2213,7 +2305,9 @@ const SessionManagement = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Session Dates</Label>
+              <Label>
+                Session Dates<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -2263,7 +2357,9 @@ const SessionManagement = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionDay">Session Day</Label>
+              <Label htmlFor="sessionDay">
+                Session Day<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Input
                 id="sessionDay"
                 disabled
@@ -2276,7 +2372,9 @@ const SessionManagement = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionTime">Session Time</Label>
+              <Label htmlFor="sessionTime">
+                Session Time<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Input
                 id="sessionTime"
                 type="time"

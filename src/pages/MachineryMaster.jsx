@@ -98,7 +98,6 @@ const MachineryMaster = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        ;
         setPermissions(res);
       } else {
         navigate("/dashboard");
@@ -1095,7 +1094,9 @@ const MachineryMaster = () => {
                 </Select>
               </div> */}
               <div>
-                <Label>Modalities</Label>
+                <Label>
+                  Modalities<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Select
                   value={machineForm.modalityId || "-"}
                   onValueChange={(v) => handleSelectChange("modalityId", v)}
@@ -1115,7 +1116,9 @@ const MachineryMaster = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Description</Label>
+              <Label>
+                Description<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Input
                 name="machineDescription"
                 value={machineForm.machineDescription}
@@ -1124,7 +1127,9 @@ const MachineryMaster = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Manufacturer</Label>
+                <Label>
+                  Manufacturer<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   name="Manufacturer"
                   value={machineForm.Manufacturer}
@@ -1132,7 +1137,9 @@ const MachineryMaster = () => {
                 />
               </div>
               <div className="space-y-1">
-                <Label>Model</Label>
+                <Label>
+                  Model<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   name="machineModel"
                   value={machineForm.machineModel}
@@ -1141,7 +1148,9 @@ const MachineryMaster = () => {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Total Stock Count</Label>
+              <Label>
+                Total Stock Count<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Input
                 name="TotalStockCount"
                 type="number"

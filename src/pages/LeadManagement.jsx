@@ -883,7 +883,9 @@ const LeadManagement = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Gender</Label>
+                <Label>
+                  Gender<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Select
                   value={leadForm.leadGenderId}
                   onValueChange={(v) => handleSelectChange("leadGenderId", v)}
@@ -901,7 +903,9 @@ const LeadManagement = () => {
                 </Select>
               </div>
               <div>
-                <Label>Contact</Label>
+                <Label>
+                  Contact<span className="text-red-500 ml-1">*</span>
+                </Label>
 
                 <div className="flex">
                   <span className="px-3 flex items-center border border-r-0 rounded-l-md bg-gray-100">
@@ -933,7 +937,9 @@ const LeadManagement = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Address</Label>
+                <Label>
+                  Address<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   name="leadAddress"
                   value={leadForm.leadAddress}
@@ -941,7 +947,9 @@ const LeadManagement = () => {
                 />
               </div>
               <div>
-                <Label>Lead Status</Label>
+                <Label>
+                  Lead Status<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Select
                   value={leadForm.LeadStatusId}
                   onValueChange={(v) => handleSelectChange("LeadStatusId", v)}
@@ -959,7 +967,9 @@ const LeadManagement = () => {
                 </Select>
                 {isCBStatus && (
                   <div>
-                    <Label>Call Back Date</Label>
+                    <Label>
+                      Call Back Date<span className="text-red-500 ml-1">*</span>
+                    </Label>
                     <Input
                       type="date"
                       name="cbDate"
@@ -973,7 +983,9 @@ const LeadManagement = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Physio Category</Label>
+                <Label>
+                  Physio Category<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Select
                   value={leadForm.physioCategoryId}
                   onValueChange={(v) =>
@@ -996,7 +1008,9 @@ const LeadManagement = () => {
                 </Select>
               </div>
               <div>
-                <Label>Lead Source</Label>
+                <Label>
+                  Lead Source<span className="text-red-500 ml-1">*</span>
+                </Label>
                 {/* <Select value={leadForm.leadSourceId} onValueChange={(v) => handleSelectChange('leadSourceId', v)}>
                   <SelectTrigger><SelectValue placeholder="Select Lead Source" /></SelectTrigger>
                   <SelectContent>
@@ -1066,7 +1080,9 @@ const LeadManagement = () => {
               {leadForm.leadSourceName === "Reference" ||
               leadForm.ReferenceId ? (
                 <div className="space-y-2">
-                  <Label>Reference</Label>
+                  <Label>
+                    Reference<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Select
                     value={
                       leadForm.ReferenceId

@@ -68,9 +68,13 @@ import autoTable from "jspdf-autotable";
 const initialFormState = {
   patientId: "",
   physioId: "",
-  sessionDate: "",
+  sessionDate: null,
   sessionTime: "",
   machineId: "",
+  reviewTypeId: "",
+  reviewStatusId: "",
+  feedback: "",
+  Satisfaction: "",
 };
 
 const initialFeedbackState = {
@@ -332,16 +336,26 @@ const ReviewMasterForm = () => {
 
   const handleFeedbackSubmit = async () => {
     try {
-      if (!feedback.sessionFeedbackPros || !feedback.reviewTypeId) {
-        alert("Please enter feedback and select review type before submitting");
+      if (!feedback.sessionFeedbackPros?.trim() || !feedback.reviewTypeId) {
+        toast({
+          title: "Validation Error",
+          description:
+            "Please enter feedback and select a review type before submitting.",
+          variant: "destructive",
+        });
         return;
       }
+
       const pendingStatus = reviewStatuses.find(
-        (s) => s.reviewStatusName.toLowerCase() === "pending",
+        (s) => s.reviewStatusName?.toLowerCase() === "pending",
       );
 
       if (!pendingStatus) {
-        alert("Pending status not found");
+        toast({
+          title: "Status Missing",
+          description: "Pending review status was not found.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -362,81 +376,194 @@ const ReviewMasterForm = () => {
         body: JSON.stringify(payload),
       });
 
+      toast({
+        title: "Success",
+        description: "Feedback submitted successfully.",
+      });
+
       setFeedbackDialog({ open: false, sessionId: null, patientId: null });
-      getReviews();
       setFeedback(initialFeedbackState);
+      getReviews();
     } catch (err) {
       console.error("Error submitting feedback:", err);
-      alert("Failed to submit feedback");
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit feedback.",
+        variant: "destructive",
+      });
     }
   };
 
   const createReview = async (data) => {
     try {
-      if (!data.sessionDate || !data.patientId || !data.reviewTypeId) return;
+      if (!data.sessionDate || !data.patientId || !data.reviewTypeId) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill patient, review date, and review type.",
+          variant: "destructive",
+        });
+        return false;
+      }
 
       const payload = {
         patientId: data.patientId,
         Satisfaction: data.Satisfaction,
         physioId: data.physioId || user._id,
         reviewDate: new Date(data.sessionDate).toISOString(),
-        // reviewTime: data.sessionTime || new Date().toLocaleTimeString(),
         reviewTypeId: data.reviewTypeId,
         redflagId: data.redflagId || "694e1fc2212f38083803642a",
         feedback: data.feedback || "",
         reviewStatusId: data.reviewStatusId || "",
       };
 
-      const response = await apiRequest("Review/createReview", {
+      await apiRequest("Review/createReview", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      toast({
+        title: "Success",
+        description: "New review scheduled successfully.",
+      });
+
+      getReviews();
+      return true;
+    } catch (error) {
+      console.error("Error creating review:", error);
+      toast({
+        title: "Creation Failed",
+        description: "Failed to create review.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!sessionForm.patientId || !sessionForm.physioId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select patient and physiotherapist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!sessionForm.sessionDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a review date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!sessionForm.reviewTypeId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a review type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (editingReview) {
+        await UpdateReview({ ...sessionForm, _id: editingReview._id });
+      } else {
+        const created = await createReview(sessionForm);
+        if (!created) return;
+      }
+
+      setIsFormOpen(false);
+      setEditingReview(null);
+      setSessionForm(initialFormState);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Something went wrong while saving the review.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const UpdateReview = async (data) => {
+    try {
+      const payload = {
+        ...data,
+        redFlags:
+          data.redFlags && data.redFlags.length > 0
+            ? data.redFlags
+            : editingReview?.redFlags || [],
+      };
+
+      await apiRequest("Review/updateReview", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
       getReviews();
 
-      if (response.ok) {
-        console.log(response, "response");
-      }
+      toast({
+        title: "Success",
+        description: "Review updated successfully.",
+      });
+
+      return true;
     } catch (error) {
-      console.error(error, "Error creating review");
+      console.log(error, "error from frontend update Review");
+      toast({
+        title: "Update Failed",
+        description: "Failed to update review.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deleteReview = async (data) => {
+    try {
+      await apiRequest("Review/deleteReview", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      getReviews();
+
+      toast({
+        title: "Deleted",
+        description: "Review has been removed successfully.",
+      });
+
+      return true;
+    } catch (error) {
+      console.log(error, "error Session delete");
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete review.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const handleDeleteReview = async (id) => {
+    const deleted = await deleteReview({ _id: id });
+
+    if (!deleted) {
+      toast({
+        title: "Delete Failed",
+        description: "Review could not be removed.",
+        variant: "destructive",
+      });
     }
   };
   const selectedPatientObj = patients.find(
     (p) => p._id === sessionForm.patientId,
   );
-
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-
-    if (!sessionForm.patientId || !sessionForm.physioId) {
-      alert("Please select patient and physio");
-      return;
-    }
-
-    const formData = {
-      ...sessionForm,
-      patientId: parseInt(sessionForm.patientId),
-      physioId: parseInt(sessionForm.physioId),
-      reviewDate: sessionForm.reviewDate,
-      reviewStatusId: sessionForm.reviewStatusId,
-      Satisfaction: sessionForm.Satisfaction,
-
-      // shortterm: sessionForm.shortTermGoal,
-      reviewStatusName: sessionForm.reviewStatusName,
-    };
-    if (editingReview) {
-      UpdateReview({ ...sessionForm, _id: editingReview._id });
-      toast({ title: "Success", description: "Review updated." });
-    } else {
-      createReview(sessionForm);
-      toast({ title: "Success", description: "New Review scheduled." });
-    }
-
-    setIsFormOpen(false);
-    setEditingReview(null);
-    setSessionForm(initialFormState);
-  };
-  console.log(sessionForm, "Session form");
 
   const downloadReviewPDF = async () => {
     try {
@@ -523,38 +650,9 @@ const ReviewMasterForm = () => {
       });
     }
   };
-  const UpdateReview = async (data) => {
-    try {
-      const payload = {
-        ...data,
-        redFlags:
-          data.redFlags && data.redFlags.length > 0
-            ? data.redFlags
-            : editingReview?.redFlags || [],
-      };
-      const response = await apiRequest("Review/updateReview", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      getReviews();
-      toast({ title: "Success", description: "Review updated." });
-    } catch (error) {
-      console.log(error, "error from frontend update  Review");
-    }
-  };
+
   console.log(reviews, "Reviews");
   console.log(filteredReviews, "Filtered reviews");
-  const deleteReview = async (data) => {
-    try {
-      const response = await apiRequest("Review/deleteReview", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      getReviews();
-    } catch (error) {
-      console.log(error, "error   Session delete");
-    }
-  };
 
   const handleEditReview = (review) => {
     setEditingReview(review);
@@ -619,15 +717,7 @@ const ReviewMasterForm = () => {
       });
     }
   };
-  const handleDeleteReview = (id) => {
-    // setSessions(prev => prev.filter(s => s.id !== sessionId));
-    deleteReview({ _id: id });
-    toast({
-      title: "Deleted",
-      description: "Review has been removed.",
-      variant: "destructive",
-    });
-  };
+
   const handleEditSession = (session) => {
     // setEditingSession(session);
     setSessionForm({
@@ -1548,7 +1638,9 @@ const ReviewMasterForm = () => {
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-4">
             <div className="space-y-2">
-              <Label>Patient</Label>
+              <Label>
+                Patient <span className="text-red-500 ml-1">*</span>
+              </Label>
               <Select
                 onValueChange={(v) =>
                   setSessionForm((p) => ({ ...p, patientId: v }))
@@ -1561,7 +1653,7 @@ const ReviewMasterForm = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {patients.length === 0 ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="loading" disabled>
                       Loading patients...
                     </SelectItem>
                   ) : (
@@ -1575,7 +1667,9 @@ const ReviewMasterForm = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Physiotherapist</Label>
+              <Label>
+                Physiotherapist <span className="text-red-500 ml-1">*</span>
+              </Label>
               <Select
                 onValueChange={(v) =>
                   setSessionForm((p) => ({ ...p, physioId: v }))
@@ -1595,7 +1689,9 @@ const ReviewMasterForm = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Review Date</Label>
+              <Label>
+                Review Date<span className="text-red-500 ml-1">*</span>
+              </Label>
 
               <Popover>
                 <PopoverTrigger asChild>
@@ -1634,7 +1730,9 @@ const ReviewMasterForm = () => {
             {/* <div className="space-y-2"><Label htmlFor="sessionDay">Session Day</Label><Input id="sessionDay" disabled type="text" value={sessionForm.sessionDay} onChange={(e) => setSessionForm(p => ({ ...p, sessionDay: e.target.value }))} /></div> */}
             {/* <div className="space-y-2"><Label htmlFor="sessionTime">Session Time</Label><Input id="sessionTime" type="time" value={sessionForm.sessionTime} onChange={(e) => setSessionForm(p => ({ ...p, sessionTime: e.target.value }))} /></div> */}
             <div className="space-y-2">
-              <Label>Review Type</Label>
+              <Label>
+                Review Type<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Select
                 value={sessionForm.reviewTypeId}
                 onValueChange={(v) =>
@@ -1665,7 +1763,9 @@ const ReviewMasterForm = () => {
             {editingReview ? (
               <>
                 <div className="space-y-2">
-                  <Label>Feedback</Label>
+                  <Label>
+                    Feedback<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Input
                     name="feedback"
                     type="text"
@@ -1680,7 +1780,9 @@ const ReviewMasterForm = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Satisfaction (%)</Label>
+                  <Label>
+                    Satisfaction (%)<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <div className="flex items-center gap-2 flex-wrap">
                     {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((p) => (
                       <Button
@@ -1700,7 +1802,9 @@ const ReviewMasterForm = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Review Status</Label>
+                  <Label>
+                    Review Status<span className="text-red-500 ml-1">*</span>
+                  </Label>
                   <Select
                     value={sessionForm.reviewStatusId}
                     onValueChange={(v) =>

@@ -430,7 +430,6 @@ const Consulation = () => {
   // }
 
   const AssignPhysio = async (data) => {
-
     try {
       const response = await apiRequest("Consultation/AssignPhysio", {
         method: "POST",
@@ -1599,7 +1598,9 @@ const Consulation = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>PIN Code</Label>
+                        <Label>
+                          PIN Code <span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientPinCode"
                           value={patientForm.patientPinCode}

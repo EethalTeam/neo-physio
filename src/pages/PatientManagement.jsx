@@ -3897,7 +3897,9 @@ const PatientManagement = () => {
                   <AccordionContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label>Patient ID</Label>
+                        <Label>
+                          Patient ID<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientCode"
                           value={patientForm.patientCode}
@@ -3937,7 +3939,9 @@ const PatientManagement = () => {
                         </Popover>
                       </div>
                       <div className="space-y-2">
-                        <Label>Name</Label>
+                        <Label>
+                          Name<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientName"
                           value={patientForm.patientName}
@@ -3948,7 +3952,9 @@ const PatientManagement = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label>Age</Label>
+                        <Label>
+                          Age<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientAge"
                           type="number"
@@ -3960,7 +3966,9 @@ const PatientManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Gender</Label>
+                        <Label>
+                          Gender<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Select
                           value={patientForm.patientGenderId}
                           onValueChange={(v) =>
@@ -3983,7 +3991,10 @@ const PatientManagement = () => {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Bystander Name</Label>
+                        <Label>
+                          Bystander Name
+                          <span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="byStandar"
                           value={patientForm.byStandar}
@@ -3994,7 +4005,10 @@ const PatientManagement = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label>Relation With Patient</Label>
+                        <Label>
+                          Relation With Patient
+                          <span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="Relation"
                           value={patientForm.Relation}
@@ -4002,7 +4016,9 @@ const PatientManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Mobile No.</Label>
+                        <Label>
+                          Mobile No.<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientNumber"
                           value={patientForm.patientNumber}
@@ -4013,7 +4029,10 @@ const PatientManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Alt. Mobile No.</Label>
+                        <Label>
+                          Alt. Mobile No.
+                          <span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientAltNum"
                           value={patientForm.patientAltNum}
@@ -4027,7 +4046,9 @@ const PatientManagement = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Address</Label>
+                        <Label>
+                          Address<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientAddress"
                           value={patientForm.patientAddress}
@@ -4035,7 +4056,9 @@ const PatientManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>PIN Code</Label>
+                        <Label>
+                          PIN Code<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Input
                           name="patientPinCode"
                           value={patientForm.patientPinCode}
@@ -4046,7 +4069,9 @@ const PatientManagement = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Fees Type</Label>
+                        <Label>
+                          Fees Type<span className="text-red-500 ml-1">*</span>
+                        </Label>
                         <Select
                           value={patientForm?.FeesTypeId || ""}
                           onValueChange={(id) => {
@@ -4077,6 +4102,7 @@ const PatientManagement = () => {
                         <Label>
                           Fees Amount (
                           {isPerSession ? "PerSession" : "PerMonth"})
+                          <span className="text-red-500 ml-1">*</span>
                         </Label>
                         <Input
                           name="feeAmount"

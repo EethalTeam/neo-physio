@@ -68,7 +68,6 @@ const FeesType = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        ;
         setPermissions(res);
       } else {
         navigate("/dashboard");
@@ -448,7 +447,10 @@ const FeesType = () => {
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="modalitiesCode"> Modalities Code</Label>
+              <Label htmlFor="modalitiesCode">
+                {" "}
+                Modalities Code<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Input
                 id="modalitiesCode"
                 name="modalitiesCode"
@@ -459,7 +461,10 @@ const FeesType = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="modalitiesName"> Modalities Name</Label>
+              <Label htmlFor="modalitiesName">
+                {" "}
+                Modalities Name<span className="text-red-500 ml-1">*</span>
+              </Label>
               <Input
                 id="modalitiesName"
                 name="modalitiesName"
@@ -470,7 +475,10 @@ const FeesType = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="modalitiestype"> Modalities Type</Label>
+              <Label htmlFor="modalitiestype">
+                {" "}
+                Modalities Type<span className="text-red-500 ml-1">*</span>
+              </Label>
 
               <Select
                 value={modalitiesForm.modalitiestype}
@@ -501,7 +509,9 @@ const FeesType = () => {
             </div> */}
 
             <div className="space-y-3">
-              <Label>Status</Label>
+              <Label>
+                Status<span className="text-red-500 ml-1">*</span>
+              </Label>
               <RadioGroup
                 name="isActive"
                 value={modalitiesForm.isActive}
