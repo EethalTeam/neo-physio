@@ -170,7 +170,6 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      ;
       if (res) {
         getLead();
         toast({
@@ -848,7 +847,9 @@ const LeadManagement = () => {
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Name</Label>
+                <Label>
+                  Name <span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   name="leadName"
                   value={leadForm.leadName}
@@ -856,7 +857,9 @@ const LeadManagement = () => {
                 />
               </div>
               <div>
-                <Label>Age</Label>
+                <Label>
+                  Age<span className="text-red-500 ml-1">*</span>
+                </Label>
                 <Input
                   type="number"
                   onWheel={(e) => {

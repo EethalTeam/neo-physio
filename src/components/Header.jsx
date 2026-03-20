@@ -23,8 +23,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import Logo from "@/Assets/images/Logo_png.png";
-import socket from '@/socket/Socket.js';
+import Logo from "@/Assets/images/logo_png.png";
+import socket from "@/socket/Socket.js";
 
 import { apiRequest } from "../components/CustomComponents/apiRequest";
 const Header = ({ toggleSidebar }) => {
@@ -89,28 +89,28 @@ const Header = ({ toggleSidebar }) => {
   //   fetchNotifications();
   // }, [user._id]);
 
-useEffect(() => {
-  if (!user?._id) return;
+  useEffect(() => {
+    if (!user?._id) return;
 
-  socket.emit("joinRoom", {employeeId:user._id});
+    socket.emit("joinRoom", { employeeId: user._id });
 
-  fetchNotifications();
-
-  socket.on("receiveNotification", (newNotification) => {
-    console.log("Real-time notification received:", newNotification);
-    
     fetchNotifications();
 
-    toast({
-      title: "New Notification",
-      description: newNotification.message,
-    });
-  });
+    socket.on("receiveNotification", (newNotification) => {
+      console.log("Real-time notification received:", newNotification);
 
-  return () => {
-    socket.off("receiveNotification");
-  };
-}, [user?._id]);
+      fetchNotifications();
+
+      toast({
+        title: "New Notification",
+        description: newNotification.message,
+      });
+    });
+
+    return () => {
+      socket.off("receiveNotification");
+    };
+  }, [user?._id]);
 
   const markAsRead = async (notificationId) => {
     try {

@@ -52,7 +52,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
-import Logo from "@/Assets/images/Logo_png.png";
+import Logo from "@/Assets/images/logo_png.png";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user } = useAuth();

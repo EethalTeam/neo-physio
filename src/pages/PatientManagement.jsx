@@ -29,7 +29,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import Logo from "@/Assets/images/Logo_png.png";
+import Logo from "@/Assets/images/logo_png.png";
 
 import {
   AlertDialog,
@@ -586,7 +586,6 @@ const PatientManagement = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        ;
         setPermissions(res);
       } else {
         navigate("/dashboard");
