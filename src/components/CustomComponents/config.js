@@ -5,5 +5,5 @@
 //   // Api: "https://neodesk-node.eniscloud.in", // Hostinger server
 // };
 export const config = {
-  Api: "/api/",
+  Api: "",
 };
