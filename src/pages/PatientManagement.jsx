@@ -435,26 +435,27 @@ const PatientManagement = () => {
     KmsfLPatienttoHub: "",
     kmsFromPrevious: "",
   };
-  const TabButton = ({ id, label, icon: Icon }) => (
+  const TabButton = ({ id, label, icon: Icon, isHistory }) => (
     <button
-      onClick={() => setActiveTab(id)}
+      onClick={() => (isHistory ? setActiveHistoryTab(id) : setActiveTab(id))}
       className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all rounded-md ${
-        activeTab === id
+        (isHistory ? activeHistoryTab : activeTab) === id
           ? "bg-blue-600 text-white shadow-md"
-          : "text-slate-400 hover:text-white hover:bg-blue-900"
+          : "text-slate-500 hover:text-white hover:bg-blue-900"
       }`}
       type="button"
     >
       {Icon && <Icon className="w-4 h-4" />}
       {label}
-      {activeTab === id && (
+      {(isHistory ? activeHistoryTab : activeTab) === id && (
         <motion.div
-          layoutId="activetabpatient"
+          layoutId={isHistory ? "activeHistoryTab" : "activetabpatient"}
           className="absolute inset-0 rounded-md bg-blue-600 -z-10"
         />
       )}
     </button>
   );
+  const [activeHistoryTab, setActiveHistoryTab] = useState("sessions");
   const [assignForm, setAssignForm] = useState(initialAssignState);
   // console.log(assignForm, "assignForm")
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -2031,90 +2032,167 @@ const PatientManagement = () => {
   // setAssigningPatient(null);
   // setAssignForm(initialAssignState);
   // };
-
   const handleViewHistory = async (patient) => {
     setHistoryPatient(patient);
     setIsHistoryOpen(true);
 
     try {
-      const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
-        method: "POST",
-        body: JSON.stringify({ patientId: patient._id }),
-      });
+      const patientId = patient?._id || patient?.patientId?._id;
+
+      const [allSessions, allReviews] = await Promise.all([
+        apiRequest("Session/getAllSessionsbyPatient", {
+          method: "POST",
+          body: JSON.stringify({ patientId }),
+        }),
+        apiRequest("Review/getSingleReview", {
+          method: "POST",
+          body: JSON.stringify({ patientId }),
+        }),
+      ]);
 
       const sessionsArr = Array.isArray(allSessions) ? allSessions : [];
+      const reviewsArr = Array.isArray(allReviews) ? allReviews : [];
 
-      // group by cycle
+      // group sessions by cycle
       const groupedByCycle = sessionsArr.reduce((acc, session) => {
         const cycleKey = session.cycleId?._id || session.cycleId || "no-cycle";
 
-        if (!acc[cycleKey]) acc[cycleKey] = [];
+        if (!acc[cycleKey]) {
+          acc[cycleKey] = [];
+        }
+
         acc[cycleKey].push(session);
         return acc;
       }, {});
 
-      // convert grouped cycles into display structure
-      const cycleHistory = Object.entries(groupedByCycle).map(
-        ([cycleId, cycleSessions], cycleIndex) => {
-          const sortedSessions = [...cycleSessions].sort(
-            (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
-          );
+      // group reviews by cycle if review has cycleId
+      // if no cycleId available, keep in "no-cycle"
+      const groupedReviewsByCycle = reviewsArr.reduce((acc, review) => {
+        const cycleKey = review.cycleId?._id || review.cycleId || "no-cycle";
 
-          let runningCount = 0;
-          let previousStatus = "";
+        if (!acc[cycleKey]) {
+          acc[cycleKey] = [];
+        }
 
-          const sessions = sortedSessions.map((s, index) => {
-            const currentStatus =
-              s.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
+        acc[cycleKey].push(review);
+        return acc;
+      }, {});
 
-            if (index === 0) {
-              runningCount = 1;
-            } else {
-              if (previousStatus === "canceled") {
-                runningCount = runningCount;
-              } else {
-                runningCount += 1;
-              }
-            }
-
-            previousStatus = currentStatus;
-
-            return {
-              ...s,
-              type: "session",
-              cycleId,
-              date: s.sessionDate,
-              originalSessionCount: s.sessionCount || 0,
-              displaySessionCount: runningCount,
-              title: `Session ${runningCount}`,
-              status: s.sessionStatusId?.sessionStatusName || "N/A",
-              color: s.sessionStatusId?.sessionStatusColor || "#4B5563",
-              physioName: s.physioId?.physioName || "N/A",
-              sessionFromTime: s.sessionFromTime || null,
-              sessionToTime: s.sessionToTime || null,
-              feedback:
-                s.sessionFeedbackPros ||
-                s.sessionCancelReason ||
-                s.sessionFeedbackCons ||
-                "No feedback",
-            };
-          });
-
-          const firstDate = sessions[0]?.date || null;
-          const lastDate = sessions[sessions.length - 1]?.date || null;
-
-          return {
-            cycleId,
-            cycleTitle: `Cycle ${cycleIndex + 1}`,
-            firstDate,
-            lastDate,
-            totalSessions: sessions.length,
-            sessions,
-          };
-        },
+      // all cycle keys from both sessions + reviews
+      const allCycleKeys = Array.from(
+        new Set([
+          ...Object.keys(groupedByCycle),
+          ...Object.keys(groupedReviewsByCycle),
+        ]),
       );
 
-      // sort cycles by latest session date descending
+      const cycleHistory = allCycleKeys.map((cycleId, cycleIndex) => {
+        const cycleSessions = groupedByCycle[cycleId] || [];
+        const cycleReviews = groupedReviewsByCycle[cycleId] || [];
+
+        // sort sessions old -> new first for counting
+        const sortedSessionsAsc = [...cycleSessions].sort(
+          (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
+        );
+
+        let runningCount = 0;
+        let previousStatus = "";
+
+        const sessionItems = sortedSessionsAsc.map((s, index) => {
+          const currentStatus =
+            s.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
+
+          if (index === 0) {
+            runningCount = 1;
+          } else {
+            if (previousStatus !== "canceled") {
+              runningCount += 1;
+            }
+          }
+
+          previousStatus = currentStatus;
+
+          return {
+            ...s,
+            itemType: "session",
+            type: "session",
+            cycleId,
+            date: s.sessionDate,
+            sortDate: new Date(s.sessionDate),
+            originalSessionCount: s.sessionCount || 0,
+            displaySessionCount: runningCount,
+            title: `Session ${runningCount}`,
+            status: s.sessionStatusId?.sessionStatusName || "N/A",
+            color: s.sessionStatusId?.sessionStatusColor || "#4B5563",
+            physioName: s.physioId?.physioName || "N/A",
+            sessionFromTime: s.sessionFromTime || null,
+            sessionToTime: s.sessionToTime || null,
+            feedback:
+              s.sessionFeedbackPros ||
+              s.sessionCancelReason ||
+              s.sessionFeedbackCons ||
+              "No feedback",
+          };
+        });
+
+        const reviewItems = cycleReviews.map((r, index) => ({
+          ...r,
+          itemType: "review",
+          type: "review",
+          cycleId,
+          date: r.reviewDate,
+          sortDate: new Date(r.reviewDate),
+          title: `Review ${index + 1}`,
+          status: r.reviewStatusId?.reviewStatusName || "N/A",
+          color: r.reviewStatusId?.sessionStatusColor || "#2563EB",
+          reviewType: r.reviewTypeId?.reviewTypeName || "N/A",
+          feedback: r.feedback || "No feedback",
+          physioName: r.physioId?.physioName || "N/A",
+          redFlags:
+            Array.isArray(r.redFlags) && r.redFlags.length > 0
+              ? r.redFlags
+                  .map((flag) => flag?.redFlagId?.redflagName)
+                  .filter(Boolean)
+                  .join(", ")
+              : "No red flags",
+        }));
+
+        // merge session + review items
+        const mergedItems = [...sessionItems, ...reviewItems].sort(
+          (a, b) => new Date(b.sortDate) - new Date(a.sortDate),
+        );
+
+        const dates = mergedItems
+          .map((item) => item.date)
+          .filter(Boolean)
+          .map((d) => new Date(d));
+
+        const firstDate =
+          dates.length > 0
+            ? new Date(Math.min(...dates.map((d) => d.getTime())))
+            : null;
+
+        const lastDate =
+          dates.length > 0
+            ? new Date(Math.max(...dates.map((d) => d.getTime())))
+            : null;
+
+        return {
+          cycleId,
+          cycleTitle:
+            cycleId === "no-cycle"
+              ? "General History"
+              : `Cycle ${cycleIndex + 1}`,
+          firstDate,
+          lastDate,
+          totalSessions: sessionItems.length,
+          totalReviews: reviewItems.length,
+          totalItems: mergedItems.length,
+          sessions: mergedItems, // keep same key if your UI already uses cycle.sessions.map()
+        };
+      });
+
+      // newest cycle first
       cycleHistory.sort(
         (a, b) => new Date(b.lastDate || 0) - new Date(a.lastDate || 0),
       );
@@ -2130,7 +2208,9 @@ const PatientManagement = () => {
         (sum, cycle) =>
           sum +
           cycle.sessions.filter(
-            (item) => (item.status || "").toLowerCase() === "completed",
+            (item) =>
+              item.itemType === "session" &&
+              (item.status || "").toLowerCase() === "completed",
           ).length,
         0,
       );
@@ -2139,8 +2219,17 @@ const PatientManagement = () => {
         (sum, cycle) =>
           sum +
           cycle.sessions.filter(
-            (item) => (item.status || "").toLowerCase() === "canceled",
+            (item) =>
+              item.itemType === "session" &&
+              (item.status || "").toLowerCase() === "canceled",
           ).length,
+        0,
+      );
+
+      const totalReviews = cycleHistory.reduce(
+        (sum, cycle) =>
+          sum +
+          cycle.sessions.filter((item) => item.itemType === "review").length,
         0,
       );
 
@@ -2148,18 +2237,19 @@ const PatientManagement = () => {
         totalRecords,
         completed: completedRecords,
         canceled: canceledRecords,
+        reviews: totalReviews,
       });
     } catch (error) {
-      console.error("Failed to fetch sessions:", error);
+      console.error("Failed to fetch history:", error);
       setPatientHistory([]);
       setSessionCount({
         totalRecords: 0,
         completed: 0,
         canceled: 0,
+        reviews: 0,
       });
     }
   };
-
   const renderRadioGroup = (label, name, value, id, group, dynamic) => (
     <div className="flex items-center space-x-4">
       <Label className="w-24">{label}</Label>
@@ -3782,7 +3872,6 @@ const PatientManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
-
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
@@ -3794,7 +3883,7 @@ const PatientManagement = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+          <div className="mb-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
             <div className="rounded-lg border p-2 bg-slate-50">
               <p className="text-gray-500">Total Records</p>
               <p className="font-semibold">{sessionCount?.totalRecords ?? 0}</p>
@@ -3811,9 +3900,19 @@ const PatientManagement = () => {
             </div>
 
             <div className="rounded-lg border p-2 bg-slate-50">
+              <p className="text-gray-500">Reviews</p>
+              <p className="font-semibold">{sessionCount?.reviews ?? 0}</p>
+            </div>
+
+            <div className="rounded-lg border p-2 bg-slate-50">
               <p className="text-gray-500">Current Session No</p>
               <p className="font-semibold">{sessionCount?.current ?? 0}</p>
             </div>
+          </div>
+
+          <div className="flex gap-2 mb-4">
+            <TabButton id="sessions" label="Sessions" isHistory />
+            <TabButton id="reviews" label="Reviews" isHistory />
           </div>
 
           <div className="flex-1 overflow-y-auto pr-1 sm:pr-4 mt-2">
@@ -3824,51 +3923,110 @@ const PatientManagement = () => {
               />
 
               {patientHistory && patientHistory.length > 0 ? (
-                patientHistory.map((cycle) => (
-                  <div
-                    key={cycle.cycleId}
-                    className="mb-6 border rounded-lg p-4"
-                  >
-                    <h3 className="text-lg font-semibold text-blue-600 mb-2">
-                      {cycle.cycleTitle}
-                    </h3>
+                patientHistory.map((cycle) => {
+                  const filteredItems =
+                    activeHistoryTab === "sessions"
+                      ? cycle.sessions.filter(
+                          (item) => item.itemType === "session",
+                        )
+                      : cycle.sessions.filter(
+                          (item) => item.itemType === "review",
+                        );
 
-                    <p className="text-sm text-gray-500 mb-4">
-                      {formatDate(cycle.firstDate)} to{" "}
-                      {formatDate(cycle.lastDate)}
-                    </p>
+                  if (filteredItems.length === 0) return null;
 
-                    <div className="space-y-3">
-                      {cycle.sessions.map((item, index) => (
-                        <div
-                          key={item._id || index}
-                          className={`border rounded-md p-3 flex flex-col gap-1 ${getSessionStyle(
-                            item.status,
-                          )}`}
-                        >
-                          <div className="font-medium">{item.title}</div>
+                  return (
+                    <div
+                      key={cycle.cycleId}
+                      className="mb-6 border rounded-lg p-4 bg-white"
+                    >
+                      <h3 className="text-lg font-semibold text-blue-600 mb-2">
+                        {cycle.cycleTitle}
+                      </h3>
 
-                          <div className="text-sm text-gray-600">
-                            Date: {formatDate(item.date)}
+                      <p className="text-sm text-gray-500 mb-1">
+                        {formatDate(cycle.firstDate)} to{" "}
+                        {formatDate(cycle.lastDate)}
+                      </p>
+
+                      <p className="text-xs text-gray-500 mb-4">
+                        Sessions: {cycle.totalSessions ?? 0} | Reviews:{" "}
+                        {cycle.totalReviews ?? 0}
+                      </p>
+
+                      <div className="space-y-3">
+                        {filteredItems.map((item, index) => (
+                          <div
+                            key={`${item.itemType}-${item._id || index}`}
+                            className={`border rounded-md p-3 flex flex-col gap-1 ${
+                              item.itemType === "review"
+                                ? "bg-blue-50 border-blue-200"
+                                : getSessionStyle(item.status)
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="font-medium">{item.title}</div>
+
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  item.itemType === "review"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-gray-100 text-gray-700"
+                                }`}
+                              >
+                                {item.itemType === "review"
+                                  ? "Review"
+                                  : "Session"}
+                              </span>
+                            </div>
+
+                            <div className="text-sm text-gray-600">
+                              Date: {formatDate(item.date)}
+                            </div>
+
+                            <div className="text-sm font-medium">
+                              Status:{" "}
+                              <span className="capitalize">
+                                {item.status || "N/A"}
+                              </span>
+                            </div>
+
+                            <div className="text-sm text-gray-600">
+                              Physio: {item.physioName || "N/A"}
+                            </div>
+
+                            {item.itemType === "session" ? (
+                              <>
+                                <div className="text-sm text-gray-600">
+                                  Time: {item.sessionFromTime || "-"} -{" "}
+                                  {item.sessionToTime || "-"}
+                                </div>
+
+                                <div className="text-sm text-gray-600">
+                                  Feedback: {item.feedback || "No feedback"}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="text-sm text-gray-600">
+                                  Review Type: {item.reviewType || "N/A"}
+                                </div>
+
+                                <div className="text-sm text-gray-600">
+                                  Feedback: {item.feedback || "No feedback"}
+                                </div>
+
+                                <div className="text-sm text-gray-600">
+                                  Red Flags: {item.redFlags || "No red flags"}
+                                </div>
+                              </>
+                            )}
                           </div>
-
-                          <div className="text-sm font-medium">
-                            Status:{" "}
-                            <span className="capitalize">{item.status}</span>
-                          </div>
-
-                          <div className="text-sm text-gray-600">
-                            Physio: {item.physioName}
-                          </div>
-
-                          <div className="text-sm text-gray-600">
-                            Feedback: {item.feedback}
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <p className="text-center text-gray-500">
                   No history found for this patient.
