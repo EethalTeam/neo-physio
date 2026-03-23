@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import logo from "@/Assets/images/logo_png.png";
+
 import {
   Select,
   SelectContent,
@@ -976,6 +978,14 @@ const Reports = () => {
   // ---------------------------
   // Export functions
   // ---------------------------
+  const addHeader = (doc, title) => {
+    // Logo
+    doc.addImage(logo, "PNG", 14, 5, 25, 15);
+
+    // Title
+    doc.setFontSize(16);
+    doc.text(title, 45, 15);
+  };
   const handleExportHodReviewXLSX = () => {
     if (filteredReviews.length === 0) {
       toast({
@@ -1046,16 +1056,15 @@ const Reports = () => {
 
     const doc = new jsPDF("l", "mm", "a4");
 
-    doc.setFontSize(16);
-    doc.text("HOD Review Report", 14, 15);
-
+    // doc.setFontSize(16);
+    // doc.text("HOD Review Report", 14, 15);
+    addHeader(doc, "HOD Review Report");
     doc.setFontSize(11);
-    doc.text(`Reference: ${selectedReferenceName}`, 14, 24);
-    doc.text(`Physio: ${selectedPhysioName}`, 14, 31);
-    doc.text(`Month: ${selectedMonthName}`, 14, 38);
-    doc.text(`Total Reviews: ${filteredReviews.length}`, 14, 45);
-    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 52);
-
+    doc.text(`Reference: ${selectedReferenceName}`, 14, 28);
+    doc.text(`Physio: ${selectedPhysioName}`, 14, 35);
+    doc.text(`Month: ${selectedMonthName}`, 14, 42);
+    doc.text(`Total Reviews: ${filteredReviews.length}`, 14, 49);
+    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 56);
     const tableData = filteredReviews.map((review, index) => [
       index + 1,
       formatDate(getReviewDate(review)),
@@ -1178,16 +1187,15 @@ const Reports = () => {
     const doc = new jsPDF("l", "mm", "a4");
     const totalPatients = filteredPatientList.length;
 
-    doc.setFontSize(16);
-    doc.text("Reference / Physio Wise Patient List", 14, 15);
-
+    // doc.setFontSize(16);
+    // doc.text("Reference / Physio Wise Patient List", 14, 15);
+    addHeader(doc, "Reference / Physio Wise Patient List");
     doc.setFontSize(11);
-    doc.text(`Reference: ${selectedReferenceName}`, 14, 24);
-    doc.text(`Physio: ${selectedPhysioName}`, 14, 31);
-    doc.text(`Month: ${selectedMonthName}`, 14, 38);
-    doc.text(`Total Patients: ${totalPatients}`, 14, 45);
-    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 52);
-
+    doc.text(`Reference: ${selectedReferenceName}`, 14, 28);
+    doc.text(`Physio: ${selectedPhysioName}`, 14, 35);
+    doc.text(`Month: ${selectedMonthName}`, 14, 42);
+    doc.text(`Total Patients: ${totalPatients}`, 14, 49);
+    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 56);
     const tableData = filteredPatientList.map((patient, index) => [
       index + 1,
       patient?.patientCode || "N/A",
@@ -1289,9 +1297,9 @@ const Reports = () => {
   const handleExportPDF = () => {
     const doc = new jsPDF();
 
-    doc.setFontSize(18);
-    doc.text(isHodSelected ? "HOD Report" : "Physio Report", 14, 20);
-
+    // doc.setFontSize(18);
+    // doc.text(isHodSelected ? "HOD Report" : "Physio Report", 14, 20);
+    addHeader(doc, isHodSelected ? "HOD Report" : "Physio Report");
     doc.setFontSize(12);
     doc.text(`Reference: ${selectedReferenceName}`, 14, 30);
     doc.text(`Physio: ${selectedPhysioName}`, 14, 38);
@@ -1313,8 +1321,8 @@ const Reports = () => {
         stats.sessionCompleted,
       ],
       ["Cancelled Sessions", stats.cancelledSessions],
-      ["Monthly Revenue", `Rs${stats.monthlyRevenue}`],
-      ["Monthly Expenses", `Rs${stats.monthlyExpenses}`],
+      ["Monthly Revenue", `Rs ${stats.monthlyRevenue}`],
+      ["Monthly Expenses", `Rs ${stats.monthlyExpenses}`],
       ["Recovered Patients", stats.patientRecover],
       ["Pending Reviews", stats.pendingreviews],
       ["Completed Reviews", stats.completedReview],
@@ -1514,15 +1522,14 @@ const Reports = () => {
 
     const doc = new jsPDF("l", "mm", "a4");
 
-    doc.setFontSize(16);
-    doc.text("Physio Wise Report", 14, 15);
-
+    // doc.setFontSize(16);
+    // doc.text("Physio Wise Report", 14, 15);
+    addHeader(doc, "Physio Wise Report");
     doc.setFontSize(11);
-    doc.text(`Reference: ${selectedReferenceName}`, 14, 24);
-    doc.text(`Physio: ${selectedPhysioName}`, 14, 31);
-    doc.text(`Month: ${selectedMonthName}`, 14, 38);
-    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 45);
-
+    doc.text(`Reference: ${selectedReferenceName}`, 14, 28);
+    doc.text(`Physio: ${selectedPhysioName}`, 14, 35);
+    doc.text(`Month: ${selectedMonthName}`, 14, 42);
+    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 49);
     const summaryTable = physioWiseData.map((item, index) => [
       index + 1,
       item.physioName,

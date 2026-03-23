@@ -1024,11 +1024,7 @@ const LeadManagement = () => {
                   value={
                     leadForm.leadSourceName
                       ? JSON.stringify({
-                          LeadIDPK:
-                            leadForm.leadSourceId ||
-                            (leadForm.leadSourceName === "Reference"
-                              ? "reference"
-                              : ""),
+                          LeadIDPK: leadForm.leadSourceId || "",
                           name: leadForm.leadSourceName,
                         })
                       : ""
@@ -1036,14 +1032,10 @@ const LeadManagement = () => {
                   onValueChange={(v) => {
                     const selected = JSON.parse(v);
 
-                    if (selected.name === "Reference") {
-                      handleSelectChange("leadSourceId", null);
-                      handleSelectChange("leadSourceName", "Reference");
-                      return;
-                    }
-
                     handleSelectChange("leadSourceId", selected.LeadIDPK);
                     handleSelectChange("leadSourceName", selected.name);
+
+                    // optional reset
                     handleSelectChange("ReferenceId", "");
                     handleSelectChange("sourceName", "");
                   }}
@@ -1064,16 +1056,6 @@ const LeadManagement = () => {
                         {leads.leadSourceName}
                       </SelectItem>
                     ))}
-
-                    {/* ✅ ADD THIS */}
-                    <SelectItem
-                      value={JSON.stringify({
-                        LeadIDPK: "reference",
-                        name: "Reference",
-                      })}
-                    >
-                      Reference
-                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

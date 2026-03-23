@@ -136,7 +136,58 @@ const Income = () => {
       return sameMonth && isCompleted;
     }).length;
   };
+  const handleManualGenerateBill = async () => {
+    try {
+      if (!selectedBillPatientId || selectedBillPatientId === "ALL") {
+        toast({
+          title: "Select Patient",
+          description: "Please select one patient to generate bill",
+          variant: "destructive",
+        });
+        return;
+      }
 
+      const response = await apiRequest("Bill/createBill", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: selectedBillPatientId,
+          month: months[selectedBillMonth - 1],
+          year: selectedBillYear,
+        }),
+      });
+
+      // if backend sends duplicate / validation message
+      if (
+        response?.message ===
+          `Bill already exists for ${months[selectedBillMonth - 1]} ${selectedBillYear}` ||
+        response?.message?.toLowerCase().includes("already exists") ||
+        response?.message?.toLowerCase().includes("failed")
+      ) {
+        toast({
+          title: "Error",
+          description: response.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: response?.message || "Manual bill generated successfully",
+      });
+
+      await fetchBills();
+      await fetchData();
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to generate bill",
+        variant: "destructive",
+      });
+    }
+  };
   const fmt = (d) => {
     const x = new Date(d);
     if (isNaN(x.getTime())) return "N/A";
@@ -149,18 +200,17 @@ const Income = () => {
         body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
       });
 
-      // const sessionsRes = await apiRequest("Session/getAllSession", {
-      //   method: "POST",
-      //   body: JSON.stringify({}),
-      // });
+      const sessionsRes = await apiRequest("Session/getAllSession", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
 
       setPatients(Array.isArray(patientsRes) ? patientsRes : []);
-      // setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
+      setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
     } catch (err) {
       console.error(err);
     }
   };
-
   const getAllPshyio = async () => {
     try {
       const res = await apiRequest("Physio/getAllPhysio", {
@@ -1217,6 +1267,16 @@ const Income = () => {
                   </SelectContent>
                 </Select>
                 <Button onClick={fetchBills}>Apply</Button>
+
+                <Button
+                  className="ml-auto"
+                  onClick={handleManualGenerateBill}
+                  disabled={
+                    !selectedBillPatientId || selectedBillPatientId === "ALL"
+                  }
+                >
+                  Generate Manual Bill
+                </Button>
 
                 {/* RIGHT SIDE BUTTON */}
                 {/* <Button

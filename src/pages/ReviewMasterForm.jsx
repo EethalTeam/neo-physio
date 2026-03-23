@@ -10,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import logo from "@/Assets/images/logo_png.png";
+
 import {
   Select,
   SelectContent,
@@ -182,42 +184,61 @@ const ReviewMasterForm = () => {
 
   const getReviews = async () => {
     try {
-      const storedRole = localStorage.getItem("userRole");
       const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
 
-      let date = today.toISOString();
-      let filter = `${date.split("T")[0]}T00:00:00Z`;
+      const todayStart = new Date(today);
+      todayStart.setHours(0, 0, 0, 0);
 
-      let nextdate = `${tomorrow.toISOString().split("T")[0]}T00:00:00Z`;
+      // 4 days before today
+      const startDate = new Date(todayStart);
+      startDate.setDate(startDate.getDate() - 4);
+      startDate.setHours(0, 0, 0, 0);
 
-      console.log(filter, "filter");
-      console.log(nextdate, "nextdate");
+      // yesterday
+      const endDate = new Date(todayStart);
+      endDate.setDate(endDate.getDate() - 1);
+      endDate.setHours(23, 59, 59, 999);
 
       const response = await apiRequest("Review/getAllReview", {
         method: "POST",
         body: JSON.stringify({
-          sessionDate: filter,
-          nextDate: nextdate,
-          // physioId: user._id,
-          // storedRole: storedRole,
-          // redFlags: true,
+          sessionDate: startDate.toISOString(),
+          nextDate: endDate.toISOString(),
         }),
       });
-      const redflagsReview = response.filter(
-        (review) =>
-          Array.isArray(review.redFlags) && review.redFlags.length > 0,
-      );
-      const completedReviews = response.filter(
-        (review) => review.reviewStatusId?.reviewStatusName === "Pending",
+
+      const pendingRedFlagReviews = (response || []).filter((review) => {
+        const statusName =
+          review.reviewStatusId?.reviewStatusName?.toLowerCase()?.trim() || "";
+
+        const reviewTypeName =
+          review.reviewTypeId?.reviewTypeName?.toLowerCase()?.trim() || "";
+
+        const isPending = statusName === "pending";
+        const isRedFlag =
+          reviewTypeName === "redflag" || reviewTypeName === "redflags";
+
+        if (!review.reviewDate) return false;
+
+        const reviewDate = new Date(review.reviewDate);
+        reviewDate.setHours(0, 0, 0, 0);
+
+        return (
+          isPending &&
+          isRedFlag &&
+          reviewDate >= startDate &&
+          reviewDate <= endDate
+        );
+      });
+
+      pendingRedFlagReviews.sort(
+        (a, b) => new Date(b.reviewDate) - new Date(a.reviewDate),
       );
 
-      setReviews(completedReviews);
-      setFilteredReviews(completedReviews);
-      console.log(completedReviews, "reviews from frontend");
+      setReviews(pendingRedFlagReviews);
+      setFilteredReviews(pendingRedFlagReviews);
     } catch (error) {
-      console.log(error, "error from frontend get All Session");
+      console.log(error, "error from frontend get All Review");
     }
   };
 
@@ -590,21 +611,24 @@ const ReviewMasterForm = () => {
 
       const doc = new jsPDF("landscape");
 
+      // Logo
+      doc.addImage(logo, "PNG", 14, 5, 25, 15);
+
       // Title
       doc.setFontSize(16);
-      doc.text("NEO-PHYSIO - REVIEW REPORT", 14, 15);
+      doc.text("NEO-PHYSIO - REVIEW REPORT", 45, 15);
 
       // Month
       doc.setFontSize(11);
       doc.text(
         `Month: ${monthOptions.find((m) => m.value === downloadMonth)?.label} ${downloadYear}`,
         14,
-        22,
+        28,
       );
 
       // Summary
-      doc.text(`Total Reviews: ${totalReviews}`, 14, 30);
-      doc.text(`Completed Reviews: ${completedReviews}`, 90, 30);
+      doc.text(`Total Reviews: ${totalReviews}`, 14, 36);
+      doc.text(`Completed Reviews: ${completedReviews}`, 90, 36);
 
       const rows = report.map((r, index) => [
         index + 1,
@@ -620,7 +644,7 @@ const ReviewMasterForm = () => {
       ]);
 
       autoTable(doc, {
-        startY: 36,
+        startY: 42,
         head: [
           [
             "S.No",

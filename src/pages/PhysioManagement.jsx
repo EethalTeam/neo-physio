@@ -470,25 +470,56 @@ const PhysioManagement = () => {
     setExpandedPatient(null);
 
     try {
-      const response = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({ physioId: physio._id }),
-      });
+      const roleName = physio.roleId?.RoleName?.toLowerCase();
 
-      const completed = (response || [])
-        .filter(
-          (s) =>
-            s.physioId?._id === physio._id &&
-            s.sessionStatusId?.sessionStatusName?.toLowerCase() === "completed",
-        )
-        .sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate));
+      if (roleName === "hod") {
+        const response = await apiRequest("Review/getAllReviewDownload", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
 
-      setCompletedSessions(completed);
+        const reviews = Array.isArray(response?.report) ? response.report : [];
+
+        const sortedReviews = reviews.sort(
+          (a, b) =>
+            new Date(b.reviewDate || b.createdAt) -
+            new Date(a.reviewDate || a.createdAt),
+        );
+
+        setCompletedSessions(sortedReviews);
+      } else {
+        const response = await apiRequest("Session/getAllSession", {
+          method: "POST",
+          body: JSON.stringify({ physioId: physio._id }),
+        });
+
+        const sessions = Array.isArray(response)
+          ? response
+          : response?.data || response?.sessions || [];
+
+        const filtered = sessions
+          .filter((s) => {
+            const sessionPhysioId =
+              typeof s.physioId === "string"
+                ? s.physioId
+                : s.physioId?._id || s.physioId?.PhysioIDPK;
+
+            return sessionPhysioId === physio._id;
+          })
+          .filter(
+            (s) =>
+              s.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+              "completed",
+          )
+          .sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate));
+
+        setCompletedSessions(filtered);
+      }
     } catch (error) {
-      console.error("Error fetching completed sessions:", error);
+      console.error("Error fetching data:", error);
+      setCompletedSessions([]);
     }
   };
-
   const handleToggleStatus = async (physio) => {
     if (!physio) return;
 
@@ -526,7 +557,7 @@ const PhysioManagement = () => {
     }
   };
 
-  const groupedSessions = completedSessions.reduce((acc, session) => {
+  const groupedSessions = (completedSessions || []).reduce((acc, session) => {
     const patientId = session.patientId?._id || "unknown";
 
     if (!acc[patientId]) {
@@ -1253,7 +1284,11 @@ const PhysioManagement = () => {
             <div className="flex gap-2 mt-3">
               <TabButton
                 id="physiodetails"
-                label="Completed Sessions"
+                label={
+                  viewingPhysio?.roleId?.RoleName === "HOD"
+                    ? "Reviews"
+                    : "Completed Sessions"
+                }
                 icon={User2}
               />
               <TabButton
@@ -1271,7 +1306,9 @@ const PhysioManagement = () => {
           {activeTab === "physiodetails" && (
             <div className="mt-4">
               <h2 className="font-semibold text-lg mb-3">
-                Completed Sessions ({completedSessions.length})
+                {viewingPhysio?.roleId?.RoleName === "HOD"
+                  ? `Reviews (${completedSessions.length})`
+                  : `Completed Sessions (${completedSessions.length})`}
               </h2>
 
               {completedSessions.length === 0 ? (
