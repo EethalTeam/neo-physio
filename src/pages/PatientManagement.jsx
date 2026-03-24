@@ -2055,7 +2055,8 @@ const PatientManagement = () => {
 
       // group sessions by cycle
       const groupedByCycle = sessionsArr.reduce((acc, session) => {
-        const cycleKey = session.cycleId?._id || session.cycleId || "no-cycle";
+        const cycleKey =
+          session?.cycleId?._id || session?.cycleId || "no-cycle";
 
         if (!acc[cycleKey]) {
           acc[cycleKey] = [];
@@ -2065,10 +2066,9 @@ const PatientManagement = () => {
         return acc;
       }, {});
 
-      // group reviews by cycle if review has cycleId
-      // if no cycleId available, keep in "no-cycle"
+      // group reviews by cycle
       const groupedReviewsByCycle = reviewsArr.reduce((acc, review) => {
-        const cycleKey = review.cycleId?._id || review.cycleId || "no-cycle";
+        const cycleKey = review?.cycleId?._id || review?.cycleId || "no-cycle";
 
         if (!acc[cycleKey]) {
           acc[cycleKey] = [];
@@ -2078,7 +2078,7 @@ const PatientManagement = () => {
         return acc;
       }, {});
 
-      // all cycle keys from both sessions + reviews
+      // combine all cycle keys
       const allCycleKeys = Array.from(
         new Set([
           ...Object.keys(groupedByCycle),
@@ -2090,17 +2090,19 @@ const PatientManagement = () => {
         const cycleSessions = groupedByCycle[cycleId] || [];
         const cycleReviews = groupedReviewsByCycle[cycleId] || [];
 
-        // sort sessions old -> new first for counting
-        const sortedSessionsAsc = [...cycleSessions].sort(
-          (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
-        );
+        // sessions: oldest -> newest for correct session numbering
+        const sortedSessionsAsc = [...cycleSessions].sort((a, b) => {
+          const dateA = a?.sessionDate ? new Date(a.sessionDate).getTime() : 0;
+          const dateB = b?.sessionDate ? new Date(b.sessionDate).getTime() : 0;
+          return dateA - dateB;
+        });
 
         let runningCount = 0;
         let previousStatus = "";
 
         const sessionItems = sortedSessionsAsc.map((s, index) => {
           const currentStatus =
-            s.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
+            s?.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
 
           if (index === 0) {
             runningCount = 1;
@@ -2117,39 +2119,47 @@ const PatientManagement = () => {
             itemType: "session",
             type: "session",
             cycleId,
-            date: s.sessionDate,
-            sortDate: new Date(s.sessionDate),
-            originalSessionCount: s.sessionCount || 0,
+            date: s?.sessionDate || null,
+            sortDate: s?.sessionDate ? new Date(s.sessionDate) : null,
+            originalSessionCount: s?.sessionCount || 0,
             displaySessionCount: runningCount,
             title: `Session ${runningCount}`,
-            status: s.sessionStatusId?.sessionStatusName || "N/A",
-            color: s.sessionStatusId?.sessionStatusColor || "#4B5563",
-            physioName: s.physioId?.physioName || "N/A",
-            sessionFromTime: s.sessionFromTime || null,
-            sessionToTime: s.sessionToTime || null,
+            status: s?.sessionStatusId?.sessionStatusName || "N/A",
+            color: s?.sessionStatusId?.sessionStatusColor || "#4B5563",
+            physioName: s?.physioId?.physioName || "N/A",
+            sessionFromTime: s?.sessionFromTime || null,
+            sessionToTime: s?.sessionToTime || null,
             feedback:
-              s.sessionFeedbackPros ||
-              s.sessionCancelReason ||
-              s.sessionFeedbackCons ||
+              s?.sessionFeedbackPros ||
+              s?.sessionCancelReason ||
+              s?.sessionFeedbackCons ||
               "No feedback",
           };
         });
 
-        const reviewItems = cycleReviews.map((r, index) => ({
+        // reviews: oldest -> newest for correct review numbering
+        const sortedReviewsAsc = [...cycleReviews].sort((a, b) => {
+          const dateA = a?.reviewDate ? new Date(a.reviewDate).getTime() : 0;
+          const dateB = b?.reviewDate ? new Date(b.reviewDate).getTime() : 0;
+          return dateA - dateB;
+        });
+
+        const reviewItems = sortedReviewsAsc.map((r, index) => ({
           ...r,
           itemType: "review",
           type: "review",
           cycleId,
-          date: r.reviewDate,
-          sortDate: new Date(r.reviewDate),
+          date: r?.reviewDate || null,
+          sortDate: r?.reviewDate ? new Date(r.reviewDate) : null,
+          reviewNumber: index + 1,
           title: `Review ${index + 1}`,
-          status: r.reviewStatusId?.reviewStatusName || "N/A",
-          color: r.reviewStatusId?.sessionStatusColor || "#2563EB",
-          reviewType: r.reviewTypeId?.reviewTypeName || "N/A",
-          feedback: r.feedback || "No feedback",
-          physioName: r.physioId?.physioName || "N/A",
+          status: r?.reviewStatusId?.reviewStatusName || "N/A",
+          color: r?.reviewStatusId?.sessionStatusColor || "#2563EB",
+          reviewType: r?.reviewTypeId?.reviewTypeName || "N/A",
+          feedback: r?.feedback || "No feedback",
+          physioName: r?.physioId?.physioName || "N/A",
           redFlags:
-            Array.isArray(r.redFlags) && r.redFlags.length > 0
+            Array.isArray(r?.redFlags) && r.redFlags.length > 0
               ? r.redFlags
                   .map((flag) => flag?.redFlagId?.redflagName)
                   .filter(Boolean)
@@ -2157,15 +2167,18 @@ const PatientManagement = () => {
               : "No red flags",
         }));
 
-        // merge session + review items
-        const mergedItems = [...sessionItems, ...reviewItems].sort(
-          (a, b) => new Date(b.sortDate) - new Date(a.sortDate),
-        );
+        // newest first in UI
+        const mergedItems = [...sessionItems, ...reviewItems].sort((a, b) => {
+          const dateA = a?.sortDate ? new Date(a.sortDate).getTime() : 0;
+          const dateB = b?.sortDate ? new Date(b.sortDate).getTime() : 0;
+          return dateB - dateA;
+        });
 
         const dates = mergedItems
-          .map((item) => item.date)
+          .map((item) => item?.date)
           .filter(Boolean)
-          .map((d) => new Date(d));
+          .map((d) => new Date(d))
+          .filter((d) => !Number.isNaN(d.getTime()));
 
         const firstDate =
           dates.length > 0
@@ -2188,29 +2201,31 @@ const PatientManagement = () => {
           totalSessions: sessionItems.length,
           totalReviews: reviewItems.length,
           totalItems: mergedItems.length,
-          sessions: mergedItems, // keep same key if your UI already uses cycle.sessions.map()
+          sessions: mergedItems,
         };
       });
 
       // newest cycle first
-      cycleHistory.sort(
-        (a, b) => new Date(b.lastDate || 0) - new Date(a.lastDate || 0),
-      );
+      cycleHistory.sort((a, b) => {
+        const dateA = a?.lastDate ? new Date(a.lastDate).getTime() : 0;
+        const dateB = b?.lastDate ? new Date(b.lastDate).getTime() : 0;
+        return dateB - dateA;
+      });
 
       setPatientHistory(cycleHistory);
 
       const totalRecords = cycleHistory.reduce(
-        (sum, cycle) => sum + cycle.sessions.length,
+        (sum, cycle) => sum + (cycle?.sessions?.length || 0),
         0,
       );
 
       const completedRecords = cycleHistory.reduce(
         (sum, cycle) =>
           sum +
-          cycle.sessions.filter(
+          (cycle?.sessions || []).filter(
             (item) =>
-              item.itemType === "session" &&
-              (item.status || "").toLowerCase() === "completed",
+              item?.itemType === "session" &&
+              (item?.status || "").toLowerCase() === "completed",
           ).length,
         0,
       );
@@ -2218,10 +2233,10 @@ const PatientManagement = () => {
       const canceledRecords = cycleHistory.reduce(
         (sum, cycle) =>
           sum +
-          cycle.sessions.filter(
+          (cycle?.sessions || []).filter(
             (item) =>
-              item.itemType === "session" &&
-              (item.status || "").toLowerCase() === "canceled",
+              item?.itemType === "session" &&
+              (item?.status || "").toLowerCase() === "canceled",
           ).length,
         0,
       );
@@ -2229,7 +2244,8 @@ const PatientManagement = () => {
       const totalReviews = cycleHistory.reduce(
         (sum, cycle) =>
           sum +
-          cycle.sessions.filter((item) => item.itemType === "review").length,
+          (cycle?.sessions || []).filter((item) => item?.itemType === "review")
+            .length,
         0,
       );
 
