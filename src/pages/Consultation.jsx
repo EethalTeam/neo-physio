@@ -199,7 +199,6 @@ const Consulation = () => {
   const [radio, setRadio] = useState([]);
   const [feesType, setFeesType] = useState([]);
   const [reference, setReference] = useState([]);
-  // console.log(radio,"radio")
   const { getPermissionsByPath } = useAuth();
   const [Permissions, setPermissions] = useState({
     isAdd: false,
@@ -219,7 +218,6 @@ const Consulation = () => {
     getReference();
   }, []);
 
-  // console.log(Permissions,"Permissions")
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
@@ -975,7 +973,6 @@ const Consulation = () => {
     //   }
     //   return p;
     // }));
-    // console.log(assignForm, "...assigningPatient,...assignForm");
 
     AssignPhysio(assignForm);
     toast({

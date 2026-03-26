@@ -57,11 +57,10 @@ import { cn } from "@/lib/utils";
 
 // const { getPermissionsByPath } = useAuth();
 //   const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
-//   // console.log(Permissions,"Permissions")
 //   useEffect(() => {
 //     getPermissionsByPath(window.location.pathname).then(res => {
 //       if (res) {
-//         
+//
 //         setPermissions(res)
 //       } else {
 //         navigate('/dashboard')
@@ -520,7 +519,6 @@ const RolesPage = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState(null);
   const [roleForPermissions, setRoleForPermissions] = useState(null);
-  // console.log(roleForPermissions,"roleForPermissions")
 
   useEffect(() => {
     getRole(setRoles);

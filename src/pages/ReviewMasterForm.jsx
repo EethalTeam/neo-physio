@@ -171,7 +171,6 @@ const ReviewMasterForm = () => {
     if (res) setPermissions(res);
     else navigate("/dashboard");
   };
-  console.log(filteredReviews, "filteredReviewsfilteredReviews");
   const getAllData = async () => {
     await Promise.all([
       getReviews(),
@@ -249,7 +248,6 @@ const ReviewMasterForm = () => {
     });
 
     setPatients(res?.data || res || []);
-    console.log(patients, "patient shortterm");
   };
 
   const getPhysios = async () => {
@@ -265,18 +263,14 @@ const ReviewMasterForm = () => {
       method: "POST",
     });
     setReviewTypes(res || []);
-    console.log(res, "review types");
   };
 
   const getRedFlags = async () => {
     const res = await apiRequest("Redflag/getAllRedflag", { method: "POST" });
     setRedFlags(res || []);
-    console.log(res, "review types");
   };
 
   const getRedFlagNames = (feedbackRedFlags = []) => {
-    console.log("helper input →", feedbackRedFlags);
-
     return feedbackRedFlags
       .map((rf) => {
         console.log("each rf →", rf);
@@ -535,7 +529,6 @@ const ReviewMasterForm = () => {
 
       return true;
     } catch (error) {
-      console.log(error, "error from frontend update Review");
       toast({
         title: "Update Failed",
         description: "Failed to update review.",
@@ -561,7 +554,6 @@ const ReviewMasterForm = () => {
 
       return true;
     } catch (error) {
-      console.log(error, "error Session delete");
       toast({
         title: "Delete Failed",
         description: "Failed to delete review.",
@@ -674,9 +666,6 @@ const ReviewMasterForm = () => {
       });
     }
   };
-
-  console.log(reviews, "Reviews");
-  console.log(filteredReviews, "Filtered reviews");
 
   const handleEditReview = (review) => {
     setEditingReview(review);

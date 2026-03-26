@@ -26,7 +26,6 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const Login = () => {
   const [physio, setPhysio] = useState([]);
-  // console.log(physio, "physio");
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     physioCode: "",

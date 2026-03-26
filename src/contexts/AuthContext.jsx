@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { config } from '@/components/CustomComponents/config';
-import { apiRequest } from '@/components/CustomComponents/apiRequest'
-import { toast } from '@/components/ui/use-toast';
-import socket from '@/socket/Socket.js';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { config } from "@/components/CustomComponents/config";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import { toast } from "@/components/ui/use-toast";
+import socket from "@/socket/Socket.js";
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -19,13 +19,9 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-
-
-
   // const [roles, setRoles] = useState([])
   // const [menuPermissions, setMenuPermissions] = useState({})
-  // console.log(menuPermissions,"menuPermissions")
- 
+
   // useEffect(() => {
   //   let rolepath = roles.reduce((acc, curr) => {
   //     if (!acc[curr.RoleName]) {
@@ -34,19 +30,18 @@ export const AuthProvider = ({ children }) => {
   //       return acc
   //     }
   //   }, {})
-  //   console.log(rolepath,"rolepath")
   //   setMenuPermissions(rolepath)
   // }, [roles])
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedRole = localStorage.getItem('userRole');
+    const storedUser = localStorage.getItem("user");
+    const storedRole = localStorage.getItem("userRole");
 
     if (storedUser && storedRole) {
       setUser({ ...JSON.parse(storedUser), role: storedRole });
       setIsAuthenticated(true);
     }
     setLoading(false);
-        // getRole()
+    // getRole()
   }, []);
 
   // const login = (physioCode, password) => {
@@ -62,18 +57,17 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     // setMenuPermissions([])
     // setRoles([])
-    localStorage.removeItem('user');
-    localStorage.removeItem('userRole');
+    localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
   };
-
 
   const login = async (physioCode, password) => {
     try {
       let url = config.Api + "/api/Physio/loginPhysio";
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ physioCode, password }),
       });
@@ -95,18 +89,17 @@ export const AuthProvider = ({ children }) => {
         });
         throw new Error(data.message || "Login failed");
       } else {
-         socket.connect();
+        socket.connect();
         // socket.emit("joinRoom", { employeeId:data.physio._id });
         setUser(data.physio);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(data.physio));
-        localStorage.setItem('userRole', data.physio.role);
-         toast({
-                  title: "Login Successful",
-                  description: `Welcome back, ${data.physio.physioName}!`,
-                });
+        localStorage.setItem("user", JSON.stringify(data.physio));
+        localStorage.setItem("userRole", data.physio.role);
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${data.physio.physioName}!`,
+        });
       }
-
 
       // store token in localStorage for later API calls
       if (data.token) {
@@ -173,8 +166,6 @@ export const AuthProvider = ({ children }) => {
   //   }
   // };
 
-
-
   const getPermissionsByPath = async (path) => {
     const RoleName = user.role; // read role from localStorage
     if (!RoleName) return null;
@@ -185,18 +176,18 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ RoleName, path }),
       });
 
-      const data = res
+      const data = res;
       if (data.success) {
         return data.permissions;
       } else {
-        navigate('/dashboard')
+        navigate("/dashboard");
         return null;
       }
     } catch (err) {
       console.error("Error fetching permissions:", err);
       return null;
     }
-  }
+  };
 
   const value = {
     user,
@@ -207,13 +198,7 @@ export const AuthProvider = ({ children }) => {
     getPermissionsByPath,
     // menuPermissions,
     // getRole,
-  
-
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

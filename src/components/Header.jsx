@@ -97,8 +97,6 @@ const Header = ({ toggleSidebar }) => {
     fetchNotifications();
 
     socket.on("receiveNotification", (newNotification) => {
-      console.log("Real-time notification received:", newNotification);
-
       fetchNotifications();
 
       toast({

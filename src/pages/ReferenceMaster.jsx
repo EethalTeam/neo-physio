@@ -38,7 +38,6 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 const ReferenceMaster = () => {
   const navigate = useNavigate();
   const [references, setReferences] = useState([]);
-  console.log(references);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReference, setEditingReference] = useState(null);
   const initialFormState = {
@@ -58,7 +57,6 @@ const ReferenceMaster = () => {
     isEdit: false,
     isDelete: false,
   });
-  // console.log(referenceForm)
 
   // useEffect(() => {
   //   fetch('/mockdata/references.json')
@@ -86,7 +84,6 @@ const ReferenceMaster = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        ;
         setPermissions(res);
       } else {
         navigate("/dashboard");

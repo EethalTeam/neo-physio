@@ -64,7 +64,6 @@ const FeesType = () => {
     isEdit: false,
     isDelete: false,
   });
-  // console.log(Permissions,"Permissions")
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {

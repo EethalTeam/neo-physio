@@ -1,97 +1,116 @@
-
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { apiRequest } from '@/components/CustomComponents/apiRequest'
+import { Layers, PlusCircle, Edit, Trash2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const RiskFactor = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [riskFactor, setriskFactor] = useState([]);
- 
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRisk, setEditingRisk] = useState(null);
   const initialFormRisk = {
-    RiskFactorName: '',
-    RiskFactorName: '',
+    RiskFactorName: "",
+    RiskFactorName: "",
     isActive: true,
   };
   const [riskForm, setRiskForm] = useState(initialFormRisk);
 
- 
-
-
   const { getPermissionsByPath } = useAuth();
-    const [Permissions, setPermissions] = useState({ isAdd: false, isView: false, isEdit: false, isDelete: false })
-    // console.log(Permissions,"Permissions")
-    useEffect(() => {
-      getPermissionsByPath(window.location.pathname).then(res => {
-        if (res) {
-          
-          setPermissions(res)
-        } else {
-          navigate('/dashboard')
-        }
-      })
-  
-    }, [])
-  
-  useEffect(()=>{
-      if (Permissions.isView) {
-        getRiskFactor()
+  const [Permissions, setPermissions] = useState({
+    isAdd: false,
+    isView: false,
+    isEdit: false,
+    isDelete: false,
+  });
+  useEffect(() => {
+    getPermissionsByPath(window.location.pathname).then((res) => {
+      if (res) {
+        setPermissions(res);
+      } else {
+        navigate("/dashboard");
       }
-  },[Permissions])
+    });
+  }, []);
 
-
+  useEffect(() => {
+    if (Permissions.isView) {
+      getRiskFactor();
+    }
+  }, [Permissions]);
 
   const getRiskFactor = async () => {
     try {
       const response = await apiRequest("RiskFactor/getAllRiskFactor", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({}),
       });
-      
-      setriskFactor(response)
-    
+
+      setriskFactor(response);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
+  };
   const deleteRiskFactor = async (id) => {
     try {
-      
       const response = await apiRequest("RiskFactor/deleteRiskFactor", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({ title: "Deleted", description: "Risk Factor has been removed.", variant: "destructive" });
+      toast({
+        title: "Deleted",
+        description: "Risk Factor has been removed.",
+        variant: "destructive",
+      });
       getRiskFactor();
       return response;
     } catch (error) {
-      
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
+  };
 
   const handleChangeRisk = (e) => {
-    
     const { name, value } = e.target;
-    setRiskForm(prev => ({ ...prev, [name]: value }));
+    setRiskForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleRadioChange = (name, value) => {
-    setRiskForm(prev => ({ ...prev, [name]: value }));
+    setRiskForm((prev) => ({ ...prev, [name]: value }));
   };
 
   // const handleFormSubmit = (e) => {
@@ -113,42 +132,48 @@ const RiskFactor = () => {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (editingRisk) {
-      updateRisk(riskForm)
+      updateRisk(riskForm);
     } else {
-      createRisk(riskForm)
+      createRisk(riskForm);
     }
-    setIsFormOpen(false)
+    setIsFormOpen(false);
   };
   const createRisk = async (data) => {
     try {
       const response = await apiRequest("RiskFactor/createRiskFactor", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "Risk Factor Create successfully." });
-      getRiskFactor()
-      setIsFormOpen(false)
+      toast({
+        title: "Success",
+        description: "Risk Factor Create successfully.",
+      });
+      getRiskFactor();
+      setIsFormOpen(false);
       return response;
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
   };
   const updateRisk = async (data) => {
     try {
       const response = await apiRequest("RiskFactor/updateRiskFactor", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "RiskFactor updated successfully." });
-      getRiskFactor()
-      setIsFormOpen(false)
+      toast({
+        title: "Success",
+        description: "RiskFactor updated successfully.",
+      });
+      getRiskFactor();
+      setIsFormOpen(false);
       return response;
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
+  };
   const handleEdit = (risk) => {
     setEditingRisk(true);
     setRiskForm({
@@ -156,7 +181,7 @@ const RiskFactor = () => {
       RiskFactorCode: risk.RiskFactorCode,
       isActive: risk.isActive,
       RiskFactorIDPK: risk.RiskFactorIDPK,
-    })
+    });
 
     // setCountry(countryData);
     setIsFormOpen(true);
@@ -164,7 +189,7 @@ const RiskFactor = () => {
 
   const handleDelete = (id) => {
     // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
-    deleteRiskFactor(id)
+    deleteRiskFactor(id);
     // toast({ title: "Deleted", description: "Country has been removed.", variant: "destructive" });
   };
 
@@ -176,25 +201,39 @@ const RiskFactor = () => {
 
   return (
     <div className="space-y-6  ">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col md:flex-row md:justify-between items-start gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col md:flex-row md:justify-between items-start gap-4"
+      >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> Risk Factor </h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <Layers size={30} /> Risk Factor{" "}
+          </h1>
           <p className="text-gray-600 mt-1">Manage Risk Factor Category.</p>
         </div>
-        {
-          Permissions.isAdd && 
-            <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
-          <PlusCircle size={18} className="mr-2" /> Add New Risk Factor
-        </Button>
-        }
-      
+        {Permissions.isAdd && (
+          <Button
+            onClick={openNewDialog}
+            className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow"
+          >
+            <PlusCircle size={18} className="mr-2" /> Add New Risk Factor
+          </Button>
+        )}
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <Card className="medical-card">
           <CardHeader>
             <CardTitle>All Risk Factor ({riskFactor.length})</CardTitle>
-            <CardDescription>List of all defined transaction Risk Factor.</CardDescription>
+            <CardDescription>
+              List of all defined transaction Risk Factor.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="table-responsive-wrapper">
@@ -209,8 +248,13 @@ const RiskFactor = () => {
                 </thead>
                 <tbody>
                   {riskFactor.map((risk) => (
-                    <tr key={risk._id} className="border-b hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3 font-medium text-gray-800">{risk.RiskFactorName}</td>
+                    <tr
+                      key={risk._id}
+                      className="border-b hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="p-3 font-medium text-gray-800">
+                        {risk.RiskFactorName}
+                      </td>
                       {/* <td className="p-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${cat.ExpenseCategoryType === 'Income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {cat.ExpenseCategoryType}
@@ -223,29 +267,46 @@ const RiskFactor = () => {
                       </td> */}
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
-                          {
-                            Permissions.isEdit && 
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(risk)}><Edit size={14} /></Button>
+                          {Permissions.isEdit && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(risk)}
+                            >
+                              <Edit size={14} />
+                            </Button>
+                          )}
 
-                          }
-
-                          {
-                            Permissions.isDelete && 
-                              <AlertDialog>
-                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will permanently delete the Risk Factor.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(risk.RiskFactorIDPK)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                          }
-                        
+                          {Permissions.isDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  <Trash2 size={14} />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Are you sure?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the Risk
+                                    Factor.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDelete(risk.RiskFactorIDPK)
+                                    }
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -260,17 +321,35 @@ const RiskFactor = () => {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingRisk ? 'Edit Risk Factor' : 'Add New Risk Factor'}</DialogTitle>
+            <DialogTitle>
+              {editingRisk ? "Edit Risk Factor" : "Add New Risk Factor"}
+            </DialogTitle>
             {/* <DialogDescription>Define a new Gender  for tracking transactions.</DialogDescription> */}
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
               <Label htmlFor="RiskFactorCode"> RiskFactor Code</Label>
-              <Input id="RiskFactorCode" name="RiskFactorCode" value={riskForm.RiskFactorCode} onChange={(e) => { handleChangeRisk(e) }} required placeholder="e.g., RF001" />
+              <Input
+                id="RiskFactorCode"
+                name="RiskFactorCode"
+                value={riskForm.RiskFactorCode}
+                onChange={(e) => {
+                  handleChangeRisk(e);
+                }}
+                required
+                placeholder="e.g., RF001"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="RiskFactorName"> RiskFactor Name</Label>
-              <Input id="RiskFactorName" name="RiskFactorName" value={riskForm.RiskFactorName} onChange={handleChangeRisk} required placeholder="e.g., Diabetic" />
+              <Input
+                id="RiskFactorName"
+                name="RiskFactorName"
+                value={riskForm.RiskFactorName}
+                onChange={handleChangeRisk}
+                required
+                placeholder="e.g., Diabetic"
+              />
             </div>
 
             {/* <div className="space-y-3">
@@ -283,15 +362,34 @@ const RiskFactor = () => {
 
             <div className="space-y-3">
               <Label>Status</Label>
-              <RadioGroup name="isActive" value={riskForm.isActive} onValueChange={(val) => handleRadioChange('isActive', val)} className="flex gap-4">
-                <div className="flex items-center space-x-2"><RadioGroupItem value={true} id="status-active" /><Label htmlFor="status-active">Active</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value={false} id="status-inactive" /><Label htmlFor="status-inactive">Inactive</Label></div>
+              <RadioGroup
+                name="isActive"
+                value={riskForm.isActive}
+                onValueChange={(val) => handleRadioChange("isActive", val)}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={true} id="status-active" />
+                  <Label htmlFor="status-active">Active</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={false} id="status-inactive" />
+                  <Label htmlFor="status-inactive">Inactive</Label>
+                </div>
               </RadioGroup>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingRisk ? 'Save Changes' : 'Add Risk Factor'}</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsFormOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingRisk ? "Save Changes" : "Add Risk Factor"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

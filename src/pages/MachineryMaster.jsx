@@ -67,7 +67,6 @@ const MachineryMaster = () => {
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState(null);
   const [managingMachine, setManagingMachine] = useState(null);
-  // console.log(managingMachine, "managingMachine");
   const initialFormState = {
     // _id: "",
     machineName: "",
@@ -85,7 +84,6 @@ const MachineryMaster = () => {
   const [assignPhysioId, setAssignPhysioId] = useState("");
   const [assignCount, setAssignCount] = useState(1);
   const [machineCategory, setMachineCategory] = useState([]);
-  // console.log(machineCategory, "machineCategory");
 
   const { getPermissionsByPath } = useAuth();
   const [Permissions, setPermissions] = useState({
@@ -94,7 +92,6 @@ const MachineryMaster = () => {
     isEdit: false,
     isDelete: false,
   });
-  // console.log(Permissions,"Permissions")
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
@@ -206,7 +203,6 @@ const MachineryMaster = () => {
         body: JSON.stringify(data),
       });
       setPhysios(res.physios);
-      // console.log(physios, "Physios");
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -249,10 +245,6 @@ const MachineryMaster = () => {
         body: JSON.stringify(data),
       });
       setModalities(response);
-      // console.log("Modalities value:", response);
-      // console.log("Is array?", Array.isArray(modalities));
-
-      // console.log(response, "response from modality");
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -261,8 +253,7 @@ const MachineryMaster = () => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    // console.log("Form Submitted");
-    // console.log("Editing Machine:", editingMachine);
+
     if (editingMachine) {
       updateMachine(machineForm);
       // setMachines(prev => prev.map(m => {
@@ -304,7 +295,6 @@ const MachineryMaster = () => {
   };
 
   const handleEditMachine = (machine) => {
-    // console.log("Editing machine:", machine);
     setEditingMachine(machine);
     setMachineForm({
       // _id: machine._id ? machine._id : null,
@@ -347,7 +337,6 @@ const MachineryMaster = () => {
   };
 
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
-  // console.log(machineForm?.modalityId._id, "machineForm?.modalityId._id");
 
   const handleAssignToPhysio = async () => {
     try {

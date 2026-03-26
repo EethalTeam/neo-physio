@@ -57,7 +57,7 @@ const Income = () => {
   const [selectedPatientId, setSelectedPatientId] = useState("ALL");
   const [selectedBillPatientId, setSelectedBillPatientId] = useState("ALL");
   const [selectedFeeTypeId, setSelectedFeeTypeId] = useState("ALL");
-
+  const [discountAmount, setDiscountAmount] = useState("");
   const monthlyId = "691af5c343be7d5e2861981f"; // monthly
   const sessionId = "691af5dc43be7d5e28619825"; // per session
 
@@ -273,7 +273,6 @@ const Income = () => {
     selectedPatientId,
     feesType,
   ]);
-  // console.log(filteredPatients, "filteredPatients");
   const totalIncomeByFilter = filteredPatients.reduce(
     (sum, p) => sum + Number(p.totalIncome || 0),
     0,
@@ -379,18 +378,29 @@ const Income = () => {
       0,
     );
   }, [filteredBills]);
+  const totalDiscountAmt = useMemo(() => {
+    return filteredBills.reduce((sum, bill) => {
+      return sum + Number(bill?.DiscountAmount || 0);
+    }, 0);
+  }, [filteredBills]);
+
+  const getPendingAmount = (bill) => {
+    const net = Number(bill?.NetBilledAmount || 0);
+    const discount = Number(bill?.DiscountAmount || 0);
+    const received = Number(bill?.ReceivedAmount || 0);
+    const isBadDebt = Boolean(bill?.isBadDebt);
+
+    const finalPayable = Math.max(net - discount, 0);
+
+    if (isBadDebt) return 0;
+
+    return Math.max(finalPayable - received, 0);
+  };
 
   const totalPendingAmt = useMemo(() => {
-    return filteredBills
-      .filter((b) => !b.isBadDebt) // 🚫 exclude bad debt
-      .reduce((sum, b) => {
-        const net = Number(b?.NetBilledAmount || 0);
-        const received = Number(b?.ReceivedAmount || 0);
-
-        const pending = Math.max(net - received, 0);
-
-        return sum + pending;
-      }, 0);
+    return filteredBills.reduce((sum, b) => {
+      return sum + getPendingAmount(b);
+    }, 0);
   }, [filteredBills]);
   const billSessions = useMemo(() => {
     return sessions.filter((s) => {
@@ -477,21 +487,26 @@ const Income = () => {
   const [partialAmount, setPartialAmount] = useState("");
 
   const openPaymentDialog = (bill) => {
-    const net = Number(
-      bill?.NetBilledAmount ??
-        bill?.TotalBilledAmount ??
-        bill?.totalAmount ??
-        0,
-    );
-    const received = Number(bill?.ReceivedAmount ?? 0);
+    const net = Number(bill?.NetBilledAmount || 0);
+    const discount = Number(bill?.DiscountAmount || 0);
+    const received = Number(bill?.ReceivedAmount || 0);
 
-    const pending = Math.max(net - received, 0);
+    const finalPayable = Math.max(net - discount, 0);
+    const pending = Math.max(finalPayable - received, 0);
 
-    setPaymentDialog({ open: true, bill: { ...bill, pending } });
+    setPaymentDialog({
+      open: true,
+      bill: {
+        ...bill,
+        pending,
+        finalPayable,
+      },
+    });
+
     setPaymentMode("Full Payment");
     setPartialAmount("");
+    setDiscountAmount("");
   };
-
   const closePaymentDialog = () => {
     setPaymentDialog({ open: false, bill: null });
     setPaymentMode("Full Payment");
@@ -553,13 +568,18 @@ const Income = () => {
     )[0];
   }, [filteredBills, selectedBillPatientId]);
 
-  const updateBillPayment = async (billId, receivedAmount, paymentType) => {
+  const updateBillPayment = async (
+    billId,
+    amount,
+    paymentType,
+    discount = 0,
+  ) => {
     return await apiRequest("Bill/receivePayment", {
       method: "POST",
       body: JSON.stringify({
         billId,
-        receivedAmount,
-        paymentType,
+        receivedAmount: amount,
+        discountAmount: Number(discountAmount || 0),
         notes: "",
         feedback: "",
       }),
@@ -585,6 +605,34 @@ const Income = () => {
       return [];
     }
   };
+  const getBillPaymentStatus = (bill) => {
+    const received = Number(bill?.ReceivedAmount || 0);
+    const net = Number(bill?.NetBilledAmount || 0);
+    const discount = Number(bill?.DiscountAmount || 0);
+    const isBadDebt = Boolean(bill?.isBadDebt);
+
+    const finalPayable = Math.max(net - discount, 0);
+    const pending = Math.max(finalPayable - received, 0);
+
+    if (isBadDebt) {
+      return "Bad Debt";
+    }
+
+    if (finalPayable === 0) {
+      return "Paid";
+    }
+
+    if (pending === 0 && received > 0) {
+      return "Paid";
+    }
+
+    if (received > 0 && pending > 0) {
+      return "Partially Paid";
+    }
+
+    return "Pending";
+  };
+
   const handleDownloadBill = async () => {
     const bill = billPreview.bill;
     if (!bill) return;
@@ -612,143 +660,328 @@ const Income = () => {
   };
   const downloadBillPdf = ({ bill, includeSessions, billedSessions = [] }) => {
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageWidth = doc.internal.pageSize.getWidth();
 
       const patientName = bill?.patientId?.patientName || "N/A";
-      const patientCode = bill?.patientId?.patientCode || "";
+      const patientCode = bill?.patientId?.patientCode || "N/A";
       const physioName = bill?.physioId?.physioName || "N/A";
 
       const totalSessions = Number(bill?.TotalSessionCount || 0);
-      const rate = Number(bill?.ratePerSession || 0);
-      const totalAmount = Number(bill?.TotalBilledAmount || 0);
-      const deducted = Number(bill?.DeductedFromAdvance || 0);
-      const net = Number(bill?.NetBilledAmount || 0);
-      const received = Number(bill?.ReceivedAmount || 0);
-      const pending = Math.max(net - received, 0);
+      const totalAmount = Number(
+        bill?.NetBilledAmount || bill?.TotalBilledAmount || 0,
+      );
 
-      const fromDate = bill?.startDate || bill?.patientId?.sessionStartDate;
-      const toDate = bill?.ToDate;
+      const rate =
+        totalSessions > 0
+          ? Number((totalAmount / totalSessions).toFixed(2))
+          : 0;
 
-      doc.addImage(neoLogo, "PNG", 160, 8, 35, 20);
+      const sortedSessions = [...billedSessions].sort(
+        (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
+      );
 
+      const fromDate =
+        bill?.startDate ||
+        sortedSessions?.[0]?.sessionDate ||
+        bill?.patientId?.sessionStartDate ||
+        null;
+
+      const toDate =
+        bill?.ToDate ||
+        sortedSessions?.[sortedSessions.length - 1]?.sessionDate ||
+        null;
+
+      const adjustIfSunday = (date) => {
+        if (!date) return date;
+        const d = new Date(date);
+        if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);
+        return d;
+      };
+
+      const fmt = (date) => {
+        if (!date) return "N/A";
+        let d = new Date(date);
+        if (Number.isNaN(d.getTime())) return "N/A";
+        d = adjustIfSunday(d);
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const year = d.getUTCFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      const invoiceNo =
+        bill?.billCode ||
+        bill?.BillCode ||
+        bill?._id?.slice(-8)?.toUpperCase() ||
+        "N/A";
+
+      const clinicAddress = [
+        "Coimbatore, Tamil Nadu",
+        "Phone: +91 XXXXX XXXXX",
+        "Email: info@neophysio.com",
+        "Website: https://neophysio.in/",
+      ];
+
+      const bankDetails = ["UPI Id : example@upi"];
+
+      const labelColor = [24, 83, 148];
+      const textColor = [30, 30, 30];
+      const lineColor = [190, 190, 190];
+      const tealLine = [120, 200, 215];
+
+      doc.setFillColor(255, 255, 255);
+      doc.rect(8, 8, 194, 281, "F");
+
+      // ===== HEADER =====
+      // Logo
+      doc.addImage(neoLogo, "PNG", 18, 19, 14, 14);
+
+      // Brand text
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text("NEO-PHYSIO - BILL", 14, 16);
+      doc.setFontSize(13);
+      doc.setTextColor(...labelColor);
+      doc.text("NEO PHYSIO", 34, 27);
 
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.text("Physiotherapy & Rehab Center", 34, 33);
+
+      // Right-side clinic details
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...textColor);
+
+      let rightY = 20;
+      clinicAddress.forEach((line) => {
+        doc.text(line, 118, rightY);
+        rightY += 6;
+      });
+
+      // Top-right invoice number properly aligned
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...labelColor);
+      doc.text("Invoice No:", 118, 44);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...textColor);
+      doc.text(String(invoiceNo), 145, 44);
+
+      // Divider
+      doc.setDrawColor(...lineColor);
+      doc.setLineWidth(0.3);
+      doc.line(18, 52, 190, 52);
+
+      // ===== TITLE =====
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text(`Patient: ${patientName} (${patientCode})`, 14, 28);
-      doc.text(`Physio: ${physioName}`, 14, 36);
-      doc.text(`Bill Period: ${fmt(fromDate)} - ${fmt(toDate)}`, 14, 44);
+      doc.setTextColor(...labelColor);
+      doc.text("TAX INVOICE", pageWidth / 2, 61, { align: "center" });
 
-      const rows = [];
+      doc.setDrawColor(...lineColor);
+      doc.line(18, 66, 190, 66);
 
-      if (totalSessions > 0) {
-        rows.push(["Total Sessions", String(totalSessions)]);
-      }
+      // ===== INFO ROWS =====
+      const drawInfoRow = (
+        y,
+        leftLabel,
+        leftValue,
+        rightLabel = "",
+        rightValue = "",
+      ) => {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(...labelColor);
+        doc.text(leftLabel, 18, y);
 
-      if (rate > 0) {
-        rows.push(["Rate / Session", `Rs. ${rate.toFixed(2)}`]);
-      }
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...textColor);
+        doc.text(String(leftValue || "N/A"), 42, y);
 
-      if (totalAmount > 0) {
-        rows.push(["Total Amount", `Rs. ${totalAmount.toFixed(2)}`]);
-      }
+        if (rightLabel) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...labelColor);
+          doc.text(rightLabel, 132, y);
 
-      if (deducted > 0) {
-        rows.push(["Deducted From Advance", `Rs. ${deducted.toFixed(2)}`]);
-      }
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...textColor);
+          doc.text(String(rightValue || "N/A"), 155, y);
+        }
 
-      if (net > 0) {
-        rows.push(["Net Billed Amount", `Rs. ${net.toFixed(2)}`]);
-      }
+        doc.setDrawColor(...lineColor);
+        doc.line(18, y + 4, 190, y + 4);
+      };
 
-      if (received > 0) {
-        rows.push(["Received Amount", `Rs. ${received.toFixed(2)}`]);
-      }
+      drawInfoRow(74, "Patient Name:", patientName, "Patient ID:", patientCode);
+      drawInfoRow(83, "Treated By:", physioName, "", "");
+      drawInfoRow(
+        92,
+        "Treated From:",
+        fmt(fromDate),
+        "Treated To:",
+        fmt(toDate),
+      );
 
-      if (pending > 0) {
-        rows.push(["Pending Amount", `Rs. ${pending.toFixed(2)}`]);
-      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...labelColor);
+      doc.text("No. of Sessions:", 18, 101);
 
-      if (bill?.paymentStatus) {
-        rows.push(["Payment Status", bill.paymentStatus]);
-      }
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...textColor);
+      doc.text(`${totalSessions} Sessions`, 50, 101);
 
-      if (bill?.paymentType) {
-        rows.push(["Payment Type", bill.paymentType]);
-      }
-
+      // ===== MAIN TABLE =====
       autoTable(doc, {
-        startY: 52,
-        head: [["Item", "Value"]],
-        body: rows.length ? rows : [["No bill details available", ""]],
+        startY: 107,
+        margin: { left: 18, right: 20 },
+        head: [["DESCRIPTION", "UNIT COST", "NO. OF SESSIONS", "TOTAL COST"]],
+        body: [
+          [
+            "Physiotherapy Session",
+            `Rs. ${rate.toFixed(2)}`,
+            `${totalSessions}`,
+            `Rs. ${totalAmount.toFixed(2)}`,
+          ],
+          ["", "", "", ""],
+        ],
+        theme: "grid",
         styles: {
-          fontSize: 10,
-          cellPadding: 3,
+          fontSize: 8,
+          cellPadding: 4,
+          textColor,
+          lineColor: tealLine,
+          lineWidth: 0.2,
+          valign: "middle",
         },
         headStyles: {
-          fillColor: [41, 128, 185],
+          fillColor: [30, 170, 190],
           textColor: [255, 255, 255],
           fontStyle: "bold",
+          halign: "center",
         },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245],
+        columnStyles: {
+          0: { cellWidth: 72, halign: "left" },
+          1: { cellWidth: 30, halign: "center" },
+          2: { cellWidth: 35, halign: "center" },
+          3: { cellWidth: 35, halign: "center" },
         },
       });
 
-      if (includeSessions) {
-        const sessionRows = billedSessions.map((s, idx) => [
-          idx + 1,
-          fmt(s.sessionDate),
-          s?.sessionStatusId?.sessionStatusName || "N/A",
-          s?.sessionFromTime && s?.sessionToTime
-            ? `${s.sessionFromTime} - ${s.sessionToTime}`
-            : "N/A",
-          s?.sessionFeedbackPros ||
-            s?.sessionFeedbackCons ||
-            s?.sessionCancelReason ||
-            "—",
-        ]);
+      let yAfterTable = doc.lastAutoTable.finalY + 12;
 
-        const nextY = doc.lastAutoTable.finalY + 10;
+      // ===== SUBTOTAL =====
+      doc.setDrawColor(...lineColor);
+      doc.line(18, yAfterTable, 190, yAfterTable);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(80, 80, 80);
+      doc.text("Subtotal:", 22, yAfterTable + 8);
+
+      doc.text(`Rs. ${totalAmount.toFixed(2)}`, 183, yAfterTable + 8, {
+        align: "right",
+      });
+
+      doc.line(18, yAfterTable + 12, 190, yAfterTable + 12);
+
+      // ===== COMPANY ONLY =====
+      const companyY = yAfterTable + 20;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...labelColor);
+      doc.text("Company Name:", 18, companyY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...textColor);
+      doc.text("ABC Corp Ltd.", 50, companyY);
+
+      doc.setDrawColor(...lineColor);
+      doc.line(18, companyY + 4, 190, companyY + 4);
+
+      // ===== BANK DETAILS =====
+      const bankY = companyY + 14;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...labelColor);
+      doc.text("Bank Details:", 18, bankY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(...textColor);
+
+      let bankTextY = bankY + 7;
+      bankDetails.forEach((line) => {
+        doc.text(`• ${line}`, 18, bankTextY);
+        bankTextY += 6;
+      });
+
+      if (includeSessions && sortedSessions.length > 0) {
+        doc.addPage();
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
-        doc.text("Billed Sessions", 14, nextY);
+        doc.setTextColor(...labelColor);
+        doc.text("BILLED SESSION DETAILS", 105, 18, { align: "center" });
 
         autoTable(doc, {
-          startY: nextY + 4,
-          head: [["#", "Session Date", "Status", "Time", "Feedback"]],
-          body: sessionRows.length
-            ? sessionRows
-            : [["", "No billed sessions", "", "", ""]],
+          startY: 28,
+          margin: { left: 12, right: 12 },
+          head: [["#", "Date", "Status", "Time", "Feedback / Notes"]],
+          body: sortedSessions.map((s, idx) => [
+            idx + 1,
+            fmt(s.sessionDate),
+            s?.sessionStatusId?.sessionStatusName || "N/A",
+            s?.sessionFromTime && s?.sessionToTime
+              ? `${s.sessionFromTime} - ${s.sessionToTime}`
+              : "N/A",
+            s?.sessionFeedbackPros ||
+              s?.sessionFeedbackCons ||
+              s?.sessionCancelReason ||
+              "—",
+          ]),
+          theme: "grid",
           styles: {
             fontSize: 8,
             cellPadding: 3,
+            lineColor: [180, 180, 180],
+            lineWidth: 0.2,
           },
           headStyles: {
-            fillColor: [41, 128, 185],
+            fillColor: [31, 91, 163],
             textColor: [255, 255, 255],
             fontStyle: "bold",
           },
-          alternateRowStyles: {
-            fillColor: [245, 245, 245],
-          },
           columnStyles: {
-            0: { cellWidth: 10 },
+            0: { cellWidth: 10, halign: "center" },
             1: { cellWidth: 28 },
             2: { cellWidth: 28 },
             3: { cellWidth: 35 },
             4: { cellWidth: 85 },
           },
         });
+      } else {
+        const thankY = Math.min(bankTextY + 10, 270);
+
+        doc.setDrawColor(210, 210, 210);
+        doc.line(18, thankY - 4, 190, thankY - 4);
+
+        doc.setFont("helvetica", "bolditalic");
+        doc.setFontSize(8.5);
+        doc.setTextColor(...labelColor);
+        doc.text("Thank you for your visit!", pageWidth / 2, thankY, {
+          align: "center",
+        });
       }
 
-      const fileName =
-        `Bill_${patientName}_${fmt(fromDate)}_to_${fmt(toDate)}.pdf`
-          .replaceAll(" ", "_")
-          .replace(/[^\w\-.]/g, "");
+      const safeFrom = fmt(fromDate).replace(/\//g, "-");
+      const safeTo = fmt(toDate).replace(/\//g, "-");
+
+      const fileName = `Invoice_${patientName}_${safeFrom}_to_${safeTo}.pdf`
+        .replaceAll(" ", "_")
+        .replace(/[^\w\-.]/g, "");
 
       doc.save(fileName);
     } catch (error) {
@@ -782,17 +1015,46 @@ const Income = () => {
     const paid = [];
 
     filteredBills.forEach((b) => {
-      const net = Number(b?.NetBilledAmount || 0);
-      const received = Number(b?.ReceivedAmount || 0);
-
-      const isPaid = received >= net;
-
-      if (isPaid) paid.push(b);
-      else pending.push(b);
+      const status = getBillPaymentStatus(b);
+      if (status === "Paid") {
+        paid.push(b);
+      } else {
+        pending.push(b);
+      }
     });
 
     return [...pending, ...paid];
   }, [filteredBills]);
+  const getBillPaymentType = (bill) => {
+    const received = Number(bill?.ReceivedAmount || 0);
+    const net = Number(bill?.NetBilledAmount || 0);
+    const discount = Number(bill?.DiscountAmount || 0);
+    const isBadDebt = Boolean(bill?.isBadDebt);
+
+    const finalPayable = Math.max(net - discount, 0);
+
+    if (isBadDebt) {
+      return "Bad Debt";
+    }
+
+    if (received >= finalPayable && finalPayable > 0) return "Full Payment";
+    if (received > 0 && received < finalPayable) return "Partial Payment";
+    if (discount > 0 && received === 0) return "Discount";
+
+    return "-";
+  };
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case "Paid":
+        return "bg-green-100 text-green-700";
+      case "Partially Paid":
+        return "bg-yellow-100 text-yellow-700";
+      case "Bad Debt":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
   // const handleMarkBadDebt = async (billId) => {
   //   try {
   //     const res = await apiRequest("Bill/markBadDebt", {
@@ -849,9 +1111,7 @@ const Income = () => {
         description: res.message || "Marked as Bad Debt",
       });
 
-      setBills((prev) =>
-        prev.map((b) => (b._id === billId ? { ...b, isBadDebt: true } : b)),
-      );
+      await fetchBills();
 
       setBadDebtDialog({ open: false, billId: null });
     } catch (error) {
@@ -868,10 +1128,7 @@ const Income = () => {
       .reduce((sum, b) => {
         const net = Number(b?.NetBilledAmount || 0);
         const received = Number(b?.ReceivedAmount || 0);
-
-        const badDebt = Math.max(net - received, 0);
-
-        return sum + badDebt;
+        return sum + Math.max(net - received, 0);
       }, 0);
   }, [filteredBills]);
   return (
@@ -1179,6 +1436,12 @@ const Income = () => {
                   <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
                 </h3>{" "}
                 <h3 className="text-lg font-semibold">
+                  Total Discount Amount:{" "}
+                  <span className="ml-2 text-purple-600">
+                    ₹{totalDiscountAmt.toFixed(2)}
+                  </span>
+                </h3>
+                <h3 className="text-lg font-semibold">
                   Total Bad Debt:{" "}
                   <span className="ml-2 text-red-600">
                     ₹{totalBadDebtAmount.toFixed(2)}
@@ -1289,7 +1552,7 @@ const Income = () => {
               </div>
 
               {/* Patient Details Card (show only when patient selected) */}
-              <Card className="medical-card hidden md:block ">
+              <Card className="medical-card hidden md:block">
                 <CardContent>
                   <div className="hidden md:block overflow-x-auto mt-5">
                     <table className="min-w-full text-sm border rounded-lg">
@@ -1309,14 +1572,15 @@ const Income = () => {
                           <th className="px-3 py-2 text-left">
                             Net Billed Amount
                           </th>
-
                           <th className="px-3 py-2 text-left">
                             Received Amount
                           </th>
                           <th className="px-3 py-2 text-left">
                             Pending Amount
                           </th>
-
+                          <th className="px-3 py-2 text-left">
+                            Discount Amount
+                          </th>
                           <th className="px-3 py-2 text-left">
                             Payment Status
                           </th>
@@ -1326,197 +1590,230 @@ const Income = () => {
                             Receive Payment
                           </th>
                           <th className="px-3 py-2 text-left">Bill Send</th>
-                          <th className="px-3 py-2 text-left">IS Bad debt</th>
+                          <th className="px-3 py-2 text-left">Is Bad Debt</th>
                         </tr>
                       </thead>
+
                       <tbody>
-                        {" "}
                         {sortedBills.length === 0 ? (
-                          // {filteredBills.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={10}
+                              colSpan={16}
                               className="p-4 text-center text-gray-500"
                             >
                               No bills found for selected filters
                             </td>
                           </tr>
                         ) : (
-                          // .filter((p) => p.totalCompletedSessions > 0)
-                          sortedBills.map((b) => (
-                            // filteredBills.map((b) => (
-                            <tr
-                              key={b._id}
-                              className="hover:bg-gray-50 text-sm md:text-base"
-                            >
-                              <td className="p-2 border whitespace-nowrap">
-                                {b?.patientId?.patientName || "N/A"}{" "}
-                                <span className="text-xs text-gray-500">
-                                  ({b?.patientId?.patientCode || ""})
-                                </span>
-                              </td>
-                              <td className="p-2 border whitespace-nowrap">
-                                {b?.physioId?.physioName || "N/A"}
-                              </td>{" "}
-                              <td className="p-2 border whitespace-nowrap">
-                                {b?.patientId?.sessionStartDate || b?.startDate
-                                  ? new Date(
-                                      b?.patientId?.sessionStartDate ||
-                                        b?.startDate,
-                                    )
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : "-"}
-                                {" - "}
-                                {b?.ToDate
-                                  ? new Date(b.ToDate)
-                                      .toLocaleDateString("en-GB")
-                                      .replace(/\//g, "-")
-                                  : "-"}
-                              </td>
-                              <td className="p-2 border text-center">
-                                {b?.TotalSessionCount ?? 0}
-                              </td>
-                              <td className="p-2 border text-center whitespace-nowrap">
-                                ₹{Number(b?.ratePerSession || 0).toFixed(2)}
-                              </td>
-                              <td className="p-2 border text-center font-semibold whitespace-nowrap ">
-                                ₹{Number(b?.TotalBilledAmount || 0).toFixed(2)}
-                              </td>
-                              <td className="p-2 border text-center font-semibold whitespace-nowrap bg-yellow-100">
-                                ₹
-                                {Number(b?.DeductedFromAdvance || 0).toFixed(2)}
-                              </td>
-                              <td className="p-2 border text-center font-semibold whitespace-nowrap bg-blue-100">
-                                ₹{Number(b?.NetBilledAmount || 0).toFixed(2)}
-                              </td>
-                              <td className="p-2 border text-center whitespace-nowrap bg-green-300">
-                                ₹{Number(b?.ReceivedAmount || 0).toFixed(2)}
-                              </td>
-                              <td className="p-2 border text-center whitespace-nowrap bg-[#ED3421]">
-                                ₹
-                                {b?.isBadDebt
-                                  ? "0.00"
-                                  : Number(
-                                      b?.NetBilledAmount -
-                                        ((b?.ReceivedAmount || 0) +
-                                          (b?.DeductedFromAdvance || 0)),
-                                    ).toFixed(2)}
-                              </td>
-                              <td className="p-2 border whitespace-nowrap">
-                                <td className="p-2 border whitespace-nowrap">
-                                  {b?.isBadDebt
-                                    ? "Bad Debt"
-                                    : b?.paymentStatus || "N/A"}
-                                </td>
-                              </td>
-                              <td className="p-2 border whitespace-nowrap">
-                                {b?.paymentType || "-"}
-                              </td>
-                              <td className="p-2 border whitespace-nowrap">
-                                <Button
-                                  onClick={() => {
-                                    const net = Number(b?.NetBilledAmount || 0);
-                                    const received = Number(
-                                      b?.ReceivedAmount || 0,
-                                    );
-                                    const pending = Math.max(net - received, 0);
+                          sortedBills.map((b) => {
+                            const status = getBillPaymentStatus(b);
+                            const paymentType = getBillPaymentType(b);
 
-                                    setBillPreview({
-                                      open: true,
-                                      bill: { ...b, pending },
-                                      includeSessions: false,
-                                      loading: false,
-                                    });
-                                  }}
-                                >
-                                  Generate Bill
-                                </Button>
-                              </td>{" "}
-                              <td className="p-2 border whitespace-nowrap">
-                                <Button
-                                  size="sm"
-                                  onClick={() => openPaymentDialog(b)}
-                                  disabled={
-                                    Number(b?.TotalBilledAmount || 0) -
-                                      Number(b?.ReceivedAmount || 0) <=
-                                    0
-                                  }
-                                  className={
-                                    Number(b?.TotalBilledAmount || 0) -
-                                      Number(b?.ReceivedAmount || 0) <=
-                                    0
-                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                      : ""
-                                  }
-                                >
-                                  {Number(b?.TotalBilledAmount || 0) -
-                                    Number(b?.ReceivedAmount || 0) <=
-                                  0 ? (
-                                    <span className="flex items-center gap-2">
-                                      <CheckCircle size={16} />
-                                      Payment Received
-                                    </span>
-                                  ) : (
-                                    "Receive Payment"
-                                  )}
-                                </Button>
-                              </td>
-                              <td className="p-2 border whitespace-nowrap">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSendBill(b._id)}
-                                  disabled={b?.isSend}
-                                  className={
-                                    b?.isSend
-                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                      : ""
-                                  }
-                                >
-                                  {b?.isSend ? (
-                                    <span className="flex items-center gap-2">
-                                      <CheckCircle size={16} />
-                                      Bill Sent
-                                    </span>
-                                  ) : (
-                                    "Send Bill"
-                                  )}
-                                </Button>
-                              </td>
-                              <Button
-                                onClick={() =>
-                                  setBadDebtDialog({
-                                    open: true,
-                                    billId: b._id,
-                                  })
-                                }
-                                disabled={
-                                  b?.isBadDebt ||
-                                  Number(b?.ReceivedAmount || 0) >=
-                                    Number(b?.NetBilledAmount || 0)
-                                }
-                                className={`px-2 py-1 text-xs rounded ${
-                                  b?.isBadDebt ||
-                                  Number(b?.ReceivedAmount || 0) >=
-                                    Number(b?.NetBilledAmount || 0)
-                                    ? "bg-gray-900 cursor-not-allowed"
-                                    : "bg-red-500 text-white hover:bg-red-600"
-                                }`}
+                            const totalAmount = Number(
+                              b?.TotalBilledAmount || 0,
+                            );
+                            const deductedAmount = Number(
+                              b?.DeductedFromAdvance || 0,
+                            );
+                            const netAmount = Number(b?.NetBilledAmount || 0);
+                            const discountAmount = Number(
+                              b?.DiscountAmount || 0,
+                            );
+                            const receivedAmount = Number(
+                              b?.ReceivedAmount || 0,
+                            );
+
+                            // ✅ correct formula
+                            const finalPayable = Math.max(
+                              netAmount - discountAmount,
+                              0,
+                            );
+                            const pendingAmount = Math.max(
+                              finalPayable - receivedAmount,
+                              0,
+                            );
+
+                            const fromDate =
+                              b?.patientId?.sessionStartDate || b?.startDate;
+                            const toDate = b?.ToDate;
+
+                            return (
+                              <tr
+                                key={b._id}
+                                className="hover:bg-gray-50 text-sm md:text-base"
                               >
-                                {b?.isBadDebt
-                                  ? "Bad Debt"
-                                  : Number(b?.ReceivedAmount || 0) >=
-                                      Number(b?.NetBilledAmount || 0)
-                                    ? "Paid"
-                                    : "Mark Bad Debt"}
-                              </Button>
-                            </tr>
-                          ))
-                        )}{" "}
-                      </tbody>{" "}
-                    </table>{" "}
-                  </div>{" "}
-                </CardContent>{" "}
+                                <td className="p-2 border whitespace-nowrap">
+                                  {b?.patientId?.patientName || "N/A"}{" "}
+                                  <span className="text-xs text-gray-500">
+                                    ({b?.patientId?.patientCode || ""})
+                                  </span>
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  {b?.physioId?.physioName || "N/A"}
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  {fromDate
+                                    ? new Date(fromDate)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : "-"}
+                                  {" - "}
+                                  {toDate
+                                    ? new Date(toDate)
+                                        .toLocaleDateString("en-GB")
+                                        .replace(/\//g, "-")
+                                    : "-"}
+                                </td>
+
+                                <td className="p-2 border text-center">
+                                  {b?.TotalSessionCount ?? 0}
+                                </td>
+
+                                <td className="p-2 border text-center whitespace-nowrap">
+                                  ₹{Number(b?.ratePerSession || 0).toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                                  ₹{totalAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border text-center font-semibold whitespace-nowrap bg-yellow-100">
+                                  ₹{deductedAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border text-center font-semibold whitespace-nowrap bg-blue-100">
+                                  ₹{netAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border text-center whitespace-nowrap bg-green-300">
+                                  ₹{receivedAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border text-center whitespace-nowrap bg-red-100">
+                                  ₹{pendingAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border text-center whitespace-nowrap bg-purple-100">
+                                  ₹{discountAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(status)}`}
+                                  >
+                                    {status}
+                                  </span>
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  {paymentType || "-"}
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  <Button
+                                    onClick={() => {
+                                      setBillPreview({
+                                        open: true,
+                                        bill: {
+                                          ...b,
+                                          pending: pendingAmount,
+                                          finalPayable,
+                                        },
+                                        includeSessions: false,
+                                        loading: false,
+                                      });
+                                    }}
+                                  >
+                                    Generate Bill
+                                  </Button>
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      openPaymentDialog({
+                                        ...b,
+                                        pending: pendingAmount,
+                                        finalPayable,
+                                      })
+                                    }
+                                    disabled={
+                                      status === "Paid" || status === "Bad Debt"
+                                    }
+                                    className={
+                                      status === "Paid" || status === "Bad Debt"
+                                        ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                        : ""
+                                    }
+                                  >
+                                    {status === "Paid" ? (
+                                      <span className="flex items-center gap-2">
+                                        <CheckCircle size={16} />
+                                        Payment Received
+                                      </span>
+                                    ) : status === "Bad Debt" ? (
+                                      "Bad Debt"
+                                    ) : (
+                                      "Receive Payment"
+                                    )}
+                                  </Button>
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleSendBill(b._id)}
+                                    disabled={b?.isSend}
+                                    className={
+                                      b?.isSend
+                                        ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                        : ""
+                                    }
+                                  >
+                                    {b?.isSend ? (
+                                      <span className="flex items-center gap-2">
+                                        <CheckCircle size={16} />
+                                        Bill Sent
+                                      </span>
+                                    ) : (
+                                      "Send Bill"
+                                    )}
+                                  </Button>
+                                </td>
+
+                                <td className="p-2 border whitespace-nowrap">
+                                  <Button
+                                    onClick={() =>
+                                      setBadDebtDialog({
+                                        open: true,
+                                        billId: b._id,
+                                      })
+                                    }
+                                    disabled={b?.isBadDebt || status === "Paid"}
+                                    className={`px-2 py-1 text-xs rounded ${
+                                      b?.isBadDebt || status === "Paid"
+                                        ? "bg-gray-400 cursor-not-allowed text-white"
+                                        : "bg-red-500 text-white hover:bg-red-600"
+                                    }`}
+                                  >
+                                    {b?.isBadDebt
+                                      ? "Bad Debt"
+                                      : status === "Paid"
+                                        ? "Paid"
+                                        : "Mark Bad Debt"}
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
               </Card>
             </CardContent>
           </Card>
@@ -1538,10 +1835,8 @@ const Income = () => {
                   const net = Number(b?.NetBilledAmount || 0);
                   const received = Number(b?.ReceivedAmount || 0);
                   const deducted = Number(b?.DeductedFromAdvance || 0);
-
-                  //  pending logic (use NET - RECEIVED)
-                  const pending = Math.max(net - received, 0);
-                  const isPaid = pending <= 0;
+                  const pending = getPendingAmount(b);
+                  const status = getBillPaymentStatus(b);
 
                   const fromDate =
                     b?.patientId?.sessionStartDate || b?.startDate;
@@ -1553,11 +1848,8 @@ const Income = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.25 }}
-                      className={`border rounded-xl p-4 bg-white shadow-sm ${
-                        isPaid ? "border-green-200" : "border-red-200"
-                      }`}
+                      className="border rounded-xl p-4 bg-white shadow-sm"
                     >
-                      {/* Header */}
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-gray-800">
@@ -1572,27 +1864,20 @@ const Income = () => {
                         </div>
 
                         <div
-                          className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                            isPaid
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusBadgeClass(status)}`}
                         >
-                          {isPaid ? "Paid" : "Pending"}
+                          {status}
                         </div>
                       </div>
 
-                      {/* Period */}
                       <div className="mt-2 text-xs text-gray-600">
                         Period:{" "}
                         {fromDate
                           ? new Date(fromDate).toLocaleDateString()
                           : "-"}{" "}
-                        {" - "}
-                        {toDate ? new Date(toDate).toLocaleDateString() : "-"}
+                        - {toDate ? new Date(toDate).toLocaleDateString() : "-"}
                       </div>
 
-                      {/* Amounts */}
                       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                         <div className="p-2 rounded-lg bg-gray-50">
                           <p className="text-xs text-gray-500">Sessions</p>
@@ -1613,9 +1898,7 @@ const Income = () => {
                           <p className="font-bold">₹{net.toFixed(2)}</p>
                         </div>
 
-                        <div
-                          className={`p-2 rounded-lg ${isPaid ? "bg-green-50" : "bg-red-50"}`}
-                        >
+                        <div className="p-2 rounded-lg bg-red-50">
                           <p className="text-xs text-gray-500">Pending</p>
                           <p className="font-bold">₹{pending.toFixed(2)}</p>
                         </div>
@@ -1633,15 +1916,13 @@ const Income = () => {
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <Button
                           className="w-full"
                           onClick={() => {
-                            const pendingNow = Math.max(net - received, 0);
                             setBillPreview({
                               open: true,
-                              bill: { ...b, pending: pendingNow },
+                              bill: { ...b, pending },
                               includeSessions: false,
                               loading: false,
                             });
@@ -1654,12 +1935,14 @@ const Income = () => {
                           className="w-full"
                           variant="outline"
                           onClick={() => openPaymentDialog(b)}
-                          disabled={pending <= 0}
+                          disabled={status === "Paid" || status === "Bad Debt"}
                         >
-                          {pending <= 0 ? (
+                          {status === "Paid" ? (
                             <span className="flex items-center gap-2">
                               <CheckCircle size={16} /> Paid
                             </span>
+                          ) : status === "Bad Debt" ? (
+                            "Bad Debt"
                           ) : (
                             "Receive"
                           )}
@@ -1679,6 +1962,23 @@ const Income = () => {
                             "Send Bill"
                           )}
                         </Button>
+
+                        <Button
+                          className="w-full col-span-2 bg-red-500 text-white hover:bg-red-600"
+                          onClick={() =>
+                            setBadDebtDialog({
+                              open: true,
+                              billId: b._id,
+                            })
+                          }
+                          disabled={b?.isBadDebt || status === "Paid"}
+                        >
+                          {b?.isBadDebt
+                            ? "Bad Debt"
+                            : status === "Paid"
+                              ? "Paid"
+                              : "Mark Bad Debt"}
+                        </Button>
                       </div>
                     </motion.div>
                   );
@@ -1695,34 +1995,84 @@ const Income = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Payment Received</DialogTitle>
-            <DialogDescription>
-              {paymentDialog.bill?.patientId?.patientName || "Patient"} —
-              Pending:{" "}
-              <span className="font-semibold">
-                ₹{" "}
-                {Number(
-                  paymentDialog.bill?.NetBilledAmount -
-                    paymentDialog.bill?.ReceivedAmount || 0,
-                ).toFixed(2)}
-              </span>
+            <DialogDescription className="space-y-1">
+              <div>
+                {paymentDialog.bill?.patientId?.patientName || "Patient"} —
+                Current Pending:{" "}
+                <span className="font-semibold">
+                  ₹ {Number(paymentDialog.bill?.pending || 0).toFixed(2)}
+                </span>
+              </div>
+
+              <div>
+                Remaining After This Action:{" "}
+                <span className="font-semibold text-blue-600">
+                  {(() => {
+                    const pending = Number(paymentDialog.bill?.pending || 0);
+
+                    if (paymentMode === "Full Payment") {
+                      return `₹ ${(0).toFixed(2)}`;
+                    }
+
+                    if (paymentMode === "Partial Payment") {
+                      const partial = Number(partialAmount || 0);
+                      const finalPending = Math.max(pending - partial, 0);
+                      return `₹ ${finalPending.toFixed(2)}`;
+                    }
+
+                    if (paymentMode === "Discount") {
+                      const discount = Number(discountAmount || 0);
+                      const finalPending = Math.max(pending - discount, 0);
+                      return `₹ ${finalPending.toFixed(2)}`;
+                    }
+
+                    return `₹ ${pending.toFixed(2)}`;
+                  })()}
+                </span>
+              </div>
             </DialogDescription>
           </DialogHeader>
 
-          {/* Payment type dropdown */}
           <div className="space-y-2">
             <Label>Payment Type</Label>
-            <Select value={paymentMode} onValueChange={setPaymentMode}>
+            <Select
+              value={paymentMode}
+              onValueChange={(value) => {
+                setPaymentMode(value);
+                setPartialAmount("");
+                setDiscountAmount("");
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select payment type" />
               </SelectTrigger>
               <SelectContent className="h-[200px]">
                 <SelectItem value="Full Payment">Full Payment</SelectItem>
                 <SelectItem value="Partial Payment">Partial Payment</SelectItem>
+                <SelectItem value="Discount">Discount</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Partial amount input */}
+          {paymentMode === "Discount" && (
+            <div className="space-y-2">
+              <Label>Discount Amount</Label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={discountAmount}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^\d.]/g, "");
+                  setDiscountAmount(value);
+                }}
+                placeholder="Enter discount amount"
+              />
+              <p className="text-xs text-gray-500">
+                Discount will be reduced from pending amount.
+              </p>
+            </div>
+          )}
+
           {paymentMode === "Partial Payment" && (
             <div className="space-y-2">
               <Label>Partial Amount</Label>
@@ -1730,7 +2080,10 @@ const Income = () => {
                 type="text"
                 inputMode="numeric"
                 value={partialAmount}
-                onChange={handlePartialChange}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^\d.]/g, "");
+                  setPartialAmount(value);
+                }}
                 placeholder="Enter amount"
               />
               <p className="text-xs text-gray-500">
@@ -1739,7 +2092,6 @@ const Income = () => {
             </div>
           )}
 
-          {/* If FULL, show auto amount */}
           {paymentMode === "Full Payment" && (
             <div className="text-sm text-gray-700">
               Amount to receive:{" "}
@@ -1759,21 +2111,47 @@ const Income = () => {
                 const billId = paymentDialog.bill?._id;
                 const pending = Number(paymentDialog.bill?.pending || 0);
 
-                const amt =
-                  paymentMode === "Full Payment"
-                    ? pending
-                    : Number(partialAmount || 0);
-
                 if (!billId) return;
-                if (amt <= 0) return;
-                if (amt > pending) return; // safety
+
+                let amt = 0;
+                let discount = 0;
+
+                if (paymentMode === "Full Payment") {
+                  amt = pending;
+                }
+
+                if (paymentMode === "Partial Payment") {
+                  amt = Number(partialAmount || 0);
+
+                  if (amt <= 0) {
+                    alert("Enter partial amount");
+                    return;
+                  }
+
+                  if (amt > pending) {
+                    alert("Amount cannot exceed pending amount");
+                    return;
+                  }
+                }
+
+                if (paymentMode === "Discount") {
+                  discount = Number(discountAmount || 0);
+
+                  if (discount <= 0) {
+                    alert("Enter discount amount");
+                    return;
+                  }
+
+                  if (discount > pending) {
+                    alert("Discount cannot exceed pending amount");
+                    return;
+                  }
+                }
 
                 try {
-                  await updateBillPayment(billId, amt, paymentMode);
-
+                  await updateBillPayment(billId, amt, paymentMode, discount);
                   closePaymentDialog();
-                  fetchBills(); // ✅ refresh bill tab table
-                  // fetchData(); // (optional, only if you need income refresh)
+                  fetchBills();
                 } catch (err) {
                   console.error("Payment update failed:", err);
                 }

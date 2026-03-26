@@ -34,6 +34,7 @@ const MonthlySummary = () => {
     totalSessions: 0,
     mostFrequentPatient: "",
     cancelledSessions: 0,
+    monthlySalary: 0,
   });
   const { user } = useAuth();
 
@@ -55,7 +56,6 @@ const MonthlySummary = () => {
           year: selectedYear,
         }),
       });
-      // console.log(sessionRes, "sessionRes");
       processDashboardData(sessionRes);
       setSummary(sessionRes);
     } catch (err) {
@@ -65,15 +65,14 @@ const MonthlySummary = () => {
   const processDashboardData = (data) => {
     if (!data) return;
 
-    // If backend already returns summary object
     setSummary((prev) => ({
       ...prev,
-      totalSessions: data.totalSessions,
-      completedSessions: data.completedSessions,
-      cancelledSessions: data.cancelledSessions,
+      totalSessions: Number(data.totalSessions || 0),
+      completedSessions: Number(data.completedSessions || 0),
+      cancelledSessions: Number(data.cancelledSessions || 0),
+      monthlySalary: Number(data.monthlySalary || 0),
     }));
   };
-
   // const processDashboardData = (sessions = []) => {
   //   if (!Array.isArray(sessions)) return;
 
@@ -129,16 +128,30 @@ const MonthlySummary = () => {
     new Date().getFullYear() - 1,
     new Date().getFullYear() - 2,
   ];
+  const isSalaryVisible = () => {
+    const today = new Date();
 
+    const selectedDate = new Date(
+      selectedYear,
+      selectedMonth,
+      10, // 10th day
+    );
+
+    const isPastMonth =
+      selectedYear < today.getFullYear() ||
+      (selectedYear === today.getFullYear() &&
+        selectedMonth < today.getMonth());
+
+    const isCurrentMonth =
+      selectedYear === today.getFullYear() &&
+      selectedMonth === today.getMonth();
+
+    if (isPastMonth) return true;
+    if (isCurrentMonth && today >= selectedDate) return true;
+
+    return false;
+  };
   const statCards = [
-    // {
-    //     title: "Monthly Revenue",
-    //     value: `₹${summary.monthlyRevenue.toLocaleString()}`,
-    //     icon: DollarSign,
-    //     color: 'text-green-600',
-    //     bgColor: 'bg-green-100'
-    // },
-
     {
       title: "Total Sessions",
       value: summary.totalSessions,
@@ -160,16 +173,19 @@ const MonthlySummary = () => {
       color: "text-red-600",
       bgColor: "bg-red-100",
     },
-
-    // {
-    //   title: "Avg. Patient Satisfaction",
-    //   value: `${summary.averageSatisfaction}%`,
-    //   icon: BarChart2,
-    //   color: "text-blue-600",
-    //   bgColor: "bg-blue-100",
-    // },
+    {
+      title: "Monthly Salary",
+      value: isSalaryVisible()
+        ? `₹${Number(summary.monthlySalary || 0).toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`
+        : "Not Available",
+      icon: DollarSign,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
   ];
-
   return (
     <div className="space-y-6">
       <motion.div
@@ -261,7 +277,9 @@ const MonthlySummary = () => {
                     {stat.value}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {months[selectedMonth]} {selectedYear}
+                    {isSalaryVisible()
+                      ? `${months[selectedMonth]} ${selectedYear}`
+                      : "Available after 10th"}
                   </p>
                 </CardContent>
               </Card>

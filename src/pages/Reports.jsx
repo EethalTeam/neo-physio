@@ -234,8 +234,6 @@ const Reports = () => {
           : {}),
       };
 
-      console.log("review payload", payload);
-
       const res = await apiRequest("Review/getAllReviewDownload", {
         method: "POST",
         headers: {
@@ -322,8 +320,6 @@ const Reports = () => {
         },
         body: JSON.stringify({}),
       });
-
-      console.log("getAllPhysio response", res);
 
       if (Array.isArray(res)) {
         setPhysioList(res);
@@ -744,15 +740,6 @@ const Reports = () => {
       return sum + getLeaveDaysCount(leave);
     }, 0);
   }, [filteredLeaves]);
-
-  console.log("selectedPhysio", selectedPhysio);
-  console.log("selectedPhysioDetails", selectedPhysioDetails);
-  console.log("raw roleName", selectedPhysioDetails?.roleName);
-  console.log("normalizedRoleName", normalizedRoleName);
-  console.log(
-    "selectedPhysio !== all",
-    String(selectedPhysio).trim() !== "all",
-  );
 
   useEffect(() => {
     const monthlyExpenses = filteredExpenses.reduce(
@@ -1673,7 +1660,6 @@ const Reports = () => {
       `Physio_Wise_Report_${selectedReferenceName.replace(/\s+/g, "_")}_${selectedPhysioName.replace(/\s+/g, "_")}_${selectedMonthName}.pdf`,
     );
   };
-  console.log(isHodSelected, "isHodSelected");
   const statCards = [
     {
       title: isHodSelected

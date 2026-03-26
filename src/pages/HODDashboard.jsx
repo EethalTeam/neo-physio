@@ -153,7 +153,6 @@ const HODDashboard = () => {
 
       setAllReviews(Array.isArray(response) ? response : []);
     } catch (error) {
-      console.log("getReviews error:", error);
       setAllReviews([]);
     }
   };
@@ -166,7 +165,6 @@ const HODDashboard = () => {
       });
       setPatients(res?.data || res || []);
     } catch (e) {
-      console.log("getPatients error:", e);
       setPatients([]);
     }
   };
@@ -179,7 +177,6 @@ const HODDashboard = () => {
       });
       setPhysios(res?.physios || []);
     } catch (e) {
-      console.log("getPhysios error:", e);
       setPhysios([]);
     }
   };
@@ -192,7 +189,6 @@ const HODDashboard = () => {
       });
       setReviewStatuses(Array.isArray(response) ? response : []);
     } catch (e) {
-      console.log("getReviewStatus error:", e);
       setReviewStatuses([]);
     }
   };
@@ -204,7 +200,6 @@ const HODDashboard = () => {
       });
       setReviewTypes(Array.isArray(res) ? res : []);
     } catch (e) {
-      console.log("getReviewTypes error:", e);
       setReviewTypes([]);
     }
   };
@@ -214,7 +209,6 @@ const HODDashboard = () => {
       const res = await apiRequest("Redflag/getAllRedflag", { method: "POST" });
       setRedFlags(Array.isArray(res) ? res : []);
     } catch (e) {
-      console.log("getRedFlags error:", e);
       setRedFlags([]);
     }
   };
@@ -250,7 +244,6 @@ const HODDashboard = () => {
 
       setCbNotifications(filtered);
     } catch (error) {
-      console.log("getCbNotifications error:", error);
       setCbNotifications([]);
     }
   };
@@ -355,9 +348,7 @@ const HODDashboard = () => {
 
       toast({ title: "Success", description: "Review updated." });
       getReviews();
-    } catch (error) {
-      console.log("UpdateReview error:", error);
-    }
+    } catch (error) {}
   };
 
   const deleteReview = async (data) => {
@@ -367,9 +358,7 @@ const HODDashboard = () => {
         body: JSON.stringify(data),
       });
       getReviews();
-    } catch (e) {
-      console.log("deleteReview error:", e);
-    }
+    } catch (e) {}
   };
 
   const handleDeleteReview = (id) => {

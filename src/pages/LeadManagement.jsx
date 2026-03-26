@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -41,9 +41,7 @@ import {
   Filter,
   Edit,
   Trash2,
-  Upload,
   Paperclip,
-  Check,
   User,
   CheckCircle,
 } from "lucide-react";
@@ -53,8 +51,8 @@ import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const LeadManagement = () => {
-  const { navigate } = useNavigate();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, getPermissionsByPath } = useAuth();
   const fileInputRef = useRef(null);
 
   const [leadSource, setLeadSource] = useState([]);
@@ -62,18 +60,18 @@ const LeadManagement = () => {
   const [gender, setGender] = useState([]);
   const [leads, setLeads] = useState([]);
   const [filteredLeads, setFilteredLeads] = useState([]);
+  const [reference, setReference] = useState([]);
+  const [leadStatus, setLeadStatus] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
-  const [reference, setReference] = useState([]);
   const [ConsultationDate, setConsultationDate] = useState("");
   const [open, setOpen] = useState(false);
   const [LeadQualify, setLeadQualify] = useState({});
 
   const initialFormState = {
-    // _id:'',
     leadName: "",
     leadAge: "",
     leadGenderId: "",
@@ -82,7 +80,6 @@ const LeadManagement = () => {
     physioCategoryId: "",
     leadSourceId: "",
     leadMedicalHistory: "",
-    //  physioCateName: '',
     genderName: "",
     leadSourceName: "",
     leadDocuments: [],
@@ -94,11 +91,22 @@ const LeadManagement = () => {
     leadStatusName: "Pending",
     cbDate: "",
   };
-  const [leadStatus, setLeadStatus] = useState([]);
-  const [leadForm, setLeadForm] = useState(initialFormState);
-  // console.log(leadForm.LeadStatusId, "leadForm LeadStatusId");
 
-  //  Load dropdown data
+  const [leadForm, setLeadForm] = useState(initialFormState);
+
+  const [Permissions, setPermissions] = useState({
+    isAdd: false,
+    isView: false,
+    isEdit: false,
+    isDelete: false,
+  });
+
+  const referenceLeadSource = useMemo(() => {
+    return leadSource.find(
+      (item) => (item?.leadSourceName || "").toLowerCase() === "reference",
+    );
+  }, [leadSource]);
+
   useEffect(() => {
     getLeadSource();
     getPhysio();
@@ -108,14 +116,6 @@ const LeadManagement = () => {
     getLeadStatus();
   }, []);
 
-  const { getPermissionsByPath } = useAuth();
-  const [Permissions, setPermissions] = useState({
-    isAdd: false,
-    isView: false,
-    isEdit: false,
-    isDelete: false,
-  });
-  // console.log(Permissions,"Permissions")
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
@@ -124,7 +124,7 @@ const LeadManagement = () => {
         navigate("/dashboard");
       }
     });
-  }, []);
+  }, [getPermissionsByPath, navigate]);
 
   useEffect(() => {
     if (Permissions.isView) {
@@ -132,21 +132,23 @@ const LeadManagement = () => {
     }
   }, [Permissions]);
 
-  // api for leadStatus
-
   const getLeadStatus = async () => {
     try {
       const res = await apiRequest("LeadStatus/getAllLeadStatus", {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setLeadStatus(res);
+
+      const list = Array.isArray(res)
+        ? res
+        : res?.leadStatus || res?.data || [];
+
+      setLeadStatus(list);
     } catch (error) {
       console.error("Error loading leadStatus:", error);
+      setLeadStatus([]);
     }
   };
-
-  //api for Reference
 
   const getReference = async () => {
     try {
@@ -154,22 +156,31 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setReference(res);
+
+      const list = Array.isArray(res)
+        ? res
+        : res?.reference || res?.references || res?.data || [];
+
+      setReference(list);
     } catch (error) {
       console.error("Error loading Reference:", error);
+      setReference([]);
     }
   };
 
   const QualifyLead = async (lead) => {
     try {
-      const payload = lead;
-      payload.ConsultationDate = ConsultationDate;
-      payload.fromEmployeeId = user._id;
+      const payload = {
+        ...lead,
+        ConsultationDate,
+        fromEmployeeId: user?._id,
+      };
 
       const res = await apiRequest("Lead/QualifyLead", {
         method: "POST",
         body: JSON.stringify(payload),
       });
+
       if (res) {
         getLead();
         toast({
@@ -177,10 +188,13 @@ const LeadManagement = () => {
           description: "Lead qualified successfully.",
         });
       } else {
-        toast({ title: "Failed", description: "Lead qualify failed." });
+        toast({
+          title: "Failed",
+          description: "Lead qualify failed.",
+        });
       }
     } catch (error) {
-      console.error("Error loading Reference:", error);
+      console.error("Error qualifying lead:", error);
     }
   };
 
@@ -190,9 +204,15 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setLeadSource(res || []);
+
+      const list = Array.isArray(res)
+        ? res
+        : res?.leadSource || res?.leadSources || res?.data || [];
+
+      setLeadSource(list);
     } catch (error) {
       console.error("Error loading LeadSource:", error);
+      setLeadSource([]);
     }
   };
 
@@ -202,9 +222,15 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setPhysioCate(res || []);
+
+      const list = Array.isArray(res)
+        ? res
+        : res?.physioCategory || res?.physioCategories || res?.data || [];
+
+      setPhysioCate(list);
     } catch (error) {
       console.error("Error loading Physio:", error);
+      setPhysioCate([]);
     }
   };
 
@@ -214,38 +240,46 @@ const LeadManagement = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setGender(res || []);
+
+      const list = Array.isArray(res)
+        ? res
+        : res?.gender || res?.genders || res?.data || [];
+
+      setGender(list);
     } catch (error) {
       console.error("Error loading Gender:", error);
+      setGender([]);
     }
   };
 
-  //  Get all leads
   const getLead = async () => {
     try {
       const response = await apiRequest("Lead/getAllLead", {
         method: "POST",
         body: JSON.stringify({}),
       });
-      const Otherleads = (response.leads || []).filter(
+
+      const allLeads = response?.leads || [];
+      const otherLeads = allLeads.filter(
         (lead) =>
           lead.isQualified !== "true" &&
-          lead.LeadStatusId?.leadStatusName !== "Qualified",
+          lead?.LeadStatusId?.leadStatusName !== "Qualified",
       );
-      setLeads(Otherleads || []);
-      setFilteredLeads(Otherleads || []);
+
+      setLeads(otherLeads);
+      setFilteredLeads(otherLeads);
     } catch (error) {
       console.error("Error loading leads:", error);
     }
   };
 
-  //  Create Lead
   const createLead = async (data) => {
     try {
       const response = await apiRequest("Lead/createLead", {
         method: "POST",
         body: JSON.stringify(data),
       });
+
       if (
         response?.success === false &&
         response?.message === "EXISTING_NUMBER"
@@ -257,52 +291,63 @@ const LeadManagement = () => {
         });
         return;
       }
-      toast({ title: "Success", description: "Lead created successfully." });
+
+      toast({
+        title: "Success",
+        description: "Lead created successfully.",
+      });
+
       getLead();
       setIsFormOpen(false);
       return response;
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error creating lead:", error);
     }
   };
 
-  //  Update Lead
   const updateLead = async (data) => {
     try {
       const response = await apiRequest("Lead/updateLead", {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Updated", description: "Lead updated successfully." });
+
+      toast({
+        title: "Updated",
+        description: "Lead updated successfully.",
+      });
+
       getLead();
       setIsFormOpen(false);
       return response;
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error updating lead:", error);
     }
   };
 
-  //  Delete Lead
   const deleteLead = async (id) => {
     try {
       await apiRequest("Lead/deleteLead", {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
+
       toast({
         title: "Deleted",
         description: "Lead has been removed.",
         variant: "destructive",
       });
+
       getLead();
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error deleting lead:", error);
     }
   };
 
-  //  Handle Search and Filter
   useEffect(() => {
     let filtered = leads;
+
+    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(
         (lead) =>
@@ -310,28 +355,43 @@ const LeadManagement = () => {
           lead.leadContactNo?.includes(searchTerm),
       );
     }
+
+    // Status filter (UPDATED)
     if (statusFilter !== "all") {
-      filtered = filtered.filter(
-        (lead) =>
-          lead.isQualified?.toString() ===
-          (statusFilter === "Qualified").toString(),
-      );
+      filtered = filtered.filter((lead) => {
+        const leadStatusId =
+          lead?.LeadStatusId?._id ||
+          lead?.LeadStatusId?.LeadStatusIDPK ||
+          lead?.LeadStatusId;
+
+        return leadStatusId === statusFilter;
+      });
     }
+
     setFilteredLeads(filtered);
   }, [searchTerm, statusFilter, leads]);
-
-  //  Form Handlers
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setLeadForm((prev) => ({ ...prev, [name]: value }));
   };
-  const isCBStatus =
-    leadStatus
-      .find((s) => s._id === leadForm.LeadStatusId)
-      ?.leadStatusName.toLowerCase() === "cb";
+
   const handleSelectChange = (name, value) => {
     setLeadForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  const isCBStatus = useMemo(() => {
+    const selected = leadStatus.find(
+      (s) => (s._id || s.LeadStatusIDPK) === leadForm.LeadStatusId,
+    );
+
+    const statusName =
+      selected?.leadStatusName ||
+      selected?.LeadStatusName ||
+      leadForm.leadStatusName ||
+      "";
+
+    return statusName.toLowerCase() === "cb";
+  }, [leadStatus, leadForm.LeadStatusId, leadForm.leadStatusName]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -340,6 +400,7 @@ const LeadManagement = () => {
         ...prev,
         leadDocuments: [...prev.leadDocuments, file.name],
       }));
+
       toast({
         title: "File Added",
         description: `${file.name} has been added.`,
@@ -356,15 +417,16 @@ const LeadManagement = () => {
         description: "Please Enter Lead Name",
         variant: "destructive",
       });
-      return false;
+      return;
     }
+
     if (!leadForm.leadAge) {
       toast({
         title: "Alert",
         description: "Please Enter Lead Age",
         variant: "destructive",
       });
-      return false;
+      return;
     }
 
     if (!leadForm.leadGenderId) {
@@ -373,71 +435,77 @@ const LeadManagement = () => {
         description: "Please select Gender",
         variant: "destructive",
       });
-      return false;
+      return;
     }
+
     if (!leadForm.leadContactNo) {
       toast({
         title: "Alert",
         description: "Please Enter Lead Mobile number",
         variant: "destructive",
       });
-      return false;
+      return;
     }
+
     if (!leadForm.leadAddress) {
       toast({
         title: "Alert",
         description: "Please Enter Lead Address",
         variant: "destructive",
       });
-      return false;
+      return;
     }
+
     if (!leadForm.LeadStatusId) {
       toast({
         title: "Alert",
         description: "Please select Lead Status",
         variant: "destructive",
       });
-      return false;
+      return;
     }
-    if (
-      leadStatus.find((s) => s._id === leadForm.LeadStatusId)
-        ?.leadStatusName === "CB" &&
-      !leadForm.cbDate
-    ) {
+
+    const selectedStatus = leadStatus.find(
+      (s) => (s._id || s.LeadStatusIDPK) === leadForm.LeadStatusId,
+    );
+
+    const selectedStatusName =
+      selectedStatus?.leadStatusName || selectedStatus?.LeadStatusName || "";
+
+    if (selectedStatusName === "CB" && !leadForm.cbDate) {
       toast({
         title: "Alert",
         description: "Please select Call Back Date",
         variant: "destructive",
       });
-      return false;
+      return;
     }
+
     if (!leadForm.physioCategoryId) {
       toast({
         title: "Alert",
         description: "Please select Physio Category",
         variant: "destructive",
       });
-      return false;
+      return;
     }
 
-    // Lead Source validation
-    if (leadForm.leadSourceName !== "Reference" && !leadForm.leadSourceId) {
+    if (!leadForm.leadSourceId) {
       toast({
         title: "Alert",
         description: "Please select Lead Source",
         variant: "destructive",
       });
-      return false;
+      return;
     }
 
-    // Reference validation
     if (leadForm.leadSourceName === "Reference" && !leadForm.ReferenceId) {
       toast({
         title: "Alert",
         description: "Please select Reference",
         variant: "destructive",
       });
-      return false;
+      return;
     }
 
     if (editingLead) {
@@ -446,54 +514,101 @@ const LeadManagement = () => {
       createLead(leadForm);
     }
   };
+
   useEffect(() => {
     if (leadStatus.length > 0 && !leadForm.LeadStatusId) {
       const pendingStatus = leadStatus.find(
-        (st) => st.leadStatusName === "Pending",
+        (st) => (st?.leadStatusName || st?.LeadStatusName) === "Pending",
       );
 
       if (pendingStatus) {
         setLeadForm((prev) => ({
           ...prev,
-          LeadStatusId: pendingStatus._id,
+          LeadStatusId: pendingStatus._id || pendingStatus.LeadStatusIDPK,
         }));
       }
     }
-  }, [leadStatus]);
+  }, [leadStatus, leadForm.LeadStatusId]);
 
-  //  Edit
   const handleEdit = (lead) => {
-    setEditingLead(true);
+    setEditingLead(lead);
 
-    const hasReference = !!lead.ReferenceId?._id;
-    const derivedLeadSourceName =
-      lead.leadSourceId?.leadSourceName ||
-      lead.leadSourceName ||
-      (hasReference ? "Reference" : "");
+    const referenceId =
+      lead?.ReferenceId?._id || lead?.ReferenceId?.ReferenceIDPK || "";
+
+    const referenceName =
+      lead?.ReferenceId?.sourceName ||
+      lead?.ReferenceId?.referenceName ||
+      lead?.ReferenceId?.ReferenceName ||
+      "";
+
+    const detectedLeadSourceName =
+      lead?.leadSourceName ||
+      lead?.leadSourceId?.leadSourceName ||
+      lead?.leadSourceId?.LeadSourceName ||
+      "";
+
+    const isReferenceLead =
+      detectedLeadSourceName.toLowerCase() === "reference" || !!referenceId;
+
+    const detectedLeadSourceId =
+      lead?.leadSourceId?._id ||
+      lead?.leadSourceId?.LeadIDPK ||
+      lead?.leadSourceId ||
+      "";
+
+    const finalLeadSourceId = isReferenceLead
+      ? referenceLeadSource?.LeadIDPK ||
+        referenceLeadSource?._id ||
+        detectedLeadSourceId
+      : detectedLeadSourceId;
+
+    const finalLeadSourceName = isReferenceLead
+      ? "Reference"
+      : detectedLeadSourceName;
+
+    const genderId =
+      lead?.leadGenderId?._id ||
+      lead?.leadGenderId?.GenderIDPK ||
+      lead?.leadGenderId ||
+      "";
+
+    const physioCategoryId =
+      lead?.physioCategoryId?._id ||
+      lead?.physioCategoryId?.PhysioCateIDPK ||
+      lead?.physioCategoryId?.PhysioCategoryIDPK ||
+      lead?.physioCategoryId ||
+      "";
+
+    const leadStatusId =
+      lead?.LeadStatusId?._id ||
+      lead?.LeadStatusId?.LeadStatusIDPK ||
+      lead?.LeadStatusId ||
+      "";
 
     setLeadForm({
-      leadName: lead.leadName || "",
-      leadAge: lead.leadAge || "",
-      leadGenderId: lead?.leadGenderId?._id || "",
-      leadContactNo: lead.leadContactNo || "",
-      leadAddress: lead.leadAddress || "",
-      physioCategoryId: lead?.physioCategoryId?._id || "",
-      leadSourceId: lead.leadSourceId?._id || "",
-      leadMedicalHistory: lead.leadMedicalHistory || "",
-      leadId: lead._id || "",
-      physioCateName: lead?.physioCategoryId?.physioCateName || "",
-      genderName: lead?.leadGenderId?.genderName || "",
-      leadSourceId: lead.leadSourceId?._id || null,
-      leadSourceName:
-        lead.leadSourceName ||
-        lead.leadSourceId?.leadSourceName ||
-        (lead.ReferenceId ? "Reference" : ""),
-      ReferenceId: lead.ReferenceId?._id || "",
-      sourceName: lead.ReferenceId?.sourceName || "",
-      LeadStatusId: lead.LeadStatusId?._id || "",
-      leadStatusName: lead.LeadStatusId?.leadStatusName || "",
-      leadDocuments: lead.leadDocuments || [],
-      cbDate: lead.cbDate
+      leadName: lead?.leadName || "",
+      leadAge: lead?.leadAge || "",
+      leadGenderId: genderId,
+      leadContactNo: lead?.leadContactNo || "",
+      leadAddress: lead?.leadAddress || "",
+      physioCategoryId,
+      leadSourceId: finalLeadSourceId,
+      leadMedicalHistory: lead?.leadMedicalHistory || "",
+      genderName:
+        lead?.leadGenderId?.genderName || lead?.leadGenderId?.GenderName || "",
+      leadSourceName: finalLeadSourceName,
+      leadDocuments: lead?.leadDocuments || [],
+      leadId: lead?._id || "",
+      ReferenceId: referenceId,
+      sourceName: referenceName,
+      isQualified: lead?.isQualified ?? true,
+      LeadStatusId: leadStatusId,
+      leadStatusName:
+        lead?.LeadStatusId?.leadStatusName ||
+        lead?.LeadStatusId?.LeadStatusName ||
+        "",
+      cbDate: lead?.cbDate
         ? new Date(lead.cbDate).toISOString().split("T")[0]
         : "",
     });
@@ -505,12 +620,7 @@ const LeadManagement = () => {
     setEditingLead(null);
     setLeadForm(initialFormState);
     setIsFormOpen(true);
-    // setQualified(true)
   };
-
-  // const openQualifiedDialog = () =>{
-  //   setQualified(true)
-  // }
 
   return (
     <div className="space-y-6">
@@ -518,7 +628,7 @@ const LeadManagement = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 w-full "
+        className="flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4 w-full"
       >
         <div>
           <h1 className="md:text-3xl text-xl font-bold text-gray-900">
@@ -528,17 +638,17 @@ const LeadManagement = () => {
             Manage and track potential patients from all sources.
           </p>
         </div>
+
         {Permissions.isAdd && (
           <Button
             onClick={openNewLeadDialog}
             className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow"
           >
-            <UserPlus size={18} className="mr-2 " /> Add New Lead
+            <UserPlus size={18} className="mr-2" /> Add New Lead
           </Button>
         )}
       </motion.div>
 
-      {/* Search & Filter */}
       <Card className="max-w-xs md:max-w-none">
         <CardHeader>
           <CardTitle className="text-md font-bold md:text-2xl">
@@ -546,7 +656,7 @@ const LeadManagement = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 ">
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -556,16 +666,35 @@ const LeadManagement = () => {
                 className="pl-10"
               />
             </div>
+
             <div className="w-full sm:w-48">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
+
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="qualified">Qualified</SelectItem>
+
+                  {leadStatus.map((status) => {
+                    const id = status._id || status.LeadStatusIDPK;
+                    const name =
+                      status.leadStatusName || status.LeadStatusName || "";
+                    const color = status.leadStatusColor || "#ccc";
+
+                    return (
+                      <SelectItem key={id} value={id}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: color }}
+                          ></span>
+                          {name}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -573,7 +702,6 @@ const LeadManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Lead Table */}
       <Card className="hidden md:block">
         <CardHeader>
           <CardTitle>Leads ({filteredLeads.length})</CardTitle>
@@ -601,48 +729,44 @@ const LeadManagement = () => {
                     </span>
                   </td>
                   <td className="p-3">
-                    {lead.ReferenceId?.sourceName ||
-                      lead.leadSourceName ||
-                      lead.leadSourceId?.leadSourceName ||
+                    {lead?.ReferenceId?.sourceName ||
+                      lead?.ReferenceId?.referenceName ||
+                      lead?.ReferenceId?.ReferenceName ||
+                      lead?.leadSourceName ||
+                      lead?.leadSourceId?.leadSourceName ||
                       "-"}
                   </td>
-                  <td>
+                  <td className="p-3">
                     <span
                       style={{
-                        backgroundColor: lead?.LeadStatusId?.leadStatusColor
-                          ? lead.LeadStatusId.leadStatusColor
-                          : "white",
+                        backgroundColor:
+                          lead?.LeadStatusId?.leadStatusColor || "white",
                       }}
-                      className="text-xs font-extralight border-2  p-2 rounded-2xl"
+                      className="text-xs font-extralight border-2 p-2 rounded-2xl"
                     >
-                      {" "}
                       {lead?.LeadStatusId?.leadStatusName || "-"}
                     </span>
                   </td>
-                  {/* <td><span style={{backgroundColor:lead.LeadStatusId.leadStatusColor ? lead.LeadStatusId.leadStatusColor : 'white' ,color:lead.LeadStatusId.leadStatusTextColor}} className='text-xs font-extralight border-2  p-2 rounded-2xl'> {lead.LeadStatusId.leadStatusName}</span></td> */}
                   <td className="p-3 flex gap-2">
-                    {/* <Button onClick={openNewLeadDialog}>Qualified</Button> */}
-                    {lead?.LeadStatusId?.leadStatusName !== "Qualified" && (
-                      <>
-                        {Permissions.isEdit && (
-                          <Button
-                            variant="default"
-                            onClick={() => {
-                              setLeadQualify(lead);
-                              setOpen(true);
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Qualify
-                          </Button>
-                        )}
-                      </>
-                    )}
+                    {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
+                      Permissions.isEdit && (
+                        <Button
+                          variant="default"
+                          onClick={() => {
+                            setLeadQualify(lead);
+                            setOpen(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Qualify
+                        </Button>
+                      )}
+
                     <Dialog open={open} onOpenChange={setOpen}>
                       <DialogContent className="max-w-md max-h-[90vh] backdrop-blur-lg">
                         <DialogHeader>
                           <DialogTitle>Qualify Lead</DialogTitle>
-                          <td>Schedule the initial consultation for </td>
+                          <td>Schedule the initial consultation for</td>
                         </DialogHeader>
                         <div className="space-y-3">
                           <Label>Consultation Date</Label>
@@ -652,7 +776,6 @@ const LeadManagement = () => {
                             onChange={(e) =>
                               setConsultationDate(e.target.value)
                             }
-                            // min={new Date().toISOString().split("T")[0]}
                           />
                         </div>
                         <DialogFooter>
@@ -662,7 +785,6 @@ const LeadManagement = () => {
                           >
                             Cancel
                           </Button>
-
                           <Button
                             onClick={() => {
                               QualifyLead(LeadQualify);
@@ -685,6 +807,7 @@ const LeadManagement = () => {
                           <Edit size={14} />
                         </Button>
                       )}
+
                     {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                       Permissions.isDelete && (
                         <AlertDialog>
@@ -719,7 +842,6 @@ const LeadManagement = () => {
         </CardContent>
       </Card>
 
-      {/* //Lead Card for Mobile view  */}
       <Card className="md:hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold">
@@ -728,15 +850,14 @@ const LeadManagement = () => {
         </CardHeader>
 
         <CardContent className="pt-0">
-          <div className="grid gap-3 ">
+          <div className="grid gap-3">
             {filteredLeads.map((lead) => (
               <div
                 key={lead._id}
                 className="border rounded-lg p-3 shadow-sm bg-white flex flex-col gap-3"
               >
-                {/* Left Section */}
                 <div className="space-y-1.5">
-                  <div className="flex space-x-4 mb-3  justify-center">
+                  <div className="flex space-x-4 mb-3 justify-center">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                       <User className="text-blue-600" size={25} />
                     </div>
@@ -749,7 +870,6 @@ const LeadManagement = () => {
 
                       <p className="text-xs text-gray-600">
                         <span className="font-normal text-gray-500 text-sm">
-                          {" "}
                           {lead.leadContactNo}
                         </span>
                       </p>
@@ -772,9 +892,7 @@ const LeadManagement = () => {
                   </p>
                 </div>
 
-                {/* Right Section – Buttons */}
                 <div className="flex items-center gap-2 me-4 justify-center">
-                  {/* Qualify */}
                   {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                     Permissions.isEdit && (
                       <Button
@@ -790,7 +908,6 @@ const LeadManagement = () => {
                       </Button>
                     )}
 
-                  {/* Edit */}
                   {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                     Permissions.isEdit && (
                       <Button size="icon" variant="outline" className="h-8 w-8">
@@ -798,7 +915,6 @@ const LeadManagement = () => {
                       </Button>
                     )}
 
-                  {/* Delete */}
                   {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                     Permissions.isDelete && (
                       <AlertDialog>
@@ -836,7 +952,6 @@ const LeadManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Create / Edit Lead Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -844,6 +959,7 @@ const LeadManagement = () => {
               {editingLead ? "Edit Lead" : "Create Lead"}
             </DialogTitle>
           </DialogHeader>
+
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -856,6 +972,7 @@ const LeadManagement = () => {
                   onChange={handleFormChange}
                 />
               </div>
+
               <div>
                 <Label>
                   Age<span className="text-red-500 ml-1">*</span>
@@ -866,7 +983,6 @@ const LeadManagement = () => {
                     e.target.blur();
                   }}
                   name="leadAge"
-                  // maxLength={2}
                   value={leadForm.leadAge}
                   onChange={(e) => {
                     let value = e.target.value;
@@ -887,7 +1003,7 @@ const LeadManagement = () => {
                   Gender<span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Select
-                  value={leadForm.leadGenderId}
+                  value={leadForm.leadGenderId || ""}
                   onValueChange={(v) => handleSelectChange("leadGenderId", v)}
                 >
                   <SelectTrigger>
@@ -895,13 +1011,17 @@ const LeadManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {gender.map((g) => (
-                      <SelectItem key={g.GenderIDPK} value={g.GenderIDPK}>
-                        {g.genderName}
+                      <SelectItem
+                        key={g.GenderIDPK || g._id}
+                        value={g.GenderIDPK || g._id}
+                      >
+                        {g.genderName || g.GenderName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>
                   Contact<span className="text-red-500 ml-1">*</span>
@@ -927,7 +1047,6 @@ const LeadManagement = () => {
                         leadContactNo: value,
                       }));
                     }}
-                    // maxLength={10}
                     inputMode="numeric"
                     placeholder="Enter mobile number"
                     className="rounded"
@@ -935,6 +1054,7 @@ const LeadManagement = () => {
                 </div>
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>
@@ -946,12 +1066,13 @@ const LeadManagement = () => {
                   onChange={handleFormChange}
                 />
               </div>
+
               <div>
                 <Label>
                   Lead Status<span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Select
-                  value={leadForm.LeadStatusId}
+                  value={leadForm.LeadStatusId || ""}
                   onValueChange={(v) => handleSelectChange("LeadStatusId", v)}
                 >
                   <SelectTrigger>
@@ -959,12 +1080,16 @@ const LeadManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {leadStatus.map((leadst) => (
-                      <SelectItem key={leadst._id} value={leadst._id}>
-                        {leadst.leadStatusName}
+                      <SelectItem
+                        key={leadst._id || leadst.LeadStatusIDPK}
+                        value={leadst._id || leadst.LeadStatusIDPK}
+                      >
+                        {leadst.leadStatusName || leadst.LeadStatusName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+
                 {isCBStatus && (
                   <div>
                     <Label>
@@ -987,7 +1112,7 @@ const LeadManagement = () => {
                   Physio Category<span className="text-red-500 ml-1">*</span>
                 </Label>
                 <Select
-                  value={leadForm.physioCategoryId}
+                  value={leadForm.physioCategoryId || ""}
                   onValueChange={(v) =>
                     handleSelectChange("physioCategoryId", v)
                   }
@@ -998,46 +1123,48 @@ const LeadManagement = () => {
                   <SelectContent>
                     {physioCate.map((physio) => (
                       <SelectItem
-                        key={physio.PhysioCateIDPK}
-                        value={physio.PhysioCateIDPK}
+                        key={
+                          physio.PhysioCateIDPK ||
+                          physio.PhysioCategoryIDPK ||
+                          physio._id
+                        }
+                        value={
+                          physio.PhysioCateIDPK ||
+                          physio.PhysioCategoryIDPK ||
+                          physio._id
+                        }
                       >
-                        {physio.physioCateName}
+                        {physio.physioCateName || physio.PhysioCateName}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>
                   Lead Source<span className="text-red-500 ml-1">*</span>
                 </Label>
-                {/* <Select value={leadForm.leadSourceId} onValueChange={(v) => handleSelectChange('leadSourceId', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select Lead Source" /></SelectTrigger>
-                  <SelectContent>
-                    {leadSource.map((leadS) => (
-                      <SelectItem key={leadS.LeadIDPK} value={leadS.LeadIDPK}>{leadS.leadSourceName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select> */}
 
                 <Select
-                  value={
-                    leadForm.leadSourceName
-                      ? JSON.stringify({
-                          LeadIDPK: leadForm.leadSourceId || "",
-                          name: leadForm.leadSourceName,
-                        })
-                      : ""
-                  }
+                  value={leadForm.leadSourceId || ""}
                   onValueChange={(v) => {
-                    const selected = JSON.parse(v);
+                    const selected = leadSource.find(
+                      (item) => (item.LeadIDPK || item._id) === v,
+                    );
 
-                    handleSelectChange("leadSourceId", selected.LeadIDPK);
-                    handleSelectChange("leadSourceName", selected.name);
+                    const selectedName =
+                      selected?.leadSourceName ||
+                      selected?.LeadSourceName ||
+                      "";
 
-                    // optional reset
-                    handleSelectChange("ReferenceId", "");
-                    handleSelectChange("sourceName", "");
+                    handleSelectChange("leadSourceId", v);
+                    handleSelectChange("leadSourceName", selectedName);
+
+                    if (selectedName !== "Reference") {
+                      handleSelectChange("ReferenceId", "");
+                      handleSelectChange("sourceName", "");
+                    }
                   }}
                 >
                   <SelectTrigger>
@@ -1045,61 +1172,64 @@ const LeadManagement = () => {
                   </SelectTrigger>
 
                   <SelectContent>
-                    {leadSource.map((leads) => (
-                      <SelectItem
-                        key={leads.LeadIDPK}
-                        value={JSON.stringify({
-                          LeadIDPK: leads.LeadIDPK,
-                          name: leads.leadSourceName,
-                        })}
-                      >
-                        {leads.leadSourceName}
-                      </SelectItem>
-                    ))}
+                    {leadSource.map((leads) => {
+                      const id = leads.LeadIDPK || leads._id;
+                      const name = leads.leadSourceName || leads.LeadSourceName;
+
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {name}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
-              {leadForm.leadSourceName === "Reference" ||
-              leadForm.ReferenceId ? (
+
+              {leadForm.leadSourceName === "Reference" && (
                 <div className="space-y-2">
                   <Label>
                     Reference<span className="text-red-500 ml-1">*</span>
                   </Label>
                   <Select
-                    value={
-                      leadForm.ReferenceId
-                        ? JSON.stringify({
-                            id: leadForm.ReferenceId,
-                            name: leadForm.sourceName,
-                          })
-                        : ""
-                    }
+                    value={leadForm.ReferenceId || ""}
                     onValueChange={(v) => {
-                      const selected = JSON.parse(v);
-                      handleSelectChange("ReferenceId", selected.id);
-                      handleSelectChange("sourceName", selected.name);
+                      const selected = reference.find(
+                        (ref) => (ref._id || ref.ReferenceIDPK) === v,
+                      );
+
+                      handleSelectChange("ReferenceId", v);
+                      handleSelectChange(
+                        "sourceName",
+                        selected?.sourceName ||
+                          selected?.referenceName ||
+                          selected?.ReferenceName ||
+                          "",
+                      );
                     }}
                   >
-                    {" "}
                     <SelectTrigger>
                       <SelectValue placeholder="Select Reference" />
                     </SelectTrigger>
                     <SelectContent>
-                      {reference.map((ref) => (
-                        <SelectItem
-                          key={ref._id}
-                          value={JSON.stringify({
-                            id: ref._id,
-                            name: ref.sourceName,
-                          })}
-                        >
-                          {ref.sourceName}
-                        </SelectItem>
-                      ))}
+                      {reference.map((ref) => {
+                        const refId = ref._id || ref.ReferenceIDPK;
+                        const refName =
+                          ref.sourceName ||
+                          ref.referenceName ||
+                          ref.ReferenceName ||
+                          "-";
+
+                        return (
+                          <SelectItem key={refId} value={refId}>
+                            {refName}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
-              ) : null}
+              )}
             </div>
 
             <div>

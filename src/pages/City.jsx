@@ -1,55 +1,85 @@
- 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Layers, PlusCircle, Edit, Trash2 } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-import { apiRequest } from '@/components/CustomComponents/apiRequest'
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { Layers, PlusCircle, Edit, Trash2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const City = () => {
   const navigate = useNavigate();
-const [state,setState] = useState([])
+  const [state, setState] = useState([]);
   const [city, setCity] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCity, setEditingCity] = useState(null);
-  const initialFormCity = { 
-    CityCode: '', 
-    CityName: '', 
-    StateID:'',
+  const initialFormCity = {
+    CityCode: "",
+    CityName: "",
+    StateID: "",
     isActive: true,
     // StateName:'',
   };
   const [cityForm, setCityForm] = useState(initialFormCity);
-   const { getPermissionsByPath } = useAuth();
-      const [Permissions,setPermissions]=useState({isAdd:false,isView:false,isEdit:false,isDelete:false})
-
-
+  const { getPermissionsByPath } = useAuth();
+  const [Permissions, setPermissions] = useState({
+    isAdd: false,
+    isView: false,
+    isEdit: false,
+    isDelete: false,
+  });
 
   useEffect(() => {
-  getState();
-}, []);
+    getState();
+  }, []);
 
-const getState = async () => {
-  try {
-    const res = await apiRequest("State/getAllState",
- { 
-    method: 'POST',
-     body: JSON.stringify({}) 
-    });
-    setState(res);
-  } catch (error) {
-    console.error("Error loading countries:", error);
-  }
-};
+  const getState = async () => {
+    try {
+      const res = await apiRequest("State/getAllState", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setState(res);
+    } catch (error) {
+      console.error("Error loading countries:", error);
+    }
+  };
 
   // useEffect(() => {
   //   // fetch('/mockdata/categories.json')
@@ -59,65 +89,66 @@ const getState = async () => {
   //   getCity()
   // }, []);
 
-    
-  // console.log(Permissions,"Permissions")
-      useEffect(()=>{
-          getPermissionsByPath(window.location.pathname).then(res=>{
-              if(res){
-                  setPermissions(res)
-              }else{
-                  navigate('/dashboard')
-              }
-          })
-        
-      },[])
+  useEffect(() => {
+    getPermissionsByPath(window.location.pathname).then((res) => {
+      if (res) {
+        setPermissions(res);
+      } else {
+        navigate("/dashboard");
+      }
+    });
+  }, []);
 
-      useEffect(()=>{
-          if (Permissions.isView) {
-         getCity()
-          }
-      },[Permissions])
-      
+  useEffect(() => {
+    if (Permissions.isView) {
+      getCity();
+    }
+  }, [Permissions]);
 
-    const getCity = async () => {
+  const getCity = async () => {
     try {
       const response = await apiRequest("City/getAllCity", {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({}),
       });
-      setCity(response)
+      setCity(response);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-  }
-    const deleteCity = async(id)=>{
+  };
+  const deleteCity = async (id) => {
     try {
       const response = await apiRequest("City/deleteCity", {
-        method: 'POST',
-        body: JSON.stringify({_id:id}),
+        method: "POST",
+        body: JSON.stringify({ _id: id }),
       });
-        toast({ title: "Deleted", description: "City has been removed.", variant: "destructive" });
+      toast({
+        title: "Deleted",
+        description: "City has been removed.",
+        variant: "destructive",
+      });
       getCity();
       return response;
-    } catch (error) {0
-      console.error('Error:', error);
-      throw error;    
+    } catch (error) {
+      0;
+      console.error("Error:", error);
+      throw error;
     }
-  }
+  };
 
   const handleChangeCity = (e) => {
     const { name, value } = e.target;
-    setCityForm(prev => ({ ...prev, [name]: value }));
+    setCityForm((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleRadioChange = (name, value) => {
-      setCityForm(prev => ({ ...prev, [name]: value }));
+    setCityForm((prev) => ({ ...prev, [name]: value }));
   };
 
   // const handleFormSubmit = (e) => {
   //   e.preventDefault();
-    
+
   //   if (editingCategory) {
   //     setCategories(prev => prev.map(cat => cat.id === editingCategory.id ? { ...cat, ...categoryForm } : cat));
   //     toast({ title: "Success", description: "Category updated successfully." });
@@ -131,56 +162,55 @@ const getState = async () => {
   //   setCategoryForm(initialFormState);
   // };
 
-    const handleFormSubmit = (e) => {
+  const handleFormSubmit = (e) => {
     e.preventDefault();
-    if(editingCity){
-      updateCity(cityForm)
-    }else{
-      createCity(cityForm)
+    if (editingCity) {
+      updateCity(cityForm);
+    } else {
+      createCity(cityForm);
     }
-     setIsFormOpen(false)
+    setIsFormOpen(false);
   };
-    const createCity = async (data) => {
-      try {
-        const response = await apiRequest("City/CreateCity", {
-          method: 'POST',
-          body: JSON.stringify(data),
-        });
-         toast({ title: "Success", description: "City Create successfully." });
-        getCity()
-        setIsFormOpen(false)
-        return response;
-      } catch (error) {
-        console.error('Error:', error);
-        throw error;
-      }
-    };
-   const updateCity = async(data)=>{
- try {
-      const response = await apiRequest("City/updateCity", {
-        method: 'POST',
+  const createCity = async (data) => {
+    try {
+      const response = await apiRequest("City/CreateCity", {
+        method: "POST",
         body: JSON.stringify(data),
       });
-        toast({ title: "Success", description: "City updated successfully." });
-        getCity()
-       setIsFormOpen(false)
+      toast({ title: "Success", description: "City Create successfully." });
+      getCity();
+      setIsFormOpen(false);
       return response;
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       throw error;
     }
-   }
+  };
+  const updateCity = async (data) => {
+    try {
+      const response = await apiRequest("City/updateCity", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      toast({ title: "Success", description: "City updated successfully." });
+      getCity();
+      setIsFormOpen(false);
+      return response;
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
+  };
   const handleEdit = (CityData) => {
     setEditingCity(true);
-   setCityForm({
-  CityCode: CityData.CityCode,
-  CityName: CityData.CityName,
-    isActive: CityData.isActive,
-    CityIDPK: CityData.CityIDPK,
-    StateID :CityData.StateID,
-    // countryName: CityData.countryName
-     
-   })
+    setCityForm({
+      CityCode: CityData.CityCode,
+      CityName: CityData.CityName,
+      isActive: CityData.isActive,
+      CityIDPK: CityData.CityIDPK,
+      StateID: CityData.StateID,
+      // countryName: CityData.countryName
+    });
 
     // setCountry(countryData);
     setIsFormOpen(true);
@@ -188,7 +218,7 @@ const getState = async () => {
 
   const handleDelete = (id) => {
     // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
-    deleteCity(id)
+    deleteCity(id);
     // toast({ title: "Deleted", description: "Country has been removed.", variant: "destructive" });
   };
 
@@ -200,27 +230,44 @@ const getState = async () => {
 
   return (
     <div className="space-y-6 ">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex flex-col sm:flex-row justify-between sm:items-center gap-10">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col sm:flex-row justify-between sm:items-center gap-10"
+      >
         <div>
-          <h1 className="md:text-3xl text-xl font-bold text-gray-900 flex items-center gap-3"><Layers size={30} /> City </h1>
-          <p className="text-gray-600 mt-1">Manage the list City for session feedback.</p>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-900 flex items-center gap-3">
+            <Layers size={30} /> City{" "}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Manage the list City for session feedback.
+          </p>
         </div>
-        {
-         Permissions.isAdd &&
-           <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow max-w-fit ">
-          <PlusCircle size={18} className="mr-2" /> Add New City
-        </Button>
-        }
+        {Permissions.isAdd && (
+          <Button
+            onClick={openNewDialog}
+            className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow max-w-fit "
+          >
+            <PlusCircle size={18} className="mr-2" /> Add New City
+          </Button>
+        )}
         {/* <Button onClick={openNewDialog} className="shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow">
           <PlusCircle size={18} className="mr-2" /> Add New City
         </Button> */}
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <Card className="medical-card md:max-w-full lg:max-w-full max-w-full ">
           <CardHeader>
             <CardTitle>All City ({city.length})</CardTitle>
-            <CardDescription>List of all defined transaction City.</CardDescription>
+            <CardDescription>
+              List of all defined transaction City.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="table-responsive-wrapper">
@@ -235,8 +282,13 @@ const getState = async () => {
                 </thead>
                 <tbody>
                   {city.map((cities) => (
-                    <tr key={cities._id} className="border-b hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3 font-medium text-gray-800">{cities.CityName}</td>
+                    <tr
+                      key={cities._id}
+                      className="border-b hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="p-3 font-medium text-gray-800">
+                        {cities.CityName}
+                      </td>
                       {/* <td className="p-3 font-medium text-gray-800">{states.CountryId}</td> */}
                       {/* <td className="p-3">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${cat.ExpenseCategoryType === 'Income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -250,27 +302,45 @@ const getState = async () => {
                       </td> */}
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-2">
-                          {
-                             Permissions.isEdit && <Button size="sm" variant="outline" onClick={() => handleEdit(cities)}><Edit size={14} /></Button>
-                          }
+                          {Permissions.isEdit && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(cities)}
+                            >
+                              <Edit size={14} />
+                            </Button>
+                          )}
                           {/* <Button size="sm" variant="outline" onClick={() => handleEdit(cities)}><Edit size={14} /></Button> */}
-                          {
-                              Permissions.isDelete &&        <AlertDialog>
-                            <AlertDialogTrigger asChild><Button size="sm" variant="destructive"><Trash2 size={14} /></Button></AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will permanently delete the City.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(cities.CityIDPK)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-
-                          </AlertDialog>
-                          }
-                   
+                          {Permissions.isDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  <Trash2 size={14} />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Are you sure?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the City.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDelete(cities.CityIDPK)
+                                    }
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -285,39 +355,59 @@ const getState = async () => {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingCity ? 'Edit City' : 'Add New City'}</DialogTitle>
-            <DialogDescription>Define a new City for tracking transactions.</DialogDescription>
+            <DialogTitle>
+              {editingCity ? "Edit City" : "Add New City"}
+            </DialogTitle>
+            <DialogDescription>
+              Define a new City for tracking transactions.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
               <Label htmlFor="CityCode"> City Code</Label>
-              <Input id="CityCode" name="CityCode" value={cityForm.CityCode} onChange={(e)=>{handleChangeCity(e)}} required placeholder="e.g., CT001" />
+              <Input
+                id="CityCode"
+                name="CityCode"
+                value={cityForm.CityCode}
+                onChange={(e) => {
+                  handleChangeCity(e);
+                }}
+                required
+                placeholder="e.g., CT001"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="CityName"> City Name</Label>
-              <Input id="CityName" name="CityName" value={cityForm.CityName} onChange={handleChangeCity} required placeholder="e.g., Coimbatore" />
+              <Input
+                id="CityName"
+                name="CityName"
+                value={cityForm.CityName}
+                onChange={handleChangeCity}
+                required
+                placeholder="e.g., Coimbatore"
+              />
             </div>
-             <div className="space-y-2">
-  <Label htmlFor="StateID">State</Label>
-  <Select
-  onValueChange={(v) => setCityForm((prev) => ({ ...prev, StateID: v }))}
-  value={cityForm.StateID}
->
-  <SelectTrigger>
-    <SelectValue placeholder="Select State" />
-  </SelectTrigger>
-  <SelectContent>
-    {state.map((states) => (
-      <SelectItem key={states.StateIDPK} value={states.StateIDPK}>
-        {states.StateName}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+            <div className="space-y-2">
+              <Label htmlFor="StateID">State</Label>
+              <Select
+                onValueChange={(v) =>
+                  setCityForm((prev) => ({ ...prev, StateID: v }))
+                }
+                value={cityForm.StateID}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select State" />
+                </SelectTrigger>
+                <SelectContent>
+                  {state.map((states) => (
+                    <SelectItem key={states.StateIDPK} value={states.StateIDPK}>
+                      {states.StateName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-</div>
-
-            
             {/* <div className="space-y-3">
               <Label>Expense Category Type</Label>
               <RadioGroup name="ExpenseCategoryType" value={categoryForm.ExpenseCategoryType} onValueChange={(val) => handleRadioChange('ExpenseCategoryType', val)} className="flex gap-4">
@@ -325,18 +415,37 @@ const getState = async () => {
                 <div className="flex items-center space-x-2"><RadioGroupItem value="Expense" id="type-expense" /><Label htmlFor="type-expense">Expense</Label></div>
               </RadioGroup>
             </div> */}
-            
-             <div className="space-y-3">
+
+            <div className="space-y-3">
               <Label>Status</Label>
-              <RadioGroup name="isActive" value={cityForm.isActive} onValueChange={(val) => handleRadioChange('isActive', val)} className="flex gap-4">
-                <div className="flex items-center space-x-2"><RadioGroupItem value={true} id="status-active" /><Label htmlFor="status-active">Active</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value={false} id="status-inactive" /><Label htmlFor="status-inactive">Inactive</Label></div>
+              <RadioGroup
+                name="isActive"
+                value={cityForm.isActive}
+                onValueChange={(val) => handleRadioChange("isActive", val)}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={true} id="status-active" />
+                  <Label htmlFor="status-active">Active</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value={false} id="status-inactive" />
+                  <Label htmlFor="status-inactive">Inactive</Label>
+                </div>
               </RadioGroup>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingCity ? 'Save Changes' : 'Add City'}</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsFormOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingCity ? "Save Changes" : "Add City"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

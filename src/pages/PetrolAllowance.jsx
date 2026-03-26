@@ -45,14 +45,14 @@ const PetrolAllowance = () => {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  console.log(dateRange,"dateRange")
   const [physioFilter, setPhysioFilter] = useState("all");
 
   const [openPhysios, setOpenPhysios] = useState({});
   const [openPatients, setOpenPatients] = useState({});
 
   const togglePhysio = (id) => setOpenPhysios((p) => ({ ...p, [id]: !p[id] }));
-  const togglePatient = (id) => setOpenPatients((p) => ({ ...p, [id]: !p[id] }));
+  const togglePatient = (id) =>
+    setOpenPatients((p) => ({ ...p, [id]: !p[id] }));
 
   const { getPermissionsByPath } = useAuth();
   const [Permissions, setPermissions] = useState({ isView: false });
@@ -71,7 +71,9 @@ const PetrolAllowance = () => {
 
   const getPhysio = async () => {
     try {
-      const response = await apiRequest("Physio/getAllPhysio", { method: "POST" });
+      const response = await apiRequest("Physio/getAllPhysio", {
+        method: "POST",
+      });
       setPhysios(response.physios);
     } catch (error) {
       console.error(error);
@@ -80,10 +82,13 @@ const PetrolAllowance = () => {
 
   const getPetrol = async () => {
     try {
-      const response = await apiRequest("PetrolAllowance/getAllPetrolAllowance", {
-        method: "POST",
-        body: JSON.stringify({ from: dateRange?.from, to: dateRange?.to }),
-      });
+      const response = await apiRequest(
+        "PetrolAllowance/getAllPetrolAllowance",
+        {
+          method: "POST",
+          body: JSON.stringify({ from: dateRange?.from, to: dateRange?.to }),
+        },
+      );
       setDailyData(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error(error);
@@ -94,12 +99,19 @@ const PetrolAllowance = () => {
     try {
       await apiRequest("PetrolAllowance/updateManualKms", {
         method: "POST",
-        body: JSON.stringify({ petrolAllowanceId: allowanceId, amount: Number(delta) }),
+        body: JSON.stringify({
+          petrolAllowanceId: allowanceId,
+          amount: Number(delta),
+        }),
       });
       getPetrol();
       toast({ title: "Success", description: "Adjustment saved." });
     } catch (err) {
-      toast({ title: "Error", description: "Failed to save.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to save.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -111,7 +123,7 @@ const PetrolAllowance = () => {
 
       physio.patients.forEach((logItem) => {
         const log = logItem.dailyLogs;
-        
+
         log.patientDetails.forEach((detail) => {
           const pId = detail.patientId;
           if (!patientMap[pId]) {
@@ -133,8 +145,8 @@ const PetrolAllowance = () => {
 
       return {
         ...physio,
-        groupedPatients: Object.values(patientMap).sort((a, b) => 
-          a.patientName.localeCompare(b.patientName)
+        groupedPatients: Object.values(patientMap).sort((a, b) =>
+          a.patientName.localeCompare(b.patientName),
         ),
       };
     });
@@ -147,10 +159,18 @@ const PetrolAllowance = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex md:flex-row flex-col md:justify-between items-start space-y-3">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex md:flex-row flex-col md:justify-between items-start space-y-3"
+      >
         <div>
-          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">Petrol Allowance</h1>
-          <p className="text-gray-600">Physio Wise → Patient Wise → Date Wise</p>
+          <h1 className="md:text-3xl text-xl font-bold text-gray-800 mb-2">
+            Petrol Allowance
+          </h1>
+          <p className="text-gray-600">
+            Physio Wise → Patient Wise → Date Wise
+          </p>
         </div>
       </motion.div>
 
@@ -161,23 +181,39 @@ const PetrolAllowance = () => {
             <Label>Date Range</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  { (dateRange?.to && dateRange?.from) ? `${format(dateRange?.from, "PP")} - ${format(dateRange?.to, "PP")}` : "Pick dates"}
+                  {dateRange?.to && dateRange?.from
+                    ? `${format(dateRange?.from, "PP")} - ${format(dateRange?.to, "PP")}`
+                    : "Pick dates"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="range" selected={dateRange} onSelect={setDateRange} initialFocus />
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  initialFocus
+                />
               </PopoverContent>
             </Popover>
           </div>
           <div className="space-y-2">
             <Label>Physiotherapist</Label>
             <Select value={physioFilter} onValueChange={setPhysioFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Physiotherapists</SelectItem>
-                {physios.map((p) => (<SelectItem key={p._id} value={p._id}>{p.physioName}</SelectItem>))}
+                {physios.map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.physioName}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -189,19 +225,35 @@ const PetrolAllowance = () => {
         {filteredData.map((physio) => {
           const isPhysioOpen = !!openPhysios[physio.physioId];
           return (
-            <Card key={physio.physioId} className="medical-card overflow-hidden">
-              <div 
+            <Card
+              key={physio.physioId}
+              className="medical-card overflow-hidden"
+            >
+              <div
                 className="p-4 bg-gray-50 flex items-center justify-between cursor-pointer border-b"
                 onClick={() => togglePhysio(physio.physioId)}
               >
                 <div className="flex items-center gap-2">
-                  <span className={cn("transition-transform", isPhysioOpen ? "rotate-90" : "rotate-0")}>▶</span>
+                  <span
+                    className={cn(
+                      "transition-transform",
+                      isPhysioOpen ? "rotate-90" : "rotate-0",
+                    )}
+                  >
+                    ▶
+                  </span>
                   <User size={18} className="text-blue-600" />
-                  <span className="font-bold text-gray-800">{physio.physioName}</span>
+                  <span className="font-bold text-gray-800">
+                    {physio.physioName}
+                  </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-gray-500 uppercase">Total KM: </span>
-                  <span className="font-bold text-blue-700">{physio.grandTotalPhysioKm.toFixed(2)}</span>
+                  <span className="text-xs text-gray-500 uppercase">
+                    Total KM:{" "}
+                  </span>
+                  <span className="font-bold text-blue-700">
+                    {physio.grandTotalPhysioKm.toFixed(2)}
+                  </span>
                 </div>
               </div>
 
@@ -212,15 +264,26 @@ const PetrolAllowance = () => {
                     const isPatientOpen = !!openPatients[patientKey];
                     return (
                       <div key={patient.patientId} className="bg-white">
-                        <div 
+                        <div
                           className="p-3 pl-10 flex items-center justify-between cursor-pointer hover:bg-gray-50"
                           onClick={() => togglePatient(patientKey)}
                         >
                           <div className="flex items-center gap-2">
-                            <span className={cn("text-xs transition-transform", isPatientOpen ? "rotate-90" : "rotate-0")}>▶</span>
-                            <span className="font-semibold text-gray-700">{patient.patientName}</span>
+                            <span
+                              className={cn(
+                                "text-xs transition-transform",
+                                isPatientOpen ? "rotate-90" : "rotate-0",
+                              )}
+                            >
+                              ▶
+                            </span>
+                            <span className="font-semibold text-gray-700">
+                              {patient.patientName}
+                            </span>
                           </div>
-                          <span className="text-sm font-medium text-gray-500">{patient.totalKm.toFixed(2)} km total</span>
+                          <span className="text-sm font-medium text-gray-500">
+                            {patient.totalKm.toFixed(2)} km total
+                          </span>
                         </div>
 
                         {isPatientOpen && (
@@ -235,10 +298,19 @@ const PetrolAllowance = () => {
                               </thead>
                               <tbody>
                                 {patient.dateLogs.map((log, idx) => (
-                                  <tr key={idx} className="border-b last:border-0">
-                                    <td className="py-2">{format(new Date(log.date), "PPP")}</td>
-                                    <td className="py-2 text-center font-medium text-blue-600">{log.status}</td>
-                                    <td className="py-2 text-right font-bold text-gray-800">{log.km.toFixed(2)} km</td>
+                                  <tr
+                                    key={idx}
+                                    className="border-b last:border-0"
+                                  >
+                                    <td className="py-2">
+                                      {format(new Date(log.date), "PPP")}
+                                    </td>
+                                    <td className="py-2 text-center font-medium text-blue-600">
+                                      {log.status}
+                                    </td>
+                                    <td className="py-2 text-right font-bold text-gray-800">
+                                      {log.km.toFixed(2)} km
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
