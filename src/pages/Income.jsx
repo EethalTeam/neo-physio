@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import neoLogo from "../Assets/images/logo_png.png";
+import neoQR from "../Assets/images/qr.jpg";
 import { toast } from "@/components/ui/use-toast";
 
 const Income = () => {
@@ -289,18 +290,15 @@ const Income = () => {
   const calcRatePerSession = (patient) => {
     if (!patient) return 0;
 
-    // ✅ if backend already gives feePerSession, use it first
     const directRate = Number(
       patient.feePerSession ?? patient.ratePerSession ?? 0,
     );
     if (directRate > 0) return directRate;
 
-    // ✅ try to get feesTypeId from any key
     const feesTypeId = getId(
       patient.feesTypeId ?? patient.feeTypeId ?? patient.FeesTypeId,
     );
 
-    // ✅ try to get feeAmount from any key
     const feeAmount = Number(
       patient.feeAmount ?? patient.feesAmount ?? patient.amount ?? 0,
     );
@@ -660,6 +658,7 @@ const Income = () => {
   };
   const downloadBillPdf = ({ bill, includeSessions, billedSessions = [] }) => {
     try {
+      console.log(bill, "bill");
       const doc = new jsPDF("p", "mm", "a4");
       const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -672,10 +671,29 @@ const Income = () => {
         bill?.NetBilledAmount || bill?.TotalBilledAmount || 0,
       );
 
-      const rate =
-        totalSessions > 0
-          ? Number((totalAmount / totalSessions).toFixed(2))
-          : 0;
+      const feeType = String(bill?.feeType || "").toLowerCase();
+
+      let rate = 0;
+      let rateLabel = "";
+      let descriptionText = "Physiotherapy Session";
+      let sessionText = `${totalSessions}`;
+
+      if (feeType === "permonth") {
+        rate = Number(bill?.TotalBilledAmount || totalAmount || 0);
+        rateLabel = "(Per Month)";
+        descriptionText = "Physiotherapy Monthly Package";
+        sessionText = "—";
+      } else {
+        rate =
+          Number(bill?.ratePerSession || 0) > 0
+            ? Number(bill?.ratePerSession || 0)
+            : totalSessions > 0
+              ? Number((totalAmount / totalSessions).toFixed(2))
+              : 0;
+        rateLabel = "(Per Session)";
+        descriptionText = "Physiotherapy Session";
+        sessionText = `${totalSessions}`;
+      }
 
       const sortedSessions = [...billedSessions].sort(
         (a, b) => new Date(a.sessionDate) - new Date(b.sessionDate),
@@ -710,20 +728,19 @@ const Income = () => {
         return `${day}/${month}/${year}`;
       };
 
-      const invoiceNo =
-        bill?.billCode ||
-        bill?.BillCode ||
-        bill?._id?.slice(-8)?.toUpperCase() ||
-        "N/A";
+      const invoiceNo = bill?.invoiceNo || "N/A";
 
       const clinicAddress = [
         "Coimbatore, Tamil Nadu",
-        "Phone: +91 XXXXX XXXXX",
+        "Phone: +91 99439 23231",
         "Email: info@neophysio.com",
         "Website: https://neophysio.in/",
       ];
 
-      const bankDetails = ["UPI Id : example@upi"];
+      const onlinePaymentDetails = [
+        "Scan the QR code to pay",
+        "UPI ID: lifeisnike@okaxis",
+      ];
 
       const labelColor = [24, 83, 148];
       const textColor = [30, 30, 30];
@@ -734,10 +751,8 @@ const Income = () => {
       doc.rect(8, 8, 194, 281, "F");
 
       // ===== HEADER =====
-      // Logo
       doc.addImage(neoLogo, "PNG", 18, 19, 14, 14);
 
-      // Brand text
       doc.setFont("helvetica", "bold");
       doc.setFontSize(13);
       doc.setTextColor(...labelColor);
@@ -747,7 +762,6 @@ const Income = () => {
       doc.setFontSize(6.5);
       doc.text("Physiotherapy & Rehab Center", 34, 33);
 
-      // Right-side clinic details
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       doc.setTextColor(...textColor);
@@ -758,7 +772,6 @@ const Income = () => {
         rightY += 6;
       });
 
-      // Top-right invoice number properly aligned
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...labelColor);
       doc.text("Invoice No:", 118, 44);
@@ -767,7 +780,6 @@ const Income = () => {
       doc.setTextColor(...textColor);
       doc.text(String(invoiceNo), 145, 44);
 
-      // Divider
       doc.setDrawColor(...lineColor);
       doc.setLineWidth(0.3);
       doc.line(18, 52, 190, 52);
@@ -829,7 +841,11 @@ const Income = () => {
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...textColor);
-      doc.text(`${totalSessions} Sessions`, 50, 101);
+      doc.text(
+        feeType === "permonth" ? "Monthly Plan" : `${totalSessions} Sessions`,
+        50,
+        101,
+      );
 
       // ===== MAIN TABLE =====
       autoTable(doc, {
@@ -838,9 +854,9 @@ const Income = () => {
         head: [["DESCRIPTION", "UNIT COST", "NO. OF SESSIONS", "TOTAL COST"]],
         body: [
           [
-            "Physiotherapy Session",
-            `Rs. ${rate.toFixed(2)}`,
-            `${totalSessions}`,
+            descriptionText,
+            `Rs. ${rate.toFixed(2)} ${rateLabel}`,
+            sessionText,
             `Rs. ${totalAmount.toFixed(2)}`,
           ],
           ["", "", "", ""],
@@ -895,27 +911,29 @@ const Income = () => {
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...textColor);
-      doc.text("ABC Corp Ltd.", 50, companyY);
+      doc.text("Neo Physio.", 50, companyY);
 
       doc.setDrawColor(...lineColor);
       doc.line(18, companyY + 4, 190, companyY + 4);
 
-      // ===== BANK DETAILS =====
-      const bankY = companyY + 14;
+      // ===== ONLINE PAYMENT =====
+      const paymentY = companyY + 14;
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
       doc.setTextColor(...labelColor);
-      doc.text("Bank Details:", 18, bankY);
+      doc.text("Online Payment:", 18, paymentY);
+
+      doc.addImage(neoQR, "PNG", 18, paymentY + 5, 32, 32);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(...textColor);
 
-      let bankTextY = bankY + 7;
-      bankDetails.forEach((line) => {
-        doc.text(`• ${line}`, 18, bankTextY);
-        bankTextY += 6;
+      let paymentTextY = paymentY + 10;
+      onlinePaymentDetails.forEach((line) => {
+        doc.text(`• ${line}`, 56, paymentTextY);
+        paymentTextY += 6;
       });
 
       if (includeSessions && sortedSessions.length > 0) {
@@ -963,7 +981,7 @@ const Income = () => {
           },
         });
       } else {
-        const thankY = Math.min(bankTextY + 10, 270);
+        const thankY = Math.max(paymentY + 45, 270);
 
         doc.setDrawColor(210, 210, 210);
         doc.line(18, thankY - 4, 190, thankY - 4);
@@ -1623,7 +1641,6 @@ const Income = () => {
                               b?.ReceivedAmount || 0,
                             );
 
-                            // ✅ correct formula
                             const finalPayable = Math.max(
                               netAmount - discountAmount,
                               0,
@@ -1817,7 +1834,7 @@ const Income = () => {
               </Card>
             </CardContent>
           </Card>
-          {/* ✅ MOBILE VIEW - BILL CARDS */}
+          {/*  MOBILE VIEW - BILL CARDS */}
           <Card className="medical-card md:hidden">
             <CardHeader>
               <CardTitle className="text-base">
