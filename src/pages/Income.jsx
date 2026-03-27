@@ -763,7 +763,7 @@ const Income = () => {
         const year = d.getUTCFullYear();
         return `${day}/${month}/${year}`;
       };
-
+      console.log(bill, "bill");
       const invoiceNo = bill?.invoiceNo || "N/A";
 
       const clinicAddress = [
@@ -786,16 +786,17 @@ const Income = () => {
       doc.setFillColor(255, 255, 255);
       doc.rect(8, 8, 194, 281, "F");
 
-      doc.addImage(neoLogo, "PNG", 18, 19, 14, 14);
+      doc.addImage(neoLogo, "PNG", 18, 15, 25, 25);
 
+      // Move text slightly right
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
+      doc.setFontSize(16);
       doc.setTextColor(...labelColor);
-      doc.text("NEO PHYSIO", 34, 27);
+      doc.text("NEO PHYSIO", 50, 25);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(6.5);
-      doc.text("Physiotherapy & Rehab Center", 34, 33);
+      doc.setFontSize(8);
+      doc.text("We Are Changing Lives", 50, 32);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
@@ -934,17 +935,17 @@ const Income = () => {
 
       const companyY = yAfterTable + 20;
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(...labelColor);
-      doc.text("Company Name:", 18, companyY);
+      // doc.setFont("helvetica", "bold");
+      // doc.setFontSize(8);
+      // doc.setTextColor(...labelColor);
+      // doc.text("Company Name:", 18, companyY);
 
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...textColor);
-      doc.text("Neo Physio.", 50, companyY);
+      // doc.setFont("helvetica", "normal");
+      // doc.setTextColor(...textColor);
+      // doc.text("Neo Physio.", 50, companyY);
 
-      doc.setDrawColor(...lineColor);
-      doc.line(18, companyY + 4, 190, companyY + 4);
+      // doc.setDrawColor(...lineColor);
+      // doc.line(18, companyY + 4, 190, companyY + 4);
 
       const paymentY = companyY + 14;
 
