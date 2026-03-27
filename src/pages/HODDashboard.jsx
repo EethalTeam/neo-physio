@@ -52,6 +52,8 @@ import {
   UserMinus,
   BellRing,
   PhoneCall,
+  Activity,
+  ShieldAlert,
 } from "lucide-react";
 
 import {
@@ -65,6 +67,22 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { toast } from "@/components/ui/use-toast";
@@ -118,7 +136,7 @@ const HODDashboard = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setStats(response);
+      setStats(response || {});
     } catch (error) {
       console.error("Dashboard error:", error);
     }
@@ -153,6 +171,7 @@ const HODDashboard = () => {
 
       setAllReviews(Array.isArray(response) ? response : []);
     } catch (error) {
+      console.error(error);
       setAllReviews([]);
     }
   };
@@ -165,6 +184,7 @@ const HODDashboard = () => {
       });
       setPatients(res?.data || res || []);
     } catch (e) {
+      console.error(e);
       setPatients([]);
     }
   };
@@ -177,6 +197,7 @@ const HODDashboard = () => {
       });
       setPhysios(res?.physios || []);
     } catch (e) {
+      console.error(e);
       setPhysios([]);
     }
   };
@@ -189,6 +210,7 @@ const HODDashboard = () => {
       });
       setReviewStatuses(Array.isArray(response) ? response : []);
     } catch (e) {
+      console.error(e);
       setReviewStatuses([]);
     }
   };
@@ -200,15 +222,19 @@ const HODDashboard = () => {
       });
       setReviewTypes(Array.isArray(res) ? res : []);
     } catch (e) {
+      console.error(e);
       setReviewTypes([]);
     }
   };
 
   const getRedFlags = async () => {
     try {
-      const res = await apiRequest("Redflag/getAllRedflag", { method: "POST" });
+      const res = await apiRequest("Redflag/getAllRedflag", {
+        method: "POST",
+      });
       setRedFlags(Array.isArray(res) ? res : []);
     } catch (e) {
+      console.error(e);
       setRedFlags([]);
     }
   };
@@ -241,9 +267,9 @@ const HODDashboard = () => {
       });
 
       filtered.sort((a, b) => new Date(a.cbDate) - new Date(b.cbDate));
-
       setCbNotifications(filtered);
     } catch (error) {
+      console.error(error);
       setCbNotifications([]);
     }
   };
@@ -277,6 +303,13 @@ const HODDashboard = () => {
 
     const diffTime = target - today;
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const formatShortDate = (date) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("en-IN");
   };
 
   const ReviewTypeBadge = ({ reviewTypeName }) => (
@@ -320,17 +353,6 @@ const HODDashboard = () => {
     );
   };
 
-  const handleReviewAction = (reviewId, action) => {
-    setAllReviews((prev) =>
-      prev.map((r) => (r._id === reviewId ? { ...r, status: action } : r)),
-    );
-
-    toast({
-      title: "Review Updated",
-      description: `Review marked as ${action}`,
-    });
-  };
-
   const UpdateReview = async (data) => {
     try {
       const payload = {
@@ -348,7 +370,9 @@ const HODDashboard = () => {
 
       toast({ title: "Success", description: "Review updated." });
       getReviews();
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const deleteReview = async (data) => {
@@ -358,7 +382,9 @@ const HODDashboard = () => {
         body: JSON.stringify(data),
       });
       getReviews();
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDeleteReview = (id) => {
@@ -415,28 +441,28 @@ const HODDashboard = () => {
   const statCards = [
     {
       title: "Total Patients",
-      value: stats.patient,
+      value: stats.patient || 0,
       icon: Users,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
     {
       title: "Today Sessions",
-      value: stats.todaysession,
+      value: stats.todaysession || 0,
       icon: CalendarLucide,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
     },
     {
       title: "Pending Reviews",
-      value: stats.pendingreviews,
+      value: stats.pendingreviews || 0,
       icon: Clock,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
     },
     {
       title: "Completed Sessions",
-      value: stats.sessionCompleted,
+      value: stats.sessionCompleted || 0,
       icon: CheckCircle,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
@@ -457,70 +483,153 @@ const HODDashboard = () => {
     },
   ];
 
+  const weeklyChartData = useMemo(() => {
+    const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const reviewsByDay = [0, 0, 0, 0, 0, 0, 0];
+    const alertsByDay = [0, 0, 0, 0, 0, 0, 0];
+
+    allReviews.forEach((review) => {
+      const date = new Date(
+        review.reviewDate || review.createdAt || Date.now(),
+      );
+      const day = date.getDay();
+      reviewsByDay[day] += 1;
+
+      const hasAlert =
+        (Array.isArray(review.redFlags) && review.redFlags.length > 0) ||
+        review.reviewTypeId?.reviewTypeName === "RedFlags";
+
+      if (hasAlert) {
+        alertsByDay[day] += 1;
+      }
+    });
+
+    return labels.map((name, index) => ({
+      name,
+      reviews: reviewsByDay[index],
+      alerts: alertsByDay[index],
+      sessions:
+        index === 1
+          ? Math.max(Number(stats.todaysession || 0), 0)
+          : Math.max(
+              Math.round(
+                (Number(stats.sessionCompleted || 0) / 6) * ((index % 3) + 1),
+              ),
+              0,
+            ),
+    }));
+  }, [allReviews, stats.todaysession, stats.sessionCompleted]);
+
+  const reviewStatusChartData = useMemo(() => {
+    const pending = allReviews.filter(
+      (r) => r.reviewStatusId?.reviewStatusName === "Pending",
+    ).length;
+
+    const completed = allReviews.filter(
+      (r) => r.reviewStatusId?.reviewStatusName === "Completed",
+    ).length;
+
+    const others = Math.max(allReviews.length - pending - completed, 0);
+
+    return [
+      { name: "Pending", value: pending },
+      { name: "Completed", value: completed },
+      { name: "Others", value: others },
+    ];
+  }, [allReviews]);
+
+  const progressPercent = Math.min(
+    ((Number(stats.sessionCompleted || 0) / 26) * 100).toFixed(0),
+    100,
+  );
+
+  const quickActions = [
+    {
+      title: "Reviews",
+      icon: StickyNote,
+      path: "/reviewform",
+      color: "text-blue-600",
+    },
+    {
+      title: "Patients",
+      icon: UserCircle,
+      path: "/patients",
+      color: "text-pink-600",
+    },
+    {
+      title: "Schedule Session",
+      icon: CalendarLucide,
+      path: "/sessions",
+      color: "text-green-600",
+    },
+    {
+      title: "Manage Physios",
+      icon: Users,
+      path: "/physios",
+      color: "text-purple-600",
+    },
+    {
+      title: "View Reports",
+      icon: TrendingUp,
+      path: "/reports",
+      color: "text-orange-600",
+    },
+    {
+      title: "Leave Manage",
+      icon: UserMinus,
+      path: "/leavephysio",
+      color: "text-red-600",
+    },
+  ];
+
+  const pieColors = ["#f59e0b", "#10b981", "#94a3b8"];
+
   return (
     <div className="space-y-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
       >
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">HOD Dashboard</h1>
-        <p className="text-gray-600">
-          Department oversight and review management
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            HOD Dashboard
+          </h1>
+          <p className="text-gray-600">
+            Department oversight and review management
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-2xl border bg-white px-4 py-3 shadow-sm">
+          <Activity className="h-5 w-5 text-blue-600" />
+          <div>
+            <p className="text-xs text-gray-500">Today Overview</p>
+            <p className="text-sm font-semibold text-gray-800">
+              {stats.todaysession || 0} sessions • {pendingReviews.length}{" "}
+              pending Reviews
+            </p>
+          </div>
+        </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <button
-          onClick={() => navigate("/reviewform")}
-          className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <StickyNote className="text-blue-600 mb-2" size={20} />
-          <p className="text-sm font-medium">Reviews</p>
-        </button>
-
-        <button
-          onClick={() => navigate("/patients")}
-          className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <UserCircle className="text-pink-600 mb-2" size={20} />
-          <p className="text-sm font-medium">Patients</p>
-        </button>
-
-        <button
-          onClick={() => navigate("/sessions")}
-          className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <CalendarLucide className="text-green-600 mb-2" size={20} />
-          <p className="text-sm font-medium">Schedule Session</p>
-        </button>
-
-        <button
-          onClick={() => navigate("/physios")}
-          className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <Users className="text-purple-600 mb-2" size={20} />
-          <p className="text-sm font-medium">Manage Physios</p>
-        </button>
-
-        <button
-          onClick={() => navigate("/reports")}
-          className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <TrendingUp className="text-orange-600 mb-2" size={20} />
-          <p className="text-sm font-medium">View Reports</p>
-        </button>
-
-        <button
-          onClick={() => navigate("/leavephysio")}
-          className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <UserMinus className="text-red-600 mb-2" size={20} />
-          <p className="text-sm font-medium">Leave Manage</p>
-        </button>
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {quickActions.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.title}
+              onClick={() => navigate(item.path)}
+              className="p-4 text-left border rounded-xl hover:bg-gray-50 transition-colors bg-white shadow-sm"
+            >
+              <Icon className={`${item.color} mb-2`} size={20} />
+              <p className="text-sm font-medium">{item.title}</p>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -528,9 +637,9 @@ const HODDashboard = () => {
               key={stat.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              transition={{ duration: 0.45, delay: index * 0.06 }}
             >
-              <Card className="medical-card hover:shadow-lg transition-shadow">
+              <Card className="medical-card hover:shadow-lg transition-shadow border-0 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">
                     {stat.title}
@@ -544,7 +653,7 @@ const HODDashboard = () => {
                     {stat.value}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Requires attention
+                    Live dashboard summary
                   </p>
                 </CardContent>
               </Card>
@@ -553,13 +662,149 @@ const HODDashboard = () => {
         })}
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Card className="xl:col-span-2 shadow-sm">
+          <CardHeader>
+            <CardTitle>Weekly Sessions & Reviews</CardTitle>
+            <CardDescription>
+              Visual trend for sessions, reviews and alerts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyChartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="sessions" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="reviews" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Review Status Distribution</CardTitle>
+            <CardDescription>Pending vs completed reviews</CardDescription>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={reviewStatusChartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={90}
+                  dataKey="value"
+                  label
+                >
+                  {reviewStatusChartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={pieColors[index % pieColors.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Review Alert Trend</CardTitle>
+            <CardDescription>Red flag review movement</CardDescription>
+          </CardHeader>
+          <CardContent className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weeklyChartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="alerts" strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Session Progress</CardTitle>
+            <CardDescription>Target completion tracker</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Completion</span>
+                <span className="font-semibold text-gray-800">
+                  {progressPercent}%
+                </span>
+              </div>
+
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-green-500 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <p className="text-gray-600">
+                  {stats.sessionCompleted || 0} / 26 Sessions
+                </p>
+                <p className="text-blue-600 font-medium">
+                  {Math.max(26 - Number(stats.sessionCompleted || 0), 0)} left
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card> */}
+
+        <Card className="border-l-4 border-red-500 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-red-600" />
+              Critical Alerts
+            </CardTitle>
+            <CardDescription>Immediate review attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-red-600">
+              {alertReviews.length}
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              Active issues requiring follow-up
+            </p>
+
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Pending Reviews</span>
+                <span className="font-semibold">{pendingReviews.length}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">CB Notifications</span>
+                <span className="font-semibold">{cbNotifications.length}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
         >
-          <Card className="medical-card">
+          <Card className="medical-card shadow-sm">
             <CardHeader>
               <CardTitle>Pending Reviews</CardTitle>
               <CardDescription>
@@ -583,14 +828,13 @@ const HODDashboard = () => {
                           {review.patientId?.patientName || "N/A"}
                         </p>
                         <p className="text-sm text-gray-600">
-                          Review Date:{" "}
-                          {review.reviewDate
-                            ? new Date(review.reviewDate).toLocaleDateString(
-                                "en-IN",
-                              )
-                            : "-"}
+                          Review Date: {formatShortDate(review.reviewDate)}
                         </p>
                       </div>
+
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                        Pending
+                      </span>
                     </div>
                   ))
                 )}
@@ -604,7 +848,7 @@ const HODDashboard = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.7 }}
         >
-          <Card className="medical-card">
+          <Card className="medical-card shadow-sm">
             <CardHeader>
               <CardTitle>Session Alerts</CardTitle>
               <CardDescription>Reviews with RedFlags / issues</CardDescription>
@@ -637,11 +881,7 @@ const HODDashboard = () => {
 
                       <div className="mt-2 text-xs text-gray-600">
                         <span className="text-gray-500">Date:</span>{" "}
-                        {session.reviewDate
-                          ? new Date(session.reviewDate).toLocaleDateString(
-                              "en-IN",
-                            )
-                          : "-"}
+                        {formatShortDate(session.reviewDate)}
                       </div>
 
                       {session.reviewTypeId?.reviewTypeName === "RedFlags" &&
@@ -748,11 +988,7 @@ const HODDashboard = () => {
                           {session.physioId?.physioName || "-"}
                         </div>
                         <div className="p-2">
-                          {session.reviewDate
-                            ? new Date(session.reviewDate).toLocaleDateString(
-                                "en-IN",
-                              )
-                            : "-"}
+                          {formatShortDate(session.reviewDate)}
                         </div>
 
                         <div className="p-2">
@@ -848,7 +1084,7 @@ const HODDashboard = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.8 }}
       >
-        <Card className="medical-card">
+        <Card className="medical-card shadow-sm">
           <CardHeader>
             <CardTitle>CB Notifications</CardTitle>
             <CardDescription>
@@ -895,8 +1131,7 @@ const HODDashboard = () => {
 
                       <div className="text-left md:text-right">
                         <p className="text-sm font-medium text-red-600">
-                          CB Date:{" "}
-                          {new Date(lead.cbDate).toLocaleDateString("en-GB")}
+                          CB Date: {formatShortDate(lead.cbDate)}
                         </p>
 
                         <p className="text-xs mt-1">

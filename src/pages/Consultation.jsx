@@ -84,9 +84,10 @@ const Consulation = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const fileInputRef = useRef(null);
-
+  const [visitOrderError, setVisitOrderError] = useState("");
   const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
   const [assigningPatient, setAssigningPatient] = useState(null);
+  const [consultationPatients, setConsultationPatients] = useState([]);
   const initialAssignState = {
     _id: "",
     physioName: "",
@@ -327,14 +328,15 @@ const Consulation = () => {
         method: "POST",
         body: JSON.stringify({}),
       });
-      //     const consultantPatients = res.filter((item) => item.status !== "Lead");
 
-      const unassignedPatients = (res || []).filter(
+      const allPatients = Array.isArray(res) ? res : [];
+      const unassignedPatients = allPatients.filter(
         (patient) => !patient.physioId,
       );
 
-      setFilteredPatients(unassignedPatients);
-      setPatients(unassignedPatients);
+      setPatients(allPatients); // for duplicate validation
+      setConsultationPatients(unassignedPatients); // only consultation UI
+      setFilteredPatients(unassignedPatients); // shown in UI
     } catch (error) {
       console.error("Error:", error);
     }
@@ -491,19 +493,19 @@ const Consulation = () => {
 
   useEffect(() => {
     if (searchTerm) {
-      const filtered = patients.filter(
+      const filtered = consultationPatients.filter(
         (patient) =>
           patient.patientName
-            .toLowerCase()
+            ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          // patient.patientNumber.includes(searchTerm) ||
           patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
+
       setFilteredPatients(filtered);
     } else {
-      setFilteredPatients(patients);
+      setFilteredPatients(consultationPatients);
     }
-  }, [patients, searchTerm]);
+  }, [consultationPatients, searchTerm]);
   // const generatePatientId = () => {
   //   const ids = patients
   //     .map((p) => parseInt(p.patientCode?.replace("CON", ""), 10))
@@ -849,6 +851,7 @@ const Consulation = () => {
 
   const openAssignPhysioDialog = (patient) => {
     setAssigningPatient(patient);
+    setVisitOrderError("");
     setAssignForm({
       _id: patient._id ? patient._id : null,
       Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
@@ -873,6 +876,14 @@ const Consulation = () => {
 
   const handleAssignPhysioSubmit = (e) => {
     e.preventDefault();
+    if (visitOrderError) {
+      toast({
+        title: "Fix Error",
+        description: visitOrderError,
+        variant: "destructive",
+      });
+      return;
+    }
     if (!assignForm.physioId) {
       toast({
         title: "Alert",
@@ -2180,10 +2191,35 @@ const Consulation = () => {
                     <div className="space-y-2">
                       <Label> Assign Physiotherapist</Label>
                       <Select
-                        onValueChange={(v) =>
-                          setAssignForm((p) => ({ ...p, physioId: v }))
-                        }
                         value={assignForm.physioId}
+                        onValueChange={(value) => {
+                          setAssignForm((prev) => ({
+                            ...prev,
+                            physioId: value,
+                          }));
+
+                          if (!assignForm.visitOrder) {
+                            setVisitOrderError("");
+                            return;
+                          }
+
+                          const duplicate = patients.find(
+                            (p) =>
+                              p._id !== assigningPatient?._id &&
+                              (p.physioId?._id || p.physioId) === value &&
+                              Number(p.visitOrder) ===
+                                Number(assignForm.visitOrder) &&
+                              !p.isRecovered,
+                          );
+
+                          if (duplicate) {
+                            setVisitOrderError(
+                              `Visit order ${assignForm.visitOrder} already exists for this physio`,
+                            );
+                          } else {
+                            setVisitOrderError("");
+                          }
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a physiotherapist" />
@@ -2349,23 +2385,73 @@ const Consulation = () => {
                   <AccordionTrigger>Travel Details</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
-                      <Label htmlFor="visitOrder">Visit Order</Label>
+                      <Label>Visit Order</Label>
+
                       <Input
-                        id="visitOrder"
                         type="number"
-                        onWheel={(e) => {
-                          e.target.blur();
-                        }}
                         min="1"
-                        placeholder="e.g., 1 for first visit"
+                        max="7"
                         value={assignForm.visitOrder}
-                        onChange={(e) =>
-                          setAssignForm((p) => ({
-                            ...p,
-                            visitOrder: e.target.value,
-                          }))
-                        }
+                        onWheel={(e) => e.target.blur()}
+                        onChange={(e) => {
+                          const value = e.target.value;
+
+                          setAssignForm((prev) => ({
+                            ...prev,
+                            visitOrder: value,
+                          }));
+
+                          if (!value) {
+                            setVisitOrderError("");
+                            return;
+                          }
+
+                          const num = Number(value);
+
+                          if (num <= 0) {
+                            setVisitOrderError(
+                              "Visit order must be greater than 0",
+                            );
+                            return;
+                          }
+
+                          if (num > 7) {
+                            setVisitOrderError("Visit order cannot exceed 7");
+                            return;
+                          }
+
+                          if (!assignForm.physioId) {
+                            setVisitOrderError(
+                              "Please select physiotherapist first",
+                            );
+                            return;
+                          }
+
+                          const duplicate = patients.find(
+                            (p) =>
+                              p._id !== assigningPatient?._id &&
+                              (p.physioId?._id || p.physioId) ===
+                                assignForm.physioId &&
+                              Number(p.visitOrder) === num &&
+                              !p.isRecovered,
+                          );
+
+                          if (duplicate) {
+                            setVisitOrderError(
+                              `Visit order ${value} already exists for this physio`,
+                            );
+                          } else {
+                            setVisitOrderError("");
+                          }
+                        }}
                       />
+
+                      {/*ERROR SHOW HERE */}
+                      {visitOrderError && (
+                        <p className="text-red-500 text-sm">
+                          {visitOrderError}
+                        </p>
+                      )}
                     </div>
                     {assignForm.visitOrder == 1 && (
                       <div className="space-y-2">

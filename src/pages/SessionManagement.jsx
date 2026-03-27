@@ -78,7 +78,7 @@ const SessionManagement = () => {
   const [redFlags, setRedFlags] = useState([]);
   const [Modalities, setModalities] = useState([]);
   const [sessionStatus, setSessionStatus] = useState([]);
-  const [filteredSessions, setFilteredSessions] = useState([]);
+  // const [filteredSessions, setFilteredSessions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
@@ -158,11 +158,16 @@ const SessionManagement = () => {
     });
   }, []);
 
+  // useEffect(() => {
+  //   if (Permissions.isView) {
+  //     getSession();
+  //   }
+  // }, [Permissions]);
   useEffect(() => {
     if (Permissions.isView) {
-      getSession();
+      getSession(dateFilter);
     }
-  }, [Permissions]);
+  }, [dateFilter, Permissions]);
 
   const handleCheckboxChange = () => {
     setClaimPetrol((prev) => !prev);
@@ -268,17 +273,18 @@ const SessionManagement = () => {
     }
   };
 
-  const getSession = async (date) => {
+  const getSession = async (passedDate) => {
     try {
       const storedRole = localStorage.getItem("userRole");
       const today = new Date().toLocaleDateString("en-CA");
-      const Today = date || today;
+
+      const selectedDate = passedDate || dateFilter || today;
 
       const response = await apiRequest("Session/getAllSession", {
         method: "POST",
         body: JSON.stringify({
           physioId: user?._id,
-          Today,
+          Today: selectedDate,
           storedRole,
         }),
       });
@@ -297,7 +303,6 @@ const SessionManagement = () => {
 
       const merged = [...complete, ...incomplete];
       setSessions(merged);
-      setFilteredSessions(merged);
       setMsg(response?.message || "");
 
       const countMap = {};
@@ -347,7 +352,57 @@ const SessionManagement = () => {
     return Array.from(set);
   }, [machines, assignedPhysioIds]);
 
-  useEffect(() => {
+  // useEffect(() => {
+  //   let filtered = Array.isArray(sessions) ? [...sessions] : [];
+
+  //   const term = (searchTerm || "").trim().toLowerCase();
+
+  //   if (term) {
+  //     filtered = filtered.filter((s) => {
+  //       const patientName = (
+  //         s.patientId?.patientName ||
+  //         s.incompleteData?.patientId?.patientName ||
+  //         ""
+  //       ).toLowerCase();
+
+  //       const physioNameValue = (
+  //         s.physioId?.physioName ||
+  //         s.incompleteData?.physioId?.physioName ||
+  //         ""
+  //       ).toLowerCase();
+
+  //       const sessionCode = (
+  //         s.sessionCode ||
+  //         s.incompleteData?.sessionCode ||
+  //         ""
+  //       ).toLowerCase();
+
+  //       return (
+  //         patientName.includes(term) ||
+  //         physioNameValue.includes(term) ||
+  //         sessionCode.includes(term)
+  //       );
+  //     });
+  //   }
+
+  //   if (statusFilter !== "all") {
+  //     filtered = filtered.filter(
+  //       (s) => s.sessionStatusId?.sessionStatusName === statusFilter,
+  //     );
+  //   }
+
+  //   if (dateFilter) {
+  //     const toISTDate = (iso) =>
+  //       new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+  //     filtered = filtered.filter(
+  //       (s) => s.sessionDate && toISTDate(s.sessionDate) === dateFilter,
+  //     );
+  //   }
+
+  //   setFilteredSessions(filtered);
+  // }, [sessions, searchTerm, statusFilter, dateFilter]);
+  const filteredSessions = useMemo(() => {
     let filtered = Array.isArray(sessions) ? [...sessions] : [];
 
     const term = (searchTerm || "").trim().toLowerCase();
@@ -388,16 +443,17 @@ const SessionManagement = () => {
 
     if (dateFilter) {
       const toISTDate = (iso) =>
-        new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        new Date(iso).toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kolkata",
+        });
 
       filtered = filtered.filter(
         (s) => s.sessionDate && toISTDate(s.sessionDate) === dateFilter,
       );
     }
 
-    setFilteredSessions(filtered);
+    return filtered;
   }, [sessions, searchTerm, statusFilter, dateFilter]);
-
   const getCreateSession = async (data) => {
     try {
       if (
@@ -438,7 +494,7 @@ const SessionManagement = () => {
       });
 
       toast({ title: "Success", description: "Sessions created" });
-      getSession();
+      getSession(dateFilter);
     } catch (e) {
       console.error(e);
       toast({
@@ -456,7 +512,7 @@ const SessionManagement = () => {
         body: JSON.stringify(data),
       });
 
-      getSession();
+      getSession(dateFilter);
 
       toast({
         title: "Updated",
@@ -480,7 +536,7 @@ const SessionManagement = () => {
         body: JSON.stringify(data),
       });
 
-      getSession();
+      getSession(dateFilter);
 
       toast({
         title: "Deleted",
@@ -503,7 +559,7 @@ const SessionManagement = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      getSession();
+      getSession(dateFilter);
       return response;
     } catch (error) {
       console.log(error, "error from frontend SessionStop");
@@ -517,7 +573,7 @@ const SessionManagement = () => {
         body: JSON.stringify({ sessionId }),
       });
 
-      getSession();
+      getSession(dateFilter);
       return response;
     } catch (error) {
       console.log("Cancel revert error", error);
@@ -531,7 +587,7 @@ const SessionManagement = () => {
         body: JSON.stringify(data),
       });
 
-      getSession();
+      getSession(dateFilter);
 
       toast({
         title: "Session Started",
@@ -556,7 +612,7 @@ const SessionManagement = () => {
         body: JSON.stringify(data),
       });
 
-      getSession();
+      getSession(dateFilter);
 
       toast({
         title: "Canceled",
@@ -603,7 +659,7 @@ const SessionManagement = () => {
           description: "Session feedback has been recorded.",
         });
 
-        getSession();
+        getSession(dateFilter);
       }
     } catch (error) {
       console.log(error, "error from frontend SessionEnd");
@@ -677,19 +733,56 @@ const SessionManagement = () => {
     return date;
   };
 
-  const canStartByPreviousIndex = (sessionsList, session) => {
-    const currentTime = buildSessionDateTime(session);
+  const canStartByVisitOrder = (sessionsList, currentSession) => {
+    const currentPhysioId =
+      currentSession?.physioId?._id || currentSession?.physioId || "";
+    const currentPatientId =
+      currentSession?.patientId?._id || currentSession?.patientId || "";
+    const currentVisitOrder = Number(
+      currentSession?.patientId?.visitOrder || 0,
+    );
 
-    const previousSessions = sessionsList
-      .filter((s) => {
-        const t = buildSessionDateTime(s);
-        return t && currentTime && t < currentTime;
-      })
-      .sort((a, b) => buildSessionDateTime(b) - buildSessionDateTime(a));
+    if (!currentPhysioId || !currentPatientId || !currentVisitOrder) {
+      return true;
+    }
 
-    if (previousSessions.length === 0) return true;
+    const toISTDate = (iso) =>
+      new Date(iso).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Kolkata",
+      });
 
-    const prevStatus = previousSessions[0]?.sessionStatusId?.sessionStatusName;
+    const currentDate = currentSession?.sessionDate
+      ? toISTDate(currentSession.sessionDate)
+      : "";
+
+    // same physio + same date only
+    const samePhysioSameDateSessions = (
+      Array.isArray(sessionsList) ? sessionsList : []
+    ).filter((s) => {
+      const physioId = s?.physioId?._id || s?.physioId || "";
+      const sessionDate = s?.sessionDate ? toISTDate(s.sessionDate) : "";
+      return physioId === currentPhysioId && sessionDate === currentDate;
+    });
+
+    // sort by patient visit order
+    const orderedSessions = samePhysioSameDateSessions.sort((a, b) => {
+      const aOrder = Number(a?.patientId?.visitOrder || 0);
+      const bOrder = Number(b?.patientId?.visitOrder || 0);
+      return aOrder - bOrder;
+    });
+
+    // find current index
+    const currentIndex = orderedSessions.findIndex(
+      (s) => String(s?._id) === String(currentSession?._id),
+    );
+
+    if (currentIndex <= 0) {
+      return true; // first visitOrder can start directly
+    }
+
+    const previousSession = orderedSessions[currentIndex - 1];
+    const prevStatus = previousSession?.sessionStatusId?.sessionStatusName;
+
     return prevStatus === "Completed" || prevStatus === "Canceled";
   };
 
@@ -730,12 +823,13 @@ const SessionManagement = () => {
       }
 
       if (action === "Attended") {
-        const allowed = canStartByPreviousIndex(filteredSessions, session);
+        const allowed = canStartByVisitOrder(sessions, session);
 
         if (!allowed) {
           toast({
             title: "Action blocked",
-            description: "Please complete or cancel the previous session first",
+            description:
+              "Please complete or cancel the previous visit order session first",
             variant: "destructive",
           });
           return;
@@ -816,18 +910,18 @@ const SessionManagement = () => {
       claimPetrol,
     );
 
-    setFilteredSessions((prev) =>
-      prev.map((s) =>
-        s._id === sessionId
-          ? {
-              ...s,
-              status: "Canceled",
-              cancelledKms: parseFloat(cancelledKms) || 0,
-              petrolAllowanceClaimed: claimPetrol,
-            }
-          : s,
-      ),
-    );
+    // setFilteredSessions((prev) =>
+    //   prev.map((s) =>
+    //     s._id === sessionId
+    //       ? {
+    //           ...s,
+    //           status: "Canceled",
+    //           cancelledKms: parseFloat(cancelledKms) || 0,
+    //           petrolAllowanceClaimed: claimPetrol,
+    //         }
+    //       : s,
+    //   ),
+    // );
 
     toast({
       title: "Session Canceled",
@@ -1065,22 +1159,22 @@ const SessionManagement = () => {
           ),
         );
 
-        setFilteredSessions((prev) =>
-          (Array.isArray(prev) ? prev : []).map((s) =>
-            s._id === sessionId
-              ? {
-                  ...s,
-                  sessionStatusId: {
-                    ...s.sessionStatusId,
-                    sessionStatusName: "Scheduled",
-                  },
-                  cancelledReason: "",
-                  sessionFeedbackCons: "",
-                  cancelledKms: 0,
-                }
-              : s,
-          ),
-        );
+        // setFilteredSessions((prev) =>
+        //   (Array.isArray(prev) ? prev : []).map((s) =>
+        //     s._id === sessionId
+        //       ? {
+        //           ...s,
+        //           sessionStatusId: {
+        //             ...s.sessionStatusId,
+        //             sessionStatusName: "Scheduled",
+        //           },
+        //           cancelledReason: "",
+        //           sessionFeedbackCons: "",
+        //           cancelledKms: 0,
+        //         }
+        //       : s,
+        //   ),
+        // );
       } else {
         toast({
           title: "Error",
@@ -1202,7 +1296,7 @@ const SessionManagement = () => {
                   value={dateFilter}
                   onChange={(e) => {
                     setDateFilter(e.target.value);
-                    getSession(e.target.value);
+                    // getSession(e.target.value);
                   }}
                   className="w-full"
                 />

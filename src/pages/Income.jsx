@@ -29,7 +29,7 @@ import { toast } from "@/components/ui/use-toast";
 
 const Income = () => {
   const [patients, setPatients] = useState([]);
-  const [sessions, setSessions] = useState([]);
+  // const [sessions, setSessions] = useState([]);
   const [badDebtDialog, setBadDebtDialog] = useState({
     open: false,
     billId: null,
@@ -99,44 +99,44 @@ const Income = () => {
       )}
     </button>
   );
-  const getPreviewDateRange = (bill) => {
-    const pid = getId(bill?.patientId);
-    const list = sessions
-      .filter((s) => getId(s.patientId) === pid)
-      .map((s) => new Date(s.sessionDate))
-      .filter((d) => !isNaN(d.getTime()))
-      .filter(
-        (d) =>
-          d.getMonth() + 1 === selectedBillMonth &&
-          d.getFullYear() === selectedBillYear,
-      );
+  // const getPreviewDateRange = (bill) => {
+  //   const pid = getId(bill?.patientId);
+  //   const list = sessions
+  //     .filter((s) => getId(s.patientId) === pid)
+  //     .map((s) => new Date(s.sessionDate))
+  //     .filter((d) => !isNaN(d.getTime()))
+  //     .filter(
+  //       (d) =>
+  //         d.getMonth() + 1 === selectedBillMonth &&
+  //         d.getFullYear() === selectedBillYear,
+  //     );
 
-    if (!list.length) return "N/A";
-    const minD = new Date(Math.min(...list));
-    const maxD = new Date(Math.max(...list));
-    return `${fmt(minD)} → ${fmt(maxD)}`;
-  };
-  const getCompletedCountForPreview = (bill) => {
-    if (!bill) return 0;
+  //   if (!list.length) return "N/A";
+  //   const minD = new Date(Math.min(...list));
+  //   const maxD = new Date(Math.max(...list));
+  //   return `${fmt(minD)} → ${fmt(maxD)}`;
+  // };
+  // const getCompletedCountForPreview = (bill) => {
+  //   if (!bill) return 0;
 
-    const pid = getId(bill.patientId);
+  //   const pid = getId(bill.patientId);
 
-    return sessions.filter((s) => {
-      const spid = getId(s.patientId);
-      if (spid !== pid) return false;
+  //   return sessions.filter((s) => {
+  //     const spid = getId(s.patientId);
+  //     if (spid !== pid) return false;
 
-      const d = new Date(s.sessionDate);
-      const sameMonth =
-        d.getMonth() + 1 === selectedBillMonth &&
-        d.getFullYear() === selectedBillYear;
+  //     const d = new Date(s.sessionDate);
+  //     const sameMonth =
+  //       d.getMonth() + 1 === selectedBillMonth &&
+  //       d.getFullYear() === selectedBillYear;
 
-      const isCompleted =
-        (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
-        "completed";
+  //     const isCompleted =
+  //       (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
+  //       "completed";
 
-      return sameMonth && isCompleted;
-    }).length;
-  };
+  //     return sameMonth && isCompleted;
+  //   }).length;
+  // };
   const handleManualGenerateBill = async () => {
     try {
       if (!selectedBillPatientId || selectedBillPatientId === "ALL") {
@@ -201,13 +201,13 @@ const Income = () => {
         body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
       });
 
-      const sessionsRes = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      // const sessionsRes = await apiRequest("Session/getAllSession", {
+      //   method: "POST",
+      //   body: JSON.stringify({}),
+      // });
 
       setPatients(Array.isArray(patientsRes) ? patientsRes : []);
-      setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
+      // setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
     } catch (err) {
       console.error(err);
     }
@@ -400,78 +400,78 @@ const Income = () => {
       return sum + getPendingAmount(b);
     }, 0);
   }, [filteredBills]);
-  const billSessions = useMemo(() => {
-    return sessions.filter((s) => {
-      const pid = getId(s.patientId);
-      const d = new Date(s.sessionDate);
+  // const billSessions = useMemo(() => {
+  //   return sessions.filter((s) => {
+  //     const pid = getId(s.patientId);
+  //     const d = new Date(s.sessionDate);
 
-      const isSameMonth =
-        d.getMonth() + 1 === selectedBillMonth &&
-        d.getFullYear() === selectedBillYear;
+  //     const isSameMonth =
+  //       d.getMonth() + 1 === selectedBillMonth &&
+  //       d.getFullYear() === selectedBillYear;
 
-      const matchPatient =
-        selectedBillPatientId === "ALL" ? true : pid === selectedBillPatientId;
+  //     const matchPatient =
+  //       selectedBillPatientId === "ALL" ? true : pid === selectedBillPatientId;
 
-      return isSameMonth && matchPatient;
-    });
-  }, [sessions, selectedBillMonth, selectedBillYear, selectedBillPatientId]);
+  //     return isSameMonth && matchPatient;
+  //   });
+  // }, [sessions, selectedBillMonth, selectedBillYear, selectedBillPatientId]);
 
-  const completedBillSessions = useMemo(() => {
-    return billSessions.filter(
-      (s) =>
-        (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
-        "completed",
-    );
-  }, [billSessions]);
+  // const completedBillSessions = useMemo(() => {
+  //   return billSessions.filter(
+  //     (s) =>
+  //       (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
+  //       "completed",
+  //   );
+  // }, [billSessions]);
 
-  const completedCount = completedBillSessions.length;
+  // const completedCount = completedBillSessions.length;
 
-  const billedAmount = useMemo(() => {
-    let total = 0;
+  // const billedAmount = useMemo(() => {
+  //   let total = 0;
 
-    if (selectedBillPatientId !== "ALL") {
-      const patient = patients.find((p) => p._id === selectedBillPatientId);
-      const rate = calcRatePerSession(patient);
-      total = completedCount * rate;
-      return Number(total.toFixed(2));
-    }
+  //   if (selectedBillPatientId !== "ALL") {
+  //     const patient = patients.find((p) => p._id === selectedBillPatientId);
+  //     const rate = calcRatePerSession(patient);
+  //     total = completedCount * rate;
+  //     return Number(total.toFixed(2));
+  //   }
 
-    const countByPatient = {};
-    completedBillSessions.forEach((s) => {
-      const pid = getId(s.patientId);
-      countByPatient[pid] = (countByPatient[pid] || 0) + 1;
-    });
+  //   const countByPatient = {};
+  //   completedBillSessions.forEach((s) => {
+  //     const pid = getId(s.patientId);
+  //     countByPatient[pid] = (countByPatient[pid] || 0) + 1;
+  //   });
 
-    total = Object.entries(countByPatient).reduce((sum, [pid, count]) => {
-      const patient = patients.find((p) => p._id === pid);
-      const rate = calcRatePerSession(patient);
-      return sum + count * rate;
-    }, 0);
+  //   total = Object.entries(countByPatient).reduce((sum, [pid, count]) => {
+  //     const patient = patients.find((p) => p._id === pid);
+  //     const rate = calcRatePerSession(patient);
+  //     return sum + count * rate;
+  //   }, 0);
 
-    return Number(total.toFixed(2));
-  }, [patients, completedBillSessions, selectedBillPatientId, completedCount]);
+  //   return Number(total.toFixed(2));
+  // }, [patients, completedBillSessions, selectedBillPatientId, completedCount]);
   const selectedBillPatient = useMemo(() => {
     if (selectedBillPatientId === "ALL") return null;
     return patients.find((p) => p._id === selectedBillPatientId) || null;
   }, [patients, selectedBillPatientId]);
 
-  const billFromDate = useMemo(
-    () => new Date(selectedBillYear, selectedBillMonth - 1, 1),
-    [selectedBillYear, selectedBillMonth],
-  );
-  const billToDate = useMemo(() => {
-    if (!selectedBillPatientId || selectedBillPatientId === "ALL") return null;
+  // const billFromDate = useMemo(
+  //   () => new Date(selectedBillYear, selectedBillMonth - 1, 1),
+  //   [selectedBillYear, selectedBillMonth],
+  // );
+  // const billToDate = useMemo(() => {
+  //   if (!selectedBillPatientId || selectedBillPatientId === "ALL") return null;
 
-    const patientCompletedSessions = completedBillSessions
-      .filter((s) => getId(s.patientId) === selectedBillPatientId)
-      .map((s) => new Date(s.sessionDate))
-      .filter((d) => !isNaN(d.getTime()));
+  //   const patientCompletedSessions = completedBillSessions
+  //     .filter((s) => getId(s.patientId) === selectedBillPatientId)
+  //     .map((s) => new Date(s.sessionDate))
+  //     .filter((d) => !isNaN(d.getTime()));
 
-    if (patientCompletedSessions.length === 0) return null;
+  //   if (patientCompletedSessions.length === 0) return null;
 
-    // latest date
-    return new Date(Math.max(...patientCompletedSessions));
-  }, [completedBillSessions, selectedBillPatientId]);
+  //   // latest date
+  //   return new Date(Math.max(...patientCompletedSessions));
+  // }, [completedBillSessions, selectedBillPatientId]);
   const ratePerSessionForSelected = useMemo(() => {
     if (!selectedBillPatient) return 0;
     return calcRatePerSession(selectedBillPatient);
@@ -586,20 +586,49 @@ const Income = () => {
   const fetchBilledSessionsForBill = async (bill) => {
     try {
       const patientId = getId(bill?.patientId);
-      if (!patientId || !bill?._id) return [];
+
+      if (!patientId) return [];
 
       const allSessions = await apiRequest("Session/getAllSessionsbyPatient", {
         method: "POST",
         body: JSON.stringify({ patientId }),
       });
 
-      const sessionsArr = Array.isArray(allSessions) ? allSessions : [];
+      const sessionsArr = Array.isArray(allSessions)
+        ? allSessions
+        : Array.isArray(allSessions?.data)
+          ? allSessions.data
+          : [];
 
-      return sessionsArr
-        .filter((s) => s.isBilled === true && getId(s.billId) === bill._id)
+      const billMonth = bill?.month?.toLowerCase();
+      const billYear = Number(bill?.year);
+
+      const filtered = sessionsArr
+        .filter((s) => {
+          const date = new Date(s.sessionDate);
+
+          const sessionMonth = date
+            .toLocaleString("default", { month: "long" })
+            .toLowerCase();
+          const sessionYear = date.getFullYear();
+
+          const isCompleted =
+            (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
+            "completed";
+
+          return (
+            sessionMonth === billMonth &&
+            sessionYear === billYear &&
+            isCompleted
+          );
+        })
         .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
+
+      console.log("Filtered sessions (FIXED):", filtered);
+
+      return filtered;
     } catch (error) {
-      console.error("Failed to fetch billed sessions for PDF:", error);
+      console.error("Failed to fetch billed sessions:", error);
       return [];
     }
   };
@@ -642,6 +671,9 @@ const Income = () => {
 
       if (billPreview.includeSessions) {
         billedSessions = await fetchBilledSessionsForBill(bill);
+
+        console.log("includeSessions:", billPreview.includeSessions);
+        console.log("Fetched billedSessions:", billedSessions);
       }
 
       downloadBillPdf({
@@ -650,7 +682,11 @@ const Income = () => {
         billedSessions,
       });
 
-      setBillPreview((s) => ({ ...s, open: false, loading: false }));
+      setBillPreview((s) => ({
+        ...s,
+        open: false,
+        loading: false,
+      }));
     } catch (err) {
       console.error("Bill PDF download failed:", err);
       setBillPreview((s) => ({ ...s, loading: false }));
@@ -689,6 +725,7 @@ const Income = () => {
             : totalSessions > 0
               ? Number((totalAmount / totalSessions).toFixed(2))
               : 0;
+
         rateLabel = "(Per Session)";
         descriptionText = "Physiotherapy Session";
         sessionText = `${totalSessions}`;
@@ -749,7 +786,6 @@ const Income = () => {
       doc.setFillColor(255, 255, 255);
       doc.rect(8, 8, 194, 281, "F");
 
-      // ===== HEADER =====
       doc.addImage(neoLogo, "PNG", 18, 19, 14, 14);
 
       doc.setFont("helvetica", "bold");
@@ -783,7 +819,6 @@ const Income = () => {
       doc.setLineWidth(0.3);
       doc.line(18, 52, 190, 52);
 
-      // ===== TITLE =====
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(...labelColor);
@@ -792,7 +827,6 @@ const Income = () => {
       doc.setDrawColor(...lineColor);
       doc.line(18, 66, 190, 66);
 
-      // ===== INFO ROWS =====
       const drawInfoRow = (
         y,
         leftLabel,
@@ -846,7 +880,6 @@ const Income = () => {
         101,
       );
 
-      // ===== MAIN TABLE =====
       autoTable(doc, {
         startY: 107,
         margin: { left: 18, right: 20 },
@@ -885,7 +918,6 @@ const Income = () => {
 
       let yAfterTable = doc.lastAutoTable.finalY + 12;
 
-      // ===== SUBTOTAL =====
       doc.setDrawColor(...lineColor);
       doc.line(18, yAfterTable, 190, yAfterTable);
 
@@ -900,7 +932,6 @@ const Income = () => {
 
       doc.line(18, yAfterTable + 12, 190, yAfterTable + 12);
 
-      // ===== COMPANY ONLY =====
       const companyY = yAfterTable + 20;
 
       doc.setFont("helvetica", "bold");
@@ -915,7 +946,6 @@ const Income = () => {
       doc.setDrawColor(...lineColor);
       doc.line(18, companyY + 4, 190, companyY + 4);
 
-      // ===== ONLINE PAYMENT =====
       const paymentY = companyY + 14;
 
       doc.setFont("helvetica", "bold");
@@ -980,7 +1010,6 @@ const Income = () => {
           },
         });
       } else {
-        // ===== NOTE =====
         const noteY = paymentY + 45;
 
         doc.setFont("helvetica", "bold");
@@ -998,7 +1027,6 @@ const Income = () => {
           { maxWidth: 170 },
         );
 
-        // ===== PAGE 1 THANK YOU =====
         const thankY = Math.max(noteY + 18, 270);
 
         doc.setDrawColor(210, 210, 210);
@@ -1028,6 +1056,18 @@ const Income = () => {
     (sum, p) => sum + Number(p.Billed || 0),
     0,
   );
+  const formatBillDate = (date) => {
+    if (!date) return "N/A";
+
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "N/A";
+
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    return `${day}-${month}-${year}`;
+  };
   const unbilledAmountFromIncome = useMemo(() => {
     return Math.max(totalIncomeByFilter - billedAmountFromBills, 0);
   }, [totalIncomeByFilter, billedAmountFromBills]);
@@ -1667,11 +1707,19 @@ const Income = () => {
                               finalPayable - receivedAmount,
                               0,
                             );
+                            const formatDate = (date) => {
+                              if (!date) return "-";
 
-                            const fromDate =
-                              b?.patientId?.sessionStartDate || b?.startDate;
+                              // FIX: take only date part (ignore time completely)
+                              const [year, month, day] = new Date(date)
+                                .toISOString()
+                                .split("T")[0]
+                                .split("-");
+
+                              return `${day}-${month}-${year}`;
+                            };
+                            const fromDate = b?.startDate;
                             const toDate = b?.ToDate;
-
                             return (
                               <tr
                                 key={b._id}
@@ -1689,19 +1737,8 @@ const Income = () => {
                                 </td>
 
                                 <td className="p-2 border whitespace-nowrap">
-                                  {fromDate
-                                    ? new Date(fromDate)
-                                        .toLocaleDateString("en-GB")
-                                        .replace(/\//g, "-")
-                                    : "-"}
-                                  {" - "}
-                                  {toDate
-                                    ? new Date(toDate)
-                                        .toLocaleDateString("en-GB")
-                                        .replace(/\//g, "-")
-                                    : "-"}
+                                  {formatDate(fromDate)} - {formatDate(toDate)}
                                 </td>
-
                                 <td className="p-2 border text-center">
                                   {b?.TotalSessionCount ?? 0}
                                 </td>
@@ -2231,19 +2268,24 @@ const Income = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 border rounded">
-                  Sessions: {getCompletedCountForPreview(billPreview.bill)}
+                  Sessions: {Number(billPreview.bill?.TotalSessionCount || 0)}
                 </div>
+
                 <div className="p-2 border rounded">
-                  Period: {getPreviewDateRange(billPreview.bill)}
+                  Period: {formatBillDate(billPreview.bill?.startDate)} -{" "}
+                  {formatBillDate(billPreview.bill?.ToDate)}
                 </div>
+
                 <div className="p-2 border rounded">
                   Rate: ₹
                   {Number(billPreview.bill?.ratePerSession || 0).toFixed(2)}
                 </div>
+
                 <div className="p-2 border rounded">
                   Net: ₹
                   {Number(billPreview.bill?.NetBilledAmount || 0).toFixed(2)}
                 </div>
+
                 <div className="p-2 border rounded">
                   Pending: ₹{Number(billPreview.bill?.pending || 0).toFixed(2)}
                 </div>

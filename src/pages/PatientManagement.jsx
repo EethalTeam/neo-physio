@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -51,14 +57,12 @@ import {
   Trash2,
   Upload,
   Paperclip,
-  ClipboardList,
   PlusCircle,
   UserPlus,
   History,
   UserCheck,
   CheckCircle,
   Circle,
-  InboxIcon,
   User2,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -83,14 +87,469 @@ import PatientDetailsDialog from "@/components/PatientDetailsDialog";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
+// ─────────────────────────────────────────────
+// FIX 1: Memoized PatientRow to stop re-renders
+// ─────────────────────────────────────────────
+const PatientRow = React.memo(function PatientRow({
+  patient,
+  user,
+  Permissions,
+  onViewConsultation,
+  onScheduleReview,
+  onViewHistory,
+  onEditPatient,
+  onDeletePatient,
+  onAssignPhysio,
+  onConsentClick,
+  sessionResult,
+  badge,
+}) {
+  return (
+    <tr className="border-t hover:bg-gray-50 align-top">
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-2">
+          <div className="font-medium truncate max-w-[140px]">
+            {patient.patientName}
+          </div>
+          {badge && (
+            <span
+              className={`px-2 py-0.5 text-[10px] rounded-full font-medium whitespace-nowrap ${badge.className}`}
+            >
+              {badge.label}
+            </span>
+          )}
+        </div>
+        <div className="text-xs text-gray-500 truncate max-w-[140px]">
+          {patient.patientCode}
+        </div>
+      </td>
+
+      {user?.role !== "HOD" && (
+        <>
+          <td className="px-3 py-2">
+            {patient.patientAge} / {patient.patientGenderId.genderName}
+          </td>
+          <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
+            {patient.patientNumber}
+          </td>
+        </>
+      )}
+
+      <td className="px-3 py-2 hidden md:table-cell">
+        {patient.totalSessionCount || 0}
+      </td>
+      <td className="px-3 py-2">
+        Session {sessionResult.session}
+        <br />
+        <span className="text-xs text-gray-500">
+          {sessionResult.date} ({sessionResult.sessionsNeeded} sessions left)
+        </span>
+      </td>
+      <td className="px-3 py-2 hidden md:table-cell">
+        {patient.patientCondition}
+      </td>
+
+      {user?.role !== "HOD" && (
+        <td className="px-3 py-2 hidden lg:table-cell">
+          {patient.consultationDate
+            ? format(new Date(patient.consultationDate), "PP")
+            : "Not set"}
+        </td>
+      )}
+
+      <td className="px-3 py-2 hidden lg:table-cell">
+        {patient.reviewDate
+          ? format(new Date(patient.reviewDate), "PP")
+          : "N/A"}
+      </td>
+      <td className="px-3 py-2 whitespace-nowrap">
+        {patient.physioId?.physioName}
+      </td>
+
+      <td className="px-3 py-2 hidden sm:table-cell">
+        <div className="flex flex-row flex-wrap gap-2 justify-center">
+          <Button
+            size="sm"
+            variant={patient.isConsentReceived ? "secondary" : "default"}
+            onClick={() => onConsentClick(patient)}
+          >
+            {patient.isConsentReceived ? (
+              <CheckCircle
+                size={14}
+                className="text-green-600 pointer-events-none"
+              />
+            ) : (
+              <Circle size={14} className="pointer-events-none" />
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onViewConsultation(patient)}
+          >
+            <FileText size={14} />
+          </Button>
+          <Button size="sm" onClick={() => onScheduleReview(patient)}>
+            <CalendarIcon size={14} />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onViewHistory(patient)}
+          >
+            <History size={14} />
+          </Button>
+          {Permissions.isEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEditPatient(patient)}
+            >
+              <Edit size={14} />
+            </Button>
+          )}
+          <Button size="sm" onClick={() => onAssignPhysio(patient)}>
+            {patient.physioId ? (
+              <UserCheck size={14} />
+            ) : (
+              <UserPlus size={14} />
+            )}
+          </Button>
+          {Permissions.isDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="destructive">
+                  <Trash2 size={14} />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="w-[95vw] max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete patient?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the patient.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                  <AlertDialogCancel className="w-full sm:w-auto">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="w-full sm:w-auto"
+                    onClick={() => onDeletePatient(patient._id)}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+});
+
+// ─────────────────────────────────────────────
+// FIX 2: Memoized PatientCard (mobile)
+// ─────────────────────────────────────────────
+const PatientCard = React.memo(function PatientCard({
+  patient,
+  user,
+  Permissions,
+  onViewConsultation,
+  onScheduleReview,
+  onViewHistory,
+  onEditPatient,
+  onDeletePatient,
+  onAssignPhysio,
+  onConsentClick,
+  sessionResult,
+  badge,
+}) {
+  return (
+    <motion.div
+      key={patient._id}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+    >
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+          <User className="text-blue-600" size={20} />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-gray-800 break-words">
+              {patient.patientName}
+            </h3>
+            {badge && (
+              <span
+                className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${badge.className}`}
+              >
+                {badge.label}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-600 break-all">
+            {patient.patientCode}
+          </p>
+          <p className="text-sm text-gray-600 break-words">
+            {patient.patientAge} years, {patient.patientGenderId.genderName}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-1 mb-4 flex-grow text-sm">
+        <p>
+          <strong>Contact:</strong> {patient.patientNumber}
+        </p>
+        <p>
+          <strong>Condition:</strong> {patient.patientCondition}
+        </p>
+        <p>
+          <strong>No of Sessions:</strong> {patient.sessionCount}
+        </p>
+        <p>
+          <strong>Next Session:</strong>{" "}
+          <span className="text-xs text-gray-500">
+            {sessionResult.date} ({sessionResult.sessionsNeeded} sessions left)
+          </span>
+        </p>
+        <p>
+          <strong>Review Date:</strong>{" "}
+          {patient.reviewDate
+            ? format(new Date(patient.reviewDate), "PP")
+            : "N/A"}
+        </p>
+        <p>Physio: {patient.physioId?.physioName}</p>
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        <Button
+          size="sm"
+          variant={patient.isConsentReceived ? "secondary" : "default"}
+          onClick={() => onConsentClick(patient)}
+        >
+          {patient.isConsentReceived ? (
+            <CheckCircle
+              size={14}
+              className="text-green-600 pointer-events-none"
+            />
+          ) : (
+            <Circle size={14} />
+          )}
+        </Button>
+        <Button size="sm" onClick={() => onAssignPhysio(patient)}>
+          {patient.physioId ? <UserCheck size={14} /> : <UserPlus size={14} />}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onViewConsultation(patient)}
+        >
+          <FileText size={14} />
+        </Button>
+        <Button size="sm" onClick={() => onScheduleReview(patient)}>
+          <CalendarIcon size={14} />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onViewHistory(patient)}
+        >
+          <History size={14} />
+        </Button>
+        {Permissions.isEdit && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditPatient(patient)}
+          >
+            <Edit size={14} />
+          </Button>
+        )}
+        {Permissions.isDelete && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="destructive">
+                <Trash2 size={14} />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="w-[95vw] max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete patient?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the patient.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDeletePatient(patient._id)}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
+    </motion.div>
+  );
+});
+
+// ─────────────────────────────────────────────
+// FIX 3: Memoized RecoveredPatientRow
+// ─────────────────────────────────────────────
+const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
+  patient,
+  user,
+  Permissions,
+  onViewConsultation,
+  onScheduleReview,
+  onViewHistory,
+  onEditPatient,
+  onDeletePatient,
+  onAssignPhysio,
+  onConsentClick,
+}) {
+  return (
+    <tr className="border-t hover:bg-gray-50 align-top">
+      <td className="px-3 py-2">
+        <div className="font-medium truncate max-w-[140px]">
+          {patient.patientName}
+        </div>
+        <div className="text-xs text-gray-500 truncate max-w-[140px]">
+          {patient.patientCode}
+        </div>
+      </td>
+      {user?.role !== "HOD" && (
+        <>
+          <td className="px-3 py-2">
+            {patient.patientAge} / {patient.patientGenderId.genderName}
+          </td>
+          <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
+            {patient.patientNumber}
+          </td>
+        </>
+      )}
+      <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
+        {patient.sessionCount || 0}
+      </td>
+      <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
+        {patient.patientCondition}
+      </td>
+      {user?.role !== "HOD" && (
+        <td className="px-3 py-2 hidden lg:table-cell">
+          {patient.consultationDate
+            ? format(new Date(patient.consultationDate), "PP")
+            : "Not set"}
+        </td>
+      )}
+      <td className="px-3 py-2 hidden lg:table-cell">
+        {patient.reviewDate
+          ? format(new Date(patient.reviewDate), "PP")
+          : "N/A"}
+      </td>
+      <td className="px-3 py-2 hidden lg:table-cell">
+        {patient.recoveredAt
+          ? format(new Date(patient.recoveredAt), "PP")
+          : "N/A"}
+      </td>
+      <td className="px-3 py-2 whitespace-nowrap">
+        {patient.physioId?.physioName}
+      </td>
+      <td className="px-3 py-2 hidden sm:table-cell">
+        <div className="flex flex-row flex-wrap gap-2 justify-center">
+          <Button
+            size="sm"
+            variant={patient.isConsentReceived ? "secondary" : "default"}
+            onClick={() => onConsentClick(patient)}
+          >
+            {patient.isConsentReceived ? (
+              <CheckCircle
+                size={14}
+                className="text-green-600 pointer-events-none"
+              />
+            ) : (
+              <Circle size={14} className="pointer-events-none" />
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onViewConsultation(patient)}
+          >
+            <FileText size={14} />
+          </Button>
+          <Button size="sm" onClick={() => onScheduleReview(patient)}>
+            <CalendarIcon size={14} />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onViewHistory(patient)}
+          >
+            <History size={14} />
+          </Button>
+          {Permissions.isEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEditPatient(patient)}
+            >
+              <Edit size={14} />
+            </Button>
+          )}
+          <Button size="sm" onClick={() => onAssignPhysio(patient)}>
+            {patient.physioId ? (
+              <UserCheck size={14} />
+            ) : (
+              <UserPlus size={14} />
+            )}
+          </Button>
+          {Permissions.isDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="destructive">
+                  <Trash2 size={14} />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="w-[95vw] max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete patient?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the patient.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                  <AlertDialogCancel className="w-full sm:w-auto">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="w-full sm:w-auto"
+                    onClick={() => onDeletePatient(patient._id)}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+});
+
+// ═══════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════
 const PatientManagement = () => {
   const [dateFilter, setDateFilter] = useState("");
-
   const navigate = useNavigate();
   const { user } = useAuth();
   const [patients, setPatients] = useState([]);
   const [physios, setPhysios] = useState([]);
-  const [sessions, setSessions] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -104,320 +563,16 @@ const PatientManagement = () => {
   const [openRecoveryChoice, setOpenRecoveryChoice] = useState(false);
   const [selectedPatientForRecovery, setSelectedPatientForRecovery] =
     useState(null);
-  const [openRecoverDialog, setOpenRecoverDialog] = useState(false);
   const [pendingPatient, setPendingPatient] = useState(null);
   const [openDialog, setOpendialog] = useState(false);
   const [pendingAction, setPendingAction] = useState("");
-  const handleMarkRecoveredClick = (patient) => {
-    setPendingPatient(patient);
-    setPendingAction("recover");
-    setRecoveredType("");
-    setOtherReason("");
-    setOpenAlert(true);
-  };
-  const handleToggleClick = (patient) => {
-    setPendingPatient(patient);
-
-    if (patient.isRecovered) {
-      setPendingAction("notRecover");
-    } else {
-      setPendingAction("recover");
-    }
-
-    setRecoveredType("");
-    setOtherReason("");
-    setOpenAlert(true);
-  };
-  const handleConfirmRecoveryStatus = async () => {
-    if (!pendingPatient?._id) return;
-
-    try {
-      // ✅ RECOVER
-      if (pendingAction === "recover") {
-        const res = await apiRequest("Patient/updatePatient", {
-          method: "POST",
-          body: JSON.stringify({
-            _id: pendingPatient._id,
-            isRecovered: true,
-            recoveredType: recoveredType || null,
-            stopReason:
-              recoveredType === "other" ? otherReason.trim() || null : null,
-          }),
-        });
-
-        if (res) {
-          toast({
-            title: "Recovered",
-            description: `${pendingPatient.patientName} marked as recovered`,
-          });
-
-          setOpenAlert(false);
-          getAllPatient();
-        }
-      }
-
-      // ❌ NOT RECOVER
-      if (pendingAction === "notRecover") {
-        const res = await apiRequest("Patient/updatePatient", {
-          method: "POST",
-          body: JSON.stringify({
-            _id: pendingPatient._id,
-            isRecovered: false,
-          }),
-        });
-
-        if (res) {
-          toast({
-            title: "Not Recovered",
-            description: `${pendingPatient.patientName} marked as not recovered`,
-          });
-
-          setOpenAlert(false);
-
-          // 👉 OPEN NEXT FLOW
-          setSelectedPatientForRecovery(pendingPatient);
-          setOpenRecoveryChoice(true);
-
-          getAllPatient();
-        }
-      }
-
-      setPendingPatient(null);
-      setPendingAction("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleMarkNotRecoveredClick = (patient) => {
-    setPendingPatient(patient);
-    setPendingAction("notRecover");
-    setRecoveredType("");
-    setOtherReason("");
-    setOpenAlert(true);
-  };
-  // format date safely
-  const fmtDate = (d) => {
-    if (!d) return "-";
-    const x = new Date(d);
-    if (isNaN(x.getTime())) return "-";
-    return x.toLocaleDateString("en-GB");
-  };
-  const getBase64FromUrl = async (url) => {
-    const res = await fetch(url);
-    const blob = await res.blob();
-
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  // build PDF from patient list
-  const downloadPatientsPdf = async ({ title, rows, fileName }) => {
-    const doc = new jsPDF();
-
-    let logoBase64 = "";
-    try {
-      logoBase64 = await getBase64FromUrl(Logo);
-    } catch (err) {
-      console.log("Logo not loaded");
-    }
-
-    if (logoBase64) {
-      doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
-    }
-
-    doc.setFontSize(16);
-    doc.setTextColor(41, 128, 185);
-    doc.text("NEO PHYSIO", 40, 18);
-
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text(title, 40, 25);
-
-    doc.setFontSize(10);
-    doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
-
-    doc.setDrawColor(41, 128, 185);
-    doc.line(14, 38, 195, 38);
-
-    autoTable(doc, {
-      startY: 42,
-      head: [
-        [
-          "#",
-          "Patient Code",
-          "Patient Name",
-          "Age",
-          "Gender",
-          "Mobile",
-          "Consultation",
-          "Physio",
-          "Status",
-        ],
-      ],
-      body: rows.length
-        ? rows.map((p, idx) => [
-            idx + 1,
-            p.patientCode || "-",
-            p.patientName || "-",
-            p.patientAge || "-",
-            p.patientGenderId?.genderName || p.genderName || "-",
-            p.patientNumber || "-",
-            fmtDate(p.consultationDate),
-            p.physioId?.physioName || p.physioName || "-",
-            p.isRecovered ? "Recovered" : "Active",
-          ])
-        : [["", "No data", "", "", "", "", "", "", ""]],
-      styles: { fontSize: 8 },
-      headStyles: {
-        fillColor: [41, 128, 185],
-      },
-      columnStyles: {
-        0: { cellWidth: 8 },
-        1: { cellWidth: 22 },
-        2: { cellWidth: 35 },
-        3: { cellWidth: 12 },
-        4: { cellWidth: 18 },
-        5: { cellWidth: 22 },
-        6: { cellWidth: 22 },
-        7: { cellWidth: 25 },
-        8: { cellWidth: 16 },
-      },
-    });
-
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(9);
-    doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
-
-    doc.save(fileName);
-  };
-  const getPastMonthsRange = (monthsCount) => {
-    // monthsCount must be 1 or more
-    const now = new Date();
-
-    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999); // last day of last month
-
-    const start = new Date(
-      end.getFullYear(),
-      end.getMonth() - (monthsCount - 1),
-      1,
-      0,
-      0,
-      0,
-      0,
-    );
-
-    const toYMD = (d) => d.toISOString().slice(0, 10);
-
-    return { startDate: toYMD(start), endDate: toYMD(end), start, end };
-  };
-  const getCurrentMonthRange = () => {
-    const now = new Date();
-
-    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    const end = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
-
-    const toYMD = (d) => d.toISOString().slice(0, 10);
-
-    return { startDate: toYMD(start), endDate: toYMD(end), start, end };
-  };
-  const downloadPatientsByRange = async (
-    { startDate, endDate, start, end },
-    filePrefix,
-  ) => {
-    const res = await apiRequest("Patient/downloadPatient", {
-      method: "POST",
-      body: JSON.stringify({
-        startDate,
-        endDate,
-        view: "all", // "active" | "recovered"
-      }),
-    });
-
-    const title = `Patients (${start.toLocaleDateString("en-GB")} to ${end.toLocaleDateString("en-GB")})`;
-
-    downloadPatientsPdf({
-      title,
-      rows: Array.isArray(res) ? res : [],
-      fileName: `${filePrefix}_${startDate}_to_${endDate}.pdf`,
-    });
-  };
-  const downloadPatientsOfMonth = () => {
-    const range = getCurrentMonthRange();
-    return downloadPatientsByRange(range, "Patients_This_Month");
-  };
-
-  const downloadPatientsOfLastMonth = () => {
-    const range = getPastMonthsRange(1);
-    return downloadPatientsByRange(range, "Patients_Last_1_Month");
-  };
-
-  const downloadPatientsOfLast2Month = () => {
-    const range = getPastMonthsRange(2);
-    return downloadPatientsByRange(range, "Patients_Last_2_Months");
-  };
-  const downloadPatientsOfLast3Month = () => {
-    const range = getPastMonthsRange(3);
-    return downloadPatientsByRange(range, "Patients_Last_3_Months");
-  };
-
-  const downloadPatientsLastYear = async () => {
-    const res = await apiRequest("Patient/downloadPatient", {
-      method: "POST",
-      body: JSON.stringify({
-        rangeType: "lastYear",
-        view: "all",
-      }),
-    });
-
-    downloadPatientsPdf({
-      title: `Last 1 Year Patients List`,
-      rows: Array.isArray(res) ? res : [],
-      fileName: `Patients_Last_1_Year.pdf`,
-    });
-  };
-  const filteredByDate = useMemo(() => {
-    if (!dateFilter) return patients;
-
-    // dateFilter is "YYYY-MM-DD"
-    const end = new Date(dateFilter);
-    end.setHours(23, 59, 59, 999); // include full selected day
-
-    return patients.filter((p) => {
-      const created = p.createdAt || p.createdOn || p.createdDate;
-      if (!created) return false;
-
-      const createdDate = new Date(created);
-      return createdDate <= end;
-    });
-  }, [patients, dateFilter]);
+  const [recoveredType, setRecoveredType] = useState("");
+  const [otherReason, setOtherReason] = useState("");
+  const [openAlert, setOpenAlert] = useState(false);
+  const [visitOrderError, setVisitOrderError] = useState("");
   const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
   const [assigningPatient, setAssigningPatient] = useState(null);
+
   const initialAssignState = {
     _id: "",
     physioName: "",
@@ -435,50 +590,22 @@ const PatientManagement = () => {
     KmsfLPatienttoHub: "",
     kmsFromPrevious: "",
   };
-  const TabButton = ({ id, label, icon: Icon, isHistory }) => (
-    <button
-      onClick={() => (isHistory ? setActiveHistoryTab(id) : setActiveTab(id))}
-      className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all rounded-md ${
-        (isHistory ? activeHistoryTab : activeTab) === id
-          ? "bg-blue-600 text-white shadow-md"
-          : "text-slate-500 hover:text-white hover:bg-blue-900"
-      }`}
-      type="button"
-    >
-      {Icon && <Icon className="w-4 h-4" />}
-      {label}
-      {(isHistory ? activeHistoryTab : activeTab) === id && (
-        <motion.div
-          layoutId={isHistory ? "activeHistoryTab" : "activetabpatient"}
-          className="absolute inset-0 rounded-md bg-blue-600 -z-10"
-        />
-      )}
-    </button>
-  );
+
   const [activeHistoryTab, setActiveHistoryTab] = useState("sessions");
   const [assignForm, setAssignForm] = useState(initialAssignState);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewingPatient, setViewingPatient] = useState(null);
-
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [reviewingPatient, setReviewingPatient] = useState(null);
   const initialReviewState = { feedback: "", satisfaction: 0 };
   const [reviewForm, setReviewForm] = useState(initialReviewState);
-
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
-  const initialNewGoalState = {
-    newShortTermGoal: "",
-    newGoalDuration: "",
-    // nextReviewDate: null,
-    newGoalDuration: "",
-  };
+  const initialNewGoalState = { newShortTermGoal: "", newGoalDuration: "" };
   const [newGoalForm, setNewGoalForm] = useState(initialNewGoalState);
-  const [sessionHistory, setSessionHistory] = useState([]);
-  const [sessionSummary, setSessionSummary] = useState(null);
-
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyPatient, setHistoryPatient] = useState(null);
   const [patientHistory, setPatientHistory] = useState([]);
+  const [sessionCount, setSessionCount] = useState({ total: 0, completed: 0 });
 
   const initialFormState = {
     _id: "",
@@ -489,7 +616,7 @@ const PatientManagement = () => {
     patientNumber: "",
     patientAddress: "",
     category: "",
-    MedicalHistoryAndRiskFactor: "",
+    MedicalHistoryAndRiskFactor: [],
     documents: [],
     consultationDate: null,
     byStandar: "",
@@ -540,25 +667,17 @@ const PatientManagement = () => {
     sourceName: "",
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
-  const assignedPhysioId = patientForm.physioId;
-
-  const modalitiesOptions = [
-    "TENS",
-    "IFT",
-    "USD",
-    "WAX",
-    "ICE",
-    "HOT",
-    "Weights",
-    "Band",
-  ];
-  const [risk, setRisk] = useState([]); //for dropdown
-
+  const [risk, setRisk] = useState([]);
   const [gender, setGender] = useState([]);
   const [radio, setRadio] = useState([]);
   const [feesType, setFeesType] = useState([]);
   const [reference, setReference] = useState([]);
+  const [modalities, setModalities] = useState([]);
+  const [machines, setMachines] = useState([]);
+  const [selectedPhysioId, setSelectedPhysioId] = useState("ALL");
+
   const { getPermissionsByPath } = useAuth();
   const [Permissions, setPermissions] = useState({
     isAdd: false,
@@ -567,8 +686,24 @@ const PatientManagement = () => {
     isDelete: false,
   });
 
-  //api call  and get all risk Factor
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
+  // ─────────────────────────────────────────────
+  // DATA FETCHING
+  // ─────────────────────────────────────────────
   useEffect(() => {
     getAllRisk();
     getAllpshyio();
@@ -578,25 +713,187 @@ const PatientManagement = () => {
     getReference();
     getAllMachine();
   }, []);
-  const [machines, setMachines] = useState([]);
+
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
-      if (res) {
-        setPermissions(res);
-      } else {
-        navigate("/dashboard");
-      }
+      if (res) setPermissions(res);
+      else navigate("/dashboard");
     });
   }, []);
 
   useEffect(() => {
-    if (Permissions.isView) {
-      getAllPatient();
+    if (Permissions.isView) getAllPatient();
+    // FIX: removed dateFilter from deps — date filtering is done client-side via useMemo
+  }, [Permissions, activeTab]);
+
+  // ─────────────────────────────────────────────
+  // FIX 4: Merged single filter effect (was two competing effects)
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    const search = searchTerm.toLowerCase().trim();
+
+    // Apply date filter client-side
+    let result = patients;
+    if (dateFilter) {
+      const end = new Date(dateFilter);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter((p) => {
+        const created = p.createdAt || p.createdOn || p.createdDate;
+        if (!created) return false;
+        return new Date(created) <= end;
+      });
     }
-  }, [Permissions, activeTab, dateFilter]);
 
-  //api for Reference
+    // Apply search filter
+    if (search) {
+      result = result.filter(
+        (p) =>
+          p.patientName?.toLowerCase().includes(search) ||
+          p.patientCode?.toLowerCase().includes(search) ||
+          p.patientNumber?.toString().includes(search),
+      );
+    }
 
+    // Apply physio filter
+    if (selectedPhysioId !== "ALL") {
+      result = result.filter((p) => p.physioId?._id === selectedPhysioId);
+    }
+
+    setFilteredPatients(result);
+  }, [patients, searchTerm, dateFilter, selectedPhysioId]);
+
+  // ─────────────────────────────────────────────
+  // FIX 5: Memoized derived patient lists
+  // ─────────────────────────────────────────────
+  const activePatients = useMemo(
+    () => filteredPatients.filter((p) => !p.isRecovered),
+    [filteredPatients],
+  );
+  const recoveredPatients = useMemo(
+    () => filteredPatients.filter((p) => !!p.isRecovered),
+    [filteredPatients],
+  );
+
+  // ─────────────────────────────────────────────
+  // FIX 6: Memoized monthly stats (was running inline every render)
+  // ─────────────────────────────────────────────
+  const {
+    thisMonthCount,
+    lastMonthCount,
+    growth,
+    getGrowthColor,
+    getGrowthSymbol,
+  } = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
+    const lastMonth = lastMonthDate.getMonth();
+    const lastMonthYear = lastMonthDate.getFullYear();
+
+    let thisMonthCount = 0;
+    let lastMonthCount = 0;
+
+    filteredPatients.forEach((patient) => {
+      if (!patient?.createdAt) return;
+      const created = new Date(patient.createdAt);
+      const m = created.getMonth();
+      const y = created.getFullYear();
+      if (m === currentMonth && y === currentYear) thisMonthCount++;
+      if (m === lastMonth && y === lastMonthYear) lastMonthCount++;
+    });
+
+    let growth = 0;
+    if (lastMonthCount === 0 && thisMonthCount > 0) growth = 100;
+    else if (lastMonthCount > 0)
+      growth = (
+        ((thisMonthCount - lastMonthCount) / lastMonthCount) *
+        100
+      ).toFixed(1);
+
+    const getGrowthColor = () => {
+      if (growth > 0) return "text-green-600";
+      if (growth < 0) return "text-red-600";
+      return "text-gray-500";
+    };
+    const getGrowthSymbol = () => {
+      if (growth > 0) return "↑";
+      if (growth < 0) return "↓";
+      return "-";
+    };
+
+    return {
+      thisMonthCount,
+      lastMonthCount,
+      growth,
+      getGrowthColor,
+      getGrowthSymbol,
+    };
+  }, [filteredPatients]);
+
+  // ─────────────────────────────────────────────
+  // FIX 7: Pre-computed session results & badges (was computed inside JSX render loop)
+  // ─────────────────────────────────────────────
+  const patientComputedData = useMemo(() => {
+    const now = new Date();
+    const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
+    const map = new Map();
+
+    filteredPatients.forEach((patient) => {
+      // Session calc
+      const currentSession = patient.sessionCount || 0;
+      const targetSession = 26;
+      let sessionsToAdd =
+        (targetSession - (currentSession % targetSession)) % targetSession;
+      if (sessionsToAdd === 0) sessionsToAdd = targetSession;
+
+      let date = new Date();
+      let added = 0;
+      while (added < sessionsToAdd) {
+        if (date.getDay() !== 0) {
+          added++;
+          if (added === sessionsToAdd) break;
+        }
+        date.setDate(date.getDate() + 1);
+      }
+
+      const formatDate = (d) => {
+        if (!d) return "-";
+        const x = new Date(d);
+        if (isNaN(x.getTime())) return "-";
+        const day = String(x.getDate()).padStart(2, "0");
+        const month = String(x.getMonth() + 1).padStart(2, "0");
+        const year = x.getFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
+      const sessionResult = {
+        session: targetSession,
+        date: formatDate(date),
+        sessionsNeeded: sessionsToAdd,
+      };
+
+      // Badge calc
+      let badge = null;
+      if (patient?.createdAt) {
+        const createdAt = new Date(patient.createdAt);
+        if (!isNaN(createdAt.getTime()) && now - createdAt <= tenDaysInMs) {
+          badge = {
+            label: "New",
+            className: "bg-blue-100 text-blue-700 border border-blue-200",
+          };
+        }
+      }
+
+      map.set(patient._id, { sessionResult, badge });
+    });
+
+    return map;
+  }, [filteredPatients]);
+
+  // ─────────────────────────────────────────────
+  // API HELPERS
+  // ─────────────────────────────────────────────
   const getReference = async () => {
     try {
       const res = await apiRequest("References/getALLReferences", {
@@ -606,11 +903,8 @@ const PatientManagement = () => {
       setReference(res);
     } catch (error) {
       console.error("Error:", error);
-      throw error;
     }
   };
-
-  //api for FeesType
 
   const getFeesType = async () => {
     try {
@@ -621,11 +915,9 @@ const PatientManagement = () => {
       setFeesType(res);
     } catch (error) {
       console.error("Error:", error);
-      throw error;
     }
   };
 
-  //api for getall pshyio
   const getAllpshyio = async () => {
     try {
       const res = await apiRequest("Physio/getAllPhysio", {
@@ -633,10 +925,8 @@ const PatientManagement = () => {
         body: JSON.stringify({}),
       });
       setPhysios(res.physios);
-      // setAssignForm(res.physio)
     } catch (error) {
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -649,11 +939,9 @@ const PatientManagement = () => {
       setRisk(res);
     } catch (error) {
       console.error("Error:", error);
-      throw error;
     }
   };
 
-  //Gender api for drop down
   const getAllGender = async () => {
     try {
       const res = await apiRequest("Gender/getAllGender", {
@@ -663,1262 +951,155 @@ const PatientManagement = () => {
       setGender(res);
     } catch (error) {
       console.error("Error:", error);
-      throw error;
     }
   };
 
   const getAllPatient = async () => {
     try {
-      const body = {
-        view: activeTab === "recover" ? "recovered" : "active",
-      };
-
-      if (dateFilter) {
-        body.targetDate = dateFilter;
-      }
-
+      const body = { view: activeTab === "recover" ? "recovered" : "active" };
       const res = await apiRequest("Patient/getAllPatient", {
         method: "POST",
         body: JSON.stringify(body),
       });
-
       const list = Array.isArray(res) ? res : [];
-
       setPatients(list);
-      setFilteredPatients(list);
     } catch (error) {
       console.error("Error:", error);
     }
   };
-  const formatDate = (date) => {
-    if (!date) return "-";
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return "-";
 
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-
-    return `${day}-${month}-${year}`;
-  };
-
-  const getSessionDateRange = (sessions = []) => {
-    if (!Array.isArray(sessions) || sessions.length === 0) {
-      return {
-        sessionStartDate: "-",
-        sessionEndDate: "-",
-        lastSessionDate: "-",
-      };
-    }
-
-    const validDates = sessions
-      .map((s) => s?.sessionDate)
-      .filter(Boolean)
-      .map((date) => new Date(date))
-      .filter((d) => !Number.isNaN(d.getTime()))
-      .sort((a, b) => a - b);
-
-    if (!validDates.length) {
-      return {
-        sessionStartDate: "-",
-        sessionEndDate: "-",
-        lastSessionDate: "-",
-      };
-    }
-
-    return {
-      sessionStartDate: formatDate(validDates[0]),
-      sessionEndDate: formatDate(validDates[validDates.length - 1]),
-      lastSessionDate: formatDate(validDates[validDates.length - 1]),
-    };
-  };
-  const downloadPatientsPDFs = async () => {
+  const getAllMachine = async (data) => {
     try {
-      const body = {
-        month: selectedMonth,
-        year: selectedYear,
-        view: "all",
-      };
-
-      const res = await apiRequest("Patient/downloadPatientsMonthlyReport", {
+      const res = await apiRequest("Machinery/getAllMachinery", {
         method: "POST",
-        body: JSON.stringify(body),
+        body: JSON.stringify(data),
       });
+      const list = res?.machines ?? res ?? [];
+      setMachines(list);
+    } catch (error) {
+      console.error("not able to getall Machine", error);
+    }
+  };
 
-      const report = Array.isArray(res?.report) ? res.report : [];
+  const getModalities = async (data) => {
+    try {
+      const response = await apiRequest("Modalities/getAllModalities", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setModalities(response);
+    } catch (error) {
+      console.log(error, "error from frontend get All Modalities");
+    }
+  };
 
-      if (!report.length) {
-        toast({
-          title: "No Data",
-          description: "No patient report found for the selected month.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const doc = new jsPDF("landscape");
-
-      // ✅ LOAD LOGO
-      let logoBase64 = "";
+  // ─────────────────────────────────────────────
+  // FIX 8: useCallback on all event handlers
+  // ─────────────────────────────────────────────
+  const deletePatient = useCallback(
+    async (id) => {
       try {
-        logoBase64 = await getBase64FromUrl(Logo);
-      } catch (err) {
-        console.log("Logo not loaded");
-      }
-
-      // ✅ ADD LOGO
-      if (logoBase64) {
-        doc.addImage(logoBase64, "PNG", 14, 10, 25, 25);
-      }
-
-      // ✅ COMPANY NAME
-      doc.setFontSize(18);
-      doc.setTextColor(41, 128, 185);
-      doc.text("NEO PHYSIO", 45, 18);
-
-      // ✅ TITLE
-      doc.setFontSize(12);
-      doc.setTextColor(0, 0, 0);
-      doc.text("Monthly Patient Report", 45, 25);
-
-      // ✅ MONTH + DATE
-      doc.setFontSize(10);
-      doc.text(
-        `Month: ${monthNames[selectedMonth - 1]} ${selectedYear}`,
-        14,
-        35,
-      );
-
-      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 42);
-
-      // ✅ LINE (PRO LOOK)
-      doc.setDrawColor(41, 128, 185);
-      doc.line(14, 45, 285, 45);
-
-      const columns = [
-        "S.No",
-        "Patient Code",
-        "Patient Name",
-        "Age",
-        "Gender",
-        "Contact",
-        "Condition",
-        "Physio",
-        "Start Date",
-        "End Date",
-        "Total Sessions",
-        "Completed",
-        "Cancelled",
-        "Status",
-      ];
-
-      const rows = report.map((p, index) => {
-        const { sessionStartDate, sessionEndDate } = getSessionDateRange(
-          p.sessions,
-        );
-
-        return [
-          index + 1,
-          p.patientCode || "-",
-          p.patientName || "-",
-          p.age || "-",
-          p.gender || "-",
-          p.number || "-",
-          p.condition || "-",
-          p.assignedPhysio || "-",
-          sessionStartDate,
-          sessionEndDate,
-          p.totalSessions ?? 0,
-          p.completedSessions ?? 0,
-          p.cancelledSessions ?? 0,
-          p.recovered || (p.isRecovered ? "Recovered" : "Active"),
-        ];
-      });
-
-      autoTable(doc, {
-        startY: 50, // 🔥 moved down because of header
-        head: [columns],
-        body: rows,
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        headStyles: {
-          fillColor: [41, 128, 185],
-        },
-      });
-
-      // ✅ FOOTER
-      const pageHeight = doc.internal.pageSize.height;
-      doc.setFontSize(9);
-      doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
-
-      doc.save(
-        `Patients_Report_${monthNames[selectedMonth - 1]}_${selectedYear}.pdf`,
-      );
-    } catch (error) {
-      console.error("PDF download error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to download monthly patient PDF.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const downloadPatientsExcel = async () => {
-    try {
-      const body = {
-        month: selectedMonth,
-        year: selectedYear,
-        view: "all",
-      };
-
-      const res = await apiRequest("Patient/downloadPatientsMonthlyReport", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-
-      const report = Array.isArray(res?.report) ? res.report : [];
-
-      if (!report.length) {
+        await apiRequest("Patient/deletePatient", {
+          method: "POST",
+          body: JSON.stringify({ _id: id }),
+        });
         toast({
-          title: "No Data",
-          description: "No patient report found for the selected month.",
+          title: "Deleted",
+          description: "Patient has been removed.",
           variant: "destructive",
         });
-        return;
+        getAllPatient();
+      } catch (error) {
+        console.error("Error:", error);
       }
+    },
+    [activeTab],
+  );
 
-      const excelData = report.map((p, index) => {
-        const { sessionStartDate, sessionEndDate, lastSessionDate } =
-          getSessionDateRange(p.sessions);
-
-        return {
-          "S.No": index + 1,
-          "Patient Code": p.patientCode || "-",
-          "Patient Name": p.patientName || "-",
-          Age: p.age || "-",
-          Gender: p.gender || "-",
-          Contact: p.number || "-",
-          Address: p.address || "-",
-          Condition: p.condition || "-",
-          Physio: p.assignedPhysio || "-",
-          "Consultation Date": formatDate(p.consultationDate),
-          "Review Date": formatDate(p.reviewDate),
-          "Session Start Date": sessionStartDate,
-          "Session End Date": sessionEndDate,
-          "Total Sessions": p.totalSessions ?? 0,
-          Completed: p.completedSessions ?? 0,
-          Cancelled: p.cancelledSessions ?? 0,
-          Status: p.recovered || (p.isRecovered ? "Recovered" : "Active"),
-        };
-      });
-
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-
-      worksheet["!cols"] = [
-        { wch: 8 }, // S.No
-        { wch: 15 }, // Patient Code
-        { wch: 22 }, // Patient Name
-        { wch: 8 }, // Age
-        { wch: 10 }, // Gender
-        { wch: 15 }, // Contact
-        { wch: 22 }, // Address
-        { wch: 28 }, // Condition
-        { wch: 20 }, // Physio
-        { wch: 16 }, // Consultation Date
-        { wch: 16 }, // Review Date
-        { wch: 16 }, // Session Start Date
-        { wch: 16 }, // Session End Date
-        { wch: 14 }, // Total Sessions
-        { wch: 12 }, // Completed
-        { wch: 12 }, // Cancelled
-        { wch: 12 }, // Status
-      ];
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Patients Report");
-
-      XLSX.writeFile(
-        workbook,
-        `Patients_Report_${monthNames[selectedMonth - 1]}_${selectedYear}.xlsx`,
-      );
-    } catch (error) {
-      console.error("Excel download error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to download monthly patient Excel.",
-        variant: "destructive",
-      });
-    }
-  };
-  //api call and delete Patients
-  const deletePatient = async (id) => {
-    try {
-      const response = await apiRequest("Patient/deletePatient", {
-        method: "POST",
-        body: JSON.stringify({ _id: id }),
-      });
-      toast({
-        title: "Deleted",
-        description: "Patients has been removed.",
-        variant: "destructive",
-      });
-      getAllPatient();
-
-      // setFilteredPatients(response);
-      // setPhysios(response);
-      // setSessions(response);
-
-      return response;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-
-  //api for update Patients
-  const [selectedPatient, setSelectedPatient] = useState(null);
-
-  const updatePatient = async (data) => {
-    try {
-      const response = await apiRequest("Patient/updatePatient", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      toast({ title: "Success", description: "Patient updated successfully." });
-      getAllPatient();
-      setIsFormOpen(false);
-      // setFilteredPatients(response);
-      // setPhysios(response);
-      // setSessions(response);
-      return response;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-
-  //api for create patients
-
-  const createPatient = async (data) => {
-    try {
-      const response = await apiRequest("Patient/createPatient", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      // if (
-      //   response?.success === false &&
-      //   response?.message === "EXISTING_NUMBER"
-      // ) {
-      //   toast({
-      //     title: "Alert",
-      //     description: "This phone number is already registered.",
-      //     variant: "destructive",
-      //   });
-      // }
-      toast({ title: "Success", description: "Patient Create successfully." });
-      getAllPatient();
-
-      return response;
-
-      setIsFormOpen(false);
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-
-  // useEffect(() => {
-  //   AssignPhysio()
-  // }, [])
-  //api for Assign physio
-
-  const AssignPhysio = async (data) => {
-    try {
-      const response = await apiRequest("Patient/AssignPhysio", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      toast({ title: "Success", description: "Assign updated successfully." });
-      getAllPatient();
-      setIsAssignPhysioOpen(false);
-
-      return response;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-
-  // useEffect(() => {
-  //   Promise.all([
-  //     fetch('/mockdata/patients.json').then(res => res.json()),
-  //     fetch('/mockdata/physios.json').then(res => res.json()),
-  //     fetch('/mockdata/sessions.json').then(res => res.json())
-  //   ]).then(([patientsData, physiosData, sessionsData]) => {
-  //     setPatients(patientsData);
-  //     setFilteredPatients(patientsData);
-  //     setPhysios(physiosData);
-  //     setSessions(sessionsData);
-  //   }).catch(err => console.error('Error loading data:', err));
-  // }, []);
-
-  // useEffect(() => {
-  //   if (searchTerm) {
-  //     const filtered = patients.filter(
-  //       (patient) =>
-  //         patient.patientName
-  //           .toLowerCase()
-  //           .includes(searchTerm.toLowerCase()) ||
-  //         // patient.patientNumber.includes(searchTerm) ||
-  //         patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase()),
-  //     );
-  //     setFilteredPatients(filtered);
-  //   } else {
-  //     setFilteredPatients(patients);
-  //   }
-  // }, [patients, searchTerm]);
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      const filtered = patients.filter(
-        (patient) =>
-          patient.patientName
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          patient.patientCode?.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-      setFilteredPatients(filtered);
-    } else {
-      setFilteredPatients(patients);
-    }
-  }, [patients, searchTerm]);
-
-  // useEffect(() => {
-  //   if (dateFilter) {
-  //     getAllPatient(dateFilter);
-  //   }
-  // }, [dateFilter]);
-
-  useEffect(() => {
-    if (isFormOpen && !editingPatient) {
-      setPatientForm((prev) => ({
-        ...prev,
-        patientCode: generatePatientId(),
-      }));
-    }
-  }, [isFormOpen, editingPatient]);
-
-  // const generatePatientId = () => {
-  //   const lastId =
-  //     patients.length > 0
-  //       ? Math.max(
-  //           ...patients.map((p) => parseInt(p.patientCode.replace("PAT", "")))
-  //         )
-  //       : 0;
-  //   const newId = lastId + 1;
-  //   return `PAT${String(newId).padStart(6, "0")}`;
-  // };
-
-  const generatePatientId = () => {
-    const lastId =
-      patients.length > 0
-        ? Math.max(
-            ...patients
-              .filter((p) => p.patientCode?.startsWith("HNP"))
-              .map((p) => parseInt(p.patientCode.replace("HNP", ""), 10)),
-          )
-        : 0;
-
-    const newId = lastId + 1;
-    return `HNP${String(newId).padStart(4, "0")}`;
-  };
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setPatientForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name, value) => {
-    setPatientForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleRadioChange = (name, value) => {
-    setPatientForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleRadio = (name, value, id) => {
-    // setRadio(prev => ({ ...prev, [name]: value }));
-    setRadio((prev) => [...prev, { RiskFactorID: id, isExist: value }]);
-    setPatientForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleDateChange = (name, date) => {
-    setPatientForm((prev) => ({ ...prev, [name]: date }));
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPatientForm((prev) => ({
-        ...prev,
-        documents: [...prev.documents, file.name],
-      }));
-      toast({
-        title: "File Added",
-        description: `${file.name} has been staged for upload.`,
-      });
-    }
-  };
-  const [recoveredType, setRecoveredType] = useState("");
-  const [otherReason, setOtherReason] = useState("");
-
-  // const handleFormSubmit = (e) => {
-  //   e.preventDefault();
-  //   if (response?.message === "EXISTING_NUMBER") {
-  //     toast({
-  //       title: "Alert",
-  //       description: "This phone number is already registered.",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-  //   if (!patientForm.patientName) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please Enter Patient Name",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-  //   if (!patientForm.patientAge) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please Enter Patient Age",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-
-  //   if (!patientForm.patientGenderId) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please select Gender",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-  //   if (!patientForm.patientNumber) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please Enter Patient Mobile number",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-  //   if (!patientForm.patientAddress) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please Enter Patient Address",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-  //   if (!patientForm.FeesTypeId) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please select Fee Type",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-
-  //   if (!patientForm.feeAmount) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please Enter Fee Amount",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-
-  //   if (!patientForm.patientCondition) {
-  //     toast({
-  //       title: "Alert",
-  //       description: "Please select Patient Condition",
-  //       variant: "destructive",
-  //     });
-  //     return false;
-  //   }
-
-  //   if (editingPatient) {
-  //     if (!patientForm.patientName) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Enter Patient Name",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.patientName) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Enter Patient Name",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.byStandar) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Enter Bystander Name",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.patientNumber) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Enter Patient Number",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.patientAddress) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Enter Patient Address",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.patientPinCode) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Enter Patient Pin Code",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.FeesTypeId) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Select fees type",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.feeAmount) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Enter Fee Amount",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-  //     if (!patientForm.reviewDate) {
-  //       toast({
-  //         title: "Alert",
-  //         description: "Please Select the Review Date",
-  //         variant: "destructive",
-  //       });
-  //       return false;
-  //     }
-
-  //     // setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
-  //     updatePatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
-  //     toast({ title: "Success", description: "Patient details updated." });
-  //   } else {
-  //     // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
-  //     // setPatients(prev => [newPatient, ...prev]);
-  //     createPatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
-  //     toast({ title: "Success", description: "New patient created." });
-  //   }
-
-  //   setIsFormOpen(false);
-  //   setEditingPatient(null);
-  //   setPatientForm(initialFormState);
-  // };
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!patientForm.patientName) {
-      toast({
-        title: "Alert",
-        description: "Please Enter Patient Name",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!patientForm.patientNumber) {
-      toast({
-        title: "Alert",
-        description: "Please Enter Patient Mobile number",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // ---- CREATE PATIENT ----
-      if (!editingPatient) {
-        const response = await createPatient({
-          ...patientForm,
-          MedicalHistoryAndRiskFactor: radio,
+  const updatePatient = useCallback(
+    async (data) => {
+      try {
+        await apiRequest("Patient/updatePatient", {
+          method: "POST",
+          body: JSON.stringify(data),
         });
-
-        // DUPLICATE NUMBER
-        if (response?.success === false) {
-          toast({
-            title: "Alert",
-            description: "This phone number is already registered.",
-            variant: "destructive",
-          });
-          return; //modal stays open
-        }
-
         toast({
           title: "Success",
-          description: "New patient created.",
+          description: "Patient updated successfully.",
         });
+        getAllPatient();
+        setIsFormOpen(false);
+      } catch (error) {
+        console.error("Error:", error);
       }
+    },
+    [activeTab],
+  );
 
-      // ---- UPDATE PATIENT ----
-      if (editingPatient) {
-        await updatePatient({
-          ...patientForm,
-          MedicalHistoryAndRiskFactor: radio,
+  const createPatient = useCallback(
+    async (data) => {
+      try {
+        const response = await apiRequest("Patient/createPatient", {
+          method: "POST",
+          body: JSON.stringify(data),
         });
-      }
-      if (patientForm.modalities === "yes") {
-        if (!patientForm.modalityList?.length) {
-          toast({
-            title: "Alert",
-            description: "Select at least one modality",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (!patientForm.targetedArea?.trim()) {
-          toast({
-            title: "Alert",
-            description: "Enter the targeted area",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-      // CLOSE MODAL ONLY ON SUCCESS
-      setIsFormOpen(false);
-      setEditingPatient(null);
-      setPatientForm(initialFormState);
-    } catch (error) {
-      console.error(error);
-
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    }
-    toast({
-      title: "Success",
-      description: "Patient details updated.",
-    });
-  };
-
-  const handleEditPatient = (patient) => {
-    setEditingPatient(true);
-    const formData = {
-      _id: patient._id ? patient._id : null,
-      patientCode: patient.patientCode ? patient.patientCode : null,
-      patientName: patient.patientName ? patient.patientName : null,
-      patientAge: patient.patientAge ? patient.patientAge : null,
-      patientGenderId: patient.patientGenderId._id
-        ? patient.patientGenderId._id
-        : null,
-      patientNumber: patient.patientNumber ? patient.patientNumber : null,
-      patientAddress: patient.patientAddress ? patient.patientAddress : null,
-      // category: patient.category ? patient.category : null,
-      MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor
-        ? patient.MedicalHistoryAndRiskFactor
-        : null,
-      documents: patient.documents ? patient.documents : [],
-      consultationDate: patient.consultationDate
-        ? new Date(patient.consultationDate)
-        : "",
-      byStandar: patient.byStandar ? patient.byStandar : null,
-      Relation: patient.Relation ? patient.Relation : null,
-      patientAltNum: patient.patientAltNum ? patient.patientAltNum : null,
-      patientPinCode: patient.patientPinCode ? patient.patientPinCode : null,
-      patientCondition: patient.patientCondition
-        ? patient.patientCondition
-        : null,
-      Physiotherapist: patient.Physiotherapist ? patient.Physiotherapist : null,
-      physioId: patient?.physioId?._id ?? patient?.physioId ?? "",
-      reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
-      historyOfSurgery: patient.historyOfSurgery
-        ? patient.historyOfSurgery
-        : null,
-      historyOfSurgeryDetails: patient.historyOfSurgeryDetails
-        ? patient.historyOfSurgeryDetails
-        : null,
-      historyOfFall: patient.historyOfFall ? patient.historyOfFall : null,
-      historyOfFallDetails: patient.historyOfFallDetails
-        ? patient.historyOfFallDetails
-        : null,
-      otherMedCon: patient.otherMedCon ? patient.otherMedCon : null,
-      currMed: patient.currMed ? patient.currMed : null,
-      typesOfLifeStyle: patient.typesOfLifeStyle
-        ? patient.typesOfLifeStyle
-        : null,
-      smokingOrAlcohol: patient.smokingOrAlcohol
-        ? patient.smokingOrAlcohol
-        : false,
-      dietaryHabits: patient.dietaryHabits ? patient.dietaryHabits : null,
-      Contraindications: patient.Contraindications
-        ? patient.Contraindications
-        : null,
-      goalDescription: patient.goalDescription ? patient.goalDescription : null,
-      painLevel: patient.painLevel ? patient.painLevel : null,
-      rangeOfMotion: patient.rangeOfMotion ? patient.rangeOfMotion : null,
-      muscleStrength: patient.muscleStrength ? patient.muscleStrength : null,
-      postureOrGaitAnalysis: patient.postureOrGaitAnalysis
-        ? patient.postureOrGaitAnalysis
-        : null,
-      functionalLimitations: patient.functionalLimitations
-        ? patient.functionalLimitations
-        : null,
-      static: patient.static ? patient.static : null,
-      dynamic: patient.dynamic ? patient.dynamic : null,
-      coordination: patient.coordination ? patient.coordination : null,
-      ADLAbility: patient.ADLAbility ? patient.ADLAbility : null,
-      shortTermGoals: patient.shortTermGoals ? patient.shortTermGoals : null,
-      longTermGoals: patient.longTermGoals ? patient.longTermGoals : null,
-      RecomTherapy: patient.RecomTherapy ? patient.RecomTherapy : null,
-      Frequency: patient.Frequency ? patient.Frequency : null,
-      Duration: patient.Duration ? patient.Duration : null,
-      modalities: patient.modalities ? patient.modalities : false,
-      modalitiestype: patient.modalitiestype ? patient.modalitiestype : null,
-      modalityList: patient.modalityList ? patient.modalityList : [],
-      targetedArea: patient.targetedArea ? patient.targetedArea : null,
-      noOfDays: patient.noOfDays ? patient.noOfDays : null,
-      hodNotes: patient.hodNotes ? patient.hodNotes : null,
-      goalLog: patient.goalLog ? patient.goalLog : [],
-      travelDetails: patient.travelDetails ? patient.travelDetails : null,
-      genderName: patient.patientGenderId
-        ? patient.patientGenderId.genderName
-        : null,
-      FeesTypeId: patient.FeesTypeId ? patient.FeesTypeId._id : null,
-      feesTypeName: patient.FeesTypeId ? patient.FeesTypeId.feesTypeName : null,
-      feeAmount: patient.feeAmount ? patient.feeAmount : null,
-      ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
-      sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
-    };
-    if (patient.consultationDate)
-      formData.consultationDate = new Date(patient.consultationDate);
-    if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
-    let radio = [];
-    const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
-      if (val.isExist) {
-        radio.push({
-          RiskFactorID: val.RiskFactorID._id,
-          isExist: val.isExist,
+        toast({
+          title: "Success",
+          description: "Patient Created successfully.",
         });
+        getAllPatient();
+        return response;
+      } catch (error) {
+        console.error("Error:", error);
       }
-      return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
-    });
-    setRadio(radio);
-    if (RiskFactor.length > 0) {
-      RiskFactor.map(
-        (val) =>
-          (formData[Object.keys(val)[0].toLowerCase()] =
-            val[Object.keys(val)[0]] == "true"),
-      );
-    }
-    setPatientForm(formData);
-    setIsFormOpen(true);
-    setSelectedPatient(patient);
-  };
+    },
+    [activeTab],
+  );
 
-  const handleDownloadRecoveredPatientsPDF = async () => {
-    if (!recoveredPatients || recoveredPatients.length === 0) {
-      toast({
-        title: "No Data",
-        description: "No recovered patients available",
-        variant: "destructive",
-      });
-      return;
-    }
+  const AssignPhysio = useCallback(
+    async (data) => {
+      try {
+        const response = await apiRequest("Patient/AssignPhysio", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        toast({
+          title: "Success",
+          description: "Assign updated successfully.",
+        });
+        getAllPatient();
+        setIsAssignPhysioOpen(false);
+        return response;
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    },
+    [activeTab],
+  );
 
-    const doc = new jsPDF();
+  const handleDeletePatient = useCallback(
+    (id) => {
+      setPatients((prev) => prev.filter((p) => p._id !== id));
+      deletePatient(id);
+    },
+    [deletePatient],
+  );
 
-    let logoBase64 = "";
-    try {
-      logoBase64 = await getBase64FromUrl(Logo);
-    } catch (err) {
-      console.log("Logo not loaded");
-    }
-
-    if (logoBase64) {
-      doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
-    }
-
-    doc.setFontSize(18);
-    doc.setTextColor(41, 128, 185);
-    doc.text("NEO PHYSIO", 40, 18);
-
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Recovered Patients Report", 40, 26);
-
-    doc.setFontSize(10);
-    doc.text(`Downloaded on: ${format(new Date(), "PPpp")}`, 14, 35);
-
-    // TABLE
-    const tableColumn = [
-      "Patient Code",
-      "Name",
-      "Age/Gender",
-      "Contact",
-      "Condition",
-      "Recovered Date",
-      "Physio",
-      "Sessions",
-    ];
-
-    const tableRows = recoveredPatients.map((p) => [
-      p.patientCode || "-",
-      p.patientName || "-",
-      `${p.patientAge || "-"} / ${p.patientGenderId?.genderName || "-"}`,
-      p.patientNumber || "-",
-      p.patientCondition || "-",
-      p.recoveredAt ? format(new Date(p.recoveredAt), "PP") : "N/A",
-      p.physioId?.physioName || "-",
-      p.sessionCount || 0,
-    ]);
-
-    autoTable(doc, {
-      startY: 42,
-      head: [tableColumn],
-      body: tableRows,
-      styles: {
-        fontSize: 8,
-      },
-      headStyles: {
-        fillColor: [41, 128, 185],
-      },
-    });
-
-    // FOOTER
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(9);
-    doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
-
-    doc.save("NEO_PHYSIO_Recovered_Patients.pdf");
-  };
-  const handleDownloadRecovered = () => {
-    if (!recoveredPatients || recoveredPatients.length === 0) {
-      alert("No recovered patients available");
-      return;
-    }
-
-    const data = recoveredPatients.map((p) => ({
-      PatientCode: p.patientCode,
-      Name: p.patientName,
-      Age: p.patientAge,
-      Gender: p.patientGenderId?.genderName,
-      Contact: p.patientNumber,
-      Condition: p.patientCondition,
-      Sessions: p.sessionCount || 0,
-      Physio: p.physioId?.physioName,
-      ReviewDate: p.reviewDate
-        ? format(new Date(p.reviewDate), "dd-MM-yyyy")
-        : "N/A",
-      RecoveredDate: p.recoveredAt
-        ? format(new Date(p.recoveredAt), "dd-MM-yyyy")
-        : "N/A",
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Recovered Patients");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const fileData = new Blob([excelBuffer], {
-      type: "application/octet-stream",
-    });
-
-    saveAs(fileData, "Recovered_Patients.xlsx");
-  };
-  const handleNewPatient = () => {
-    setEditingPatient(null);
-    setPatientForm({ ...initialFormState, patientCode: generatePatientId() });
-    setIsFormOpen(true);
-  };
-
-  const handleDeletePatient = (id) => {
-    setPatients((prev) => prev.filter((p) => p.id !== id));
-    deletePatient(id);
-
-    toast({
-      title: "Deleted",
-      description: "Patient has been removed.",
-      variant: "destructive",
-    });
-  };
-
-  const handleViewConsultation = (patient) => {
+  const handleViewConsultation = useCallback((patient) => {
     setViewingPatient(patient);
     setIsDetailsOpen(true);
-  };
+  }, []);
 
-  const handleUpdateFeedback = async () => {
-    if (!reviewingPatient) return;
-
-    try {
-      await apiRequest("Patient/updatePatientFeedbacks", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: reviewingPatient._id,
-          Feedback: reviewForm.feedback,
-          Satisfaction: reviewForm.satisfaction,
-        }),
-      });
-
-      // update local state ONLY for UI
-      setPatients((prev) =>
-        prev.map((p) =>
-          p._id === reviewingPatient._id
-            ? {
-                ...p,
-                Feedback: reviewForm.feedback,
-                Satisfaction: reviewForm.satisfaction,
-              }
-            : p,
-        ),
-      );
-
-      toast({
-        title: "Feedback Updated",
-        description: `Feedback for ${reviewingPatient.patientName} saved.`,
-      });
-      setIsReviewOpen(false);
-      // setReviewForm(initialReviewState);
-    } catch (err) {
-      console.error("Failed to save feedback", err);
-      toast({
-        title: "Error",
-        description: "Failed to save feedback",
-        variant: "destructive",
-      });
-    }
-  };
-  useEffect(() => {
-    if (!isReviewOpen || !reviewingPatient) return;
-
-    setReviewForm({
-      feedback: reviewingPatient?.Feedback || "",
-      satisfaction: reviewingPatient?.Satisfaction || null,
-    });
-  }, [isReviewOpen, reviewingPatient]);
-
-  const handleLogAndOpenNewGoal = async (e) => {
-    e.preventDefault();
-    // setPatients((prev) =>
-    //   prev.map((p) => {
-    //     if (p._id === reviewingPatient._id) {
-    //       const newGoalLog = [...(p.goalLog || [])];
-    //       if (p.shortTermGoals) {
-    //         newGoalLog.push({
-    //           goal: p.shortTermGoals,
-    //           date: new Date().toISOString().split("T")[0],
-    //           status: "Reviewed & Completed",
-    //           feedback: reviewingPatient.Feedback,
-    //           satisfaction: reviewingPatient.Satisfaction,
-    //         });
-    //       }
-    //       return { ...p, goalLog: newGoalLog };
-    //     }
-    //     return p;
-    //   }),
-    // );
-    toast({
-      title: "Goal Logged",
-      description: "Current goal has been logged. Now set the next goal.",
-    });
-    setIsReviewOpen(false);
-    setIsNewGoalOpen(true);
-    try {
-      await apiRequest("Patient/updatePatientFeedbacks", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: reviewingPatient._id,
-          Feedback: reviewForm.feedback,
-          Satisfaction: reviewForm.satisfaction,
-        }),
-      });
-
-      // update local state ONLY for UI
-      setPatients((prev) =>
-        prev.map((p) =>
-          p._id === reviewingPatient._id
-            ? {
-                ...p,
-                Feedback: reviewForm.feedback,
-                Satisfaction: reviewForm.satisfaction,
-              }
-            : p,
-        ),
-      );
-
-      toast({
-        title: "Feedback Updated",
-        description: `Feedback for ${reviewingPatient.patientName} saved.`,
-      });
-
-      setIsReviewOpen(false);
-      setReviewForm(initialReviewState);
-    } catch (err) {
-      console.error("Failed to save feedback", err);
-      toast({
-        title: "Error",
-        description: "Failed to save feedback",
-        variant: "destructive",
-      });
-    }
-    toast({
-      title: "Feedback Updated",
-      description: `Feedback for ${reviewingPatient.patientName} has been saved.`,
-    });
-    // } catch (errr) {
-    //   console.error("Failed to save feedback", err);
-    //   toast({
-    //     title: "Error",
-    //     description: "Failed to save feedback",
-    //     variant: "destructive",
-    //   });
-    //   // }
-    //   // toast({
-    //   //   title: "Goal Logged",
-    //   //   description: "Current goal has been logged. Now set the next goal.",
-    //   // });
-    //   setIsReviewOpen(false);
-    //   setIsNewGoalOpen(true);
-  };
-  // };
-  const handleRecoveryOption = async (type) => {
-    if (!selectedPatientForRecovery?._id) return;
-
-    try {
-      if (type === "fresh") {
-        await apiRequest("Patient/startFreshCycle", {
-          method: "POST",
-          body: JSON.stringify({
-            patientId: selectedPatientForRecovery._id,
-            physioId:
-              selectedPatientForRecovery?.physioId?._id ||
-              selectedPatientForRecovery?.physioId,
-          }),
-        });
-
-        toast({
-          title: "Fresh Cycle Started",
-          description: `${selectedPatientForRecovery.patientName} started with a new cycle.`,
-        });
-      }
-
-      if (type === "continue") {
-        await apiRequest("Patient/continueOldCycle", {
-          method: "POST",
-          body: JSON.stringify({
-            patientId: selectedPatientForRecovery._id,
-          }),
-        });
-
-        toast({
-          title: "Old Cycle Continued",
-          description: `${selectedPatientForRecovery.patientName} continued the old cycle.`,
-        });
-      }
-
-      setOpenRecoveryChoice(false);
-      setSelectedPatientForRecovery(null);
-      getAllPatient();
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to update recovery option.",
-        variant: "destructive",
-      });
-    }
-  };
-  const getSessionStyle = (status) => {
-    switch (status?.toLowerCase()) {
-      case "completed":
-        return "bg-green-100 border-green-300";
-      case "canceled":
-        return "bg-red-100 border-red-300";
-      case "scheduled":
-        return "bg-blue-100 border-blue-300";
-      default:
-        return "bg-white border-gray-200";
-    }
-  };
-  const handleNewGoalSubmit = async (e, review) => {
-    e.preventDefault();
-    if (!reviewingPatient?._id) return;
-
-    try {
-      await apiRequest("Patient/updatePatientGoals", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: reviewingPatient._id,
-          shortTermGoals: newGoalForm.newShortTermGoal,
-          goalDuration: newGoalForm.newGoalDuration,
-          feedback: reviewForm.feedback,
-          satisfaction: reviewForm.satisfaction,
-        }),
-      });
-
-      toast({
-        title: "New Goal Set!",
-        description: "Previous goal archived and new goal assigned.",
-      });
-
-      setIsNewGoalOpen(false);
-      setNewGoalForm(initialNewGoalState);
-      setReviewForm(initialReviewState);
-      getAllPatient();
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "Failed to save new goal",
-        variant: "destructive",
-      });
-    }
-  };
-  const [openAlert, setOpenAlert] = useState(false);
-  const handleScheduleReview = (patient) => {
+  const handleScheduleReview = useCallback((patient) => {
     setReviewingPatient(patient);
     setIsReviewOpen(true);
-  };
-  const FeesType =
-    patientForm?.FeesTypeId?.feesTypeName || patientForm?.feesTypeName || "";
-  const isPerSession =
-    FeesType.replace(/\s+/g, "").toLowerCase() === "persession";
-  const openAssignPhysioDialog = (patient) => {
+  }, []);
+
+  const openAssignPhysioDialog = useCallback((patient) => {
     setAssigningPatient(patient);
+    setVisitOrderError("");
     setAssignForm({
-      _id: patient._id ? patient._id : null,
+      _id: patient._id ?? null,
       Physiotherapist: patient.physioId ? patient.physioId.physioName : null,
       physioId: patient.physioId ? patient.physioId._id : "",
       InitialShorttermGoal: patient.InitialShorttermGoal || "",
@@ -1936,96 +1117,578 @@ const PatientManagement = () => {
       kmsFromPrevious: patient.kmsFromPrevious || "",
     });
     setIsAssignPhysioOpen(true);
-  };
-  const handleAssignPhysioSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await AssignPhysio(assignForm); // wait for API
+  }, []);
+  const handleConsentClick = useCallback((patient) => {
+    setPendingPatient(patient);
+    setOpendialog(true);
+  }, []);
 
-      // Update patients state locally
-      setPatients((prev) =>
-        prev.map((p) => {
-          if (p._id === assigningPatient._id) {
-            return {
-              ...p,
-              physioId: {
-                _id: assignForm.physioId,
-                physioName: assignForm.Physiotherapist,
-              },
-              sessionStartDate: assignForm.sessionStartDate,
-              sessionTime: assignForm.sessionTime,
-              totalSessionDays: assignForm.totalSessionDays,
-              InitialShorttermGoal: assignForm.InitialShorttermGoal,
-              goalDuration: assignForm.goalDuration,
-              goalDescription: assignForm.goalDescription,
-              reviewFrequency: assignForm.reviewFrequency,
-              visitOrder: assignForm.visitOrder,
-              KmsfromHub: assignForm.KmsfromHub,
-              KmsfLPatienttoHub: assignForm.KmsfLPatienttoHub,
-              kmsFromPrevious: assignForm.kmsFromPrevious,
-            };
-          }
-          return p;
-        }),
-      );
+  const handleToggleClick = useCallback((patient) => {
+    setPendingPatient(patient);
+    setPendingAction(patient.isRecovered ? "notRecover" : "recover");
+    setRecoveredType("");
+    setOtherReason("");
+    setOpenAlert(true);
+  }, []);
 
-      toast({
-        title: "Success",
-        description: `Physio assigned and plan updated for ${assigningPatient.patientName}.`,
+  const handleEditPatient = useCallback((patient) => {
+    setEditingPatient(true);
+    const formData = {
+      _id: patient._id ?? null,
+      patientCode: patient.patientCode ?? null,
+      patientName: patient.patientName ?? null,
+      patientAge: patient.patientAge ?? null,
+      patientGenderId: patient.patientGenderId._id ?? null,
+      patientNumber: patient.patientNumber ?? null,
+      patientAddress: patient.patientAddress ?? null,
+      MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor ?? null,
+      documents: patient.documents ?? [],
+      consultationDate: patient.consultationDate
+        ? new Date(patient.consultationDate)
+        : "",
+      byStandar: patient.byStandar ?? null,
+      Relation: patient.Relation ?? null,
+      patientAltNum: patient.patientAltNum ?? null,
+      patientPinCode: patient.patientPinCode ?? null,
+      patientCondition: patient.patientCondition ?? null,
+      Physiotherapist: patient.Physiotherapist ?? null,
+      physioId: patient?.physioId?._id ?? patient?.physioId ?? "",
+      reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
+      historyOfSurgery: patient.historyOfSurgery ?? null,
+      historyOfSurgeryDetails: patient.historyOfSurgeryDetails ?? null,
+      historyOfFall: patient.historyOfFall ?? null,
+      historyOfFallDetails: patient.historyOfFallDetails ?? null,
+      otherMedCon: patient.otherMedCon ?? null,
+      currMed: patient.currMed ?? null,
+      typesOfLifeStyle: patient.typesOfLifeStyle ?? null,
+      smokingOrAlcohol: patient.smokingOrAlcohol ?? false,
+      dietaryHabits: patient.dietaryHabits ?? null,
+      Contraindications: patient.Contraindications ?? null,
+      goalDescription: patient.goalDescription ?? null,
+      painLevel: patient.painLevel ?? null,
+      rangeOfMotion: patient.rangeOfMotion ?? null,
+      muscleStrength: patient.muscleStrength ?? null,
+      postureOrGaitAnalysis: patient.postureOrGaitAnalysis ?? null,
+      functionalLimitations: patient.functionalLimitations ?? null,
+      static: patient.static ?? null,
+      dynamic: patient.dynamic ?? null,
+      coordination: patient.coordination ?? null,
+      ADLAbility: patient.ADLAbility ?? null,
+      shortTermGoals: patient.shortTermGoals ?? null,
+      longTermGoals: patient.longTermGoals ?? null,
+      RecomTherapy: patient.RecomTherapy ?? null,
+      Frequency: patient.Frequency ?? null,
+      Duration: patient.Duration ?? null,
+      modalities: patient.modalities ?? false,
+      modalitiestype: patient.modalitiestype ?? null,
+      modalityList: patient.modalityList ?? [],
+      targetedArea: patient.targetedArea ?? null,
+      noOfDays: patient.noOfDays ?? null,
+      hodNotes: patient.hodNotes ?? null,
+      goalLog: patient.goalLog ?? [],
+      travelDetails: patient.travelDetails ?? null,
+      genderName: patient.patientGenderId?.genderName ?? null,
+      FeesTypeId: patient.FeesTypeId?._id ?? null,
+      feesTypeName: patient.FeesTypeId?.feesTypeName ?? null,
+      feeAmount: patient.feeAmount ?? null,
+      ReferenceId: patient.ReferenceId?._id ?? null,
+      sourceName: patient.ReferenceId?.sourceName ?? null,
+    };
+
+    let radio = [];
+    const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
+      if (val.isExist)
+        radio.push({
+          RiskFactorID: val.RiskFactorID._id,
+          isExist: val.isExist,
+        });
+      return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
+    });
+    setRadio(radio);
+    if (RiskFactor.length > 0) {
+      RiskFactor.forEach((val) => {
+        formData[Object.keys(val)[0].toLowerCase()] =
+          val[Object.keys(val)[0]] === "true";
       });
+    }
+    setPatientForm(formData);
+    setIsFormOpen(true);
+    setSelectedPatient(patient);
+  }, []);
 
-      setIsAssignPhysioOpen(false);
-      setAssigningPatient(null);
-      setAssignForm(initialAssignState);
+  const handleNewPatient = useCallback(() => {
+    setEditingPatient(null);
+    setPatientForm((prev) => ({
+      ...initialFormState,
+      patientCode: generatePatientId(),
+    }));
+    setIsFormOpen(true);
+  }, [patients]);
+
+  // ─────────────────────────────────────────────
+  // FIX 9: physioModalityIds — stable useMemo
+  // ─────────────────────────────────────────────
+  const assignedPhysioIds =
+    typeof patientForm.physioId === "object"
+      ? patientForm.physioId?._id
+      : patientForm.physioId;
+
+  const physioModalityIds = useMemo(() => {
+    if (!assignedPhysioIds || !Array.isArray(machines)) return [];
+    const set = new Set();
+    machines.forEach((m) => {
+      const isAssigned =
+        Array.isArray(m.Assignedto) &&
+        m.Assignedto.some(
+          (a) =>
+            String(a.physioId) === String(assignedPhysioIds) &&
+            Number(a.count || 0) > 0,
+        );
+      const modId = m.modalityId?._id ?? m.modalityId;
+      if (isAssigned && modId) set.add(String(modId));
+    });
+    return Array.from(set);
+  }, [machines, assignedPhysioIds]);
+
+  // ─────────────────────────────────────────────
+  // FORM HELPERS
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (isFormOpen && !editingPatient) {
+      setPatientForm((prev) => ({ ...prev, patientCode: generatePatientId() }));
+    }
+  }, [isFormOpen, editingPatient]);
+
+  const generatePatientId = () => {
+    const lastId =
+      patients.length > 0
+        ? Math.max(
+            ...patients
+              .filter((p) => p.patientCode?.startsWith("HNP"))
+              .map((p) => parseInt(p.patientCode.replace("HNP", ""), 10)),
+          )
+        : 0;
+    return `HNP${String(lastId + 1).padStart(4, "0")}`;
+  };
+
+  const handleFormChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleSelectChange = useCallback((name, value) => {
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleRadioChange = useCallback((name, value) => {
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleRadio = useCallback((name, value, id) => {
+    setRadio((prev) => [...prev, { RiskFactorID: id, isExist: value }]);
+    setPatientForm((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleDateChange = useCallback((name, date) => {
+    setPatientForm((prev) => ({ ...prev, [name]: date }));
+  }, []);
+
+  const handleFileUpload = useCallback((e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPatientForm((prev) => ({
+        ...prev,
+        documents: [...prev.documents, file.name],
+      }));
+      toast({
+        title: "File Added",
+        description: `${file.name} has been staged for upload.`,
+      });
+    }
+  }, []);
+
+  const FeesType =
+    patientForm?.FeesTypeId?.feesTypeName || patientForm?.feesTypeName || "";
+  const isPerSession =
+    FeesType.replace(/\s+/g, "").toLowerCase() === "persession";
+
+  const handleFormSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!patientForm.patientName) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Patient Name",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!patientForm.patientNumber) {
+        toast({
+          title: "Alert",
+          description: "Please Enter Patient Mobile number",
+          variant: "destructive",
+        });
+        return;
+      }
+      try {
+        if (!editingPatient) {
+          const response = await createPatient({
+            ...patientForm,
+            MedicalHistoryAndRiskFactor: radio,
+          });
+          if (response?.success === false) {
+            toast({
+              title: "Alert",
+              description: "This phone number is already registered.",
+              variant: "destructive",
+            });
+            return;
+          }
+          toast({ title: "Success", description: "New patient created." });
+        } else {
+          await updatePatient({
+            ...patientForm,
+            MedicalHistoryAndRiskFactor: radio,
+          });
+        }
+        if (patientForm.modalities === "yes") {
+          if (!patientForm.modalityList?.length) {
+            toast({
+              title: "Alert",
+              description: "Select at least one modality",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (!patientForm.targetedArea?.trim()) {
+            toast({
+              title: "Alert",
+              description: "Enter the targeted area",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+        setIsFormOpen(false);
+        setEditingPatient(null);
+        setPatientForm(initialFormState);
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Something went wrong.",
+          variant: "destructive",
+        });
+      }
+    },
+    [patientForm, editingPatient, radio, createPatient, updatePatient],
+  );
+
+  const handleAssignPhysioSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      try {
+        if (visitOrderError) {
+          toast({
+            title: "Fix Error",
+            description: visitOrderError,
+            variant: "destructive",
+          });
+          return;
+        }
+        await AssignPhysio(assignForm);
+        setPatients((prev) =>
+          prev.map((p) => {
+            if (p._id === assigningPatient._id) {
+              return {
+                ...p,
+                physioId: {
+                  _id: assignForm.physioId,
+                  physioName: assignForm.Physiotherapist,
+                },
+                sessionStartDate: assignForm.sessionStartDate,
+                sessionTime: assignForm.sessionTime,
+                totalSessionDays: assignForm.totalSessionDays,
+                InitialShorttermGoal: assignForm.InitialShorttermGoal,
+                goalDuration: assignForm.goalDuration,
+                goalDescription: assignForm.goalDescription,
+                reviewFrequency: assignForm.reviewFrequency,
+                visitOrder: assignForm.visitOrder,
+                KmsfromHub: assignForm.KmsfromHub,
+                KmsfLPatienttoHub: assignForm.KmsfLPatienttoHub,
+                kmsFromPrevious: assignForm.kmsFromPrevious,
+              };
+            }
+            return p;
+          }),
+        );
+        toast({
+          title: "Success",
+          description: `Physio assigned for ${assigningPatient.patientName}.`,
+        });
+        setIsAssignPhysioOpen(false);
+        setAssigningPatient(null);
+        setAssignForm(initialAssignState);
+      } catch (error) {
+        console.error("Error assigning physio:", error);
+        toast({
+          title: "Error",
+          description: "Failed to assign physio",
+          variant: "destructive",
+        });
+      }
+    },
+    [AssignPhysio, assignForm, assigningPatient],
+  );
+
+  const handleConsentToggle = useCallback(async (patient) => {
+    try {
+      const newStatus = !patient.isConsentReceived;
+      const res = await apiRequest("Patient/updatePatient", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: patient._id,
+          isConsentReceived: newStatus,
+        }),
+      });
+      if (res) {
+        toast({
+          title: "Status Updated",
+          description: `${patient.patientName} consent status updated.`,
+        });
+        setPatients((prev) =>
+          prev.map((p) =>
+            p._id === patient._id ? { ...p, isConsentReceived: newStatus } : p,
+          ),
+        );
+      }
     } catch (error) {
-      console.error("Error assigning physio:", error);
       toast({
         title: "Error",
-        description: "Failed to assign physio",
+        description: "Failed to update patient status.",
         variant: "destructive",
       });
     }
-  };
-  const [sessionCount, setSessionCount] = useState({ total: 0, completed: 0 });
+  }, []);
 
-  // const handleAssignPhysioSubmit = (e) => {
-  // e.preventDefault();
-  // setPatients(prev => prev.map(p => {
-  //   if (p._id === assigningPatient._id) {
-  //     return {
-  //       ...p,
-  //       physiotherapistAssigned: assignForm.Physiotherapist,
-  //       sessionStartDate: assignForm.sessionStartDate,
-  //       sessionTime: assignForm.sessionTime,
-  //       totalSessionDays: assignForm.totalSessionDays,
-  //       InitialShorttermGoal: assignForm.InitialShorttermGoal,
-  //       goalDuration: assignForm.goalDuration,
-  //       treatmentPlan: { ...(p.treatmentPlan || {}), goalDescription: assignForm.goalDescription },
-  //       reviewFrequency: assignForm.reviewFrequency,
-  //       travelDetails: {
-  //         visitOrder: parseInt(assignForm.visitOrder),
-  //         KmsfromHub: assignForm.visitOrder == 1 ? parseFloat(assignForm.KmsfromHub) : null,
-  //         kmsFromPrevious: assignForm.visitOrder > 1 ? parseFloat(assignForm.kmsFromPrevious) : null,
-  //         returnToHubKms: parseFloat(assignForm.returnToHubKms),
-  //       }
-  //     };
-  //   }
-  //   return p;
-  // }));
+  const handleConfirmRecoveryStatus = useCallback(async () => {
+    if (!pendingPatient?._id) return;
+    try {
+      if (pendingAction === "recover") {
+        const res = await apiRequest("Patient/updatePatient", {
+          method: "POST",
+          body: JSON.stringify({
+            _id: pendingPatient._id,
+            isRecovered: true,
+            recoveredType: recoveredType || null,
+            stopReason:
+              recoveredType === "other" ? otherReason.trim() || null : null,
+          }),
+        });
+        if (res) {
+          toast({
+            title: "Recovered",
+            description: `${pendingPatient.patientName} marked as recovered`,
+          });
+          setOpenAlert(false);
+          getAllPatient();
+        }
+      }
+      if (pendingAction === "notRecover") {
+        const res = await apiRequest("Patient/updatePatient", {
+          method: "POST",
+          body: JSON.stringify({ _id: pendingPatient._id, isRecovered: false }),
+        });
+        if (res) {
+          toast({
+            title: "Not Recovered",
+            description: `${pendingPatient.patientName} marked as not recovered`,
+          });
+          setOpenAlert(false);
+          setSelectedPatientForRecovery(pendingPatient);
+          setOpenRecoveryChoice(true);
+          getAllPatient();
+        }
+      }
+      setPendingPatient(null);
+      setPendingAction("");
+    } catch (err) {
+      console.error(err);
+    }
+  }, [pendingPatient, pendingAction, recoveredType, otherReason]);
 
-  // AssignPhysio(assignForm)
-  // toast({ title: "Success", description: `Physio assigned and plan updated for ${assigningPatient.patientName}.` });
-  // setIsAssignPhysioOpen(false);
-  // setAssigningPatient(null);
-  // setAssignForm(initialAssignState);
-  // };
-  const handleViewHistory = async (patient) => {
+  const handleRecoveryOption = useCallback(
+    async (type) => {
+      if (!selectedPatientForRecovery?._id) return;
+      try {
+        if (type === "fresh") {
+          await apiRequest("Patient/startFreshCycle", {
+            method: "POST",
+            body: JSON.stringify({
+              patientId: selectedPatientForRecovery._id,
+              physioId:
+                selectedPatientForRecovery?.physioId?._id ||
+                selectedPatientForRecovery?.physioId,
+            }),
+          });
+          toast({
+            title: "Fresh Cycle Started",
+            description: `${selectedPatientForRecovery.patientName} started with a new cycle.`,
+          });
+        }
+        if (type === "continue") {
+          await apiRequest("Patient/continueOldCycle", {
+            method: "POST",
+            body: JSON.stringify({ patientId: selectedPatientForRecovery._id }),
+          });
+          toast({
+            title: "Old Cycle Continued",
+            description: `${selectedPatientForRecovery.patientName} continued the old cycle.`,
+          });
+        }
+        setOpenRecoveryChoice(false);
+        setSelectedPatientForRecovery(null);
+        getAllPatient();
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Failed to update recovery option.",
+          variant: "destructive",
+        });
+      }
+    },
+    [selectedPatientForRecovery],
+  );
+
+  // Review / goal handlers
+  useEffect(() => {
+    if (!isReviewOpen || !reviewingPatient) return;
+    setReviewForm({
+      feedback: reviewingPatient?.Feedback || "",
+      satisfaction: reviewingPatient?.Satisfaction || null,
+    });
+  }, [isReviewOpen, reviewingPatient]);
+
+  const handleUpdateFeedback = useCallback(async () => {
+    if (!reviewingPatient) return;
+    try {
+      await apiRequest("Patient/updatePatientFeedbacks", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: reviewingPatient._id,
+          Feedback: reviewForm.feedback,
+          Satisfaction: reviewForm.satisfaction,
+        }),
+      });
+      setPatients((prev) =>
+        prev.map((p) =>
+          p._id === reviewingPatient._id
+            ? {
+                ...p,
+                Feedback: reviewForm.feedback,
+                Satisfaction: reviewForm.satisfaction,
+              }
+            : p,
+        ),
+      );
+      toast({
+        title: "Feedback Updated",
+        description: `Feedback for ${reviewingPatient.patientName} saved.`,
+      });
+      setIsReviewOpen(false);
+    } catch (err) {
+      console.error("Failed to save feedback", err);
+      toast({
+        title: "Error",
+        description: "Failed to save feedback",
+        variant: "destructive",
+      });
+    }
+  }, [reviewingPatient, reviewForm]);
+
+  const handleLogAndOpenNewGoal = useCallback(
+    async (e) => {
+      e.preventDefault();
+      try {
+        await apiRequest("Patient/updatePatientFeedbacks", {
+          method: "POST",
+          body: JSON.stringify({
+            patientId: reviewingPatient._id,
+            Feedback: reviewForm.feedback,
+            Satisfaction: reviewForm.satisfaction,
+          }),
+        });
+        setPatients((prev) =>
+          prev.map((p) =>
+            p._id === reviewingPatient._id
+              ? {
+                  ...p,
+                  Feedback: reviewForm.feedback,
+                  Satisfaction: reviewForm.satisfaction,
+                }
+              : p,
+          ),
+        );
+        toast({
+          title: "Feedback Updated",
+          description: `Feedback for ${reviewingPatient.patientName} saved.`,
+        });
+        setIsReviewOpen(false);
+        setIsNewGoalOpen(true);
+      } catch (err) {
+        console.error("Failed to save feedback", err);
+        toast({
+          title: "Error",
+          description: "Failed to save feedback",
+          variant: "destructive",
+        });
+      }
+    },
+    [reviewingPatient, reviewForm],
+  );
+
+  const handleNewGoalSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!reviewingPatient?._id) return;
+      try {
+        await apiRequest("Patient/updatePatientGoals", {
+          method: "POST",
+          body: JSON.stringify({
+            patientId: reviewingPatient._id,
+            shortTermGoals: newGoalForm.newShortTermGoal,
+            goalDuration: newGoalForm.newGoalDuration,
+            feedback: reviewForm.feedback,
+            satisfaction: reviewForm.satisfaction,
+          }),
+        });
+        toast({
+          title: "New Goal Set!",
+          description: "Previous goal archived and new goal assigned.",
+        });
+        setIsNewGoalOpen(false);
+        setNewGoalForm(initialNewGoalState);
+        setReviewForm(initialReviewState);
+        getAllPatient();
+      } catch (err) {
+        console.error(err);
+        toast({
+          title: "Error",
+          description: "Failed to save new goal",
+          variant: "destructive",
+        });
+      }
+    },
+    [reviewingPatient, newGoalForm, reviewForm],
+  );
+
+  const handleViewHistory = useCallback(async (patient) => {
     setHistoryPatient(patient);
     setIsHistoryOpen(true);
-
     try {
       const patientId = patient?._id || patient?.patientId?._id;
-
       const [allSessions, allReviews] = await Promise.all([
         apiRequest("Session/getAllSessionsbyPatient", {
           method: "POST",
@@ -2040,32 +1703,21 @@ const PatientManagement = () => {
       const sessionsArr = Array.isArray(allSessions) ? allSessions : [];
       const reviewsArr = Array.isArray(allReviews) ? allReviews : [];
 
-      // group sessions by cycle
       const groupedByCycle = sessionsArr.reduce((acc, session) => {
         const cycleKey =
           session?.cycleId?._id || session?.cycleId || "no-cycle";
-
-        if (!acc[cycleKey]) {
-          acc[cycleKey] = [];
-        }
-
+        if (!acc[cycleKey]) acc[cycleKey] = [];
         acc[cycleKey].push(session);
         return acc;
       }, {});
 
-      // group reviews by cycle
       const groupedReviewsByCycle = reviewsArr.reduce((acc, review) => {
         const cycleKey = review?.cycleId?._id || review?.cycleId || "no-cycle";
-
-        if (!acc[cycleKey]) {
-          acc[cycleKey] = [];
-        }
-
+        if (!acc[cycleKey]) acc[cycleKey] = [];
         acc[cycleKey].push(review);
         return acc;
       }, {});
 
-      // combine all cycle keys
       const allCycleKeys = Array.from(
         new Set([
           ...Object.keys(groupedByCycle),
@@ -2077,30 +1729,19 @@ const PatientManagement = () => {
         const cycleSessions = groupedByCycle[cycleId] || [];
         const cycleReviews = groupedReviewsByCycle[cycleId] || [];
 
-        // sessions: oldest -> newest for correct session numbering
-        const sortedSessionsAsc = [...cycleSessions].sort((a, b) => {
-          const dateA = a?.sessionDate ? new Date(a.sessionDate).getTime() : 0;
-          const dateB = b?.sessionDate ? new Date(b.sessionDate).getTime() : 0;
-          return dateA - dateB;
-        });
-
+        const sortedSessionsAsc = [...cycleSessions].sort(
+          (a, b) =>
+            new Date(a?.sessionDate || 0) - new Date(b?.sessionDate || 0),
+        );
         let runningCount = 0;
         let previousStatus = "";
 
         const sessionItems = sortedSessionsAsc.map((s, index) => {
           const currentStatus =
             s?.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
-
-          if (index === 0) {
-            runningCount = 1;
-          } else {
-            if (previousStatus !== "canceled") {
-              runningCount += 1;
-            }
-          }
-
+          if (index === 0) runningCount = 1;
+          else if (previousStatus !== "canceled") runningCount += 1;
           previousStatus = currentStatus;
-
           return {
             ...s,
             itemType: "session",
@@ -2108,7 +1749,6 @@ const PatientManagement = () => {
             cycleId,
             date: s?.sessionDate || null,
             sortDate: s?.sessionDate ? new Date(s.sessionDate) : null,
-            originalSessionCount: s?.sessionCount || 0,
             displaySessionCount: runningCount,
             title: `Session ${runningCount}`,
             status: s?.sessionStatusId?.sessionStatusName || "N/A",
@@ -2124,13 +1764,9 @@ const PatientManagement = () => {
           };
         });
 
-        // reviews: oldest -> newest for correct review numbering
-        const sortedReviewsAsc = [...cycleReviews].sort((a, b) => {
-          const dateA = a?.reviewDate ? new Date(a.reviewDate).getTime() : 0;
-          const dateB = b?.reviewDate ? new Date(b.reviewDate).getTime() : 0;
-          return dateA - dateB;
-        });
-
+        const sortedReviewsAsc = [...cycleReviews].sort(
+          (a, b) => new Date(a?.reviewDate || 0) - new Date(b?.reviewDate || 0),
+        );
         const reviewItems = sortedReviewsAsc.map((r, index) => ({
           ...r,
           itemType: "review",
@@ -2154,24 +1790,19 @@ const PatientManagement = () => {
               : "No red flags",
         }));
 
-        // newest first in UI
-        const mergedItems = [...sessionItems, ...reviewItems].sort((a, b) => {
-          const dateA = a?.sortDate ? new Date(a.sortDate).getTime() : 0;
-          const dateB = b?.sortDate ? new Date(b.sortDate).getTime() : 0;
-          return dateB - dateA;
-        });
+        const mergedItems = [...sessionItems, ...reviewItems].sort(
+          (a, b) => new Date(b?.sortDate || 0) - new Date(a?.sortDate || 0),
+        );
 
         const dates = mergedItems
           .map((item) => item?.date)
           .filter(Boolean)
           .map((d) => new Date(d))
-          .filter((d) => !Number.isNaN(d.getTime()));
-
+          .filter((d) => !isNaN(d.getTime()));
         const firstDate =
           dates.length > 0
             ? new Date(Math.min(...dates.map((d) => d.getTime())))
             : null;
-
         const lastDate =
           dates.length > 0
             ? new Date(Math.max(...dates.map((d) => d.getTime())))
@@ -2192,20 +1823,15 @@ const PatientManagement = () => {
         };
       });
 
-      // newest cycle first
-      cycleHistory.sort((a, b) => {
-        const dateA = a?.lastDate ? new Date(a.lastDate).getTime() : 0;
-        const dateB = b?.lastDate ? new Date(b.lastDate).getTime() : 0;
-        return dateB - dateA;
-      });
-
+      cycleHistory.sort(
+        (a, b) => new Date(b?.lastDate || 0) - new Date(a?.lastDate || 0),
+      );
       setPatientHistory(cycleHistory);
 
       const totalRecords = cycleHistory.reduce(
         (sum, cycle) => sum + (cycle?.sessions?.length || 0),
         0,
       );
-
       const completedRecords = cycleHistory.reduce(
         (sum, cycle) =>
           sum +
@@ -2216,7 +1842,6 @@ const PatientManagement = () => {
           ).length,
         0,
       );
-
       const canceledRecords = cycleHistory.reduce(
         (sum, cycle) =>
           sum +
@@ -2227,7 +1852,6 @@ const PatientManagement = () => {
           ).length,
         0,
       );
-
       const totalReviews = cycleHistory.reduce(
         (sum, cycle) =>
           sum +
@@ -2252,395 +1876,426 @@ const PatientManagement = () => {
         reviews: 0,
       });
     }
-  };
-  const renderRadioGroup = (label, name, value, id, group, dynamic) => (
-    <div className="flex items-center space-x-4">
-      <Label className="w-24">{label}</Label>
-      <RadioGroup
-        value={patientForm[name] || (group ? false : "no")}
-        onValueChange={(v) => {
-          dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v);
-        }}
-        className="flex gap-4"
-      >
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value={group ? true : "yes"} id={`${name}-yes`} />
-          <Label htmlFor={`${name}-yes`}>Yes</Label>
-        </div>
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value={group ? false : "no"} id={`${name}-no`} />
-          <Label htmlFor={`${name}-no`}>No</Label>
-        </div>
-      </RadioGroup>
-    </div>
-  );
-  const [modalities, setModalities] = useState([]);
-  const [modalityForm, setModalityForm] = useState({
-    modalities: false,
-    modalitiestype: "",
-    modalityList: [],
-    modalityType: {}, // to store Type of Modality for each checked modality
-  });
-  const getModalities = async (data) => {
-    try {
-      const response = await apiRequest("Modalities/getAllModalities", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      setModalities(response);
-    } catch (error) {
-      console.log(error, "error from frontend get All Modalities");
-    }
-  };
-  const handleToggleStatus = async (patient) => {
-    setPendingPatient(patient);
-    setRecoveredType("");
-    setOtherReason("");
-    setOpenAlert(true);
-  };
-  // const handleToggleStatus = async (payload) => {
-  //   try {
-  //     const res = await apiRequest("Patient/updatePatient", {
-  //       method: "POST",
-  //       body: JSON.stringify({
-  //         _id: payload.patientId || payload._id,
-  //         isRecovered: payload.isRecovered,
-  //         recoveredType: payload.recoveredType || null,
-  //         stopReason: payload.stopReason || null,
-  //       }),
-  //     });
+  }, []);
 
-  //     if (res) {
-  //       toast({
-  //         title: "Status Updated",
-  //         description: `${payload.patientName || "Patient"} is now ${
-  //           payload.isRecovered ? "Recovered" : "Not Recovered"
-  //         }.`,
-  //       });
+  // ─────────────────────────────────────────────
+  // PDF / EXCEL HELPERS
+  // ─────────────────────────────────────────────
+  const fmtDate = useCallback((d) => {
+    if (!d) return "-";
+    const x = new Date(d);
+    if (isNaN(x.getTime())) return "-";
+    return x.toLocaleDateString("en-GB");
+  }, []);
 
-  //       setPatients((prev) =>
-  //         prev.map((p) =>
-  //           p._id === payload._id
-  //             ? {
-  //                 ...p,
-  //                 isRecovered: payload.isRecovered,
-  //                 recoveredType: payload.recoveredType || null,
-  //                 stopReason: payload.stopReason || null,
-  //               }
-  //             : p,
-  //         ),
-  //       );
-  //     }
-  //   } catch (error) {
-  //     toast({
-  //       title: "Error",
-  //       description: "Failed to update patient status.",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
+  const formatDate = useCallback((date) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "-";
+    return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+  }, []);
 
-  const handleConsentToggle = async (patient) => {
-    try {
-      const newStatus = !patient.isConsentReceived;
-
-      const res = await apiRequest("Patient/updatePatient", {
-        method: "POST",
-        body: JSON.stringify({
-          _id: patient._id,
-          isConsentReceived: newStatus,
-        }),
-      });
-
-      if (res) {
-        toast({
-          title: "Status Updated",
-          description: `${patient.patientName} is now ${
-            newStatus ? "Consent Received" : "Not Consent Received"
-          }.`,
-        });
-
-        setPatients((prev) =>
-          prev.map((p) =>
-            p._id === patient._id ? { ...p, isConsentReceived: newStatus } : p,
-          ),
-        );
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update patient status.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // const renderRadioGroup = (label, name, value, id, group) => (
-  //   <div className="flex items-center space-x-4">
-  //     <Label className="w-24">{label}</Label>
-  //     <RadioGroup value={patientForm[name] || value} onValueChange={(v) => { group ? handleRadio(name, v, id) : handleRadioChange(name, v) }} className="flex gap-4">
-  //       <div className="flex items-center space-x-2"><RadioGroupItem value={true} id={`${name}-yes`} /><Label htmlFor={`${name}-yes`}>Yes</Label></div>
-  //       <div className="flex items-center space-x-2"><RadioGroupItem value={false} active='no' id={`${name}-no`} /><Label htmlFor={`${name}-no`}>No</Label></div>
-  //     </RadioGroup>
-  //   </div>
-
-  // );
-  const [selectedPhysioId, setSelectedPhysioId] = useState("ALL");
-  useEffect(() => {
-    const filtered = filteredByDate.filter((patient) => {
-      const search = searchTerm.toLowerCase();
-
-      const matchesSearch =
-        patient.patientName?.toLowerCase().includes(search) ||
-        patient.patientCode?.toLowerCase().includes(search) ||
-        patient.patientNumber?.toString().includes(search);
-
-      const matchesPhysio =
-        selectedPhysioId === "ALL" ||
-        patient.physioId?._id === selectedPhysioId;
-
-      return matchesSearch && matchesPhysio;
+  const getBase64FromUrl = useCallback(async (url) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
+  }, []);
 
-    setFilteredPatients(filtered);
-  }, [filteredByDate, searchTerm, selectedPhysioId]);
-  const activePatients = useMemo(() => {
-    return (filteredPatients || []).filter((p) => !p.isRecovered);
-  }, [filteredPatients]);
-
-  const recoveredPatients = useMemo(() => {
-    return (filteredPatients || []).filter((p) => !!p.isRecovered);
-  }, [filteredPatients]);
-  const assignedPhysioIds =
-    typeof patientForm.physioId === "object"
-      ? patientForm.physioId?._id
-      : patientForm.physioId;
-
-  const physioModalityIds = useMemo(() => {
-    if (!assignedPhysioIds || !Array.isArray(machines)) return [];
-
-    const set = new Set();
-
-    machines.forEach((m) => {
-      const isAssigned =
-        Array.isArray(m.Assignedto) &&
-        m.Assignedto.some(
-          (a) =>
-            String(a.physioId) === String(assignedPhysioIds) &&
-            Number(a.count || 0) > 0,
-        );
-
-      const modId = m.modalityId?._id ?? m.modalityId; // object or string
-
-      if (isAssigned && modId) set.add(String(modId));
-    });
-
-    return Array.from(set);
-  }, [machines, assignedPhysioIds]);
-
-  const getAllMachine = async (data) => {
-    try {
-      const res = await apiRequest("Machinery/getAllMachinery", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-
-      // depending on response shape
-      const list = res?.machines ?? res ?? [];
-      setMachines(list);
-    } catch (error) {
-      console.error("not able to getall Machine", error);
-    }
-  };
-  const getNthSessionFromToday = ({ currentSession, targetSession }) => {
-    let date = new Date();
-
-    // ✅ cycle logic (no negative ever)
-    let sessionsToAdd =
-      (targetSession - (currentSession % targetSession)) % targetSession;
-
-    // 👉 if exactly divisible, we want NEXT cycle (26 not 0)
-    if (sessionsToAdd === 0) {
-      sessionsToAdd = targetSession;
-    }
-
-    let added = 0;
-
-    // skip Sunday logic
-    while (added < sessionsToAdd) {
-      if (date.getDay() !== 0) {
-        added++;
-        if (added === sessionsToAdd) break;
-      }
-      date.setDate(date.getDate() + 1);
-    }
-
-    return {
-      session: targetSession,
-      date: formatDate(date),
-      sessionsNeeded: sessionsToAdd,
-    };
-  };
-  const getNext26thSession = (patient) => {
-    const currentSession = patient.sessionCount || 0;
-    const sessionsNeeded = 26 - currentSession;
-
-    if (sessionsNeeded <= 0) {
+  const getSessionDateRange = useCallback(
+    (sessions = []) => {
+      if (!Array.isArray(sessions) || sessions.length === 0)
+        return {
+          sessionStartDate: "-",
+          sessionEndDate: "-",
+          lastSessionDate: "-",
+        };
+      const validDates = sessions
+        .map((s) => s?.sessionDate)
+        .filter(Boolean)
+        .map((date) => new Date(date))
+        .filter((d) => !isNaN(d.getTime()))
+        .sort((a, b) => a - b);
+      if (!validDates.length)
+        return {
+          sessionStartDate: "-",
+          sessionEndDate: "-",
+          lastSessionDate: "-",
+        };
       return {
-        date: "Completed",
-        sessionsNeeded: 0,
+        sessionStartDate: formatDate(validDates[0]),
+        sessionEndDate: formatDate(validDates[validDates.length - 1]),
+        lastSessionDate: formatDate(validDates[validDates.length - 1]),
       };
-    }
-
-    const startDate = patient.consultationDate
-      ? new Date(patient.consultationDate)
-      : new Date();
-
-    const nextDate = new Date(startDate);
-    nextDate.setDate(nextDate.getDate() + sessionsNeeded);
-
-    return {
-      date: format(nextDate, "PP"),
-      sessionsNeeded,
-    };
-  };
-  const getPatientBadge = (patient) => {
-    if (!patient?.createdAt) return null;
-
-    const createdAt = new Date(patient.createdAt);
-    if (Number.isNaN(createdAt.getTime())) return null;
-
-    const now = new Date();
-    const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
-
-    if (now - createdAt <= tenDaysInMs) {
-      return {
-        label: "New",
-        className: "bg-blue-100 text-blue-700 border border-blue-200",
-      };
-    }
-
-    return null;
-  };
-  const getMonthlyNewPatients = (patients) => {
-    const now = new Date();
-
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
-    const lastMonth = lastMonthDate.getMonth();
-    const lastMonthYear = lastMonthDate.getFullYear();
-
-    let thisMonthCount = 0;
-    let lastMonthCount = 0;
-
-    patients.forEach((patient) => {
-      if (!patient?.createdAt) return;
-
-      const created = new Date(patient.createdAt);
-
-      const month = created.getMonth();
-      const year = created.getFullYear();
-
-      // THIS MONTH
-      if (month === currentMonth && year === currentYear) {
-        thisMonthCount++;
-      }
-
-      // LAST MONTH
-      if (month === lastMonth && year === lastMonthYear) {
-        lastMonthCount++;
-      }
-    });
-
-    return { thisMonthCount, lastMonthCount };
-  };
-  const { thisMonthCount, lastMonthCount } = getMonthlyNewPatients(
-    filteredPatients || [],
+    },
+    [formatDate],
   );
 
-  let growth = 0;
-
-  if (lastMonthCount === 0 && thisMonthCount > 0) {
-    growth = 100;
-  } else if (lastMonthCount === 0 && thisMonthCount === 0) {
-    growth = 0;
-  } else {
-    growth = (
-      ((thisMonthCount - lastMonthCount) / lastMonthCount) *
-      100
-    ).toFixed(1);
-  }
-  const getGrowthColor = () => {
-    if (growth > 0) return "text-green-600";
-    if (growth < 0) return "text-red-600";
-    return "text-gray-500";
-  };
-
-  const getGrowthSymbol = () => {
-    if (growth > 0) return "↑";
-    if (growth < 0) return "↓";
-    return "-";
-  };
-
-  const buildFilteredPatientRows = () => {
-    return (filteredPatients || []).map((p, idx) => [
-      idx + 1,
-      p.patientCode || "-",
-      p.patientName || "-",
-      p.patientAge || "-",
-      p.patientGenderId?.genderName || p.genderName || "-",
-      p.patientNumber || "-",
-      p.patientCondition || "-",
-      p.physioId?.physioName || p.physioName || "-",
-      fmtDate(p.consultationDate),
-      fmtDate(p.reviewDate),
-      p.sessionCount ?? 0,
-      p.isRecovered ? "Recovered" : "Active",
-    ]);
-  };
-  const downloadFilteredPatientsPdf = async () => {
-    try {
-      const rows = buildFilteredPatientRows();
-
-      if (!rows.length) {
-        toast({
-          title: "No Data",
-          description: "No filtered patients found to export.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const doc = new jsPDF("l", "mm", "a4");
-
+  const downloadPatientsPdf = useCallback(
+    async ({ title, rows, fileName }) => {
+      const doc = new jsPDF();
       let logoBase64 = "";
       try {
         logoBase64 = await getBase64FromUrl(Logo);
       } catch (err) {
         console.log("Logo not loaded");
       }
-
-      if (logoBase64) {
-        doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
-      }
-
+      if (logoBase64) doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
       doc.setFontSize(16);
       doc.setTextColor(41, 128, 185);
       doc.text("NEO PHYSIO", 40, 18);
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text(title, 40, 25);
+      doc.setFontSize(10);
+      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
+      doc.setDrawColor(41, 128, 185);
+      doc.line(14, 38, 195, 38);
+      autoTable(doc, {
+        startY: 42,
+        head: [
+          [
+            "#",
+            "Patient Code",
+            "Patient Name",
+            "Age",
+            "Gender",
+            "Mobile",
+            "Consultation",
+            "Physio",
+            "Status",
+          ],
+        ],
+        body: rows.length
+          ? rows.map((p, idx) => [
+              idx + 1,
+              p.patientCode || "-",
+              p.patientName || "-",
+              p.patientAge || "-",
+              p.patientGenderId?.genderName || p.genderName || "-",
+              p.patientNumber || "-",
+              fmtDate(p.consultationDate),
+              p.physioId?.physioName || p.physioName || "-",
+              p.isRecovered ? "Recovered" : "Active",
+            ])
+          : [["", "No data", "", "", "", "", "", "", ""]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] },
+        columnStyles: {
+          0: { cellWidth: 8 },
+          1: { cellWidth: 22 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 12 },
+          4: { cellWidth: 18 },
+          5: { cellWidth: 22 },
+          6: { cellWidth: 22 },
+          7: { cellWidth: 25 },
+          8: { cellWidth: 16 },
+        },
+      });
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(9);
+      doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
+      doc.save(fileName);
+    },
+    [fmtDate, getBase64FromUrl],
+  );
 
+  const getPastMonthsRange = useCallback((monthsCount) => {
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    const start = new Date(
+      end.getFullYear(),
+      end.getMonth() - (monthsCount - 1),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+    const toYMD = (d) => d.toISOString().slice(0, 10);
+    return { startDate: toYMD(start), endDate: toYMD(end), start, end };
+  }, []);
+
+  const getCurrentMonthRange = useCallback(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const end = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+    const toYMD = (d) => d.toISOString().slice(0, 10);
+    return { startDate: toYMD(start), endDate: toYMD(end), start, end };
+  }, []);
+
+  const downloadPatientsByRange = useCallback(
+    async ({ startDate, endDate, start, end }, filePrefix) => {
+      const res = await apiRequest("Patient/downloadPatient", {
+        method: "POST",
+        body: JSON.stringify({ startDate, endDate, view: "all" }),
+      });
+      const title = `Patients (${start.toLocaleDateString("en-GB")} to ${end.toLocaleDateString("en-GB")})`;
+      downloadPatientsPdf({
+        title,
+        rows: Array.isArray(res) ? res : [],
+        fileName: `${filePrefix}_${startDate}_to_${endDate}.pdf`,
+      });
+    },
+    [downloadPatientsPdf],
+  );
+
+  const downloadPatientsOfMonth = useCallback(
+    () =>
+      downloadPatientsByRange(getCurrentMonthRange(), "Patients_This_Month"),
+    [downloadPatientsByRange, getCurrentMonthRange],
+  );
+  const downloadPatientsOfLastMonth = useCallback(
+    () =>
+      downloadPatientsByRange(getPastMonthsRange(1), "Patients_Last_1_Month"),
+    [downloadPatientsByRange, getPastMonthsRange],
+  );
+  const downloadPatientsOfLast2Month = useCallback(
+    () =>
+      downloadPatientsByRange(getPastMonthsRange(2), "Patients_Last_2_Months"),
+    [downloadPatientsByRange, getPastMonthsRange],
+  );
+  const downloadPatientsOfLast3Month = useCallback(
+    () =>
+      downloadPatientsByRange(getPastMonthsRange(3), "Patients_Last_3_Months"),
+    [downloadPatientsByRange, getPastMonthsRange],
+  );
+
+  const downloadPatientsLastYear = useCallback(async () => {
+    const res = await apiRequest("Patient/downloadPatient", {
+      method: "POST",
+      body: JSON.stringify({ rangeType: "lastYear", view: "all" }),
+    });
+    downloadPatientsPdf({
+      title: "Last 1 Year Patients List",
+      rows: Array.isArray(res) ? res : [],
+      fileName: "Patients_Last_1_Year.pdf",
+    });
+  }, [downloadPatientsPdf]);
+
+  const downloadPatientsPDFs = useCallback(async () => {
+    try {
+      const body = { month: selectedMonth, year: selectedYear, view: "all" };
+      const res = await apiRequest("Patient/downloadPatientsMonthlyReport", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      const report = Array.isArray(res?.report) ? res.report : [];
+      if (!report.length) {
+        toast({
+          title: "No Data",
+          description: "No patient report found.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const doc = new jsPDF("landscape");
+      let logoBase64 = "";
+      try {
+        logoBase64 = await getBase64FromUrl(Logo);
+      } catch (err) {
+        console.log("Logo not loaded");
+      }
+      if (logoBase64) doc.addImage(logoBase64, "PNG", 14, 10, 25, 25);
+      doc.setFontSize(18);
+      doc.setTextColor(41, 128, 185);
+      doc.text("NEO PHYSIO", 45, 18);
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Monthly Patient Report", 45, 25);
+      doc.setFontSize(10);
+      doc.text(
+        `Month: ${monthNames[selectedMonth - 1]} ${selectedYear}`,
+        14,
+        35,
+      );
+      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 42);
+      doc.setDrawColor(41, 128, 185);
+      doc.line(14, 45, 285, 45);
+      const columns = [
+        "S.No",
+        "Patient Code",
+        "Patient Name",
+        "Age",
+        "Gender",
+        "Contact",
+        "Condition",
+        "Physio",
+        "Start Date",
+        "End Date",
+        "Total Sessions",
+        "Completed",
+        "Cancelled",
+        "Status",
+      ];
+      const rows = report.map((p, index) => {
+        const { sessionStartDate, sessionEndDate } = getSessionDateRange(
+          p.sessions,
+        );
+        return [
+          index + 1,
+          p.patientCode || "-",
+          p.patientName || "-",
+          p.age || "-",
+          p.gender || "-",
+          p.number || "-",
+          p.condition || "-",
+          p.assignedPhysio || "-",
+          sessionStartDate,
+          sessionEndDate,
+          p.totalSessions ?? 0,
+          p.completedSessions ?? 0,
+          p.cancelledSessions ?? 0,
+          p.recovered || (p.isRecovered ? "Recovered" : "Active"),
+        ];
+      });
+      autoTable(doc, {
+        startY: 50,
+        head: [columns],
+        body: rows,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [41, 128, 185] },
+      });
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(9);
+      doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
+      doc.save(
+        `Patients_Report_${monthNames[selectedMonth - 1]}_${selectedYear}.pdf`,
+      );
+    } catch (error) {
+      console.error("PDF download error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download monthly patient PDF.",
+        variant: "destructive",
+      });
+    }
+  }, [
+    selectedMonth,
+    selectedYear,
+    fmtDate,
+    getBase64FromUrl,
+    getSessionDateRange,
+  ]);
+
+  const downloadPatientsExcel = useCallback(async () => {
+    try {
+      const body = { month: selectedMonth, year: selectedYear, view: "all" };
+      const res = await apiRequest("Patient/downloadPatientsMonthlyReport", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      const report = Array.isArray(res?.report) ? res.report : [];
+      if (!report.length) {
+        toast({
+          title: "No Data",
+          description: "No patient report found.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const excelData = report.map((p, index) => {
+        const { sessionStartDate, sessionEndDate, lastSessionDate } =
+          getSessionDateRange(p.sessions);
+        return {
+          "S.No": index + 1,
+          "Patient Code": p.patientCode || "-",
+          "Patient Name": p.patientName || "-",
+          Age: p.age || "-",
+          Gender: p.gender || "-",
+          Contact: p.number || "-",
+          Address: p.address || "-",
+          Condition: p.condition || "-",
+          Physio: p.assignedPhysio || "-",
+          "Consultation Date": formatDate(p.consultationDate),
+          "Review Date": formatDate(p.reviewDate),
+          "Session Start Date": sessionStartDate,
+          "Session End Date": sessionEndDate,
+          "Total Sessions": p.totalSessions ?? 0,
+          Completed: p.completedSessions ?? 0,
+          Cancelled: p.cancelledSessions ?? 0,
+          Status: p.recovered || (p.isRecovered ? "Recovered" : "Active"),
+        };
+      });
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      worksheet["!cols"] = [
+        { wch: 8 },
+        { wch: 15 },
+        { wch: 22 },
+        { wch: 8 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 22 },
+        { wch: 28 },
+        { wch: 20 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
+      ];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Patients Report");
+      XLSX.writeFile(
+        workbook,
+        `Patients_Report_${monthNames[selectedMonth - 1]}_${selectedYear}.xlsx`,
+      );
+    } catch (error) {
+      console.error("Excel download error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download Excel.",
+        variant: "destructive",
+      });
+    }
+  }, [selectedMonth, selectedYear, formatDate, getSessionDateRange]);
+
+  const downloadFilteredPatientsPdf = useCallback(async () => {
+    try {
+      const rows = filteredPatients;
+      if (!rows.length) {
+        toast({
+          title: "No Data",
+          description: "No filtered patients found.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const doc = new jsPDF("l", "mm", "a4");
+      let logoBase64 = "";
+      try {
+        logoBase64 = await getBase64FromUrl(Logo);
+      } catch (err) {
+        console.log("Logo not loaded");
+      }
+      if (logoBase64) doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
+      doc.setFontSize(16);
+      doc.setTextColor(41, 128, 185);
+      doc.text("NEO PHYSIO", 40, 18);
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text("Filtered Patients Report", 40, 25);
-
       doc.setFontSize(10);
       doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
-      doc.text(`Total Patients: ${filteredPatients.length}`, 220, 35);
-
+      doc.text(`Total: ${filteredPatients.length}`, 220, 35);
       doc.setDrawColor(41, 128, 185);
       doc.line(14, 38, 283, 38);
-
       autoTable(doc, {
         startY: 42,
         head: [
@@ -2659,11 +2314,22 @@ const PatientManagement = () => {
             "Status",
           ],
         ],
-        body: rows,
+        body: rows.map((p, idx) => [
+          idx + 1,
+          p.patientCode || "-",
+          p.patientName || "-",
+          p.patientAge || "-",
+          p.patientGenderId?.genderName || p.genderName || "-",
+          p.patientNumber || "-",
+          p.patientCondition || "-",
+          p.physioId?.physioName || p.physioName || "-",
+          fmtDate(p.consultationDate),
+          fmtDate(p.reviewDate),
+          p.sessionCount ?? 0,
+          p.isRecovered ? "Recovered" : "Active",
+        ]),
         styles: { fontSize: 8 },
-        headStyles: {
-          fillColor: [41, 128, 185],
-        },
+        headStyles: { fillColor: [41, 128, 185] },
         columnStyles: {
           0: { cellWidth: 8 },
           1: { cellWidth: 22 },
@@ -2679,32 +2345,30 @@ const PatientManagement = () => {
           11: { cellWidth: 18 },
         },
       });
-
       const pageHeight = doc.internal.pageSize.height;
       doc.setFontSize(9);
       doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
-
       doc.save("Filtered_Patients_Report.pdf");
     } catch (error) {
       console.error("Filtered PDF download error:", error);
       toast({
         title: "Error",
-        description: "Failed to download filtered patient PDF.",
+        description: "Failed to download filtered PDF.",
         variant: "destructive",
       });
     }
-  };
-  const downloadFilteredPatientsExcel = () => {
+  }, [filteredPatients, fmtDate, getBase64FromUrl]);
+
+  const downloadFilteredPatientsExcel = useCallback(() => {
     try {
       if (!filteredPatients?.length) {
         toast({
           title: "No Data",
-          description: "No filtered patients found to export.",
+          description: "No filtered patients found.",
           variant: "destructive",
         });
         return;
       }
-
       const excelData = filteredPatients.map((p, index) => ({
         "S.No": index + 1,
         "Patient Code": p.patientCode || "-",
@@ -2719,9 +2383,7 @@ const PatientManagement = () => {
         "No of Sessions": p.sessionCount ?? 0,
         Status: p.isRecovered ? "Recovered" : "Active",
       }));
-
       const worksheet = XLSX.utils.json_to_sheet(excelData);
-
       worksheet["!cols"] = [
         { wch: 8 },
         { wch: 15 },
@@ -2736,20 +2398,183 @@ const PatientManagement = () => {
         { wch: 14 },
         { wch: 12 },
       ];
-
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Patients");
-
       XLSX.writeFile(workbook, "Filtered_Patients_Report.xlsx");
     } catch (error) {
       console.error("Filtered Excel download error:", error);
       toast({
         title: "Error",
-        description: "Failed to download filtered patient Excel.",
+        description: "Failed to download filtered Excel.",
         variant: "destructive",
       });
     }
-  };
+  }, [filteredPatients, fmtDate]);
+
+  const handleDownloadRecoveredPatientsPDF = useCallback(async () => {
+    if (!recoveredPatients || recoveredPatients.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No recovered patients available",
+        variant: "destructive",
+      });
+      return;
+    }
+    const doc = new jsPDF();
+    let logoBase64 = "";
+    try {
+      logoBase64 = await getBase64FromUrl(Logo);
+    } catch (err) {
+      console.log("Logo not loaded");
+    }
+    if (logoBase64) doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
+    doc.setFontSize(18);
+    doc.setTextColor(41, 128, 185);
+    doc.text("NEO PHYSIO", 40, 18);
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Recovered Patients Report", 40, 26);
+    doc.setFontSize(10);
+    doc.text(`Downloaded on: ${format(new Date(), "PPpp")}`, 14, 35);
+    const tableColumn = [
+      "Patient Code",
+      "Name",
+      "Age/Gender",
+      "Contact",
+      "Condition",
+      "Recovered Date",
+      "Physio",
+      "Sessions",
+    ];
+    const tableRows = recoveredPatients.map((p) => [
+      p.patientCode || "-",
+      p.patientName || "-",
+      `${p.patientAge || "-"} / ${p.patientGenderId?.genderName || "-"}`,
+      p.patientNumber || "-",
+      p.patientCondition || "-",
+      p.recoveredAt ? format(new Date(p.recoveredAt), "PP") : "N/A",
+      p.physioId?.physioName || "-",
+      p.sessionCount || 0,
+    ]);
+    autoTable(doc, {
+      startY: 42,
+      head: [tableColumn],
+      body: tableRows,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(9);
+    doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
+    doc.save("NEO_PHYSIO_Recovered_Patients.pdf");
+  }, [recoveredPatients, getBase64FromUrl]);
+
+  const handleDownloadRecovered = useCallback(() => {
+    if (!recoveredPatients || recoveredPatients.length === 0) {
+      alert("No recovered patients available");
+      return;
+    }
+    const data = recoveredPatients.map((p) => ({
+      PatientCode: p.patientCode,
+      Name: p.patientName,
+      Age: p.patientAge,
+      Gender: p.patientGenderId?.genderName,
+      Contact: p.patientNumber,
+      Condition: p.patientCondition,
+      Sessions: p.sessionCount || 0,
+      Physio: p.physioId?.physioName,
+      ReviewDate: p.reviewDate
+        ? format(new Date(p.reviewDate), "dd-MM-yyyy")
+        : "N/A",
+      RecoveredDate: p.recoveredAt
+        ? format(new Date(p.recoveredAt), "dd-MM-yyyy")
+        : "N/A",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Recovered Patients");
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    saveAs(
+      new Blob([excelBuffer], { type: "application/octet-stream" }),
+      "Recovered_Patients.xlsx",
+    );
+  }, [recoveredPatients]);
+
+  // ─────────────────────────────────────────────
+  // SESSION STYLE HELPER
+  // ─────────────────────────────────────────────
+  const getSessionStyle = useCallback((status) => {
+    switch (status?.toLowerCase()) {
+      case "completed":
+        return "bg-green-100 border-green-300";
+      case "canceled":
+        return "bg-red-100 border-red-300";
+      case "scheduled":
+        return "bg-blue-100 border-blue-300";
+      default:
+        return "bg-white border-gray-200";
+    }
+  }, []);
+
+  // ─────────────────────────────────────────────
+  // RENDER HELPERS
+  // ─────────────────────────────────────────────
+  const renderRadioGroup = useCallback(
+    (label, name, value, id, group, dynamic) => (
+      <div className="flex items-center space-x-4">
+        <Label className="w-24">{label}</Label>
+        <RadioGroup
+          value={patientForm[name] || (group ? false : "no")}
+          onValueChange={(v) => {
+            dynamic ? handleRadio(name, v, id) : handleRadioChange(name, v);
+          }}
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value={group ? true : "yes"} id={`${name}-yes`} />
+            <Label htmlFor={`${name}-yes`}>Yes</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value={group ? false : "no"} id={`${name}-no`} />
+            <Label htmlFor={`${name}-no`}>No</Label>
+          </div>
+        </RadioGroup>
+      </div>
+    ),
+    [patientForm, handleRadio, handleRadioChange],
+  );
+
+  // FIX 10: TabButton stable reference
+  const TabButton = useCallback(
+    ({ id, label, icon: Icon, isHistory }) => (
+      <button
+        onClick={() => (isHistory ? setActiveHistoryTab(id) : setActiveTab(id))}
+        className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all rounded-md ${
+          (isHistory ? activeHistoryTab : activeTab) === id
+            ? "bg-blue-600 text-white shadow-md"
+            : "text-slate-500 hover:text-white hover:bg-blue-900"
+        }`}
+        type="button"
+      >
+        {Icon && <Icon className="w-4 h-4" />}
+        {label}
+        {(isHistory ? activeHistoryTab : activeTab) === id && (
+          <motion.div
+            layoutId={isHistory ? "activeHistoryTab" : "activetabpatient"}
+            className="absolute inset-0 rounded-md bg-blue-600 -z-10"
+          />
+        )}
+      </button>
+    ),
+    [activeTab, activeHistoryTab],
+  );
+
+  // ═══════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════
   return (
     <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       <div className="w-full flex justify-center">
@@ -2775,7 +2600,6 @@ const PatientManagement = () => {
                 Manage registered patients and their treatment plans.
               </p>
             </div>
-
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full md:w-auto md:justify-end">
               <Button
                 variant="outline"
@@ -2785,7 +2609,6 @@ const PatientManagement = () => {
                 <FileText className="mr-2 h-4 w-4" />
                 Download
               </Button>
-
               <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center flex-wrap w-full sm:w-auto">
                 <select
                   value={selectedMonth}
@@ -2793,16 +2616,11 @@ const PatientManagement = () => {
                   className="border rounded-md px-3 py-2 text-sm w-full sm:w-auto"
                 >
                   {monthNames.map((month, index) => (
-                    <option
-                      key={month}
-                      value={index + 1}
-                      className=" h-[200px]"
-                    >
+                    <option key={month} value={index + 1}>
                       {month}
                     </option>
                   ))}
                 </select>
-
                 <input
                   type="number"
                   value={selectedYear}
@@ -2811,7 +2629,6 @@ const PatientManagement = () => {
                   min="2020"
                   max="2100"
                 />
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
                   <Button onClick={downloadPatientsPDFs} className="w-full">
                     Download PDF
@@ -2821,7 +2638,6 @@ const PatientManagement = () => {
                   </Button>
                 </div>
               </div>
-
               {Permissions.isAdd && (
                 <Button onClick={handleNewPatient} className="w-full sm:w-auto">
                   <PlusCircle className="mr-2 h-4 w-4" /> New Patient
@@ -2836,7 +2652,6 @@ const PatientManagement = () => {
                 Search Patients
               </CardTitle>
             </CardHeader>
-
             <CardContent className="px-4 sm:px-6">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-center">
                 <div className="relative w-full">
@@ -2848,7 +2663,6 @@ const PatientManagement = () => {
                     className="pl-10 w-full"
                   />
                 </div>
-
                 <div className="w-full">
                   <Input
                     type="date"
@@ -2857,7 +2671,6 @@ const PatientManagement = () => {
                     className="w-full"
                   />
                 </div>
-
                 <Select
                   value={selectedPhysioId}
                   onValueChange={(v) => setSelectedPhysioId(v)}
@@ -2881,7 +2694,6 @@ const PatientManagement = () => {
                   >
                     Export Filtered PDF
                   </Button>
-
                   <Button
                     variant="outline"
                     onClick={downloadFilteredPatientsExcel}
@@ -2892,19 +2704,18 @@ const PatientManagement = () => {
               </div>
             </CardContent>
           </Card>
+
           <div className="bg-white rounded-xl shadow-sm border p-4 flex flex-col gap-2">
             <p className="text-sm text-gray-500">New Patients This Month</p>
-
             <p className="text-2xl font-bold">{thisMonthCount}</p>
-
             <p className={`text-sm font-medium ${getGrowthColor()}`}>
               {getGrowthSymbol()} {Math.abs(growth)}% vs last month
             </p>
-
             <p className="text-xs text-gray-400">
               Last month: {lastMonthCount}
             </p>
           </div>
+
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -2919,8 +2730,8 @@ const PatientManagement = () => {
                   All registered patients in the system
                 </CardDescription>
               </CardHeader>
-
               <CardContent className="px-4 sm:px-6">
+                {/* Desktop table */}
                 <div className="overflow-x-auto hidden sm:block">
                   <table className="min-w-full text-sm border rounded-lg">
                     <thead className="bg-gray-100 text-gray-700">
@@ -2934,17 +2745,15 @@ const PatientManagement = () => {
                             Contact
                           </th>
                         )}
-                        <>
-                          <th className="px-3 py-2 text-left hidden md:table-cell">
-                            No of Sessions
-                          </th>
-                          <th className="px-3 py-2 text-left hidden md:table-cell">
-                            Next 26th session date
-                          </th>
-                          <th className="px-3 py-2 text-left hidden md:table-cell">
-                            Condition
-                          </th>
-                        </>
+                        <th className="px-3 py-2 text-left hidden md:table-cell">
+                          No of Sessions
+                        </th>
+                        <th className="px-3 py-2 text-left hidden md:table-cell">
+                          Next 26th session date
+                        </th>
+                        <th className="px-3 py-2 text-left hidden md:table-cell">
+                          Condition
+                        </th>
                         {user?.role !== "HOD" && (
                           <th className="px-3 py-2 text-left hidden lg:table-cell">
                             Consultation
@@ -2958,470 +2767,74 @@ const PatientManagement = () => {
                       </tr>
                     </thead>
                     <tbody>
+                      {/* FIX: Using memoized PatientRow with pre-computed data */}
                       {filteredPatients.map((patient) => {
-                        const result = getNthSessionFromToday({
-                          currentSession: patient.sessionCount || 0,
-                          targetSession: 26,
-                        });
-
+                        const computed =
+                          patientComputedData.get(patient._id) || {};
                         return (
-                          <tr
-                            key={patient.PatientIDPK}
-                            className="border-t hover:bg-gray-50 align-top"
-                          >
-                            <td className="px-3 py-2">
-                              {(() => {
-                                const badge = getPatientBadge(patient);
-
-                                return (
-                                  <>
-                                    <div className="flex items-center gap-2">
-                                      <div className="font-medium truncate max-w-[140px]">
-                                        {patient.patientName}
-                                      </div>
-
-                                      {badge && (
-                                        <span
-                                          className={`px-2 py-0.5 text-[10px] rounded-full font-medium whitespace-nowrap ${badge.className}`}
-                                        >
-                                          {badge.label}
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    <div className="text-xs text-gray-500 truncate max-w-[140px]">
-                                      {patient.patientCode}
-                                    </div>
-                                  </>
-                                );
-                              })()}
-                            </td>
-
-                            {user?.role !== "HOD" && (
-                              <>
-                                <td className="px-3 py-2">
-                                  {patient.patientAge} /{" "}
-                                  {patient.patientGenderId.genderName}
-                                </td>
-
-                                <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
-                                  {patient.patientNumber}
-                                </td>
-                              </>
-                            )}
-
-                            <>
-                              <td className="px-3 py-2 hidden md:table-cell">
-                                {patient.totalSessionCount || 0}
-                              </td>
-
-                              <td className="px-3 py-2">
-                                Session {result.session}
-                                <br />
-                                <span className="text-xs text-gray-500">
-                                  {result.date} ({result.sessionsNeeded}{" "}
-                                  sessions left)
-                                </span>
-                              </td>
-
-                              <td className="px-3 py-2 hidden md:table-cell">
-                                {patient.patientCondition}
-                              </td>
-                            </>
-
-                            {user?.role !== "HOD" && (
-                              <td className="px-3 py-2 hidden lg:table-cell">
-                                {patient.consultationDate
-                                  ? format(
-                                      new Date(patient.consultationDate),
-                                      "PP",
-                                    )
-                                  : "Not set"}
-                              </td>
-                            )}
-
-                            <td className="px-3 py-2 hidden lg:table-cell">
-                              {patient.reviewDate
-                                ? format(new Date(patient.reviewDate), "PP")
-                                : "N/A"}
-                            </td>
-
-                            <td className="px-3 py-2 whitespace-nowrap">
-                              <div className="flex flex-col gap-2 min-w-[100px]">
-                                {patient.physioId?.physioName}
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-2 hidden sm:table-cell">
-                              <div className="flex flex-row flex-wrap gap-2 justify-center">
-                                {patient.isConsentReceived ? (
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    onClick={() => {
-                                      setPendingPatient(patient);
-                                      setOpendialog(true);
-                                    }}
-                                  >
-                                    <CheckCircle
-                                      size={14}
-                                      className="text-green-600 pointer-events-none"
-                                    />
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => {
-                                      setPendingPatient(patient);
-                                      setOpendialog(true);
-                                    }}
-                                  >
-                                    <Circle
-                                      size={14}
-                                      className="pointer-events-none"
-                                    />
-                                  </Button>
-                                )}
-
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() =>
-                                    handleViewConsultation(patient)
-                                  }
-                                >
-                                  <FileText size={14} />
-                                </Button>
-
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleScheduleReview(patient)}
-                                >
-                                  <CalendarIcon size={14} />
-                                </Button>
-
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleViewHistory(patient)}
-                                >
-                                  <History size={14} />
-                                </Button>
-
-                                {Permissions.isEdit && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEditPatient(patient)}
-                                  >
-                                    <Edit size={14} />
-                                  </Button>
-                                )}
-
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    openAssignPhysioDialog(patient)
-                                  }
-                                >
-                                  {patient.physioId ? (
-                                    <UserCheck size={14} />
-                                  ) : (
-                                    <UserPlus size={14} />
-                                  )}
-                                </Button>
-
-                                {Permissions.isDelete && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button size="sm" variant="destructive">
-                                        <Trash2 size={14} />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent className="w-[95vw] max-w-md">
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                          Delete patient?
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently delete the
-                                          patient.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                        <AlertDialogCancel className="w-full sm:w-auto">
-                                          Cancel
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          className="w-full sm:w-auto"
-                                          onClick={() =>
-                                            handleDeletePatient(patient._id)
-                                          }
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
+                          <PatientRow
+                            key={patient._id}
+                            patient={patient}
+                            user={user}
+                            Permissions={Permissions}
+                            onViewConsultation={handleViewConsultation}
+                            onScheduleReview={handleScheduleReview}
+                            onViewHistory={handleViewHistory}
+                            onEditPatient={handleEditPatient}
+                            onDeletePatient={handleDeletePatient}
+                            onAssignPhysio={openAssignPhysioDialog}
+                            onConsentClick={handleConsentClick}
+                            sessionResult={
+                              computed.sessionResult || {
+                                session: 26,
+                                date: "-",
+                                sessionsNeeded: 0,
+                              }
+                            }
+                            badge={computed.badge || null}
+                          />
                         );
                       })}
                     </tbody>
                   </table>
                 </div>
-                {filteredPatients.map((patient) => {
-                  const result = getNext26thSession(patient);
 
-                  return (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                    >
-                      <Card className="medical-card sm:hidden">
-                        <CardContent className="px-0 pt-0">
-                          <div className="grid grid-cols-1 gap-4">
-                            {filteredPatients.map((patient) => {
-                              const badge = getPatientBadge(patient);
-
-                              return (
-                                <motion.div
-                                  key={patient.PatientIDPK}
-                                  initial={{ opacity: 0, scale: 0.9 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ duration: 0.3 }}
-                                  className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
-                                >
-                                  {/* TOP SECTION */}
-                                  <div className="flex items-start gap-3 mb-3">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                                      <User
-                                        className="text-blue-600"
-                                        size={20}
-                                      />
-                                    </div>
-
-                                    <div className="min-w-0">
-                                      {/* NAME + BADGE */}
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <h3 className="font-semibold text-gray-800 break-words">
-                                          {patient.patientName}
-                                        </h3>
-
-                                        {badge && (
-                                          <span
-                                            className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${badge.className}`}
-                                          >
-                                            {badge.label}
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      <p className="text-sm text-gray-600 break-all">
-                                        {patient.patientCode}
-                                      </p>
-
-                                      <p className="text-sm text-gray-600 break-words">
-                                        {patient.patientAge} years,{" "}
-                                        {patient.patientGenderId.genderName}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  {/* CONTACT */}
-                                  <div className="space-y-2 mb-4 flex-grow">
-                                    <p className="text-sm break-words">
-                                      <strong>Contact:</strong>{" "}
-                                      {patient.patientNumber}
-                                    </p>
-                                  </div>
-
-                                  {/* CONDITION */}
-                                  <div className="space-y-2 mb-4 flex-grow">
-                                    <p className="text-sm break-words">
-                                      <strong>Condition:</strong>{" "}
-                                      {patient.patientCondition}
-                                    </p>
-                                  </div>
-
-                                  {/* SESSIONS */}
-                                  <div className="space-y-2 mb-4 flex-grow">
-                                    <p className="text-sm break-words">
-                                      <strong>No of Sessions:</strong>{" "}
-                                      {patient.sessionCount}
-                                    </p>
-                                  </div>
-
-                                  {/* NEXT SESSION */}
-                                  <div className="space-y-2 mb-4 flex-grow">
-                                    <p className="text-sm break-words">
-                                      <strong>Next Session:</strong>{" "}
-                                      <span className="text-xs text-gray-500">
-                                        {result.date} ({result.sessionsNeeded}{" "}
-                                        sessions left)
-                                      </span>
-                                    </p>
-                                  </div>
-
-                                  {/* REVIEW DATE */}
-                                  <div className="space-y-2 mb-4 flex-grow">
-                                    <p className="text-sm break-words">
-                                      <strong>Review Date:</strong>{" "}
-                                      {patient.reviewDate
-                                        ? format(
-                                            new Date(patient.reviewDate),
-                                            "PP",
-                                          )
-                                        : "N/A"}
-                                    </p>
-                                  </div>
-
-                                  {/* PHYSIO */}
-                                  <div className="py-2">
-                                    <p className="break-words">
-                                      Physio: {patient.physioId?.physioName}
-                                    </p>
-                                  </div>
-
-                                  {/* ACTION BUTTONS */}
-                                  <div className="mt-2 grid grid-cols-3 gap-2">
-                                    {patient.isConsentReceived ? (
-                                      <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        onClick={() => {
-                                          setPendingPatient(patient);
-                                          setOpendialog(true);
-                                        }}
-                                      >
-                                        <CheckCircle
-                                          size={14}
-                                          className="text-green-600 pointer-events-none"
-                                        />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        onClick={() => {
-                                          setPendingPatient(patient);
-                                          setOpendialog(true);
-                                        }}
-                                      >
-                                        <Circle size={14} />
-                                      </Button>
-                                    )}
-
-                                    <Button
-                                      size="sm"
-                                      onClick={() =>
-                                        openAssignPhysioDialog(patient)
-                                      }
-                                    >
-                                      {patient.physioId ? (
-                                        <UserCheck size={14} />
-                                      ) : (
-                                        <UserPlus size={14} />
-                                      )}
-                                    </Button>
-
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        handleViewConsultation(patient)
-                                      }
-                                    >
-                                      <FileText size={14} />
-                                    </Button>
-
-                                    <Button
-                                      size="sm"
-                                      onClick={() =>
-                                        handleScheduleReview(patient)
-                                      }
-                                    >
-                                      <CalendarIcon size={14} />
-                                    </Button>
-
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleViewHistory(patient)}
-                                    >
-                                      <History size={14} />
-                                    </Button>
-
-                                    {Permissions.isEdit && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                          handleEditPatient(patient)
-                                        }
-                                      >
-                                        <Edit size={14} />
-                                      </Button>
-                                    )}
-
-                                    {Permissions.isDelete && (
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button
-                                            size="sm"
-                                            variant="destructive"
-                                          >
-                                            <Trash2 size={14} />
-                                          </Button>
-                                        </AlertDialogTrigger>
-
-                                        <AlertDialogContent className="w-[95vw] max-w-md">
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>
-                                              Delete patient?
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              This will permanently delete the
-                                              patient.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-
-                                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                            <AlertDialogCancel>
-                                              Cancel
-                                            </AlertDialogCancel>
-
-                                            <AlertDialogAction
-                                              onClick={() =>
-                                                handleDeletePatient(patient._id)
-                                              }
-                                            >
-                                              Delete
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    )}
-                                  </div>
-                                </motion.div>
-                              );
-                            })}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
+                {/* FIX: Mobile cards — single map, no nested maps */}
+                <div className="grid grid-cols-1 gap-4 sm:hidden">
+                  {filteredPatients.map((patient) => {
+                    const computed = patientComputedData.get(patient._id) || {};
+                    return (
+                      <PatientCard
+                        key={patient._id}
+                        patient={patient}
+                        user={user}
+                        Permissions={Permissions}
+                        onViewConsultation={handleViewConsultation}
+                        onScheduleReview={handleScheduleReview}
+                        onViewHistory={handleViewHistory}
+                        onEditPatient={handleEditPatient}
+                        onDeletePatient={handleDeletePatient}
+                        onAssignPhysio={openAssignPhysioDialog}
+                        onConsentClick={handleConsentClick}
+                        sessionResult={
+                          computed.sessionResult || {
+                            session: 26,
+                            date: "-",
+                            sessionsNeeded: 0,
+                          }
+                        }
+                        badge={computed.badge || null}
+                      />
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         </>
       )}
 
+      {/* Download Dialog */}
       <Dialog open={downloadDialog} onOpenChange={setDownloadDialog}>
         <DialogContent className="w-[95vw] sm:max-w-md">
           <DialogHeader>
@@ -3430,7 +2843,6 @@ const PatientManagement = () => {
               Choose which report you want to download as PDF.
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-3">
             <Button
               className="w-full justify-start"
@@ -3473,7 +2885,6 @@ const PatientManagement = () => {
               Last 1 Year Patients List
             </Button>
           </div>
-
           <DialogFooter>
             <Button
               variant="outline"
@@ -3526,7 +2937,6 @@ const PatientManagement = () => {
                 Search Patients
               </CardTitle>
             </CardHeader>
-
             <CardContent className="px-4 sm:px-6">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-center">
                 <div className="relative w-full">
@@ -3538,7 +2948,6 @@ const PatientManagement = () => {
                     className="pl-10 w-full"
                   />
                 </div>
-
                 {user?.role !== "Physio" && (
                   <div className="w-full">
                     <Input
@@ -3549,7 +2958,6 @@ const PatientManagement = () => {
                     />
                   </div>
                 )}
-
                 <Select
                   value={selectedPhysioId}
                   onValueChange={(v) => setSelectedPhysioId(v)}
@@ -3584,8 +2992,8 @@ const PatientManagement = () => {
                   All Recovered patients in the system
                 </CardDescription>
               </CardHeader>
-
               <CardContent className="px-4 sm:px-6">
+                {/* Desktop table */}
                 <div className="overflow-x-auto hidden sm:block">
                   <table className="min-w-full text-sm border rounded-lg">
                     <thead className="bg-gray-100 text-gray-700">
@@ -3599,14 +3007,12 @@ const PatientManagement = () => {
                             Contact
                           </th>
                         )}
-                        <>
-                          <th className="px-3 py-2 text-left hidden md:table-cell">
-                            No of Sessions
-                          </th>
-                          <th className="px-3 py-2 text-left hidden md:table-cell">
-                            Condition
-                          </th>
-                        </>
+                        <th className="px-3 py-2 text-left hidden md:table-cell">
+                          No of Sessions
+                        </th>
+                        <th className="px-3 py-2 text-left hidden md:table-cell">
+                          Condition
+                        </th>
                         {user?.role !== "HOD" && (
                           <th className="px-3 py-2 text-left hidden lg:table-cell">
                             Consultation
@@ -3614,7 +3020,7 @@ const PatientManagement = () => {
                         )}
                         <th className="px-3 py-2 text-left hidden lg:table-cell">
                           Review
-                        </th>{" "}
+                        </th>
                         <th className="px-3 py-2 text-left hidden lg:table-cell">
                           Recovered Date
                         </th>
@@ -3622,421 +3028,199 @@ const PatientManagement = () => {
                         <th className="px-3 py-2 text-center">Actions</th>
                       </tr>
                     </thead>
-
                     <tbody>
                       {recoveredPatients.map((patient) => (
-                        <tr
-                          key={patient.PatientIDPK}
-                          className="border-t hover:bg-gray-50 align-top"
-                        >
-                          <td className="px-3 py-2">
-                            <div className="font-medium truncate max-w-[140px]">
-                              {patient.patientName}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate max-w-[140px]">
-                              {patient.patientCode}
-                            </div>
-                          </td>
-
-                          {user?.role !== "HOD" && (
-                            <>
-                              <td className="px-3 py-2">
-                                {patient.patientAge} /{" "}
-                                {patient.patientGenderId.genderName}
-                              </td>
-
-                              <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
-                                {patient.patientNumber}
-                              </td>
-                            </>
-                          )}
-
-                          <>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
-                              {patient.sessionCount || 0}
-                            </td>
-                            <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
-                              {patient.patientCondition}
-                            </td>
-                          </>
-
-                          {user?.role !== "HOD" && (
-                            <td className="px-3 py-2 hidden lg:table-cell">
-                              {patient.consultationDate
-                                ? format(
-                                    new Date(patient.consultationDate),
-                                    "PP",
-                                  )
-                                : "Not set"}
-                            </td>
-                          )}
-
-                          <td className="px-3 py-2 hidden lg:table-cell">
-                            {patient.reviewDate
-                              ? format(new Date(patient.reviewDate), "PP")
-                              : "N/A"}
-                          </td>
-                          <td className="px-3 py-2 hidden lg:table-cell">
-                            {patient.recoveredAt
-                              ? format(new Date(patient.recoveredAt), "PP")
-                              : "N/A"}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="flex flex-col gap-2 min-w-[100px]">
-                              {patient.physioId?.physioName}
-                            </div>
-                          </td>
-
-                          <td className="px-3 py-2 hidden sm:table-cell">
-                            <div className="flex flex-row flex-wrap gap-2 justify-center">
-                              {patient.isConsentReceived ? (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <CheckCircle
-                                    size={14}
-                                    className="text-green-600 pointer-events-none"
-                                  />
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <Circle
-                                    size={14}
-                                    className="pointer-events-none"
-                                  />
-                                </Button>
-                              )}
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewConsultation(patient)}
-                              >
-                                <FileText size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                onClick={() => handleScheduleReview(patient)}
-                              >
-                                <CalendarIcon size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewHistory(patient)}
-                              >
-                                <History size={14} />
-                              </Button>
-
-                              {Permissions.isEdit && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditPatient(patient)}
-                                >
-                                  <Edit size={14} />
-                                </Button>
-                              )}
-
-                              <Button
-                                size="sm"
-                                onClick={() => openAssignPhysioDialog(patient)}
-                              >
-                                {patient.physioId ? (
-                                  <UserCheck size={14} />
-                                ) : (
-                                  <UserPlus size={14} />
-                                )}
-                              </Button>
-
-                              {Permissions.isDelete && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive">
-                                      <Trash2 size={14} />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="w-[95vw] max-w-md">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Delete patient?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the
-                                        patient.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                      <AlertDialogCancel className="w-full sm:w-auto">
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        className="w-full sm:w-auto"
-                                        onClick={() =>
-                                          handleDeletePatient(patient._id)
-                                        }
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
+                        <RecoveredPatientRow
+                          key={patient._id}
+                          patient={patient}
+                          user={user}
+                          Permissions={Permissions}
+                          onViewConsultation={handleViewConsultation}
+                          onScheduleReview={handleScheduleReview}
+                          onViewHistory={handleViewHistory}
+                          onEditPatient={handleEditPatient}
+                          onDeletePatient={handleDeletePatient}
+                          onAssignPhysio={openAssignPhysioDialog}
+                          onConsentClick={handleConsentClick}
+                        />
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  <Card className="medical-card sm:hidden">
-                    <CardContent className="px-0 pt-0">
-                      <div className="grid grid-cols-1 gap-4">
-                        {recoveredPatients.map((patient) => (
-                          <motion.div
-                            key={patient.PatientIDPK}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3 }}
-                            className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
-                          >
-                            <div className="flex items-start gap-3 mb-3">
-                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                                <User className="text-blue-600" size={20} />
-                              </div>
-                              <div className="min-w-0">
-                                <h3 className="font-semibold text-gray-800 break-words">
-                                  {patient.patientName}
-                                </h3>
-                                <p className="text-sm text-gray-600 break-all">
-                                  {patient.patientCode}
-                                </p>
-                                <p className="text-sm text-gray-600 break-words">
-                                  {patient.patientAge} years,{" "}
-                                  {patient.patientGenderId.genderName}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Contact:</strong>{" "}
-                                {patient.patientNumber}
-                              </p>
-                            </div>
-
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Consultation Date:</strong>{" "}
-                                {patient.consultationDate
-                                  ? format(
-                                      new Date(patient.consultationDate),
-                                      "PP",
-                                    )
-                                  : "Not set"}
-                              </p>
-                            </div>
-
-                            {user?.role === "HOD" && (
-                              <>
-                                <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col gap-2">
-                                    <p className="text-sm break-words">
-                                      <strong>Condition:</strong>{" "}
-                                      {patient.patientCondition}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="space-y-2 mb-4 flex-grow">
-                                  <div className="flex flex-col gap-2">
-                                    <p className="text-sm break-words">
-                                      <strong>No of Sessions:</strong>{" "}
-                                      {patient.sessionCount}
-                                    </p>
-                                  </div>
-                                </div>
-                              </>
-                            )}
-
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Review Date:</strong>{" "}
-                                {patient.reviewDate
-                                  ? format(new Date(patient.reviewDate), "PP")
-                                  : "N/A"}
-                              </p>
-                            </div>
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Recovered Date:</strong>{" "}
-                                {patient.recoveredAt
-                                  ? format(new Date(patient.recoveredAt), "PP")
-                                  : "N/A"}
-                              </p>
-                            </div>
-                            <div className="space-y-2 mb-4 flex-grow">
-                              <p className="text-sm break-words">
-                                <strong>Session Count:</strong>{" "}
-                                {patient.sessionCount || 0}
-                              </p>
-                            </div>
-
-                            <div className="py-2">
-                              <div className="flex flex-col gap-2">
-                                <p className="break-words">
-                                  Physio: {patient.physioId?.physioName}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-2 grid grid-cols-3 gap-2">
-                              {patient.isConsentReceived ? (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <CheckCircle
-                                    size={14}
-                                    className="text-green-600 pointer-events-none"
-                                  />
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={() => {
-                                    setPendingPatient(patient);
-                                    setOpendialog(true);
-                                  }}
-                                >
-                                  <Circle
-                                    size={14}
-                                    className="pointer-events-none"
-                                  />
-                                </Button>
-                              )}
-
-                              <Button
-                                size="sm"
-                                onClick={() => openAssignPhysioDialog(patient)}
-                              >
-                                {patient.physioId ? (
-                                  <UserCheck size={14} />
-                                ) : (
-                                  <UserPlus size={14} />
-                                )}
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewConsultation(patient)}
-                              >
-                                <FileText size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                onClick={() => handleScheduleReview(patient)}
-                              >
-                                <CalendarIcon size={14} />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewHistory(patient)}
-                              >
-                                <History size={14} />
-                              </Button>
-
-                              {Permissions.isEdit && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditPatient(patient)}
-                                >
-                                  <Edit size={14} />
-                                </Button>
-                              )}
-
-                              {Permissions.isDelete && (
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="destructive">
-                                      <Trash2 size={14} />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="w-[95vw] max-w-md">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>
-                                        Delete patient?
-                                      </AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete the
-                                        patient.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                      <AlertDialogCancel className="w-full sm:w-auto">
-                                        Cancel
-                                      </AlertDialogCancel>
-                                      <AlertDialogAction
-                                        className="w-full sm:w-auto"
-                                        onClick={() =>
-                                          handleDeletePatient(patient._id)
-                                        }
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
+                {/* Mobile recovered cards */}
+                <div className="grid grid-cols-1 gap-4 sm:hidden">
+                  {recoveredPatients.map((patient) => (
+                    <motion.div
+                      key={patient._id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+                    >
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                          <User className="text-blue-600" size={20} />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-gray-800 break-words">
+                            {patient.patientName}
+                          </h3>
+                          <p className="text-sm text-gray-600 break-all">
+                            {patient.patientCode}
+                          </p>
+                          <p className="text-sm text-gray-600 break-words">
+                            {patient.patientAge} years,{" "}
+                            {patient.patientGenderId.genderName}
+                          </p>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+                      <div className="space-y-1 mb-4 flex-grow text-sm">
+                        <p>
+                          <strong>Contact:</strong> {patient.patientNumber}
+                        </p>
+                        <p>
+                          <strong>Consultation Date:</strong>{" "}
+                          {patient.consultationDate
+                            ? format(new Date(patient.consultationDate), "PP")
+                            : "Not set"}
+                        </p>
+                        {user?.role === "HOD" && (
+                          <>
+                            <p>
+                              <strong>Condition:</strong>{" "}
+                              {patient.patientCondition}
+                            </p>
+                            <p>
+                              <strong>No of Sessions:</strong>{" "}
+                              {patient.sessionCount}
+                            </p>
+                          </>
+                        )}
+                        <p>
+                          <strong>Review Date:</strong>{" "}
+                          {patient.reviewDate
+                            ? format(new Date(patient.reviewDate), "PP")
+                            : "N/A"}
+                        </p>
+                        <p>
+                          <strong>Recovered Date:</strong>{" "}
+                          {patient.recoveredAt
+                            ? format(new Date(patient.recoveredAt), "PP")
+                            : "N/A"}
+                        </p>
+                        <p>
+                          <strong>Session Count:</strong>{" "}
+                          {patient.sessionCount || 0}
+                        </p>
+                        <p>Physio: {patient.physioId?.physioName}</p>
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        <Button
+                          size="sm"
+                          variant={
+                            patient.isConsentReceived ? "secondary" : "default"
+                          }
+                          onClick={() => handleConsentClick(patient)}
+                        >
+                          {patient.isConsentReceived ? (
+                            <CheckCircle
+                              size={14}
+                              className="text-green-600 pointer-events-none"
+                            />
+                          ) : (
+                            <Circle size={14} className="pointer-events-none" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => openAssignPhysioDialog(patient)}
+                        >
+                          {patient.physioId ? (
+                            <UserCheck size={14} />
+                          ) : (
+                            <UserPlus size={14} />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewConsultation(patient)}
+                        >
+                          <FileText size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleScheduleReview(patient)}
+                        >
+                          <CalendarIcon size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewHistory(patient)}
+                        >
+                          <History size={14} />
+                        </Button>
+                        {Permissions.isEdit && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditPatient(patient)}
+                          >
+                            <Edit size={14} />
+                          </Button>
+                        )}
+                        {Permissions.isDelete && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="destructive">
+                                <Trash2 size={14} />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="w-[95vw] max-w-md">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Delete patient?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the patient.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                <AlertDialogCancel className="w-full sm:w-auto">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="w-full sm:w-auto"
+                                  onClick={() =>
+                                    handleDeletePatient(patient._id)
+                                  }
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         </>
       )}
 
+      {/* Patient Details Dialog */}
       <PatientDetailsDialog
         isOpen={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
         patient={viewingPatient}
       />
 
+      {/* Review Dialog */}
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
@@ -4116,6 +3300,7 @@ const PatientManagement = () => {
         </DialogContent>
       </Dialog>
 
+      {/* New Goal Dialog */}
       <Dialog open={isNewGoalOpen} onOpenChange={setIsNewGoalOpen}>
         <DialogContent className="w-[95vw] max-w-lg p-4 sm:p-6">
           <DialogHeader>
@@ -4126,10 +3311,7 @@ const PatientManagement = () => {
               Define the next short-term goal and review date.
             </DialogDescription>
           </DialogHeader>
-          <form
-            onSubmit={(e) => handleNewGoalSubmit(e, reviewForm)}
-            className="space-y-4 pt-4"
-          >
+          <form onSubmit={handleNewGoalSubmit} className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label htmlFor="newShortTermGoal">New Short-term Goal</Label>
               <Input
@@ -4151,9 +3333,7 @@ const PatientManagement = () => {
                 <Input
                   id="newGoalDuration"
                   type="number"
-                  onWheel={(e) => {
-                    e.target.blur();
-                  }}
+                  onWheel={(e) => e.target.blur()}
                   value={newGoalForm.newGoalDuration}
                   onChange={(e) =>
                     setNewGoalForm((p) => ({
@@ -4180,6 +3360,8 @@ const PatientManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* History Dialog */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="w-[95vw] md:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
@@ -4190,46 +3372,30 @@ const PatientManagement = () => {
               Chronological log of all sessions and reviews.
             </DialogDescription>
           </DialogHeader>
-
           <div className="mb-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
-            <div className="rounded-lg border p-2 bg-slate-50">
-              <p className="text-gray-500">Total Records</p>
-              <p className="font-semibold">{sessionCount?.totalRecords ?? 0}</p>
-            </div>
-
-            <div className="rounded-lg border p-2 bg-slate-50">
-              <p className="text-gray-500">Completed</p>
-              <p className="font-semibold">{sessionCount?.completed ?? 0}</p>
-            </div>
-
-            <div className="rounded-lg border p-2 bg-slate-50">
-              <p className="text-gray-500">Canceled</p>
-              <p className="font-semibold">{sessionCount?.canceled ?? 0}</p>
-            </div>
-
-            <div className="rounded-lg border p-2 bg-slate-50">
-              <p className="text-gray-500">Reviews</p>
-              <p className="font-semibold">{sessionCount?.reviews ?? 0}</p>
-            </div>
-
-            <div className="rounded-lg border p-2 bg-slate-50">
-              <p className="text-gray-500">Current Session No</p>
-              <p className="font-semibold">{sessionCount?.current ?? 0}</p>
-            </div>
+            {[
+              ["Total Records", sessionCount?.totalRecords ?? 0],
+              ["Completed", sessionCount?.completed ?? 0],
+              ["Canceled", sessionCount?.canceled ?? 0],
+              ["Reviews", sessionCount?.reviews ?? 0],
+              ["Current Session No", sessionCount?.current ?? 0],
+            ].map(([label, val]) => (
+              <div key={label} className="rounded-lg border p-2 bg-slate-50">
+                <p className="text-gray-500">{label}</p>
+                <p className="font-semibold">{val}</p>
+              </div>
+            ))}
           </div>
-
           <div className="flex gap-2 mb-4">
             <TabButton id="sessions" label="Sessions" isHistory />
             <TabButton id="reviews" label="Reviews" isHistory />
           </div>
-
           <div className="flex-1 overflow-y-auto pr-1 sm:pr-4 mt-2">
             <div className="relative pl-6">
               <div
                 className="absolute left-0 top-0 h-full w-0.5 bg-gray-200"
                 style={{ transform: "translateX(2.5px)" }}
               />
-
               {patientHistory && patientHistory.length > 0 ? (
                 patientHistory.map((cycle) => {
                   const filteredItems =
@@ -4240,9 +3406,7 @@ const PatientManagement = () => {
                       : cycle.sessions.filter(
                           (item) => item.itemType === "review",
                         );
-
                   if (filteredItems.length === 0) return null;
-
                   return (
                     <div
                       key={cycle.cycleId}
@@ -4251,65 +3415,48 @@ const PatientManagement = () => {
                       <h3 className="text-lg font-semibold text-blue-600 mb-2">
                         {cycle.cycleTitle}
                       </h3>
-
                       <p className="text-sm text-gray-500 mb-1">
                         {formatDate(cycle.firstDate)} to{" "}
                         {formatDate(cycle.lastDate)}
                       </p>
-
                       <p className="text-xs text-gray-500 mb-4">
                         Sessions: {cycle.totalSessions ?? 0} | Reviews:{" "}
                         {cycle.totalReviews ?? 0}
                       </p>
-
                       <div className="space-y-3">
                         {filteredItems.map((item, index) => (
                           <div
                             key={`${item.itemType}-${item._id || index}`}
-                            className={`border rounded-md p-3 flex flex-col gap-1 ${
-                              item.itemType === "review"
-                                ? "bg-blue-50 border-blue-200"
-                                : getSessionStyle(item.status)
-                            }`}
+                            className={`border rounded-md p-3 flex flex-col gap-1 ${item.itemType === "review" ? "bg-blue-50 border-blue-200" : getSessionStyle(item.status)}`}
                           >
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="font-medium">{item.title}</div>
-
                               <span
-                                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                  item.itemType === "review"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : "bg-gray-100 text-gray-700"
-                                }`}
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${item.itemType === "review" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}
                               >
                                 {item.itemType === "review"
                                   ? "Review"
                                   : "Session"}
                               </span>
                             </div>
-
                             <div className="text-sm text-gray-600">
                               Date: {formatDate(item.date)}
                             </div>
-
                             <div className="text-sm font-medium">
                               Status:{" "}
                               <span className="capitalize">
                                 {item.status || "N/A"}
                               </span>
                             </div>
-
                             <div className="text-sm text-gray-600">
                               Physio: {item.physioName || "N/A"}
                             </div>
-
                             {item.itemType === "session" ? (
                               <>
                                 <div className="text-sm text-gray-600">
                                   Time: {item.sessionFromTime || "-"} -{" "}
                                   {item.sessionToTime || "-"}
                                 </div>
-
                                 <div className="text-sm text-gray-600">
                                   Feedback: {item.feedback || "No feedback"}
                                 </div>
@@ -4319,11 +3466,9 @@ const PatientManagement = () => {
                                 <div className="text-sm text-gray-600">
                                   Review Type: {item.reviewType || "N/A"}
                                 </div>
-
                                 <div className="text-sm text-gray-600">
                                   Feedback: {item.feedback || "No feedback"}
                                 </div>
-
                                 <div className="text-sm text-gray-600">
                                   Red Flags: {item.redFlags || "No red flags"}
                                 </div>
@@ -4344,6 +3489,8 @@ const PatientManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Patient Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="w-[95vw] max-w-4xl max-h-[95vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
@@ -4415,7 +3562,6 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>
@@ -4424,9 +3570,7 @@ const PatientManagement = () => {
                         <Input
                           name="patientAge"
                           type="number"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
+                          onWheel={(e) => e.target.blur()}
                           value={patientForm.patientAge}
                           onChange={handleFormChange}
                         />
@@ -4468,7 +3612,6 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>
@@ -4509,7 +3652,6 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>
@@ -4532,7 +3674,6 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>
@@ -4543,7 +3684,6 @@ const PatientManagement = () => {
                           onValueChange={(id) => {
                             const selected = feesType.find((f) => f._id === id);
                             if (!selected) return;
-
                             handleSelectChange("FeesTypeId", selected._id);
                             handleSelectChange(
                               "feesTypeName",
@@ -4554,7 +3694,6 @@ const PatientManagement = () => {
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select Fees" />
                           </SelectTrigger>
-
                           <SelectContent>
                             {feesType.map((fee) => (
                               <SelectItem key={fee._id} value={fee._id}>
@@ -4578,7 +3717,6 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Diagnosis / Condition</Label>
@@ -4659,7 +3797,6 @@ const PatientManagement = () => {
                           </SelectContent>
                         </Select>
                       </div>
-
                       {selectedPatient && (
                         <div className="space-y-2">
                           <Label>Is Recovered</Label>
@@ -4673,7 +3810,6 @@ const PatientManagement = () => {
                           </Button>
                         </div>
                       )}
-
                       {selectedPatient && (
                         <div className="space-y-2">
                           <Label>Is Consent Received</Label>
@@ -4707,13 +3843,13 @@ const PatientManagement = () => {
                   </AccordionTrigger>
                   <AccordionContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {risk.map((risk) => (
-                        <div key={risk.RiskFactorIDPK}>
+                      {risk.map((r) => (
+                        <div key={r.RiskFactorIDPK}>
                           {renderRadioGroup(
-                            risk.RiskFactorName,
-                            risk.RiskFactorName.toLowerCase(),
-                            patientForm[risk.RiskFactorName.toLowerCase()],
-                            risk.RiskFactorIDPK,
+                            r.RiskFactorName,
+                            r.RiskFactorName.toLowerCase(),
+                            patientForm[r.RiskFactorName.toLowerCase()],
+                            r.RiskFactorIDPK,
                             true,
                             true,
                           )}
@@ -4851,9 +3987,7 @@ const PatientManagement = () => {
                         <Input
                           name="painLevel"
                           type="number"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
+                          onWheel={(e) => e.target.blur()}
                           value={patientForm.painLevel}
                           onChange={handleFormChange}
                         />
@@ -4890,7 +4024,6 @@ const PatientManagement = () => {
                       <Label className="text-sm font-semibold text-gray-700 mb-3 block">
                         Balance
                       </Label>
-
                       <div className="space-y-3">
                         <div>
                           <p className="text-xs text-gray-600 mb-1">Static</p>
@@ -4902,7 +4035,6 @@ const PatientManagement = () => {
                             onChange={handleFormChange}
                           />
                         </div>
-
                         <div>
                           <p className="text-xs text-gray-600 mb-1">Dynamic</p>
                           <textarea
@@ -4915,7 +4047,6 @@ const PatientManagement = () => {
                         </div>
                       </div>
                     </div>
-
                     <div className="space-y-2">
                       <Label>Coordination</Label>
                       <textarea
@@ -4988,9 +4119,7 @@ const PatientManagement = () => {
                         <Input
                           name="Frequency"
                           type="number"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
+                          onWheel={(e) => e.target.blur()}
                           value={patientForm.Frequency}
                           onChange={handleFormChange}
                         />
@@ -5000,9 +4129,7 @@ const PatientManagement = () => {
                         <Input
                           name="noOfDays"
                           type="number"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
+                          onWheel={(e) => e.target.blur()}
                           value={patientForm.noOfDays}
                           onChange={handleFormChange}
                         />
@@ -5017,7 +4144,6 @@ const PatientManagement = () => {
                         true,
                       )}
                     </div>
-
                     {patientForm.modalities === true && (
                       <div className="space-y-2">
                         <Label htmlFor="modalitiestype">Modalities Type</Label>
@@ -5043,7 +4169,6 @@ const PatientManagement = () => {
                             </SelectItem>
                           </SelectContent>
                         </Select>
-
                         {patientForm.modalitiestype && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
@@ -5066,7 +4191,6 @@ const PatientManagement = () => {
                                     const isChecked = patientForm.modalityList
                                       .map((id) => String(id))
                                       .includes(String(mod._id));
-
                                     return (
                                       <div
                                         key={mod._id}
@@ -5077,12 +4201,10 @@ const PatientManagement = () => {
                                           checked={isChecked}
                                           onCheckedChange={(checked) => {
                                             const id = String(mod._id);
-
                                             setPatientForm((prev) => {
                                               const list = (
                                                 prev.modalityList || []
                                               ).map((x) => String(x));
-
                                               return {
                                                 ...prev,
                                                 modalityList: checked
@@ -5110,7 +4232,6 @@ const PatientManagement = () => {
                         )}
                       </div>
                     )}
-
                     <div className="space-y-2">
                       <Label>Targeted Area</Label>
                       <Input
@@ -5182,6 +4303,7 @@ const PatientManagement = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Assign Physio Dialog */}
       <Dialog open={isAssignPhysioOpen} onOpenChange={setIsAssignPhysioOpen}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
@@ -5225,7 +4347,6 @@ const PatientManagement = () => {
                         </SelectContent>
                       </Select>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Session Start Date</Label>
@@ -5277,7 +4398,6 @@ const PatientManagement = () => {
                         />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="totalSessionDays">
@@ -5286,9 +4406,7 @@ const PatientManagement = () => {
                         <Input
                           id="totalSessionDays"
                           type="number"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
+                          onWheel={(e) => e.target.blur()}
                           placeholder="e.g., 30"
                           value={assignForm.totalSessionDays}
                           onChange={(e) =>
@@ -5306,9 +4424,7 @@ const PatientManagement = () => {
                         <Input
                           id="reviewFrequency"
                           type="number"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
+                          onWheel={(e) => e.target.blur()}
                           placeholder="e.g., 15"
                           value={assignForm.reviewFrequency}
                           onChange={(e) =>
@@ -5322,7 +4438,6 @@ const PatientManagement = () => {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-
                 <AccordionItem value="travel">
                   <AccordionTrigger>Travel Details</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
@@ -5331,29 +4446,76 @@ const PatientManagement = () => {
                       <Input
                         id="visitOrder"
                         type="number"
-                        onWheel={(e) => {
-                          e.target.blur();
-                        }}
                         min="1"
-                        placeholder="e.g., 1 for first visit"
+                        max="7"
+                        onWheel={(e) => e.target.blur()}
+                        placeholder="e.g. 1 for first visit"
                         value={assignForm.visitOrder}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const value = e.target.value;
+
                           setAssignForm((p) => ({
                             ...p,
-                            visitOrder: e.target.value,
-                          }))
-                        }
-                      />
-                    </div>
+                            visitOrder: value,
+                          }));
 
+                          if (!value) {
+                            setVisitOrderError("");
+                            return;
+                          }
+
+                          const num = Number(value);
+
+                          if (num <= 0) {
+                            setVisitOrderError(
+                              "Visit order must be greater than 0",
+                            );
+                            return;
+                          }
+
+                          if (num > 7) {
+                            setVisitOrderError("Visit order cannot exceed 7");
+                            return;
+                          }
+
+                          if (!assignForm.physioId) {
+                            setVisitOrderError(
+                              "Please select physiotherapist first",
+                            );
+                            return;
+                          }
+
+                          const duplicate = patients.find(
+                            (p) =>
+                              p._id !== assigningPatient?._id &&
+                              (p.physioId?._id || p.physioId) ===
+                                assignForm.physioId &&
+                              Number(p.visitOrder) === num &&
+                              !p.isRecovered,
+                          );
+
+                          if (duplicate) {
+                            setVisitOrderError(
+                              `Visit order ${num} already exists for this physio`,
+                            );
+                          } else {
+                            setVisitOrderError("");
+                          }
+                        }}
+                      />
+
+                      {visitOrderError && (
+                        <p className="text-red-500 text-sm">
+                          {visitOrderError}
+                        </p>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="KmsfromHub">Kms from Hub</Label>
                       <Input
                         id="KmsfromHub"
                         type="number"
-                        onWheel={(e) => {
-                          e.target.blur();
-                        }}
+                        onWheel={(e) => e.target.blur()}
                         placeholder="Distance from hub to first patient"
                         value={assignForm.KmsfromHub}
                         onChange={(e) =>
@@ -5364,7 +4526,6 @@ const PatientManagement = () => {
                         }
                       />
                     </div>
-
                     {assignForm.visitOrder > 1 && (
                       <div className="space-y-2">
                         <Label htmlFor="kmsFromPrevious">
@@ -5373,9 +4534,7 @@ const PatientManagement = () => {
                         <Input
                           id="kmsFromPrevious"
                           type="number"
-                          onWheel={(e) => {
-                            e.target.blur();
-                          }}
+                          onWheel={(e) => e.target.blur()}
                           placeholder="Distance from previous patient"
                           value={assignForm.kmsFromPrevious}
                           onChange={(e) =>
@@ -5387,7 +4546,6 @@ const PatientManagement = () => {
                         />
                       </div>
                     )}
-
                     <div className="space-y-2">
                       <Label htmlFor="KmsfLPatienttoHub">
                         Kms from Last Patient to Hub
@@ -5395,9 +4553,7 @@ const PatientManagement = () => {
                       <Input
                         id="KmsfLPatienttoHub"
                         type="number"
-                        onWheel={(e) => {
-                          e.target.blur();
-                        }}
+                        onWheel={(e) => e.target.blur()}
                         placeholder="Distance for return trip"
                         value={assignForm.KmsfLPatienttoHub}
                         onChange={(e) =>
@@ -5411,7 +4567,6 @@ const PatientManagement = () => {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-
               <DialogFooter className="pt-4 flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
@@ -5430,6 +4585,7 @@ const PatientManagement = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Consent Dialog */}
       <AlertDialog open={openDialog} onOpenChange={setOpendialog}>
         <AlertDialogContent className="w-[95vw] max-w-md">
           <AlertDialogHeader>
@@ -5443,12 +4599,10 @@ const PatientManagement = () => {
               ?
             </AlertDialogDescription>
           </AlertDialogHeader>
-
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel className="w-full sm:w-auto">
               Cancel
             </AlertDialogCancel>
-
             <AlertDialogAction
               className="w-full sm:w-auto"
               onClick={() => handleConsentToggle(pendingPatient)}
@@ -5459,23 +4613,21 @@ const PatientManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Recovery Alert Dialog */}
       <AlertDialog open={openAlert} onOpenChange={setOpenAlert}>
         <AlertDialogContent className="w-[95vw] max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
-
             <AlertDialogDescription className="space-y-3">
               <div>
                 Are you sure you want to mark{" "}
                 <strong>{pendingPatient?.patientName}</strong> as{" "}
                 {!pendingPatient?.isRecovered ? "Recovered" : "Not Recovered"}?
               </div>
-
               {!pendingPatient?.isRecovered && (
                 <>
                   <div className="space-y-1">
                     <Label>Recovered Type</Label>
-
                     <Select
                       value={recoveredType}
                       onValueChange={(value) => setRecoveredType(value)}
@@ -5483,7 +4635,6 @@ const PatientManagement = () => {
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
-
                       <SelectContent>
                         <SelectItem value="Patient Recovered">
                           Patient Recovered
@@ -5492,7 +4643,6 @@ const PatientManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
                   {recoveredType === "Other" && (
                     <div className="space-y-1">
                       <Label>Stop Reason</Label>
@@ -5509,7 +4659,6 @@ const PatientManagement = () => {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel
               className="w-full sm:w-auto"
@@ -5522,7 +4671,6 @@ const PatientManagement = () => {
             >
               Cancel
             </AlertDialogCancel>
-
             <AlertDialogAction
               className="w-full sm:w-auto"
               disabled={
@@ -5532,7 +4680,6 @@ const PatientManagement = () => {
               }
               onClick={async () => {
                 try {
-                  // ACTIVE -> MARK AS RECOVERED
                   if (!pendingPatient?.isRecovered) {
                     await apiRequest("Patient/updatePatient", {
                       method: "POST",
@@ -5544,17 +4691,14 @@ const PatientManagement = () => {
                           recoveredType === "Other" ? otherReason : null,
                       }),
                     });
-
                     toast({
                       title: "Recovered",
                       description: `${pendingPatient.patientName} marked as recovered.`,
                     });
                   } else {
-                    // ALREADY RECOVERED -> OPEN FRESH / CONTINUE DIALOG
                     setSelectedPatientForRecovery(pendingPatient);
                     setOpenRecoveryChoice(true);
                   }
-
                   setRecoveredType("");
                   setOtherReason("");
                   setOpenAlert(false);
@@ -5575,6 +4719,8 @@ const PatientManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Recovery Choice Dialog */}
       <Dialog open={openRecoveryChoice} onOpenChange={setOpenRecoveryChoice}>
         <DialogContent>
           <DialogHeader>
@@ -5584,7 +4730,6 @@ const PatientManagement = () => {
               to do?
             </DialogDescription>
           </DialogHeader>
-
           <div className="flex flex-col gap-3 py-4">
             <Button
               onClick={() => handleRecoveryOption("fresh")}
@@ -5592,7 +4737,6 @@ const PatientManagement = () => {
             >
               Start Fresh
             </Button>
-
             <Button
               variant="outline"
               onClick={() => handleRecoveryOption("continue")}
@@ -5601,7 +4745,6 @@ const PatientManagement = () => {
               Continue Old
             </Button>
           </div>
-
           <DialogFooter>
             <Button
               variant="ghost"
