@@ -3012,7 +3012,7 @@ const PatientManagement = () => {
 
                             <>
                               <td className="px-3 py-2 hidden md:table-cell">
-                                {patient.sessionCount || 0}
+                                {patient.totalSessionCount || 0}
                               </td>
 
                               <td className="px-3 py-2">

@@ -658,7 +658,6 @@ const Income = () => {
   };
   const downloadBillPdf = ({ bill, includeSessions, billedSessions = [] }) => {
     try {
-      console.log(bill, "bill");
       const doc = new jsPDF("p", "mm", "a4");
       const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -774,7 +773,7 @@ const Income = () => {
 
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...labelColor);
-      doc.text("Invoice No:", 118, 44);
+      doc.text("No:", 118, 44);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...textColor);
@@ -788,7 +787,7 @@ const Income = () => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(...labelColor);
-      doc.text("TAX INVOICE", pageWidth / 2, 61, { align: "center" });
+      doc.text("Treatment Estimate", pageWidth / 2, 61, { align: "center" });
 
       doc.setDrawColor(...lineColor);
       doc.line(18, 66, 190, 66);
@@ -981,7 +980,26 @@ const Income = () => {
           },
         });
       } else {
-        const thankY = Math.max(paymentY + 45, 270);
+        // ===== NOTE =====
+        const noteY = paymentY + 45;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6);
+        doc.setTextColor(...labelColor);
+        doc.text("Note:", 16, noteY);
+
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(5.5);
+        doc.setTextColor(90, 90, 90);
+        doc.text(
+          " * This is a treatment estimate only. The invoice will be issued after completion of the treatment.",
+          18,
+          noteY + 5,
+          { maxWidth: 170 },
+        );
+
+        // ===== PAGE 1 THANK YOU =====
+        const thankY = Math.max(noteY + 18, 270);
 
         doc.setDrawColor(210, 210, 210);
         doc.line(18, thankY - 4, 190, thankY - 4);
