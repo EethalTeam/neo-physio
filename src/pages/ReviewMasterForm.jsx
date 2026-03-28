@@ -183,61 +183,38 @@ const ReviewMasterForm = () => {
 
   const getReviews = async () => {
     try {
-      const today = new Date();
-
-      const todayStart = new Date(today);
-      todayStart.setHours(0, 0, 0, 0);
-
-      // 4 days before today
-      const startDate = new Date(todayStart);
-      startDate.setDate(startDate.getDate() - 4);
-      startDate.setHours(0, 0, 0, 0);
-
-      // yesterday
-      const endDate = new Date(todayStart);
-      endDate.setDate(endDate.getDate() - 1);
-      endDate.setHours(23, 59, 59, 999);
-
       const response = await apiRequest("Review/getAllReview", {
         method: "POST",
-        body: JSON.stringify({
-          sessionDate: startDate.toISOString(),
-          nextDate: endDate.toISOString(),
-        }),
+        body: JSON.stringify({}),
       });
 
-      const pendingRedFlagReviews = (response || []).filter((review) => {
-        const statusName =
-          review.reviewStatusId?.reviewStatusName?.toLowerCase()?.trim() || "";
+      const todayReviews = Array.isArray(response?.todayReviews)
+        ? response.todayReviews
+        : [];
 
-        const reviewTypeName =
-          review.reviewTypeId?.reviewTypeName?.toLowerCase()?.trim() || "";
+      const pendingRedFlagReviews = Array.isArray(
+        response?.pendingRedFlagReviews,
+      )
+        ? response.pendingRedFlagReviews
+        : [];
 
-        const isPending = statusName === "pending";
-        const isRedFlag =
-          reviewTypeName === "redflag" || reviewTypeName === "redflags";
+      const yesterdayGeneralReviews = Array.isArray(
+        response?.yesterdayGeneralReviews,
+      )
+        ? response.yesterdayGeneralReviews
+        : [];
 
-        if (!review.reviewDate) return false;
+      // ✅ Merge all
+      const mergedReviews = [
+        ...todayReviews,
+        ...yesterdayGeneralReviews,
+        ...pendingRedFlagReviews,
+      ].sort((a, b) => new Date(b.reviewDate) - new Date(a.reviewDate));
 
-        const reviewDate = new Date(review.reviewDate);
-        reviewDate.setHours(0, 0, 0, 0);
-
-        return (
-          isPending &&
-          isRedFlag &&
-          reviewDate >= startDate &&
-          reviewDate <= endDate
-        );
-      });
-
-      pendingRedFlagReviews.sort(
-        (a, b) => new Date(b.reviewDate) - new Date(a.reviewDate),
-      );
-
-      setReviews(pendingRedFlagReviews);
-      setFilteredReviews(pendingRedFlagReviews);
+      setReviews(mergedReviews);
+      setFilteredReviews(mergedReviews);
     } catch (error) {
-      console.log(error, "error from frontend get All Review");
+      console.log(error, "error from frontend getAllReview");
     }
   };
 
