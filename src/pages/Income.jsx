@@ -1067,7 +1067,7 @@ const Income = () => {
   }, [filteredBills]);
 
   return (
-    <div className="p-4 space-y-4 flex flex-col max-w-full overflow-x-hidden">
+    <div className="p-4 space-y-4" style={{ width: "calc(100vw - var(--sidebar-width, 140px))", minWidth: 0, overflow: "hidden" }}>
       <div className="w-full flex justify-center">
         <div className="flex items-center gap-2 p-1 rounded-lg border border-slate-800 overflow-x-auto max-w-full">
           <TabButton id="income" label="INCOME" icon={InboxIcon} />
@@ -1337,12 +1337,12 @@ const Income = () => {
 
       {activeTab === "bill" && (
         <>
-          <Card className="w-full max-w-full overflow-hidden">
+          <Card style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
             <CardHeader>
               <CardTitle>Bill Generate Dashboard</CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4" style={{ minWidth: 0 }}>
               {/* Top Summary */}
               <div className="flex flex-wrap justify-between items-center w-full gap-4">
                 <h3 className="text-lg font-semibold">
@@ -1466,47 +1466,88 @@ const Income = () => {
               </div>
 
               {/* ── DESKTOP BILL TABLE ── */}
-              <Card className="medical-card hidden md:block w-full max-w-full overflow-hidden">
-                <CardContent className="p-0">
-                  {/*
-                    Key changes here:
-                    1. Outer wrapper: w-full + overflow-x-auto  → gives the horizontal scrollbar
-                       constrained to the card width (never exceeds 100 vw)
-                    2. table: min-w-max  → lets the table be as wide as it needs
-                    3. First <th> and first <td>: sticky left-0 + bg + z-index
-                       → Patient column stays pinned while you scroll right
-                  */}
-                  <div className="w-full overflow-x-auto">
-                    <table className="min-w-max text-sm border-collapse">
-                      <thead className="bg-gray-100 text-gray-700">
-                        <tr>
-                          {/* STICKY first column header */}
+              {/* NOTE: We intentionally place this outside any Card that has overflow:hidden,
+                  because overflow:hidden on any ancestor breaks position:sticky.
+                  The scrollable wrapper itself uses overflow-x:auto which is fine for sticky. */}
+              <div
+                className="hidden md:block rounded-lg border border-gray-200 bg-white"
+                style={{ width: "100%", minWidth: 0 }}
+              >
+                <div
+                  style={{
+                    width: "100%",
+                    minWidth: 0,
+                    overflowX: "auto",
+                    overflowY: "visible",
+                    WebkitOverflowScrolling: "touch",
+                  }}
+                >
+                  <table
+                    style={{
+                      minWidth: "max-content",
+                      width: "100%",
+                      fontSize: "0.875rem",
+                      borderCollapse: "separate",
+                      borderSpacing: 0,
+                    }}
+                  >
+                    <thead style={{ backgroundColor: "#f3f4f6", color: "#374151" }}>
+                      <tr>
+                        {/* STICKY first column - inline styles are required because
+                            Tailwind's sticky can be overridden by parent overflow:hidden */}
+                        <th
+                          style={{
+                            position: "sticky",
+                            left: 0,
+                            zIndex: 30,
+                            backgroundColor: "#f3f4f6",
+                            minWidth: "160px",
+                            padding: "8px 12px",
+                            textAlign: "left",
+                            whiteSpace: "nowrap",
+                            borderBottom: "1px solid #e5e7eb",
+                            borderRight: "2px solid #d1d5db",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Patient
+                        </th>
+                        {[
+                          "Physio",
+                          "Session Start - To date",
+                          "Sessions",
+                          "Rate/Session",
+                          "Total Amount",
+                          "Deducted From Advance",
+                          "Net Billed Amount",
+                          "Received Amount",
+                          "Pending Amount",
+                          "Discount Amount",
+                          "Payment Status",
+                          "Payment Type",
+                          "Bill Generate",
+                          "Receive Payment",
+                          "Bill Send",
+                          "Is Bad Debt",
+                        ].map((h) => (
                           <th
-                            className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap sticky left-0 z-20 bg-gray-100"
-                            style={{ minWidth: "160px" }}
+                            key={h}
+                            style={{
+                              padding: "8px 12px",
+                              textAlign: "left",
+                              whiteSpace: "nowrap",
+                              borderBottom: "1px solid #e5e7eb",
+                              borderRight: "1px solid #e5e7eb",
+                              fontWeight: 600,
+                            }}
                           >
-                            Patient
+                            {h}
                           </th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Physio</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Session Start - To date</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Sessions</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Rate/Session</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Total Amount</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Deducted From Advance</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Net Billed Amount</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Received Amount</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Pending Amount</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Discount Amount</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Payment Status</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Payment Type</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Bill Generate</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Receive Payment</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Bill Send</th>
-                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Is Bad Debt</th>
-                        </tr>
-                      </thead>
+                        ))}
+                      </tr>
+                    </thead>
 
-                      <tbody>
+                    <tbody>
                         {sortedBills.length === 0 ? (
                           <tr>
                             <td
@@ -1545,12 +1586,23 @@ const Income = () => {
                             return (
                               <tr
                                 key={b._id}
-                                className="hover:bg-gray-50 text-sm"
+                                style={{ fontSize: "0.875rem" }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
                               >
-                                {/* STICKY first data column */}
+                                {/* STICKY first data cell - inline style required */}
                                 <td
-                                  className="p-2 border border-gray-200 whitespace-nowrap sticky left-0 z-10 bg-white"
-                                  style={{ minWidth: "160px" }}
+                                  style={{
+                                    position: "sticky",
+                                    left: 0,
+                                    zIndex: 20,
+                                    backgroundColor: "#ffffff",
+                                    minWidth: "160px",
+                                    padding: "8px",
+                                    whiteSpace: "nowrap",
+                                    borderBottom: "1px solid #e5e7eb",
+                                    borderRight: "2px solid #d1d5db",
+                                  }}
                                 >
                                   {b?.patientId?.patientName || "N/A"}{" "}
                                   <span className="text-xs text-gray-500">
@@ -1693,8 +1745,8 @@ const Income = () => {
                                     }
                                     disabled={b?.isBadDebt || status === "Paid"}
                                     className={`px-2 py-1 text-xs rounded ${
-                                      b?.isBadDebt || status === "Paid"
-                                        ? "bg-gray-400 cursor-not-allowed text-white"
+                                      b?.isBadDebt 
+                                        ? "bg-gray-400 cursor-not-allowed text-white" : status === "Paid" ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
                                         : "bg-red-500 text-white hover:bg-red-600"
                                     }`}
                                   >
@@ -1709,11 +1761,10 @@ const Income = () => {
                             );
                           })
                         )}
-                      </tbody>
-                    </table>
+                    </tbody>
+                  </table>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
             </CardContent>
           </Card>
 
