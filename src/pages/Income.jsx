@@ -29,7 +29,6 @@ import { toast } from "@/components/ui/use-toast";
 
 const Income = () => {
   const [patients, setPatients] = useState([]);
-  // const [sessions, setSessions] = useState([]);
   const [badDebtDialog, setBadDebtDialog] = useState({
     open: false,
     billId: null,
@@ -99,44 +98,7 @@ const Income = () => {
       )}
     </button>
   );
-  // const getPreviewDateRange = (bill) => {
-  //   const pid = getId(bill?.patientId);
-  //   const list = sessions
-  //     .filter((s) => getId(s.patientId) === pid)
-  //     .map((s) => new Date(s.sessionDate))
-  //     .filter((d) => !isNaN(d.getTime()))
-  //     .filter(
-  //       (d) =>
-  //         d.getMonth() + 1 === selectedBillMonth &&
-  //         d.getFullYear() === selectedBillYear,
-  //     );
 
-  //   if (!list.length) return "N/A";
-  //   const minD = new Date(Math.min(...list));
-  //   const maxD = new Date(Math.max(...list));
-  //   return `${fmt(minD)} → ${fmt(maxD)}`;
-  // };
-  // const getCompletedCountForPreview = (bill) => {
-  //   if (!bill) return 0;
-
-  //   const pid = getId(bill.patientId);
-
-  //   return sessions.filter((s) => {
-  //     const spid = getId(s.patientId);
-  //     if (spid !== pid) return false;
-
-  //     const d = new Date(s.sessionDate);
-  //     const sameMonth =
-  //       d.getMonth() + 1 === selectedBillMonth &&
-  //       d.getFullYear() === selectedBillYear;
-
-  //     const isCompleted =
-  //       (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
-  //       "completed";
-
-  //     return sameMonth && isCompleted;
-  //   }).length;
-  // };
   const handleManualGenerateBill = async () => {
     try {
       if (!selectedBillPatientId || selectedBillPatientId === "ALL") {
@@ -157,7 +119,6 @@ const Income = () => {
         }),
       });
 
-      // if backend sends duplicate / validation message
       if (
         response?.message ===
           `Bill already exists for ${months[selectedBillMonth - 1]} ${selectedBillYear}` ||
@@ -189,11 +150,13 @@ const Income = () => {
       });
     }
   };
+
   const fmt = (d) => {
     const x = new Date(d);
     if (isNaN(x.getTime())) return "N/A";
-    return x.toLocaleDateString("en-GB"); // dd/mm/yyyy
+    return x.toLocaleDateString("en-GB");
   };
+
   const fetchData = async () => {
     try {
       const patientsRes = await apiRequest("Patient/getAllPatientsIncome", {
@@ -201,17 +164,12 @@ const Income = () => {
         body: JSON.stringify({ month: selectedMonth, year: selectedYear }),
       });
 
-      // const sessionsRes = await apiRequest("Session/getAllSession", {
-      //   method: "POST",
-      //   body: JSON.stringify({}),
-      // });
-
       setPatients(Array.isArray(patientsRes) ? patientsRes : []);
-      // setSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
     } catch (err) {
       console.error(err);
     }
   };
+
   const getAllPshyio = async () => {
     try {
       const res = await apiRequest("Physio/getAllPhysio", {
@@ -274,6 +232,7 @@ const Income = () => {
     selectedPatientId,
     feesType,
   ]);
+
   const totalIncomeByFilter = filteredPatients.reduce(
     (sum, p) => sum + Number(p.totalIncome || 0),
     0,
@@ -319,15 +278,17 @@ const Income = () => {
 
     return feeAmount;
   };
+
   const [bills, setBills] = useState([]);
+
   const fetchBills = async () => {
     try {
       const res = await apiRequest("Bill/getAllBill", {
         method: "POST",
         body: JSON.stringify({
-          month: months[selectedBillMonth - 1], // "February"
-          year: selectedBillYear, // 2026
-          patientId: selectedBillPatientId, // optional
+          month: months[selectedBillMonth - 1],
+          year: selectedBillYear,
+          patientId: selectedBillPatientId,
         }),
       });
 
@@ -343,6 +304,7 @@ const Income = () => {
       fetchBills();
     }
   }, [activeTab, selectedBillMonth, selectedBillYear, selectedBillPatientId]);
+
   const filteredBills = useMemo(() => {
     return bills.filter((b) => {
       const pid = getId(b.patientId);
@@ -363,6 +325,7 @@ const Income = () => {
       return matchPatient && matchMonth && matchYear;
     });
   }, [bills, selectedBillPatientId, selectedBillMonth, selectedBillYear]);
+
   const totalGeneratedBillAmount = useMemo(() => {
     return filteredBills.reduce(
       (sum, b) => sum + Number(b.NetBilledAmount || 0),
@@ -376,6 +339,7 @@ const Income = () => {
       0,
     );
   }, [filteredBills]);
+
   const totalDiscountAmt = useMemo(() => {
     return filteredBills.reduce((sum, bill) => {
       return sum + Number(bill?.DiscountAmount || 0);
@@ -400,82 +364,17 @@ const Income = () => {
       return sum + getPendingAmount(b);
     }, 0);
   }, [filteredBills]);
-  // const billSessions = useMemo(() => {
-  //   return sessions.filter((s) => {
-  //     const pid = getId(s.patientId);
-  //     const d = new Date(s.sessionDate);
 
-  //     const isSameMonth =
-  //       d.getMonth() + 1 === selectedBillMonth &&
-  //       d.getFullYear() === selectedBillYear;
-
-  //     const matchPatient =
-  //       selectedBillPatientId === "ALL" ? true : pid === selectedBillPatientId;
-
-  //     return isSameMonth && matchPatient;
-  //   });
-  // }, [sessions, selectedBillMonth, selectedBillYear, selectedBillPatientId]);
-
-  // const completedBillSessions = useMemo(() => {
-  //   return billSessions.filter(
-  //     (s) =>
-  //       (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
-  //       "completed",
-  //   );
-  // }, [billSessions]);
-
-  // const completedCount = completedBillSessions.length;
-
-  // const billedAmount = useMemo(() => {
-  //   let total = 0;
-
-  //   if (selectedBillPatientId !== "ALL") {
-  //     const patient = patients.find((p) => p._id === selectedBillPatientId);
-  //     const rate = calcRatePerSession(patient);
-  //     total = completedCount * rate;
-  //     return Number(total.toFixed(2));
-  //   }
-
-  //   const countByPatient = {};
-  //   completedBillSessions.forEach((s) => {
-  //     const pid = getId(s.patientId);
-  //     countByPatient[pid] = (countByPatient[pid] || 0) + 1;
-  //   });
-
-  //   total = Object.entries(countByPatient).reduce((sum, [pid, count]) => {
-  //     const patient = patients.find((p) => p._id === pid);
-  //     const rate = calcRatePerSession(patient);
-  //     return sum + count * rate;
-  //   }, 0);
-
-  //   return Number(total.toFixed(2));
-  // }, [patients, completedBillSessions, selectedBillPatientId, completedCount]);
   const selectedBillPatient = useMemo(() => {
     if (selectedBillPatientId === "ALL") return null;
     return patients.find((p) => p._id === selectedBillPatientId) || null;
   }, [patients, selectedBillPatientId]);
 
-  // const billFromDate = useMemo(
-  //   () => new Date(selectedBillYear, selectedBillMonth - 1, 1),
-  //   [selectedBillYear, selectedBillMonth],
-  // );
-  // const billToDate = useMemo(() => {
-  //   if (!selectedBillPatientId || selectedBillPatientId === "ALL") return null;
-
-  //   const patientCompletedSessions = completedBillSessions
-  //     .filter((s) => getId(s.patientId) === selectedBillPatientId)
-  //     .map((s) => new Date(s.sessionDate))
-  //     .filter((d) => !isNaN(d.getTime()));
-
-  //   if (patientCompletedSessions.length === 0) return null;
-
-  //   // latest date
-  //   return new Date(Math.max(...patientCompletedSessions));
-  // }, [completedBillSessions, selectedBillPatientId]);
   const ratePerSessionForSelected = useMemo(() => {
     if (!selectedBillPatient) return 0;
     return calcRatePerSession(selectedBillPatient);
   }, [selectedBillPatient]);
+
   const [paymentDialog, setPaymentDialog] = useState({
     open: false,
     bill: null,
@@ -505,18 +404,19 @@ const Income = () => {
     setPartialAmount("");
     setDiscountAmount("");
   };
+
   const closePaymentDialog = () => {
     setPaymentDialog({ open: false, bill: null });
     setPaymentMode("Full Payment");
     setPartialAmount("");
   };
+
   useEffect(() => {
     if (!paymentDialog.open || !paymentDialog.bill) return;
     if (paymentMode !== "Partial Payment") return;
 
     const pending = Number(paymentDialog.bill.pending || 0);
 
-    // only switch when user typed exactly pending
     if (partialAmount === "") return;
 
     const n = Number(partialAmount);
@@ -529,20 +429,17 @@ const Income = () => {
 
   const handlePartialChange = (e) => {
     const pending = Number(paymentDialog.bill?.pending || 0);
-    const val = e.target.value; // keep as string
+    const val = e.target.value;
 
-    // allow empty
     if (val === "") {
       setPartialAmount("");
       return;
     }
 
-    // allow only digits (no minus, no e, no +)
     if (!/^\d*$/.test(val)) return;
 
     const num = Number(val);
 
-    // clamp to pending
     if (num > pending) {
       setPartialAmount(String(pending));
       return;
@@ -550,17 +447,16 @@ const Income = () => {
 
     setPartialAmount(val);
   };
+
   const selectedGeneratedBill = useMemo(() => {
     if (selectedBillPatientId === "ALL") return null;
 
-    // pick latest generated bill for that patient in current month/year filter
     const list = filteredBills.filter(
       (b) => getId(b.patientId) === selectedBillPatientId,
     );
 
     if (list.length === 0) return null;
 
-    // latest by startDate (or createdAt if you have)
     return list.sort(
       (a, b) => new Date(b.startDate) - new Date(a.startDate),
     )[0];
@@ -583,6 +479,7 @@ const Income = () => {
       }),
     });
   };
+
   const fetchBilledSessionsForBill = async (bill) => {
     try {
       const patientId = getId(bill?.patientId);
@@ -632,6 +529,7 @@ const Income = () => {
       return [];
     }
   };
+
   const getBillPaymentStatus = (bill) => {
     const received = Number(bill?.ReceivedAmount || 0);
     const net = Number(bill?.NetBilledAmount || 0);
@@ -692,6 +590,7 @@ const Income = () => {
       setBillPreview((s) => ({ ...s, loading: false }));
     }
   };
+
   const downloadBillPdf = ({ bill, includeSessions, billedSessions = [] }) => {
     try {
       const doc = new jsPDF("p", "mm", "a4");
@@ -788,7 +687,6 @@ const Income = () => {
 
       doc.addImage(neoLogo, "PNG", 18, 15, 25, 25);
 
-      // Move text slightly right
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
       doc.setTextColor(...labelColor);
@@ -935,18 +833,6 @@ const Income = () => {
 
       const companyY = yAfterTable + 20;
 
-      // doc.setFont("helvetica", "bold");
-      // doc.setFontSize(8);
-      // doc.setTextColor(...labelColor);
-      // doc.text("Company Name:", 18, companyY);
-
-      // doc.setFont("helvetica", "normal");
-      // doc.setTextColor(...textColor);
-      // doc.text("Neo Physio.", 50, companyY);
-
-      // doc.setDrawColor(...lineColor);
-      // doc.line(18, companyY + 4, 190, companyY + 4);
-
       const paymentY = companyY + 14;
 
       doc.setFont("helvetica", "bold");
@@ -1053,10 +939,12 @@ const Income = () => {
       console.error("PDF generation error:", error);
     }
   };
+
   const billedAmountFromBills = filteredPatients.reduce(
     (sum, p) => sum + Number(p.Billed || 0),
     0,
   );
+
   const formatBillDate = (date) => {
     if (!date) return "N/A";
 
@@ -1069,9 +957,11 @@ const Income = () => {
 
     return `${day}-${month}-${year}`;
   };
+
   const unbilledAmountFromIncome = useMemo(() => {
     return Math.max(totalIncomeByFilter - billedAmountFromBills, 0);
   }, [totalIncomeByFilter, billedAmountFromBills]);
+
   const handleSendBill = async (id) => {
     try {
       await apiRequest("Bill/updateSendStatus", {
@@ -1079,7 +969,6 @@ const Income = () => {
         body: JSON.stringify({ billId: id }),
       });
 
-      // update UI instantly
       setBills((prev) =>
         prev.map((b) => (b._id === id ? { ...b, isSend: true } : b)),
       );
@@ -1087,6 +976,7 @@ const Income = () => {
       console.error(error);
     }
   };
+
   const sortedBills = useMemo(() => {
     const pending = [];
     const paid = [];
@@ -1102,6 +992,7 @@ const Income = () => {
 
     return [...pending, ...paid];
   }, [filteredBills]);
+
   const getBillPaymentType = (bill) => {
     const received = Number(bill?.ReceivedAmount || 0);
     const net = Number(bill?.NetBilledAmount || 0);
@@ -1120,6 +1011,7 @@ const Income = () => {
 
     return "-";
   };
+
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "Paid":
@@ -1132,43 +1024,7 @@ const Income = () => {
         return "bg-gray-100 text-gray-700";
     }
   };
-  // const handleMarkBadDebt = async (billId) => {
-  //   try {
-  //     const res = await apiRequest("Bill/markBadDebt", {
-  //       method: "POST",
-  //       body: JSON.stringify({ billId }),
-  //     });
 
-  //     if (!res.success) {
-  //       throw new Error(res.message || "Failed to mark bad debt");
-  //     }
-
-  //     toast({
-  //       title: "Success",
-  //       description: res.message || "Marked as Bad Debt",
-  //       variant: "default", // optional
-  //     });
-
-  //     setBills((prev) =>
-  //       prev.map((b) =>
-  //         b._id === billId
-  //           ? {
-  //               ...b,
-  //               isBadDebt: true,
-  //             }
-  //           : b,
-  //       ),
-  //     );
-  //   } catch (error) {
-  //     console.error(error);
-
-  //     toast({
-  //       title: "Error",
-  //       description: error.message || "Something went wrong",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
   const confirmMarkBadDebt = async () => {
     const billId = badDebtDialog.billId;
     if (!billId) return;
@@ -1199,6 +1055,7 @@ const Income = () => {
       });
     }
   };
+
   const totalBadDebtAmount = useMemo(() => {
     return filteredBills
       .filter((b) => b.isBadDebt)
@@ -1208,8 +1065,9 @@ const Income = () => {
         return sum + Math.max(net - received, 0);
       }, 0);
   }, [filteredBills]);
+
   return (
-    <div className="p-4 space-y-4 flex flex-col">
+    <div className="p-4 space-y-4 flex flex-col max-w-full overflow-x-hidden">
       <div className="w-full flex justify-center">
         <div className="flex items-center gap-2 p-1 rounded-lg border border-slate-800 overflow-x-auto max-w-full">
           <TabButton id="income" label="INCOME" icon={InboxIcon} />
@@ -1286,8 +1144,6 @@ const Income = () => {
                     <SelectTrigger className="w-full mr-10">
                       <SelectValue placeholder="Filter by Feestype" />
                     </SelectTrigger>
-                    {/* <SelectContent className="h-[200px]">
-                     */}
                     <SelectContent>
                       <SelectItem value="ALL">All Fees Type</SelectItem>
                       {feesType.map((p) => (
@@ -1336,32 +1192,25 @@ const Income = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="medical-card hidden md:block ">
-            {" "}
+
+          <Card className="medical-card hidden md:block">
             <CardContent>
-              {" "}
               <div className="hidden md:block overflow-x-auto mt-5">
-                {" "}
                 <table className="min-w-full text-sm border rounded-lg">
-                  {" "}
                   <thead className="bg-gray-100 text-gray-700">
-                    {" "}
                     <tr>
-                      {" "}
-                      <th className="px-3 py-2 text-left">Patient Name</th>{" "}
-                      <th className="px-3 py-2 text-left">Physio Name</th>{" "}
+                      <th className="px-3 py-2 text-left">Patient Name</th>
+                      <th className="px-3 py-2 text-left">Physio Name</th>
                       <th className="px-3 py-2 text-left">
-                        {" "}
-                        Completed Sessions{" "}
-                      </th>{" "}
+                        Completed Sessions
+                      </th>
                       <th className="px-3 py-2 text-left">
                         Fees(Fees Type)
-                      </th>{" "}
-                      <th className="px-3 py-2 text-left">Total Income</th>{" "}
-                    </tr>{" "}
-                  </thead>{" "}
+                      </th>
+                      <th className="px-3 py-2 text-left">Total Income</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    {" "}
                     {filteredPatients
                       .filter((p) => p.totalCompletedSessions > 0)
                       .map((p) => (
@@ -1369,13 +1218,10 @@ const Income = () => {
                           key={p._id}
                           className="hover:bg-gray-50 text-sm md:text-base"
                         >
-                          {" "}
                           <td className="p-2 border whitespace-nowrap">
-                            {" "}
-                            {p.patientName}{" "}
-                          </td>{" "}
+                            {p.patientName}
+                          </td>
                           <td className="p-2 border whitespace-nowrap">
-                            {" "}
                             {selectedPhysioId !== "ALL"
                               ? p.physioDetails?.find(
                                   (physio) =>
@@ -1383,32 +1229,30 @@ const Income = () => {
                                 )?.physioName
                               : p.physioDetails
                                   ?.map((physio) => physio.physioName)
-                                  .join(", ") || "N/A"}{" "}
-                          </td>{" "}
+                                  .join(", ") || "N/A"}
+                          </td>
                           <td className="p-2 border text-center">
-                            {" "}
                             {selectedPhysioId !== "ALL"
                               ? p.physioDetails?.find(
                                   (physio) =>
                                     physio.physioId === selectedPhysioId,
                                 )?.sessionCount
-                              : p.totalCompletedSessions}{" "}
-                          </td>{" "}
+                              : p.totalCompletedSessions}
+                          </td>
                           <td className="p-2 border text-center whitespace-nowrap">
-                            {" "}
-                            ₹{p.feePerSession || 0} ({p.feeType || "N/A"}){" "}
-                          </td>{" "}
+                            ₹{p.feePerSession || 0} ({p.feeType || "N/A"})
+                          </td>
                           <td className="p-2 border text-center font-semibold whitespace-nowrap">
-                            {" "}
-                            ₹{Number(p.totalIncome || 0).toFixed(2)}{" "}
-                          </td>{" "}
+                            ₹{Number(p.totalIncome || 0).toFixed(2)}
+                          </td>
                         </tr>
-                      ))}{" "}
-                  </tbody>{" "}
-                </table>{" "}
-              </div>{" "}
-            </CardContent>{" "}
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
           </Card>
+
           {/* MOBILE VIEW - INCOME CARDS */}
           <Card className="medical-card md:hidden">
             <CardHeader>
@@ -1490,9 +1334,10 @@ const Income = () => {
           </Card>
         </>
       )}
+
       {activeTab === "bill" && (
         <>
-          <Card>
+          <Card className="w-full max-w-full overflow-hidden">
             <CardHeader>
               <CardTitle>Bill Generate Dashboard</CardTitle>
             </CardHeader>
@@ -1507,11 +1352,11 @@ const Income = () => {
                 <h3 className="text-lg font-semibold">
                   Total Received Amount:{" "}
                   <span className="ml-2">₹{totalReceivedAmt.toFixed(2)}</span>
-                </h3>{" "}
+                </h3>
                 <h3 className="text-lg font-semibold">
                   Total Pending Amount:{" "}
                   <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
-                </h3>{" "}
+                </h3>
                 <h3 className="text-lg font-semibold">
                   Total Discount Amount:{" "}
                   <span className="ml-2 text-purple-600">
@@ -1606,6 +1451,7 @@ const Income = () => {
                     ))}
                   </SelectContent>
                 </Select>
+
                 <Button onClick={fetchBills}>Apply</Button>
 
                 <Button
@@ -1617,57 +1463,46 @@ const Income = () => {
                 >
                   Generate Manual Bill
                 </Button>
-
-                {/* RIGHT SIDE BUTTON */}
-                {/* <Button
-                className="ml-auto"
-                disabled={!selectedBillPatient}
-                onClick={generateBillAndPdf}
-              >
-                Show Bill (PDF)
-              </Button> */}
               </div>
 
-              {/* Patient Details Card (show only when patient selected) */}
-              <Card className="medical-card hidden md:block">
-                <CardContent>
-                  <div className="hidden md:block overflow-x-auto mt-5">
-                    <table className="min-w-full text-sm border rounded-lg">
+              {/* ── DESKTOP BILL TABLE ── */}
+              <Card className="medical-card hidden md:block w-full max-w-full overflow-hidden">
+                <CardContent className="p-0">
+                  {/*
+                    Key changes here:
+                    1. Outer wrapper: w-full + overflow-x-auto  → gives the horizontal scrollbar
+                       constrained to the card width (never exceeds 100 vw)
+                    2. table: min-w-max  → lets the table be as wide as it needs
+                    3. First <th> and first <td>: sticky left-0 + bg + z-index
+                       → Patient column stays pinned while you scroll right
+                  */}
+                  <div className="w-full overflow-x-auto">
+                    <table className="min-w-max text-sm border-collapse">
                       <thead className="bg-gray-100 text-gray-700">
                         <tr>
-                          <th className="px-3 py-2 text-left">Patient</th>
-                          <th className="px-3 py-2 text-left">Physio</th>
-                          <th className="px-3 py-2 text-left">
-                            Session Start - To date
+                          {/* STICKY first column header */}
+                          <th
+                            className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap sticky left-0 z-20 bg-gray-100"
+                            style={{ minWidth: "160px" }}
+                          >
+                            Patient
                           </th>
-                          <th className="px-3 py-2 text-left">Sessions</th>
-                          <th className="px-3 py-2 text-left">Rate/Session</th>
-                          <th className="px-3 py-2 text-left">Total Amount</th>
-                          <th className="px-3 py-2 text-left">
-                            Deducted From Advance
-                          </th>
-                          <th className="px-3 py-2 text-left">
-                            Net Billed Amount
-                          </th>
-                          <th className="px-3 py-2 text-left">
-                            Received Amount
-                          </th>
-                          <th className="px-3 py-2 text-left">
-                            Pending Amount
-                          </th>
-                          <th className="px-3 py-2 text-left">
-                            Discount Amount
-                          </th>
-                          <th className="px-3 py-2 text-left">
-                            Payment Status
-                          </th>
-                          <th className="px-3 py-2 text-left">Payment Type</th>
-                          <th className="px-3 py-2 text-left">Bill Generate</th>
-                          <th className="px-3 py-2 text-left">
-                            Receive Payment
-                          </th>
-                          <th className="px-3 py-2 text-left">Bill Send</th>
-                          <th className="px-3 py-2 text-left">Is Bad Debt</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Physio</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Session Start - To date</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Sessions</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Rate/Session</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Total Amount</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Deducted From Advance</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Net Billed Amount</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Received Amount</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Pending Amount</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Discount Amount</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Payment Status</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Payment Type</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Bill Generate</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Receive Payment</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Bill Send</th>
+                          <th className="px-3 py-2 text-left border border-gray-200 whitespace-nowrap">Is Bad Debt</th>
                         </tr>
                       </thead>
 
@@ -1675,7 +1510,7 @@ const Income = () => {
                         {sortedBills.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={16}
+                              colSpan={17}
                               className="p-4 text-center text-gray-500"
                             >
                               No bills found for selected filters
@@ -1686,93 +1521,84 @@ const Income = () => {
                             const status = getBillPaymentStatus(b);
                             const paymentType = getBillPaymentType(b);
 
-                            const totalAmount = Number(
-                              b?.TotalBilledAmount || 0,
-                            );
-                            const deductedAmount = Number(
-                              b?.DeductedFromAdvance || 0,
-                            );
+                            const totalAmount = Number(b?.TotalBilledAmount || 0);
+                            const deductedAmount = Number(b?.DeductedFromAdvance || 0);
                             const netAmount = Number(b?.NetBilledAmount || 0);
-                            const discountAmount = Number(
-                              b?.DiscountAmount || 0,
-                            );
-                            const receivedAmount = Number(
-                              b?.ReceivedAmount || 0,
-                            );
+                            const discountAmt = Number(b?.DiscountAmount || 0);
+                            const receivedAmount = Number(b?.ReceivedAmount || 0);
 
-                            const finalPayable = Math.max(
-                              netAmount - discountAmount,
-                              0,
-                            );
-                            const pendingAmount = Math.max(
-                              finalPayable - receivedAmount,
-                              0,
-                            );
+                            const finalPayable = Math.max(netAmount - discountAmt, 0);
+                            const pendingAmount = Math.max(finalPayable - receivedAmount, 0);
+
                             const formatDate = (date) => {
                               if (!date) return "-";
-
-                              // FIX: take only date part (ignore time completely)
                               const [year, month, day] = new Date(date)
                                 .toISOString()
                                 .split("T")[0]
                                 .split("-");
-
                               return `${day}-${month}-${year}`;
                             };
+
                             const fromDate = b?.startDate;
                             const toDate = b?.ToDate;
+
                             return (
                               <tr
                                 key={b._id}
-                                className="hover:bg-gray-50 text-sm md:text-base"
+                                className="hover:bg-gray-50 text-sm"
                               >
-                                <td className="p-2 border whitespace-nowrap">
+                                {/* STICKY first data column */}
+                                <td
+                                  className="p-2 border border-gray-200 whitespace-nowrap sticky left-0 z-10 bg-white"
+                                  style={{ minWidth: "160px" }}
+                                >
                                   {b?.patientId?.patientName || "N/A"}{" "}
                                   <span className="text-xs text-gray-500">
                                     ({b?.patientId?.patientCode || ""})
                                   </span>
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   {b?.physioId?.physioName || "N/A"}
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   {formatDate(fromDate)} - {formatDate(toDate)}
                                 </td>
-                                <td className="p-2 border text-center">
+
+                                <td className="p-2 border border-gray-200 text-center">
                                   {b?.TotalSessionCount ?? 0}
                                 </td>
 
-                                <td className="p-2 border text-center whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
                                   ₹{Number(b?.ratePerSession || 0).toFixed(2)}
                                 </td>
 
-                                <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap">
                                   ₹{totalAmount.toFixed(2)}
                                 </td>
 
-                                <td className="p-2 border text-center font-semibold whitespace-nowrap bg-yellow-100">
+                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-yellow-100">
                                   ₹{deductedAmount.toFixed(2)}
                                 </td>
 
-                                <td className="p-2 border text-center font-semibold whitespace-nowrap bg-blue-100">
+                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-blue-100">
                                   ₹{netAmount.toFixed(2)}
                                 </td>
 
-                                <td className="p-2 border text-center whitespace-nowrap bg-green-300">
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-green-300">
                                   ₹{receivedAmount.toFixed(2)}
                                 </td>
 
-                                <td className="p-2 border text-center whitespace-nowrap bg-red-100">
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-red-100">
                                   ₹{pendingAmount.toFixed(2)}
                                 </td>
 
-                                <td className="p-2 border text-center whitespace-nowrap bg-purple-100">
-                                  ₹{discountAmount.toFixed(2)}
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-purple-100">
+                                  ₹{discountAmt.toFixed(2)}
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   <span
                                     className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(status)}`}
                                   >
@@ -1780,11 +1606,11 @@ const Income = () => {
                                   </span>
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   {paymentType || "-"}
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   <Button
                                     onClick={() => {
                                       setBillPreview({
@@ -1803,7 +1629,7 @@ const Income = () => {
                                   </Button>
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   <Button
                                     size="sm"
                                     onClick={() =>
@@ -1835,7 +1661,7 @@ const Income = () => {
                                   </Button>
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   <Button
                                     size="sm"
                                     onClick={() => handleSendBill(b._id)}
@@ -1857,7 +1683,7 @@ const Income = () => {
                                   </Button>
                                 </td>
 
-                                <td className="p-2 border whitespace-nowrap">
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   <Button
                                     onClick={() =>
                                       setBadDebtDialog({
@@ -1890,7 +1716,8 @@ const Income = () => {
               </Card>
             </CardContent>
           </Card>
-          {/*  MOBILE VIEW - BILL CARDS */}
+
+          {/* MOBILE VIEW - BILL CARDS */}
           <Card className="medical-card md:hidden">
             <CardHeader>
               <CardTitle className="text-base">
@@ -2061,6 +1888,8 @@ const Income = () => {
           </Card>
         </>
       )}
+
+      {/* Payment Dialog */}
       <Dialog
         open={paymentDialog.open}
         onOpenChange={(v) => !v && closePaymentDialog()}
@@ -2235,6 +2064,8 @@ const Income = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bill Preview Dialog */}
       <Dialog
         open={billPreview.open}
         onOpenChange={(v) =>
@@ -2324,6 +2155,8 @@ const Income = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bad Debt Confirmation Dialog */}
       <Dialog
         open={badDebtDialog.open}
         onOpenChange={(open) =>
