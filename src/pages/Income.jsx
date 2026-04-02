@@ -312,20 +312,16 @@ const Income = () => {
       const matchPatient =
         selectedBillPatientId === "ALL" ? true : pid === selectedBillPatientId;
 
-      const matchMonth =
-        String(b.month || "")
-          .trim()
-          .toLowerCase() ===
-        String(months[selectedBillMonth - 1] || "")
-          .trim()
-          .toLowerCase();
+      const createdAt = new Date(b.createdAt);
+      const createdMonth = createdAt.getMonth() + 1; // 1 to 12
+      const createdYear = createdAt.getFullYear();
 
-      const matchYear = Number(b.year) === Number(selectedBillYear);
+      const matchMonth = createdMonth === Number(selectedBillMonth);
+      const matchYear = createdYear === Number(selectedBillYear);
 
       return matchPatient && matchMonth && matchYear;
     });
   }, [bills, selectedBillPatientId, selectedBillMonth, selectedBillYear]);
-
   const totalGeneratedBillAmount = useMemo(() => {
     return filteredBills.reduce(
       (sum, b) => sum + Number(b.NetBilledAmount || 0),
@@ -1067,7 +1063,14 @@ const Income = () => {
   }, [filteredBills]);
 
   return (
-    <div className="p-4 space-y-4" style={{ width: "calc(100vw - var(--sidebar-width, 140px))", minWidth: 0, overflow: "hidden" }}>
+    <div
+      className="p-4 space-y-4"
+      style={{
+        width: "calc(100vw - var(--sidebar-width, 140px))",
+        minWidth: 0,
+        overflow: "hidden",
+      }}
+    >
       <div className="w-full flex justify-center">
         <div className="flex items-center gap-2 p-1 rounded-lg border border-slate-800 overflow-x-auto max-w-full">
           <TabButton id="income" label="INCOME" icon={InboxIcon} />
@@ -1204,9 +1207,7 @@ const Income = () => {
                       <th className="px-3 py-2 text-left">
                         Completed Sessions
                       </th>
-                      <th className="px-3 py-2 text-left">
-                        Fees(Fees Type)
-                      </th>
+                      <th className="px-3 py-2 text-left">Fees(Fees Type)</th>
                       <th className="px-3 py-2 text-left">Total Income</th>
                     </tr>
                   </thead>
@@ -1491,7 +1492,9 @@ const Income = () => {
                       borderSpacing: 0,
                     }}
                   >
-                    <thead style={{ backgroundColor: "#f3f4f6", color: "#374151" }}>
+                    <thead
+                      style={{ backgroundColor: "#f3f4f6", color: "#374151" }}
+                    >
                       <tr>
                         {/* STICKY first column - inline styles are required because
                             Tailwind's sticky can be overridden by parent overflow:hidden */}
@@ -1548,223 +1551,238 @@ const Income = () => {
                     </thead>
 
                     <tbody>
-                        {sortedBills.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={17}
-                              className="p-4 text-center text-gray-500"
+                      {sortedBills.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={17}
+                            className="p-4 text-center text-gray-500"
+                          >
+                            No bills found for selected filters
+                          </td>
+                        </tr>
+                      ) : (
+                        sortedBills.map((b) => {
+                          const status = getBillPaymentStatus(b);
+                          const paymentType = getBillPaymentType(b);
+
+                          const totalAmount = Number(b?.TotalBilledAmount || 0);
+                          const deductedAmount = Number(
+                            b?.DeductedFromAdvance || 0,
+                          );
+                          const netAmount = Number(b?.NetBilledAmount || 0);
+                          const discountAmt = Number(b?.DiscountAmount || 0);
+                          const receivedAmount = Number(b?.ReceivedAmount || 0);
+
+                          const finalPayable = Math.max(
+                            netAmount - discountAmt,
+                            0,
+                          );
+                          const pendingAmount = Math.max(
+                            finalPayable - receivedAmount,
+                            0,
+                          );
+
+                          const formatDate = (date) => {
+                            if (!date) return "-";
+                            const [year, month, day] = new Date(date)
+                              .toISOString()
+                              .split("T")[0]
+                              .split("-");
+                            return `${day}-${month}-${year}`;
+                          };
+
+                          const fromDate = b?.startDate;
+                          const toDate = b?.ToDate;
+
+                          return (
+                            <tr
+                              key={b._id}
+                              style={{ fontSize: "0.875rem" }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  "#f9fafb")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = "")
+                              }
                             >
-                              No bills found for selected filters
-                            </td>
-                          </tr>
-                        ) : (
-                          sortedBills.map((b) => {
-                            const status = getBillPaymentStatus(b);
-                            const paymentType = getBillPaymentType(b);
-
-                            const totalAmount = Number(b?.TotalBilledAmount || 0);
-                            const deductedAmount = Number(b?.DeductedFromAdvance || 0);
-                            const netAmount = Number(b?.NetBilledAmount || 0);
-                            const discountAmt = Number(b?.DiscountAmount || 0);
-                            const receivedAmount = Number(b?.ReceivedAmount || 0);
-
-                            const finalPayable = Math.max(netAmount - discountAmt, 0);
-                            const pendingAmount = Math.max(finalPayable - receivedAmount, 0);
-
-                            const formatDate = (date) => {
-                              if (!date) return "-";
-                              const [year, month, day] = new Date(date)
-                                .toISOString()
-                                .split("T")[0]
-                                .split("-");
-                              return `${day}-${month}-${year}`;
-                            };
-
-                            const fromDate = b?.startDate;
-                            const toDate = b?.ToDate;
-
-                            return (
-                              <tr
-                                key={b._id}
-                                style={{ fontSize: "0.875rem" }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ""}
+                              {/* STICKY first data cell - inline style required */}
+                              <td
+                                style={{
+                                  position: "sticky",
+                                  left: 0,
+                                  zIndex: 20,
+                                  backgroundColor: "#ffffff",
+                                  minWidth: "160px",
+                                  padding: "8px",
+                                  whiteSpace: "nowrap",
+                                  borderBottom: "1px solid #e5e7eb",
+                                  borderRight: "2px solid #d1d5db",
+                                }}
                               >
-                                {/* STICKY first data cell - inline style required */}
-                                <td
-                                  style={{
-                                    position: "sticky",
-                                    left: 0,
-                                    zIndex: 20,
-                                    backgroundColor: "#ffffff",
-                                    minWidth: "160px",
-                                    padding: "8px",
-                                    whiteSpace: "nowrap",
-                                    borderBottom: "1px solid #e5e7eb",
-                                    borderRight: "2px solid #d1d5db",
-                                  }}
+                                {b?.patientId?.patientName || "N/A"}{" "}
+                                <span className="text-xs text-gray-500">
+                                  ({b?.patientId?.patientCode || ""})
+                                </span>
+                              </td>
+
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                {b?.physioId?.physioName || "N/A"}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                {formatDate(fromDate)} - {formatDate(toDate)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center">
+                                {b?.TotalSessionCount ?? 0}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
+                                ₹{Number(b?.ratePerSession || 0).toFixed(2)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap">
+                                ₹{totalAmount.toFixed(2)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-yellow-100">
+                                ₹{deductedAmount.toFixed(2)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-blue-100">
+                                ₹{netAmount.toFixed(2)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-green-300">
+                                ₹{receivedAmount.toFixed(2)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-red-100">
+                                ₹{pendingAmount.toFixed(2)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-purple-100">
+                                ₹{discountAmt.toFixed(2)}
+                              </td>
+
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                <span
+                                  className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(status)}`}
                                 >
-                                  {b?.patientId?.patientName || "N/A"}{" "}
-                                  <span className="text-xs text-gray-500">
-                                    ({b?.patientId?.patientCode || ""})
-                                  </span>
-                                </td>
+                                  {status}
+                                </span>
+                              </td>
 
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  {b?.physioId?.physioName || "N/A"}
-                                </td>
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                {paymentType || "-"}
+                              </td>
 
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  {formatDate(fromDate)} - {formatDate(toDate)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center">
-                                  {b?.TotalSessionCount ?? 0}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
-                                  ₹{Number(b?.ratePerSession || 0).toFixed(2)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap">
-                                  ₹{totalAmount.toFixed(2)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-yellow-100">
-                                  ₹{deductedAmount.toFixed(2)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-blue-100">
-                                  ₹{netAmount.toFixed(2)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-green-300">
-                                  ₹{receivedAmount.toFixed(2)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-red-100">
-                                  ₹{pendingAmount.toFixed(2)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-purple-100">
-                                  ₹{discountAmt.toFixed(2)}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(status)}`}
-                                  >
-                                    {status}
-                                  </span>
-                                </td>
-
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  {paymentType || "-"}
-                                </td>
-
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  <Button
-                                    onClick={() => {
-                                      setBillPreview({
-                                        open: true,
-                                        bill: {
-                                          ...b,
-                                          pending: pendingAmount,
-                                          finalPayable,
-                                        },
-                                        includeSessions: false,
-                                        loading: false,
-                                      });
-                                    }}
-                                  >
-                                    Generate Bill
-                                  </Button>
-                                </td>
-
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  <Button
-                                    size="sm"
-                                    onClick={() =>
-                                      openPaymentDialog({
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                <Button
+                                  onClick={() => {
+                                    setBillPreview({
+                                      open: true,
+                                      bill: {
                                         ...b,
                                         pending: pendingAmount,
                                         finalPayable,
-                                      })
-                                    }
-                                    disabled={
-                                      status === "Paid" || status === "Bad Debt"
-                                    }
-                                    className={
-                                      status === "Paid" || status === "Bad Debt"
-                                        ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                        : ""
-                                    }
-                                  >
-                                    {status === "Paid" ? (
-                                      <span className="flex items-center gap-2">
-                                        <CheckCircle size={16} />
-                                        Payment Received
-                                      </span>
-                                    ) : status === "Bad Debt" ? (
-                                      "Bad Debt"
-                                    ) : (
-                                      "Receive Payment"
-                                    )}
-                                  </Button>
-                                </td>
+                                      },
+                                      includeSessions: false,
+                                      loading: false,
+                                    });
+                                  }}
+                                >
+                                  Generate Bill
+                                </Button>
+                              </td>
 
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleSendBill(b._id)}
-                                    disabled={b?.isSend}
-                                    className={
-                                      b?.isSend
-                                        ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                        : ""
-                                    }
-                                  >
-                                    {b?.isSend ? (
-                                      <span className="flex items-center gap-2">
-                                        <CheckCircle size={16} />
-                                        Bill Sent
-                                      </span>
-                                    ) : (
-                                      "Send Bill"
-                                    )}
-                                  </Button>
-                                </td>
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    openPaymentDialog({
+                                      ...b,
+                                      pending: pendingAmount,
+                                      finalPayable,
+                                    })
+                                  }
+                                  disabled={
+                                    status === "Paid" || status === "Bad Debt"
+                                  }
+                                  className={
+                                    status === "Paid" || status === "Bad Debt"
+                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                      : ""
+                                  }
+                                >
+                                  {status === "Paid" ? (
+                                    <span className="flex items-center gap-2">
+                                      <CheckCircle size={16} />
+                                      Payment Received
+                                    </span>
+                                  ) : status === "Bad Debt" ? (
+                                    "Bad Debt"
+                                  ) : (
+                                    "Receive Payment"
+                                  )}
+                                </Button>
+                              </td>
 
-                                <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                  <Button
-                                    onClick={() =>
-                                      setBadDebtDialog({
-                                        open: true,
-                                        billId: b._id,
-                                      })
-                                    }
-                                    disabled={b?.isBadDebt || status === "Paid"}
-                                    className={`px-2 py-1 text-xs rounded ${
-                                      b?.isBadDebt 
-                                        ? "bg-gray-400 cursor-not-allowed text-white" : status === "Paid" ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                        : "bg-red-500 text-white hover:bg-red-600"
-                                    }`}
-                                  >
-                                    {b?.isBadDebt
-                                      ? "Bad Debt"
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSendBill(b._id)}
+                                  disabled={b?.isSend}
+                                  className={
+                                    b?.isSend
+                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                      : ""
+                                  }
+                                >
+                                  {b?.isSend ? (
+                                    <span className="flex items-center gap-2">
+                                      <CheckCircle size={16} />
+                                      Bill Sent
+                                    </span>
+                                  ) : (
+                                    "Send Bill"
+                                  )}
+                                </Button>
+                              </td>
+
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                <Button
+                                  onClick={() =>
+                                    setBadDebtDialog({
+                                      open: true,
+                                      billId: b._id,
+                                    })
+                                  }
+                                  disabled={b?.isBadDebt || status === "Paid"}
+                                  className={`px-2 py-1 text-xs rounded ${
+                                    b?.isBadDebt
+                                      ? "bg-gray-400 cursor-not-allowed text-white"
                                       : status === "Paid"
-                                        ? "Paid"
-                                        : "Mark Bad Debt"}
-                                  </Button>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
+                                        ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                        : "bg-red-500 text-white hover:bg-red-600"
+                                  }`}
+                                >
+                                  {b?.isBadDebt
+                                    ? "Bad Debt"
+                                    : status === "Paid"
+                                      ? "Paid"
+                                      : "Mark Bad Debt"}
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
-                  </div>
                 </div>
+              </div>
             </CardContent>
           </Card>
 
