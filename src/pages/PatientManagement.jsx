@@ -4257,31 +4257,67 @@ const PatientManagement = () => {
                 </AccordionItem>
               </Accordion>
 
-              <div className="space-y-2 pt-4">
-                <Label>Upload Documents</Label>
-                <Input
-                  type="file"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current.click()}
-                  className="w-full sm:w-auto"
-                >
-                  <Upload size={16} className="mr-2" /> Attach File
-                </Button>
-                <div className="mt-2 space-y-1">
-                  {patientForm.documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 text-sm text-gray-600 break-all"
-                    >
-                      <Paperclip size={14} /> {doc}
-                    </div>
-                  ))}
+              <div>
+                <Label>Documents</Label>
+                <Input type="file" multiple onChange={handleFileUpload} />
+
+                <div className="mt-3 space-y-2">
+                  {patientForm.consultationDocuments?.length > 0 ? (
+                    patientForm.consultationDocuments.map((doc, index) => {
+                      const isNewFile = doc instanceof File;
+                      const fileUrl = isNewFile
+                        ? URL.createObjectURL(doc)
+                        : `http://localhost:8002${doc.fileUrl}`;
+
+                      const isImage = isNewFile
+                        ? doc.type?.startsWith("image/")
+                        : doc.fileType?.startsWith("image/");
+
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between border rounded p-2 gap-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            {isImage ? (
+                              <img
+                                src={fileUrl}
+                                alt={isNewFile ? doc.name : doc.fileName}
+                                className="w-12 h-12 rounded object-cover border cursor-pointer"
+                                onClick={() => window.open(fileUrl, "_blank")}
+                              />
+                            ) : (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(fileUrl, "_blank")}
+                              >
+                                View
+                              </Button>
+                            )}
+
+                            <span className="text-sm">
+                              {isNewFile ? doc.name : doc.fileName}
+                            </span>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              handleRemoveConsultDocument(doc, index)
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-gray-400">No documents</p>
+                  )}
                 </div>
               </div>
 

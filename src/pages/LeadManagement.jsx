@@ -43,6 +43,7 @@ import {
   Trash2,
   Paperclip,
   User,
+  Eye,
   CheckCircle,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -62,7 +63,9 @@ const LeadManagement = () => {
   const [filteredLeads, setFilteredLeads] = useState([]);
   const [reference, setReference] = useState([]);
   const [leadStatus, setLeadStatus] = useState([]);
-
+  const [isDocViewOpen, setIsDocViewOpen] = useState(false);
+  const [selectedLeadDocs, setSelectedLeadDocs] = useState([]);
+  const [selectedLeadName, setSelectedLeadName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -83,6 +86,7 @@ const LeadManagement = () => {
     genderName: "",
     leadSourceName: "",
     leadDocuments: [],
+    removedDocuments: [],
     leadId: "",
     ReferenceId: "",
     sourceName: "",
@@ -149,7 +153,11 @@ const LeadManagement = () => {
       setLeadStatus([]);
     }
   };
-
+  const handleViewDocuments = (lead) => {
+    setSelectedLeadDocs(lead?.leadDocuments || []);
+    setSelectedLeadName(lead?.leadName || "");
+    setIsDocViewOpen(true);
+  };
   const getReference = async () => {
     try {
       const res = await apiRequest("References/getALLReferences", {
@@ -275,22 +283,26 @@ const LeadManagement = () => {
 
   const createLead = async (data) => {
     try {
-      const response = await apiRequest("Lead/createLead", {
-        method: "POST",
-        body: JSON.stringify(data),
+      const formData = new FormData();
+
+      // append all fields
+      Object.keys(data).forEach((key) => {
+        if (key !== "leadDocuments") {
+          formData.append(key, data[key]);
+        }
       });
 
-      if (
-        response?.success === false &&
-        response?.message === "EXISTING_NUMBER"
-      ) {
-        toast({
-          title: "Alert",
-          description: "This phone number is already registered.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // append files
+      data.leadDocuments.forEach((file) => {
+        formData.append("leadDocuments", file); //  MUST MATCH BACKEND
+      });
+
+      const response = await fetch("/api/Lead/createLead", {
+        method: "POST",
+        body: formData,
+      });
+
+      const res = await response.json();
 
       toast({
         title: "Success",
@@ -299,17 +311,40 @@ const LeadManagement = () => {
 
       getLead();
       setIsFormOpen(false);
-      return response;
     } catch (error) {
-      console.error("Error creating lead:", error);
+      console.error(error);
     }
   };
 
   const updateLead = async (data) => {
     try {
-      const response = await apiRequest("Lead/updateLead", {
+      const formData = new FormData();
+
+      Object.keys(data).forEach((key) => {
+        if (key !== "leadDocuments" && key !== "removedDocuments") {
+          formData.append(key, data[key] ?? "");
+        }
+      });
+
+      if (data.removedDocuments?.length) {
+        formData.append(
+          "removedDocuments",
+          JSON.stringify(data.removedDocuments),
+        );
+      }
+
+      if (data.leadDocuments?.length) {
+        data.leadDocuments.forEach((file) => {
+          // send only new files
+          if (file instanceof File) {
+            formData.append("leadDocuments", file);
+          }
+        });
+      }
+
+      const res = await apiRequest("Lead/updateLead", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: formData,
       });
 
       toast({
@@ -317,9 +352,10 @@ const LeadManagement = () => {
         description: "Lead updated successfully.",
       });
 
-      getLead();
       setIsFormOpen(false);
-      return response;
+      getLead();
+
+      return res;
     } catch (error) {
       console.error("Error updating lead:", error);
     }
@@ -392,23 +428,39 @@ const LeadManagement = () => {
 
     return statusName.toLowerCase() === "cb";
   }, [leadStatus, leadForm.LeadStatusId, leadForm.leadStatusName]);
-
   const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setLeadForm((prev) => ({
-        ...prev,
-        leadDocuments: [...prev.leadDocuments, file.name],
-      }));
+    const files = Array.from(e.target.files);
 
-      toast({
-        title: "File Added",
-        description: `${file.name} has been added.`,
-      });
-    }
+    setLeadForm((prev) => ({
+      ...prev,
+      leadDocuments: [...prev.leadDocuments, ...files],
+    }));
+
+    toast({
+      title: "File Added",
+      description: `${files.length} file(s) added.`,
+    });
+  };
+  const handleRemoveDocument = (doc, index) => {
+    setLeadForm((prev) => {
+      const updatedDocs = [...(prev.leadDocuments || [])];
+      updatedDocs.splice(index, 1);
+
+      const updatedRemoved = [...(prev.removedDocuments || [])];
+
+      if (doc?.fileUrl) {
+        updatedRemoved.push(doc.fileUrl);
+      }
+
+      return {
+        ...prev,
+        leadDocuments: updatedDocs,
+        removedDocuments: updatedRemoved,
+      };
+    });
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
 
     if (!leadForm.leadName) {
@@ -509,9 +561,11 @@ const LeadManagement = () => {
     }
 
     if (editingLead) {
-      updateLead(leadForm);
+      await updateLead(leadForm);
+      setIsFormOpen(false);
     } else {
-      createLead(leadForm);
+      await createLead(leadForm);
+      setIsFormOpen(false);
     }
   };
 
@@ -604,6 +658,7 @@ const LeadManagement = () => {
       sourceName: referenceName,
       isQualified: lead?.isQualified ?? true,
       LeadStatusId: leadStatusId,
+      removedDocuments: [],
       leadStatusName:
         lead?.LeadStatusId?.leadStatusName ||
         lead?.LeadStatusId?.LeadStatusName ||
@@ -748,20 +803,6 @@ const LeadManagement = () => {
                     </span>
                   </td>
                   <td className="p-3 flex gap-2">
-                    {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
-                      Permissions.isEdit && (
-                        <Button
-                          variant="default"
-                          onClick={() => {
-                            setLeadQualify(lead);
-                            setOpen(true);
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          Qualify
-                        </Button>
-                      )}
-
                     <Dialog open={open} onOpenChange={setOpen}>
                       <DialogContent className="max-w-md max-h-[90vh] backdrop-blur-lg">
                         <DialogHeader>
@@ -796,17 +837,41 @@ const LeadManagement = () => {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+                    <td className="p-3 flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewDocuments(lead)}
+                        disabled={!lead?.leadDocuments?.length}
+                      >
+                        <Eye size={14} />
+                      </Button>
 
-                    {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
-                      Permissions.isEdit && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(lead)}
-                        >
-                          <Edit size={14} />
-                        </Button>
-                      )}
+                      {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
+                        Permissions.isEdit && (
+                          <Button
+                            variant="default"
+                            onClick={() => {
+                              setLeadQualify(lead);
+                              setOpen(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Qualify
+                          </Button>
+                        )}
+
+                      {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
+                        Permissions.isEdit && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(lead)}
+                          >
+                            <Edit size={14} />
+                          </Button>
+                        )}
+                    </td>
 
                     {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                       Permissions.isDelete && (
@@ -1231,32 +1296,43 @@ const LeadManagement = () => {
                 </div>
               )}
             </div>
-
             <div>
               <Label>Medical History</Label>
-              <textarea
+              <Input
                 name="leadMedicalHistory"
                 value={leadForm.leadMedicalHistory}
                 onChange={handleFormChange}
-                className="w-full border p-2 rounded-md"
               />
             </div>
 
             <div>
-              <Label>Upload Documents</Label>
-              <Input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-              />
-              <div className="mt-2 text-sm text-gray-600 flex flex-col gap-1">
-                {leadForm.leadDocuments.map((doc, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Paperclip size={14} /> {doc}
+              <Label>Documents</Label>
+              <Input type="file" multiple onChange={handleFileUpload} />
+
+              <div className="mt-2 space-y-2">
+                {leadForm.leadDocuments?.map((doc, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between border rounded p-2"
+                  >
+                    <span className="text-sm">
+                      {doc instanceof File ? doc.name : doc.fileName}
+                    </span>
+
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleRemoveDocument(doc, index)}
+                    >
+                      Remove
+                    </Button>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Submit Button */}
 
             <DialogFooter>
               <Button
@@ -1266,9 +1342,63 @@ const LeadManagement = () => {
               >
                 Cancel
               </Button>
-              <Button type="submit">{editingLead ? "Update" : "Create"}</Button>
+              <Button type="submit">
+                {editingLead ? "Update Lead" : "Create Lead"}
+              </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isDocViewOpen} onOpenChange={setIsDocViewOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedLeadName} - Documents</DialogTitle>
+          </DialogHeader>
+
+          {selectedLeadDocs.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {selectedLeadDocs.map((doc, index) => {
+                const fileUrl = `http://localhost:8002${doc.fileUrl}`;
+                const isImage = doc?.fileType?.startsWith("image/");
+
+                return (
+                  <div key={index} className="border rounded-lg p-2 space-y-2">
+                    {isImage ? (
+                      <img
+                        src={fileUrl}
+                        alt={doc.fileName}
+                        className="w-full h-40 object-cover rounded cursor-pointer"
+                        onClick={() => window.open(fileUrl, "_blank")}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-40 border rounded">
+                        <Paperclip className="w-8 h-8 text-gray-500" />
+                        <p className="text-xs text-center mt-2 break-all">
+                          {doc.fileName}
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => window.open(fileUrl, "_blank")}
+                        >
+                          View File
+                        </Button>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-center break-all">
+                      {doc.fileName}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 text-center">
+              No documents found
+            </p>
+          )}
         </DialogContent>
       </Dialog>
     </div>

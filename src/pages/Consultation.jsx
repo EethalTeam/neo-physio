@@ -50,6 +50,7 @@ import {
   UserPlus,
   History,
   UserCheck,
+  Eye,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,7 +74,7 @@ import PatientDetailsDialog from "@/components/PatientDetailsDialog";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
-const Consulation = () => {
+const Consultation = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [patients, setPatients] = useState([]);
@@ -136,8 +137,9 @@ const Consulation = () => {
     patientNumber: "",
     patientAddress: "",
     category: "",
-    MedicalHistoryAndRiskFactor: "",
-    documents: [],
+    MedicalHistoryAndRiskFactor: [],
+    consultationDocuments: [],
+    removedDocuments: [],
     consultationDate: null,
     byStandar: "",
     Relation: "",
@@ -195,7 +197,8 @@ const Consulation = () => {
     "Band",
   ];
   const [risk, setRisk] = useState([]); //for dropdown
-
+  const [isDocOpen, setIsDocOpen] = useState(false);
+  const [consultDocs, setConsultDocs] = useState([]);
   const [gender, setGender] = useState([]);
   const [radio, setRadio] = useState([]);
   const [feesType, setFeesType] = useState([]);
@@ -207,7 +210,10 @@ const Consulation = () => {
     isEdit: false,
     isDelete: false,
   });
-
+  const handleViewConsultDocs = (consult) => {
+    setConsultDocs(consult?.consultationDocuments || []);
+    setIsDocOpen(true);
+  };
   //api call  and get all risk Factor
 
   useEffect(() => {
@@ -369,40 +375,89 @@ const Consulation = () => {
 
   //api for update Patients
 
-  const updatePatient = async (data) => {
+  const updateConsultation = async (data) => {
     try {
+      const formData = new FormData();
+
+      Object.keys(data).forEach((key) => {
+        if (key !== "consultationDocuments" && key !== "removedDocuments") {
+          if (key === "MedicalHistoryAndRiskFactor") {
+            formData.append(key, JSON.stringify(data[key] || []));
+          } else {
+            formData.append(key, data[key] ?? "");
+          }
+        }
+      });
+
+      if (data.removedDocuments?.length) {
+        formData.append(
+          "removedDocuments",
+          JSON.stringify(data.removedDocuments),
+        );
+      }
+
+      if (data.consultationDocuments?.length) {
+        data.consultationDocuments.forEach((file) => {
+          if (file instanceof File) {
+            formData.append("consultationDocuments", file);
+          }
+        });
+      }
+
       const response = await apiRequest("Consultation/updateConsultation", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: formData,
       });
-      toast({ title: "Success", description: "Patient updated successfully." });
+
+      toast({
+        title: "Success",
+        description: "Patient updated successfully.",
+      });
+
       getAllConsultation();
       setIsFormOpen(false);
-      // setFilteredPatients(response);
-      // setPhysios(response);
-      // setSessions(response);
+
       return response;
     } catch (error) {
       console.error("Error:", error);
-      throw error;
     }
   };
-
   //api for create patients
 
   const createConsultation = async (data) => {
     try {
+      const formData = new FormData();
+
+      Object.keys(data).forEach((key) => {
+        if (key !== "consultationDocuments" && key !== "removedDocuments") {
+          formData.append(key, data[key] ?? "");
+        }
+      });
+
+      if (data.consultationDocuments?.length) {
+        data.consultationDocuments.forEach((file) => {
+          if (file instanceof File) {
+            formData.append("consultationDocuments", file);
+          }
+        });
+      }
+
       const response = await apiRequest("Consultation/createConsultation", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: formData,
       });
-      toast({ title: "Success", description: "Patient Create successfully." });
+
+      toast({
+        title: "Success",
+        description: "Patient created successfully.",
+      });
+
       getAllConsultation();
       setIsFormOpen(false);
+
       return response;
     } catch (error) {
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -555,26 +610,45 @@ const Consulation = () => {
   const handleDateChange = (name, date) => {
     setPatientForm((prev) => ({ ...prev, [name]: date }));
   };
+  const handleRemoveConsultDocument = (doc, index) => {
+    setPatientForm((prev) => {
+      const updatedDocs = [...(prev.consultationDocuments || [])];
+      updatedDocs.splice(index, 1);
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPatientForm((prev) => ({
+      const updatedRemoved = [...(prev.removedDocuments || [])];
+
+      if (doc?.fileUrl) {
+        updatedRemoved.push(doc.fileUrl);
+      }
+
+      return {
         ...prev,
-        documents: [...prev.documents, file.name],
-      }));
-      toast({
-        title: "File Added",
-        description: `${file.name} has been staged for upload.`,
-      });
-    }
+        consultationDocuments: updatedDocs,
+        removedDocuments: updatedRemoved,
+      };
+    });
   };
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files || []);
 
+    setPatientForm((prev) => ({
+      ...prev,
+      consultationDocuments: [...(prev.consultationDocuments || []), ...files],
+    }));
+
+    toast({
+      title: "File Added",
+      description: `${files.length} file(s) added.`,
+    });
+  };
   const handleFormSubmit = (e) => {
     e.preventDefault();
     if (editingPatient) {
       // setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...patientForm } : p));
-      updatePatient({ ...patientForm, MedicalHistoryAndRiskFactor: radio });
+      updateConsultation({
+        ...patientForm,
+        MedicalHistoryAndRiskFactor: radio,
+      });
       toast({ title: "Success", description: "Patient details updated." });
     } else {
       // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
@@ -605,8 +679,10 @@ const Consulation = () => {
       // category: patient.category ? patient.category : null,
       MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor
         ? patient.MedicalHistoryAndRiskFactor
-        : null,
-      documents: patient.documents ? patient.documents : [],
+        : [],
+      consultationDocuments: patient.consultationDocuments || [],
+      removedDocuments: [],
+      // documents: patient.documents ? patient.documents : [],
       consultationDate: patient.consultationDate
         ? new Date(patient.consultationDate)
         : "",
@@ -673,27 +749,53 @@ const Consulation = () => {
       ReferenceId: patient.ReferenceId ? patient.ReferenceId._id : null,
       sourceName: patient.ReferenceId ? patient.ReferenceId.sourceName : null,
     };
-    if (patient.consultationDate)
+    if (patient.consultationDate) {
       formData.consultationDate = new Date(patient.consultationDate);
-    if (patient.reviewDate) formData.reviewDate = new Date(patient.reviewDate);
-    let radio = [];
-    const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
-      if (val.isExist) {
-        radio.push({
-          RiskFactorID: val.RiskFactorID._id,
-          isExist: val.isExist,
-        });
-      }
-      return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
-    });
-    setRadio(radio);
-    if (RiskFactor.length > 0) {
-      RiskFactor.map(
-        (val) =>
-          (formData[Object.keys(val)[0].toLowerCase()] =
-            val[Object.keys(val)[0]] == "true"),
-      );
     }
+
+    if (patient.reviewDate) {
+      formData.reviewDate = new Date(patient.reviewDate);
+    }
+
+    let radioData = [];
+
+    const riskFactorList = (patient.MedicalHistoryAndRiskFactor || [])
+      .filter((val) => val && val.RiskFactorID)
+      .map((val) => {
+        const riskId =
+          typeof val.RiskFactorID === "object"
+            ? val.RiskFactorID?._id
+            : val.RiskFactorID;
+
+        const riskName =
+          typeof val.RiskFactorID === "object"
+            ? val.RiskFactorID?.RiskFactorName
+            : null;
+
+        if (riskId && val.isExist) {
+          radioData.push({
+            RiskFactorID: riskId,
+            isExist: val.isExist,
+          });
+        }
+
+        if (!riskName) return null;
+
+        return {
+          [riskName]: String(val.isExist),
+        };
+      })
+      .filter(Boolean);
+
+    setRadio(radioData);
+
+    riskFactorList.forEach((val) => {
+      const key = Object.keys(val)[0];
+      if (key) {
+        formData[key.toLowerCase()] = val[key] === "true";
+      }
+    });
+
     setPatientForm(formData);
     setIsFormOpen(true);
   };
@@ -1197,7 +1299,13 @@ const Consulation = () => {
                     </div> */}
                     <div className="flex space-x-2">
                       {/* <Button size="sm" variant="outline" onClick={() => handleViewHistory(patient)} className="flex-1"><History size={14} /><span className="hidden md:inline lg:inline">History</span></Button> */}
-
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewConsultDocs(patient)}
+                      >
+                        <Eye size={14} />
+                      </Button>
                       {Permissions.isEdit && (
                         <Button
                           size="sm"
@@ -1259,7 +1367,46 @@ const Consulation = () => {
         onOpenChange={setIsDetailsOpen}
         patient={viewingPatient}
       />
+      <Dialog open={isDocOpen} onOpenChange={setIsDocOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Consultation Documents</DialogTitle>
+          </DialogHeader>
 
+          {consultDocs.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {consultDocs.map((doc, index) => {
+                const fileUrl = `http://localhost:8002${doc.fileUrl}`;
+                const isImage = doc.fileType?.startsWith("image/");
+
+                return (
+                  <div key={index} className="border rounded p-2">
+                    {isImage ? (
+                      <img
+                        src={fileUrl}
+                        alt={doc.fileName}
+                        className="w-full h-40 object-cover rounded cursor-pointer"
+                        onClick={() => window.open(fileUrl, "_blank")}
+                      />
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(fileUrl, "_blank")}
+                      >
+                        View File
+                      </Button>
+                    )}
+
+                    <p className="text-xs mt-1 text-center">{doc.fileName}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-gray-400">No documents</p>
+          )}
+        </DialogContent>
+      </Dialog>
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
         <DialogContent className="max-w-2xl max-h-[95vh] flex flex-col">
           <DialogHeader>
@@ -1621,29 +1768,26 @@ const Consulation = () => {
                       <div className="space-y-2">
                         <Label>Fees Type</Label>
                         <Select
-                          value={JSON.stringify({
-                            id: patientForm.FeesTypeId,
-                            name: patientForm.FeesTypeName,
-                          })}
+                          value={patientForm.FeesTypeId || ""}
                           onValueChange={(v) => {
-                            const selected = JSON.parse(v);
-                            handleSelectChange("FeesTypeId", selected.id);
-                            handleSelectChange("FeesTypeName", selected.name);
+                            const selected = feesType.find(
+                              (fee) => fee._id === v,
+                            );
+
+                            handleSelectChange("FeesTypeId", v);
+                            handleSelectChange(
+                              "FeesTypeName",
+                              selected?.feesTypeName || "",
+                            );
                           }}
                         >
-                          {" "}
                           <SelectTrigger>
                             <SelectValue placeholder="Select Fees" />
                           </SelectTrigger>
+
                           <SelectContent>
                             {feesType.map((fee) => (
-                              <SelectItem
-                                key={fee._id}
-                                value={JSON.stringify({
-                                  id: fee._id,
-                                  name: fee.feesTypeName,
-                                })}
-                              >
+                              <SelectItem key={fee._id} value={fee._id}>
                                 {fee.feesTypeName}
                               </SelectItem>
                             ))}
@@ -1739,29 +1883,26 @@ const Consulation = () => {
                       <div className="space-y-2">
                         <Label>Reference</Label>
                         <Select
-                          value={JSON.stringify({
-                            id: patientForm.ReferenceId,
-                            name: patientForm.sourceName,
-                          })}
+                          value={patientForm.ReferenceId || ""}
                           onValueChange={(v) => {
-                            const selected = JSON.parse(v);
-                            handleSelectChange("ReferenceId", selected.id);
-                            handleSelectChange("sourceName", selected.name);
+                            const selected = reference.find(
+                              (ref) => ref._id === v,
+                            );
+
+                            handleSelectChange("ReferenceId", v);
+                            handleSelectChange(
+                              "sourceName",
+                              selected?.sourceName || "",
+                            );
                           }}
                         >
-                          {" "}
                           <SelectTrigger>
                             <SelectValue placeholder="Select Reference" />
                           </SelectTrigger>
+
                           <SelectContent>
                             {reference.map((ref) => (
-                              <SelectItem
-                                key={ref._id}
-                                value={JSON.stringify({
-                                  id: ref._id,
-                                  name: ref.sourceName,
-                                })}
-                              >
+                              <SelectItem key={ref._id} value={ref._id}>
                                 {ref.sourceName}
                               </SelectItem>
                             ))}
@@ -2121,33 +2262,70 @@ const Consulation = () => {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
+              <div>
+                <Label>Documents</Label>
+                <Input type="file" multiple onChange={handleFileUpload} />
 
-              <div className="space-y-2 pt-4">
-                <Label>Upload Documents</Label>
-                <Input
-                  type="file"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current.click()}
-                >
-                  <Upload size={16} className="mr-2" /> Attach File
-                </Button>
-                <div className="mt-2 space-y-1">
-                  {patientForm.documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 text-sm text-gray-600"
-                    >
-                      <Paperclip size={14} /> {doc}
-                    </div>
-                  ))}
+                <div className="mt-3 space-y-2">
+                  {patientForm.consultationDocuments?.length > 0 ? (
+                    patientForm.consultationDocuments.map((doc, index) => {
+                      const isNewFile = doc instanceof File;
+                      const fileUrl = isNewFile
+                        ? URL.createObjectURL(doc)
+                        : `http://localhost:8002${doc.fileUrl}`;
+
+                      const isImage = isNewFile
+                        ? doc.type?.startsWith("image/")
+                        : doc.fileType?.startsWith("image/");
+
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between border rounded p-2 gap-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            {isImage ? (
+                              <img
+                                src={fileUrl}
+                                alt={isNewFile ? doc.name : doc.fileName}
+                                className="w-12 h-12 rounded object-cover border cursor-pointer"
+                                onClick={() => window.open(fileUrl, "_blank")}
+                              />
+                            ) : (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(fileUrl, "_blank")}
+                              >
+                                View
+                              </Button>
+                            )}
+
+                            <span className="text-sm">
+                              {isNewFile ? doc.name : doc.fileName}
+                            </span>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              handleRemoveConsultDocument(doc, index)
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-gray-400">No documents</p>
+                  )}
                 </div>
               </div>
+
               <DialogFooter className="pt-4">
                 <Button
                   type="button"
@@ -2536,4 +2714,4 @@ const Consulation = () => {
   );
 };
 
-export default Consulation;
+export default Consultation;
