@@ -343,26 +343,29 @@ const Header = ({ toggleSidebar }) => {
 
                 <div className="flex justify-center">
                   <div className="w-[280px] rounded-2xl overflow-hidden border bg-white shadow-lg">
-                    <div className="px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex flex-row items-center gap-2">
-                      {/* Logo wrapper */}
-                      <div className="bg-white  rounded-full shadow-md">
+                    <div className="px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center gap-3">
+                      {/* Logo */}
+                      <div className="w-20 h-20 bg-white rounded-full shadow-md flex items-center justify-center overflow-hidden">
                         <img
                           src={Logo}
                           alt="Neo-physio Logo"
-                          className="h-16 w-16 object-contain"
+                          className="w-full h-full object-cover scale-110"
                         />
                       </div>
 
-                      <p className="text-sm font-bold tracking-wider text-center">
-                        NEO-PHYSIO
-                      </p>
+                      {/* Text */}
+                      <div>
+                        <p className="text-lg font-bold tracking-wide leading-tight">
+                          NEO-PHYSIO
+                        </p>
+                      </div>
                     </div>
 
                     {/* Body */}
                     <div className="p-5">
                       {/* Photo */}
-                      <div className="flex justify-center">
-                        <div className="w-24 h-24 rounded-full border overflow-hidden bg-gray-100">
+                      <div className="flex justify-center -mt-10">
+                        <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden bg-gray-100 shadow-md">
                           <img
                             src={previewUrl || profile}
                             alt="Employee"
@@ -395,7 +398,9 @@ const Header = ({ toggleSidebar }) => {
                           <span className="text-gray-400">Designation</span>
                           <span>:</span>
                           <span className="font-semibold">
-                            {user?.role || "Physio"}
+                            {user?.physioSpcl ||
+                              physioData?.physioSpcl ||
+                              "Physio"}
                           </span>
                         </div>
                       </div>

@@ -64,6 +64,7 @@ import {
   CheckCircle,
   Circle,
   User2,
+  Eye,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -90,6 +91,7 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 // ─────────────────────────────────────────────
 // FIX 1: Memoized PatientRow to stop re-renders
 // ─────────────────────────────────────────────
+
 const PatientRow = React.memo(function PatientRow({
   patient,
   user,
@@ -101,6 +103,7 @@ const PatientRow = React.memo(function PatientRow({
   onDeletePatient,
   onAssignPhysio,
   onConsentClick,
+  onViewPatientDocs,
   sessionResult,
   badge,
 }) {
@@ -199,6 +202,14 @@ const PatientRow = React.memo(function PatientRow({
           >
             <History size={14} />
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onViewPatientDocs(patient)}
+            disabled={!patient?.patientDocuments?.length}
+          >
+            <Eye size={14} />
+          </Button>
           {Permissions.isEdit && (
             <Button
               size="sm"
@@ -263,6 +274,8 @@ const PatientCard = React.memo(function PatientCard({
   onDeletePatient,
   onAssignPhysio,
   onConsentClick,
+  onViewPatientDocs,
+
   sessionResult,
   badge,
 }) {
@@ -359,6 +372,14 @@ const PatientCard = React.memo(function PatientCard({
           onClick={() => onViewHistory(patient)}
         >
           <History size={14} />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onViewPatientDocs(patient)}
+          disabled={!patient?.patientDocuments?.length}
+        >
+          <Eye size={14} />
         </Button>
         {Permissions.isEdit && (
           <Button
@@ -572,7 +593,9 @@ const PatientManagement = () => {
   const [visitOrderError, setVisitOrderError] = useState("");
   const [isAssignPhysioOpen, setIsAssignPhysioOpen] = useState(false);
   const [assigningPatient, setAssigningPatient] = useState(null);
-
+  const [isDocOpen, setIsDocOpen] = useState(false);
+  const [patientDocs, setPatientDocs] = useState([]);
+  const [selectedPatientName, setSelectedPatientName] = useState("");
   const initialAssignState = {
     _id: "",
     physioName: "",
@@ -590,7 +613,11 @@ const PatientManagement = () => {
     KmsfLPatienttoHub: "",
     kmsFromPrevious: "",
   };
-
+  const handleViewPatientDocs = (patient) => {
+    setPatientDocs(patient?.patientDocuments || []);
+    setSelectedPatientName(patient?.patientName || "");
+    setIsDocOpen(true);
+  };
   const [activeHistoryTab, setActiveHistoryTab] = useState("sessions");
   const [assignForm, setAssignForm] = useState(initialAssignState);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -617,7 +644,7 @@ const PatientManagement = () => {
     patientAddress: "",
     category: "",
     MedicalHistoryAndRiskFactor: [],
-    documents: [],
+
     consultationDate: null,
     byStandar: "",
     Relation: "",
@@ -665,6 +692,8 @@ const PatientManagement = () => {
     feesTypeAmount: "",
     ReferenceId: "",
     sourceName: "",
+    patientDocuments: [],
+    removedDocuments: [],
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -1016,45 +1045,70 @@ const PatientManagement = () => {
     [activeTab],
   );
 
-  const updatePatient = useCallback(
-    async (data) => {
-      try {
-        await apiRequest("Patient/updatePatient", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
-        toast({
-          title: "Success",
-          description: "Patient updated successfully.",
-        });
-        getAllPatient();
-        setIsFormOpen(false);
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    },
-    [activeTab],
-  );
+  const updatePatient = async (data) => {
+    const formData = new FormData();
 
-  const createPatient = useCallback(
-    async (data) => {
-      try {
-        const response = await apiRequest("Patient/createPatient", {
-          method: "POST",
-          body: JSON.stringify(data),
-        });
-        toast({
-          title: "Success",
-          description: "Patient Created successfully.",
-        });
-        getAllPatient();
-        return response;
-      } catch (error) {
-        console.error("Error:", error);
+    Object.keys(data).forEach((key) => {
+      if (key !== "patientDocuments" && key !== "removedDocuments") {
+        if (typeof data[key] === "boolean") {
+          formData.append(key, String(data[key]));
+        } else {
+          formData.append(key, data[key] ?? "");
+        }
       }
-    },
-    [activeTab],
-  );
+    });
+
+    if (data.removedDocuments?.length) {
+      formData.append(
+        "removedDocuments",
+        JSON.stringify(data.removedDocuments),
+      );
+    }
+
+    if (data.patientDocuments?.length) {
+      data.patientDocuments.forEach((file) => {
+        if (file instanceof File) {
+          formData.append("patientDocuments", file);
+        }
+      });
+    }
+
+    await apiRequest("Patient/updatePatient", {
+      method: "POST",
+      body: formData,
+    });
+    getAllPatient();
+    return;
+  };
+
+  const createPatient = async (data) => {
+    const formData = new FormData();
+
+    Object.keys(data).forEach((key) => {
+      if (key !== "patientDocuments" && key !== "removedDocuments") {
+        if (typeof data[key] === "boolean") {
+          formData.append(key, String(data[key]));
+        } else {
+          formData.append(key, data[key] ?? "");
+        }
+      }
+    });
+
+    if (data.patientDocuments?.length) {
+      data.patientDocuments.forEach((file) => {
+        if (file instanceof File) {
+          formData.append("patientDocuments", file);
+        }
+      });
+    }
+
+    await apiRequest("Patient/createPatients", {
+      method: "POST",
+      body: formData,
+    });
+    getAllPatient();
+    return;
+  };
 
   const AssignPhysio = useCallback(
     async (data) => {
@@ -1142,7 +1196,8 @@ const PatientManagement = () => {
       patientNumber: patient.patientNumber ?? null,
       patientAddress: patient.patientAddress ?? null,
       MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor ?? null,
-      documents: patient.documents ?? [],
+      patientDocuments: patient.patientDocuments || [],
+      removedDocuments: [],
       consultationDate: patient.consultationDate
         ? new Date(patient.consultationDate)
         : "",
@@ -1154,14 +1209,15 @@ const PatientManagement = () => {
       Physiotherapist: patient.Physiotherapist ?? null,
       physioId: patient?.physioId?._id ?? patient?.physioId ?? "",
       reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
-      historyOfSurgery: patient.historyOfSurgery ?? null,
+      historyOfSurgery: patient.historyOfSurgery ?? false,
+      historyOfFall: patient.historyOfFall ?? false,
+      smokingOrAlcohol: patient.smokingOrAlcohol ?? false,
+      modalities: patient.Modalities ?? false,
       historyOfSurgeryDetails: patient.historyOfSurgeryDetails ?? null,
-      historyOfFall: patient.historyOfFall ?? null,
       historyOfFallDetails: patient.historyOfFallDetails ?? null,
       otherMedCon: patient.otherMedCon ?? null,
       currMed: patient.currMed ?? null,
       typesOfLifeStyle: patient.typesOfLifeStyle ?? null,
-      smokingOrAlcohol: patient.smokingOrAlcohol ?? false,
       dietaryHabits: patient.dietaryHabits ?? null,
       Contraindications: patient.Contraindications ?? null,
       goalDescription: patient.goalDescription ?? null,
@@ -1179,7 +1235,6 @@ const PatientManagement = () => {
       RecomTherapy: patient.RecomTherapy ?? null,
       Frequency: patient.Frequency ?? null,
       Duration: patient.Duration ?? null,
-      modalities: patient.modalities ?? false,
       modalitiestype: patient.modalitiestype ?? null,
       modalityList: patient.modalityList ?? [],
       targetedArea: patient.targetedArea ?? null,
@@ -1196,19 +1251,41 @@ const PatientManagement = () => {
     };
 
     let radio = [];
-    const RiskFactor = patient.MedicalHistoryAndRiskFactor.map((val) => {
-      if (val.isExist)
-        radio.push({
-          RiskFactorID: val.RiskFactorID._id,
-          isExist: val.isExist,
-        });
-      return { [val.RiskFactorID.RiskFactorName]: val.isExist.toString() };
-    });
+
+    const RiskFactor = (patient.MedicalHistoryAndRiskFactor || [])
+      .filter((val) => val && val.RiskFactorID)
+      .map((val) => {
+        const riskId =
+          typeof val.RiskFactorID === "object"
+            ? val.RiskFactorID?._id
+            : val.RiskFactorID;
+
+        const riskName =
+          typeof val.RiskFactorID === "object"
+            ? val.RiskFactorID?.RiskFactorName
+            : null;
+
+        if (val.isExist && riskId) {
+          radio.push({
+            RiskFactorID: riskId,
+            isExist: val.isExist,
+          });
+        }
+
+        if (!riskName) return null;
+
+        return {
+          [riskName]: String(val.isExist),
+        };
+      })
+      .filter(Boolean);
     setRadio(radio);
     if (RiskFactor.length > 0) {
       RiskFactor.forEach((val) => {
-        formData[Object.keys(val)[0].toLowerCase()] =
-          val[Object.keys(val)[0]] === "true";
+        const key = Object.keys(val)[0];
+        if (key) {
+          formData[key.toLowerCase()] = val[key] === "true";
+        }
       });
     }
     setPatientForm(formData);
@@ -1292,20 +1369,37 @@ const PatientManagement = () => {
   const handleDateChange = useCallback((name, date) => {
     setPatientForm((prev) => ({ ...prev, [name]: date }));
   }, []);
+  const handleRemovePatientDocument = (doc, index) => {
+    setPatientForm((prev) => {
+      const updatedDocs = [...(prev.patientDocuments || [])];
+      updatedDocs.splice(index, 1);
 
-  const handleFileUpload = useCallback((e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPatientForm((prev) => ({
+      const updatedRemoved = [...(prev.removedDocuments || [])];
+
+      if (doc?.fileUrl) {
+        updatedRemoved.push(doc.fileUrl);
+      }
+
+      return {
         ...prev,
-        documents: [...prev.documents, file.name],
-      }));
-      toast({
-        title: "File Added",
-        description: `${file.name} has been staged for upload.`,
-      });
-    }
-  }, []);
+        patientDocuments: updatedDocs,
+        removedDocuments: updatedRemoved,
+      };
+    });
+  };
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+
+    setPatientForm((prev) => ({
+      ...prev,
+      patientDocuments: [...(prev.patientDocuments || []), ...files],
+    }));
+
+    toast({
+      title: "File Added",
+      description: `${files.length} file(s) added.`,
+    });
+  };
 
   const FeesType =
     patientForm?.FeesTypeId?.feesTypeName || patientForm?.feesTypeName || "";
@@ -2784,6 +2878,7 @@ const PatientManagement = () => {
                             onDeletePatient={handleDeletePatient}
                             onAssignPhysio={openAssignPhysioDialog}
                             onConsentClick={handleConsentClick}
+                            onViewPatientDocs={handleViewPatientDocs}
                             sessionResult={
                               computed.sessionResult || {
                                 session: 26,
@@ -2816,6 +2911,7 @@ const PatientManagement = () => {
                         onDeletePatient={handleDeletePatient}
                         onAssignPhysio={openAssignPhysioDialog}
                         onConsentClick={handleConsentClick}
+                        onViewPatientDocs={handleViewPatientDocs}
                         sessionResult={
                           computed.sessionResult || {
                             session: 26,
@@ -3212,6 +3308,51 @@ const PatientManagement = () => {
           </motion.div>
         </>
       )}
+      <Dialog open={isDocOpen} onOpenChange={setIsDocOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedPatientName} - Documents</DialogTitle>
+          </DialogHeader>
+
+          {patientDocs.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {patientDocs.map((doc, index) => {
+                const fileUrl = `http://localhost:8002${doc.fileUrl}`;
+                const isImage = doc?.fileType?.startsWith("image/");
+
+                return (
+                  <div key={index} className="border rounded-lg p-2 space-y-2">
+                    {isImage ? (
+                      <img
+                        src={fileUrl}
+                        alt={doc.fileName}
+                        className="w-full h-40 object-cover rounded cursor-pointer"
+                        onClick={() => window.open(fileUrl, "_blank")}
+                      />
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => window.open(fileUrl, "_blank")}
+                      >
+                        View File
+                      </Button>
+                    )}
+
+                    <p className="text-xs text-center break-all">
+                      {doc.fileName}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 text-center">
+              No documents found
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Patient Details Dialog */}
       <PatientDetailsDialog
@@ -4262,8 +4403,8 @@ const PatientManagement = () => {
                 <Input type="file" multiple onChange={handleFileUpload} />
 
                 <div className="mt-3 space-y-2">
-                  {patientForm.consultationDocuments?.length > 0 ? (
-                    patientForm.consultationDocuments.map((doc, index) => {
+                  {patientForm.patientDocuments?.length > 0 ? (
+                    patientForm.patientDocuments.map((doc, index) => {
                       const isNewFile = doc instanceof File;
                       const fileUrl = isNewFile
                         ? URL.createObjectURL(doc)
@@ -4307,7 +4448,7 @@ const PatientManagement = () => {
                             variant="destructive"
                             size="sm"
                             onClick={() =>
-                              handleRemoveConsultDocument(doc, index)
+                              handleRemovePatientDocument(doc, index)
                             }
                           >
                             Remove

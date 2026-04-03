@@ -409,7 +409,6 @@ const Payroll = () => {
   useEffect(() => {
     getPermissionsByPath(window.location.pathname).then((res) => {
       if (res) {
-        ;
         setPermissions(res);
       } else {
         navigate("/dashboard");

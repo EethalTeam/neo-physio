@@ -972,7 +972,14 @@ const LeadManagement = () => {
                         <CheckCircle size={14} />
                       </Button>
                     )}
-
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleViewDocuments(lead)}
+                    disabled={!lead?.leadDocuments?.length}
+                  >
+                    <Eye size={14} />
+                  </Button>
                   {lead?.LeadStatusId?.leadStatusName !== "Qualified" &&
                     Permissions.isEdit && (
                       <Button size="icon" variant="outline" className="h-8 w-8">

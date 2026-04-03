@@ -681,19 +681,19 @@ const Income = () => {
       doc.setFillColor(255, 255, 255);
       doc.rect(8, 8, 194, 281, "F");
 
-      doc.addImage(neoLogo, "PNG", 18, 15, 25, 25);
+      doc.addImage(neoLogo, "PNG", 18, 12, 35, 35);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
+      doc.setFontSize(20);
       doc.setTextColor(...labelColor);
-      doc.text("NEO PHYSIO", 50, 25);
+      doc.text("NEO PHYSIO", 60, 25);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text("We Are Changing Lives", 50, 32);
+      doc.setFontSize(10);
+      doc.text("We Are Changing Lives", 60, 33);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
+      doc.setFontSize(9);
       doc.setTextColor(...textColor);
 
       let rightY = 20;
@@ -715,7 +715,7 @@ const Income = () => {
       doc.line(18, 52, 190, 52);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
+      doc.setFontSize(14);
       doc.setTextColor(...labelColor);
       doc.text("Treatment Estimate", pageWidth / 2, 61, { align: "center" });
 
@@ -730,7 +730,7 @@ const Income = () => {
         rightValue = "",
       ) => {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
+        doc.setFontSize(10);
         doc.setTextColor(...labelColor);
         doc.text(leftLabel, 18, y);
 
@@ -763,7 +763,7 @@ const Income = () => {
       );
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.setTextColor(...labelColor);
       doc.text("No. of Sessions:", 18, 101);
 
@@ -790,7 +790,7 @@ const Income = () => {
         ],
         theme: "grid",
         styles: {
-          fontSize: 8,
+          fontSize: 10,
           cellPadding: 4,
           textColor,
           lineColor: tealLine,
@@ -801,6 +801,7 @@ const Income = () => {
           fillColor: [30, 170, 190],
           textColor: [255, 255, 255],
           fontStyle: "bold",
+          fontSize: 10,
           halign: "center",
         },
         columnStyles: {
@@ -817,7 +818,7 @@ const Income = () => {
       doc.line(18, yAfterTable, 190, yAfterTable);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
+      doc.setFontSize(11);
       doc.setTextColor(80, 80, 80);
       doc.text("Subtotal:", 22, yAfterTable + 8);
 
@@ -832,7 +833,7 @@ const Income = () => {
       const paymentY = companyY + 14;
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.setTextColor(...labelColor);
       doc.text("Online Payment:", 18, paymentY);
 
@@ -916,7 +917,7 @@ const Income = () => {
         doc.line(18, thankY - 4, 190, thankY - 4);
 
         doc.setFont("helvetica", "bolditalic");
-        doc.setFontSize(8.5);
+        doc.setFontSize(11);
         doc.setTextColor(...labelColor);
         doc.text("Thank you for your visit!", pageWidth / 2, thankY, {
           align: "center",
