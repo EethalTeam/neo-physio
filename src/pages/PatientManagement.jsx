@@ -65,6 +65,7 @@ import {
   Circle,
   User2,
   Eye,
+  RefreshCcw,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,6 +92,15 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 // ─────────────────────────────────────────────
 // FIX 1: Memoized PatientRow to stop re-renders
 // ─────────────────────────────────────────────
+const getGenderName = (patient) => {
+  if (
+    typeof patient?.patientGenderId === "object" &&
+    patient?.patientGenderId
+  ) {
+    return patient?.patientGenderId?.genderName || "N/A";
+  }
+  return patient?.genderName || "N/A";
+};
 
 const PatientRow = React.memo(function PatientRow({
   patient,
@@ -105,6 +115,7 @@ const PatientRow = React.memo(function PatientRow({
   onConsentClick,
   onViewPatientDocs,
   sessionResult,
+  onRecoveryAction,
   badge,
 }) {
   return (
@@ -130,7 +141,7 @@ const PatientRow = React.memo(function PatientRow({
       {user?.role !== "HOD" && (
         <>
           <td className="px-3 py-2">
-            {patient.patientAge} / {patient.patientGenderId.genderName}
+            {patient.patientAge || "N/A"} / {getGenderName(patient)}
           </td>
           <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
             {patient.patientNumber}
@@ -141,6 +152,7 @@ const PatientRow = React.memo(function PatientRow({
       <td className="px-3 py-2 hidden md:table-cell">
         {patient.totalSessionCount || 0}
       </td>
+
       <td className="px-3 py-2">
         Session {sessionResult.session}
         <br />
@@ -148,8 +160,9 @@ const PatientRow = React.memo(function PatientRow({
           {sessionResult.date} ({sessionResult.sessionsNeeded} sessions left)
         </span>
       </td>
+
       <td className="px-3 py-2 hidden md:table-cell">
-        {patient.patientCondition}
+        {patient.patientCondition || "N/A"}
       </td>
 
       {user?.role !== "HOD" && (
@@ -165,26 +178,56 @@ const PatientRow = React.memo(function PatientRow({
           ? format(new Date(patient.reviewDate), "PP")
           : "N/A"}
       </td>
+
       <td className="px-3 py-2 whitespace-nowrap">
-        {patient.physioId?.physioName}
+        {patient.physioId?.physioName || "N/A"}
       </td>
 
       <td className="px-3 py-2 hidden sm:table-cell">
         <div className="flex flex-row flex-wrap gap-2 justify-center">
+          {/* RECOVERY BUTTON */}
           <Button
             size="sm"
-            variant={patient.isConsentReceived ? "secondary" : "default"}
+            variant={patient?.isRecovered ? "default" : "outline"}
+            className={
+              patient?.isRecovered
+                ? "bg-orange-500 hover:bg-orange-600 text-white"
+                : "border-orange-300 text-orange-600 hover:bg-orange-50"
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              onRecoveryAction(patient);
+            }}
+            title={
+              patient?.isRecovered
+                ? "Not Recovered / Restart Patient"
+                : "Mark Recovered"
+            }
+          >
+            <RefreshCcw size={14} />
+          </Button>
+
+          {/* CONSENT BUTTON */}
+          <Button
+            size="sm"
+            variant={patient.isConsentReceived ? "secondary" : "outline"}
+            className={
+              patient.isConsentReceived
+                ? "bg-green-100 text-green-700 border border-green-200"
+                : "border-gray-300 text-gray-600"
+            }
             onClick={() => onConsentClick(patient)}
+            title={
+              patient.isConsentReceived ? "Consent Received" : "Consent Pending"
+            }
           >
             {patient.isConsentReceived ? (
-              <CheckCircle
-                size={14}
-                className="text-green-600 pointer-events-none"
-              />
+              <CheckCircle size={14} className="pointer-events-none" />
             ) : (
               <Circle size={14} className="pointer-events-none" />
             )}
           </Button>
+
           <Button
             size="sm"
             variant="outline"
@@ -192,9 +235,11 @@ const PatientRow = React.memo(function PatientRow({
           >
             <FileText size={14} />
           </Button>
+
           <Button size="sm" onClick={() => onScheduleReview(patient)}>
             <CalendarIcon size={14} />
           </Button>
+
           <Button
             size="sm"
             variant="outline"
@@ -202,6 +247,7 @@ const PatientRow = React.memo(function PatientRow({
           >
             <History size={14} />
           </Button>
+
           <Button
             size="sm"
             variant="outline"
@@ -210,6 +256,7 @@ const PatientRow = React.memo(function PatientRow({
           >
             <Eye size={14} />
           </Button>
+
           {Permissions.isEdit && (
             <Button
               size="sm"
@@ -219,6 +266,7 @@ const PatientRow = React.memo(function PatientRow({
               <Edit size={14} />
             </Button>
           )}
+
           <Button size="sm" onClick={() => onAssignPhysio(patient)}>
             {patient.physioId ? (
               <UserCheck size={14} />
@@ -226,6 +274,7 @@ const PatientRow = React.memo(function PatientRow({
               <UserPlus size={14} />
             )}
           </Button>
+
           {Permissions.isDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -275,7 +324,7 @@ const PatientCard = React.memo(function PatientCard({
   onAssignPhysio,
   onConsentClick,
   onViewPatientDocs,
-
+  onRecoveryAction,
   sessionResult,
   badge,
 }) {
@@ -291,6 +340,7 @@ const PatientCard = React.memo(function PatientCard({
         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
           <User className="text-blue-600" size={20} />
         </div>
+
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-gray-800 break-words">
@@ -304,24 +354,26 @@ const PatientCard = React.memo(function PatientCard({
               </span>
             )}
           </div>
+
           <p className="text-sm text-gray-600 break-all">
             {patient.patientCode}
           </p>
+
           <p className="text-sm text-gray-600 break-words">
-            {patient.patientAge} years, {patient.patientGenderId.genderName}
+            {patient.patientAge || "N/A"} years, {getGenderName(patient)}
           </p>
         </div>
       </div>
 
       <div className="space-y-1 mb-4 flex-grow text-sm">
         <p>
-          <strong>Contact:</strong> {patient.patientNumber}
+          <strong>Contact:</strong> {patient.patientNumber || "N/A"}
         </p>
         <p>
-          <strong>Condition:</strong> {patient.patientCondition}
+          <strong>Condition:</strong> {patient.patientCondition || "N/A"}
         </p>
         <p>
-          <strong>No of Sessions:</strong> {patient.sessionCount}
+          <strong>No of Sessions:</strong> {patient.sessionCount || 0}
         </p>
         <p>
           <strong>Next Session:</strong>{" "}
@@ -335,27 +387,54 @@ const PatientCard = React.memo(function PatientCard({
             ? format(new Date(patient.reviewDate), "PP")
             : "N/A"}
         </p>
-        <p>Physio: {patient.physioId?.physioName}</p>
+        <p>Physio: {patient.physioId?.physioName || "N/A"}</p>
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-2">
+        {/* RECOVERY BUTTON */}
         <Button
           size="sm"
-          variant={patient.isConsentReceived ? "secondary" : "default"}
+          variant={patient?.isRecovered ? "default" : "outline"}
+          className={
+            patient?.isRecovered
+              ? "bg-orange-500 hover:bg-orange-600 text-white"
+              : "border-orange-300 text-orange-600 hover:bg-orange-50"
+          }
+          onClick={() => onRecoveryAction(patient)}
+          title={
+            patient?.isRecovered
+              ? "Not Recovered / Restart Patient"
+              : "Mark Recovered"
+          }
+        >
+          <RefreshCcw size={14} />
+        </Button>
+
+        {/* CONSENT BUTTON */}
+        <Button
+          size="sm"
+          variant={patient.isConsentReceived ? "secondary" : "outline"}
+          className={
+            patient.isConsentReceived
+              ? "bg-green-100 text-green-700 border border-green-200"
+              : "border-gray-300 text-gray-600"
+          }
           onClick={() => onConsentClick(patient)}
+          title={
+            patient.isConsentReceived ? "Consent Received" : "Consent Pending"
+          }
         >
           {patient.isConsentReceived ? (
-            <CheckCircle
-              size={14}
-              className="text-green-600 pointer-events-none"
-            />
+            <CheckCircle size={14} className="pointer-events-none" />
           ) : (
-            <Circle size={14} />
+            <Circle size={14} className="pointer-events-none" />
           )}
         </Button>
+
         <Button size="sm" onClick={() => onAssignPhysio(patient)}>
           {patient.physioId ? <UserCheck size={14} /> : <UserPlus size={14} />}
         </Button>
+
         <Button
           size="sm"
           variant="outline"
@@ -363,9 +442,11 @@ const PatientCard = React.memo(function PatientCard({
         >
           <FileText size={14} />
         </Button>
+
         <Button size="sm" onClick={() => onScheduleReview(patient)}>
           <CalendarIcon size={14} />
         </Button>
+
         <Button
           size="sm"
           variant="outline"
@@ -373,6 +454,7 @@ const PatientCard = React.memo(function PatientCard({
         >
           <History size={14} />
         </Button>
+
         <Button
           size="sm"
           variant="outline"
@@ -381,6 +463,7 @@ const PatientCard = React.memo(function PatientCard({
         >
           <Eye size={14} />
         </Button>
+
         {Permissions.isEdit && (
           <Button
             size="sm"
@@ -390,6 +473,7 @@ const PatientCard = React.memo(function PatientCard({
             <Edit size={14} />
           </Button>
         )}
+
         {Permissions.isDelete && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -432,6 +516,7 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
   onDeletePatient,
   onAssignPhysio,
   onConsentClick,
+  onRecoveryAction,
 }) {
   return (
     <tr className="border-t hover:bg-gray-50 align-top">
@@ -446,7 +531,7 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
       {user?.role !== "HOD" && (
         <>
           <td className="px-3 py-2">
-            {patient.patientAge} / {patient.patientGenderId.genderName}
+            {patient.patientAge} / {getGenderName(patient)}
           </td>
           <td className="px-3 py-2 hidden md:table-cell truncate max-w-[140px]">
             {patient.patientNumber}
@@ -481,20 +566,38 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
       </td>
       <td className="px-3 py-2 hidden sm:table-cell">
         <div className="flex flex-row flex-wrap gap-2 justify-center">
+          {/* RECOVERY BUTTON */}
           <Button
             size="sm"
-            variant={patient.isConsentReceived ? "secondary" : "default"}
+            variant="default"
+            className="bg-orange-500 hover:bg-orange-600 text-white"
+            onClick={() => onRecoveryAction(patient)}
+            title="Not Recovered / Restart Patient"
+          >
+            <RefreshCcw size={14} />
+          </Button>
+
+          {/* CONSENT BUTTON */}
+          <Button
+            size="sm"
+            variant={patient.isConsentReceived ? "secondary" : "outline"}
+            className={
+              patient.isConsentReceived
+                ? "bg-green-100 text-green-700 border border-green-200"
+                : "border-gray-300 text-gray-600"
+            }
             onClick={() => onConsentClick(patient)}
+            title={
+              patient.isConsentReceived ? "Consent Received" : "Consent Pending"
+            }
           >
             {patient.isConsentReceived ? (
-              <CheckCircle
-                size={14}
-                className="text-green-600 pointer-events-none"
-              />
+              <CheckCircle size={14} className="pointer-events-none" />
             ) : (
               <Circle size={14} className="pointer-events-none" />
             )}
           </Button>
+
           <Button
             size="sm"
             variant="outline"
@@ -502,9 +605,11 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
           >
             <FileText size={14} />
           </Button>
+
           <Button size="sm" onClick={() => onScheduleReview(patient)}>
             <CalendarIcon size={14} />
           </Button>
+
           <Button
             size="sm"
             variant="outline"
@@ -512,6 +617,7 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
           >
             <History size={14} />
           </Button>
+
           {Permissions.isEdit && (
             <Button
               size="sm"
@@ -521,6 +627,7 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
               <Edit size={14} />
             </Button>
           )}
+
           <Button size="sm" onClick={() => onAssignPhysio(patient)}>
             {patient.physioId ? (
               <UserCheck size={14} />
@@ -528,6 +635,7 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
               <UserPlus size={14} />
             )}
           </Button>
+
           {Permissions.isDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -596,6 +704,9 @@ const PatientManagement = () => {
   const [isDocOpen, setIsDocOpen] = useState(false);
   const [patientDocs, setPatientDocs] = useState([]);
   const [selectedPatientName, setSelectedPatientName] = useState("");
+  const [recoveryStatus, setRecoveryStatus] = useState("notRecovered");
+  const [restartType, setRestartType] = useState("");
+  const [isSavingPatient, setIsSavingPatient] = useState(false);
   const initialAssignState = {
     _id: "",
     physioName: "",
@@ -694,6 +805,12 @@ const PatientManagement = () => {
     sourceName: "",
     patientDocuments: [],
     removedDocuments: [],
+
+    isRecovered: false,
+    recoveredType: "",
+    stopReason: "",
+    recoveredAt: "",
+    isConsentReceived: false,
   };
   const [patientForm, setPatientForm] = useState(initialFormState);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -1044,7 +1161,40 @@ const PatientManagement = () => {
     },
     [activeTab],
   );
+  const markPatientRecovered = async ({
+    patientId,
+    recoveredType,
+    stopReason,
+  }) => {
+    return await apiRequest("Patient/markPatientRecovered", {
+      method: "POST",
+      body: JSON.stringify({
+        patientId,
+        isRecovered: true,
+        recoveredType,
+        stopReason: recoveredType === "Other" ? stopReason : null,
+      }),
+    });
+  };
 
+  const startFreshCycleForPatient = async (patient) => {
+    return await apiRequest("Patient/startFreshCycle", {
+      method: "POST",
+      body: JSON.stringify({
+        patientId: patient._id,
+        physioId: patient?.physioId?._id || patient?.physioId || "",
+      }),
+    });
+  };
+
+  const continueOldCycleForPatient = async (patient) => {
+    return await apiRequest("Patient/continueOldCycle", {
+      method: "POST",
+      body: JSON.stringify({
+        patientId: patient._id,
+      }),
+    });
+  };
   const updatePatient = async (data) => {
     const formData = new FormData();
 
@@ -1052,8 +1202,10 @@ const PatientManagement = () => {
       if (key !== "patientDocuments" && key !== "removedDocuments") {
         if (typeof data[key] === "boolean") {
           formData.append(key, String(data[key]));
+        } else if (data[key] !== undefined && data[key] !== null) {
+          formData.append(key, data[key]);
         } else {
-          formData.append(key, data[key] ?? "");
+          formData.append(key, "");
         }
       }
     });
@@ -1073,12 +1225,10 @@ const PatientManagement = () => {
       });
     }
 
-    await apiRequest("Patient/updatePatient", {
+    return await apiRequest("Patient/updatePatient", {
       method: "POST",
       body: formData,
     });
-    getAllPatient();
-    return;
   };
 
   const createPatient = async (data) => {
@@ -1143,7 +1293,113 @@ const PatientManagement = () => {
     setViewingPatient(patient);
     setIsDetailsOpen(true);
   }, []);
+  const handleSavePatient = async () => {
+    try {
+      setIsSavingPatient(true);
 
+      if (editingPatient?._id) {
+        const wasRecovered = !!editingPatient.isRecovered;
+        const nowRecovered = recoveryStatus === "recovered";
+
+        // CASE 1: active -> recovered
+        if (!wasRecovered && nowRecovered) {
+          if (!recoveredType) {
+            toast({
+              title: "Error",
+              description: "Please select recovered type.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          if (recoveredType === "Other" && !otherReason.trim()) {
+            toast({
+              title: "Error",
+              description: "Please enter stop reason.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // first save normal edit data
+          await updatePatient({
+            ...patientForm,
+            isRecovered: false,
+            recoveredType: "",
+            stopReason: "",
+          });
+
+          // then mark recovered using separate API
+          await markPatientRecovered({
+            patientId: editingPatient._id,
+            recoveredType,
+            stopReason: otherReason.trim(),
+          });
+
+          toast({
+            title: "Success",
+            description: "Patient marked as recovered successfully.",
+          });
+        }
+
+        // CASE 2: recovered -> not recovered
+        else if (wasRecovered && !nowRecovered) {
+          setSelectedPatientForRecovery({
+            ...editingPatient,
+            physioId: patientForm.physioId || editingPatient.physioId,
+          });
+          setOpenRecoveryChoice(true);
+          return;
+        }
+
+        // CASE 3: recovered -> recovered normal edit
+        // CASE 4: active -> active normal edit
+        else {
+          await updatePatient({
+            ...patientForm,
+            isRecovered: wasRecovered,
+            recoveredType: wasRecovered
+              ? recoveredType || patientForm.recoveredType
+              : "",
+            stopReason:
+              wasRecovered &&
+              (recoveredType || patientForm.recoveredType) === "Other"
+                ? otherReason || patientForm.stopReason
+                : "",
+          });
+
+          toast({
+            title: "Success",
+            description: "Patient updated successfully.",
+          });
+        }
+      } else {
+        await createPatient(patientForm);
+        toast({
+          title: "Success",
+          description: "Patient created successfully.",
+        });
+      }
+
+      setIsFormOpen(false);
+      setEditingPatient(null);
+      setPatientForm(initialFormState);
+      setRecoveredType("");
+      setOtherReason("");
+      setRecoveryStatus("notRecovered");
+      setRestartType("");
+      getAllPatient();
+    } catch (error) {
+      console.error("Save patient error:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to save patient.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPatient(false);
+    }
+  };
   const handleScheduleReview = useCallback((patient) => {
     setReviewingPatient(patient);
     setIsReviewOpen(true);
@@ -1186,111 +1442,31 @@ const PatientManagement = () => {
   }, []);
 
   const handleEditPatient = useCallback((patient) => {
-    setEditingPatient(true);
-    const formData = {
-      _id: patient._id ?? null,
-      patientCode: patient.patientCode ?? null,
-      patientName: patient.patientName ?? null,
-      patientAge: patient.patientAge ?? null,
-      patientGenderId: patient.patientGenderId._id ?? null,
-      patientNumber: patient.patientNumber ?? null,
-      patientAddress: patient.patientAddress ?? null,
-      MedicalHistoryAndRiskFactor: patient.MedicalHistoryAndRiskFactor ?? null,
+    setEditingPatient(patient);
+
+    setPatientForm({
+      ...initialFormState,
+      ...patient,
+      _id: patient._id,
+      patientGenderId:
+        patient.patientGenderId?._id || patient.patientGenderId || "",
+      FeesTypeId: patient.FeesTypeId?._id || patient.FeesTypeId || "",
+      ReferenceId: patient.ReferenceId?._id || patient.ReferenceId || "",
+      physioId: patient.physioId?._id || patient.physioId || "",
       patientDocuments: patient.patientDocuments || [],
       removedDocuments: [],
-      consultationDate: patient.consultationDate
-        ? new Date(patient.consultationDate)
-        : "",
-      byStandar: patient.byStandar ?? null,
-      Relation: patient.Relation ?? null,
-      patientAltNum: patient.patientAltNum ?? null,
-      patientPinCode: patient.patientPinCode ?? null,
-      patientCondition: patient.patientCondition ?? null,
-      Physiotherapist: patient.Physiotherapist ?? null,
-      physioId: patient?.physioId?._id ?? patient?.physioId ?? "",
-      reviewDate: patient.reviewDate ? new Date(patient.reviewDate) : "",
-      historyOfSurgery: patient.historyOfSurgery ?? false,
-      historyOfFall: patient.historyOfFall ?? false,
-      smokingOrAlcohol: patient.smokingOrAlcohol ?? false,
-      modalities: patient.Modalities ?? false,
-      historyOfSurgeryDetails: patient.historyOfSurgeryDetails ?? null,
-      historyOfFallDetails: patient.historyOfFallDetails ?? null,
-      otherMedCon: patient.otherMedCon ?? null,
-      currMed: patient.currMed ?? null,
-      typesOfLifeStyle: patient.typesOfLifeStyle ?? null,
-      dietaryHabits: patient.dietaryHabits ?? null,
-      Contraindications: patient.Contraindications ?? null,
-      goalDescription: patient.goalDescription ?? null,
-      painLevel: patient.painLevel ?? null,
-      rangeOfMotion: patient.rangeOfMotion ?? null,
-      muscleStrength: patient.muscleStrength ?? null,
-      postureOrGaitAnalysis: patient.postureOrGaitAnalysis ?? null,
-      functionalLimitations: patient.functionalLimitations ?? null,
-      static: patient.static ?? null,
-      dynamic: patient.dynamic ?? null,
-      coordination: patient.coordination ?? null,
-      ADLAbility: patient.ADLAbility ?? null,
-      shortTermGoals: patient.shortTermGoals ?? null,
-      longTermGoals: patient.longTermGoals ?? null,
-      RecomTherapy: patient.RecomTherapy ?? null,
-      Frequency: patient.Frequency ?? null,
-      Duration: patient.Duration ?? null,
-      modalitiestype: patient.modalitiestype ?? null,
-      modalityList: patient.modalityList ?? [],
-      targetedArea: patient.targetedArea ?? null,
-      noOfDays: patient.noOfDays ?? null,
-      hodNotes: patient.hodNotes ?? null,
-      goalLog: patient.goalLog ?? [],
-      travelDetails: patient.travelDetails ?? null,
-      genderName: patient.patientGenderId?.genderName ?? null,
-      FeesTypeId: patient.FeesTypeId?._id ?? null,
-      feesTypeName: patient.FeesTypeId?.feesTypeName ?? null,
-      feeAmount: patient.feeAmount ?? null,
-      ReferenceId: patient.ReferenceId?._id ?? null,
-      sourceName: patient.ReferenceId?.sourceName ?? null,
-    };
+      isRecovered: !!patient.isRecovered,
+      recoveredType: patient.recoveredType || "",
+      stopReason: patient.stopReason || "",
+      recoveredAt: patient.recoveredAt || "",
+      isConsentReceived: !!patient.isConsentReceived,
+    });
 
-    let radio = [];
-
-    const RiskFactor = (patient.MedicalHistoryAndRiskFactor || [])
-      .filter((val) => val && val.RiskFactorID)
-      .map((val) => {
-        const riskId =
-          typeof val.RiskFactorID === "object"
-            ? val.RiskFactorID?._id
-            : val.RiskFactorID;
-
-        const riskName =
-          typeof val.RiskFactorID === "object"
-            ? val.RiskFactorID?.RiskFactorName
-            : null;
-
-        if (val.isExist && riskId) {
-          radio.push({
-            RiskFactorID: riskId,
-            isExist: val.isExist,
-          });
-        }
-
-        if (!riskName) return null;
-
-        return {
-          [riskName]: String(val.isExist),
-        };
-      })
-      .filter(Boolean);
-    setRadio(radio);
-    if (RiskFactor.length > 0) {
-      RiskFactor.forEach((val) => {
-        const key = Object.keys(val)[0];
-        if (key) {
-          formData[key.toLowerCase()] = val[key] === "true";
-        }
-      });
-    }
-    setPatientForm(formData);
+    setRecoveryStatus(patient?.isRecovered ? "recovered" : "notRecovered");
+    setRecoveredType(patient?.recoveredType || "");
+    setOtherReason(patient?.stopReason || "");
+    setRestartType("");
     setIsFormOpen(true);
-    setSelectedPatient(patient);
   }, []);
 
   const handleNewPatient = useCallback(() => {
@@ -1566,81 +1742,87 @@ const PatientManagement = () => {
     }
   }, []);
 
-  const handleConfirmRecoveryStatus = useCallback(async () => {
-    if (!pendingPatient?._id) return;
+  const handleConfirmMarkRecovered = async () => {
     try {
-      if (pendingAction === "recover") {
-        const res = await apiRequest("Patient/updatePatient", {
-          method: "POST",
-          body: JSON.stringify({
-            _id: pendingPatient._id,
-            isRecovered: true,
-            recoveredType: recoveredType || null,
-            stopReason:
-              recoveredType === "other" ? otherReason.trim() || null : null,
-          }),
+      if (!pendingPatient?._id) return;
+
+      if (!recoveredType) {
+        toast({
+          title: "Error",
+          description: "Please select recovered type",
+          variant: "destructive",
         });
-        if (res) {
-          toast({
-            title: "Recovered",
-            description: `${pendingPatient.patientName} marked as recovered`,
-          });
-          setOpenAlert(false);
-          getAllPatient();
-        }
+        return;
       }
-      if (pendingAction === "notRecover") {
-        const res = await apiRequest("Patient/updatePatient", {
-          method: "POST",
-          body: JSON.stringify({ _id: pendingPatient._id, isRecovered: false }),
+
+      if (recoveredType === "Other" && !otherReason.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter reason",
+          variant: "destructive",
         });
-        if (res) {
-          toast({
-            title: "Not Recovered",
-            description: `${pendingPatient.patientName} marked as not recovered`,
-          });
-          setOpenAlert(false);
-          setSelectedPatientForRecovery(pendingPatient);
-          setOpenRecoveryChoice(true);
-          getAllPatient();
-        }
+        return;
       }
+
+      await markPatientRecovered({
+        patientId: pendingPatient._id,
+        recoveredType,
+        stopReason: otherReason.trim(),
+      });
+
+      toast({
+        title: "Success",
+        description: "Patient marked as recovered successfully",
+      });
+
+      setOpendialog(false);
       setPendingPatient(null);
-      setPendingAction("");
-    } catch (err) {
-      console.error(err);
+      setRecoveredType("");
+      setOtherReason("");
+      getAllPatient();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to mark patient recovered",
+        variant: "destructive",
+      });
     }
-  }, [pendingPatient, pendingAction, recoveredType, otherReason]);
+  };
+  const [openedDialog, setOpenedDialog] = useState(false);
+  const handleRecoveryActionClick = useCallback((patient) => {
+    if (patient?.isRecovered) {
+      setSelectedPatientForRecovery(patient);
+      setOpenRecoveryChoice(true);
+    } else {
+      setPendingPatient(patient);
+      setRecoveredType("");
+      setOtherReason("");
+      setOpenedDialog(true);
+    }
+  }, []);
 
   const handleRecoveryOption = useCallback(
     async (type) => {
-      if (!selectedPatientForRecovery?._id) return;
       try {
+        if (!selectedPatientForRecovery?._id) return;
+
         if (type === "fresh") {
-          await apiRequest("Patient/startFreshCycle", {
-            method: "POST",
-            body: JSON.stringify({
-              patientId: selectedPatientForRecovery._id,
-              physioId:
-                selectedPatientForRecovery?.physioId?._id ||
-                selectedPatientForRecovery?.physioId,
-            }),
-          });
+          await startFreshCycleForPatient(selectedPatientForRecovery);
           toast({
-            title: "Fresh Cycle Started",
-            description: `${selectedPatientForRecovery.patientName} started with a new cycle.`,
+            title: "Success",
+            description: "Fresh cycle started successfully",
           });
         }
+
         if (type === "continue") {
-          await apiRequest("Patient/continueOldCycle", {
-            method: "POST",
-            body: JSON.stringify({ patientId: selectedPatientForRecovery._id }),
-          });
+          await continueOldCycleForPatient(selectedPatientForRecovery);
           toast({
-            title: "Old Cycle Continued",
-            description: `${selectedPatientForRecovery.patientName} continued the old cycle.`,
+            title: "Success",
+            description: "Old cycle continued successfully",
           });
         }
+
         setOpenRecoveryChoice(false);
         setSelectedPatientForRecovery(null);
         getAllPatient();
@@ -1648,7 +1830,7 @@ const PatientManagement = () => {
         console.error(error);
         toast({
           title: "Error",
-          description: "Failed to update recovery option.",
+          description: error?.message || "Failed to restart patient",
           variant: "destructive",
         });
       }
@@ -2543,7 +2725,7 @@ const PatientManagement = () => {
     const tableRows = recoveredPatients.map((p) => [
       p.patientCode || "-",
       p.patientName || "-",
-      `${p.patientAge || "-"} / ${p.patientGenderId?.genderName || "-"}`,
+      `${p.patientAge || "-"} / ${getGenderName(p)}`,
       p.patientNumber || "-",
       p.patientCondition || "-",
       p.recoveredAt ? format(new Date(p.recoveredAt), "PP") : "N/A",
@@ -2875,18 +3057,16 @@ const PatientManagement = () => {
                             onScheduleReview={handleScheduleReview}
                             onViewHistory={handleViewHistory}
                             onEditPatient={handleEditPatient}
-                            onDeletePatient={handleDeletePatient}
+                            onDeletePatient={deletePatient}
                             onAssignPhysio={openAssignPhysioDialog}
                             onConsentClick={handleConsentClick}
                             onViewPatientDocs={handleViewPatientDocs}
+                            onRecoveryAction={handleRecoveryActionClick}
                             sessionResult={
-                              computed.sessionResult || {
-                                session: 26,
-                                date: "-",
-                                sessionsNeeded: 0,
-                              }
+                              patientComputedData.get(patient._id)
+                                ?.sessionResult
                             }
-                            badge={computed.badge || null}
+                            badge={patientComputedData.get(patient._id)?.badge}
                           />
                         );
                       })}
@@ -2908,18 +3088,15 @@ const PatientManagement = () => {
                         onScheduleReview={handleScheduleReview}
                         onViewHistory={handleViewHistory}
                         onEditPatient={handleEditPatient}
-                        onDeletePatient={handleDeletePatient}
+                        onDeletePatient={deletePatient}
                         onAssignPhysio={openAssignPhysioDialog}
                         onConsentClick={handleConsentClick}
                         onViewPatientDocs={handleViewPatientDocs}
+                        onRecoveryAction={handleRecoveryActionClick}
                         sessionResult={
-                          computed.sessionResult || {
-                            session: 26,
-                            date: "-",
-                            sessionsNeeded: 0,
-                          }
+                          patientComputedData.get(patient._id)?.sessionResult
                         }
-                        badge={computed.badge || null}
+                        badge={patientComputedData.get(patient._id)?.badge}
                       />
                     );
                   })}
@@ -3135,9 +3312,10 @@ const PatientManagement = () => {
                           onScheduleReview={handleScheduleReview}
                           onViewHistory={handleViewHistory}
                           onEditPatient={handleEditPatient}
-                          onDeletePatient={handleDeletePatient}
+                          onDeletePatient={deletePatient}
                           onAssignPhysio={openAssignPhysioDialog}
                           onConsentClick={handleConsentClick}
+                          onRecoveryAction={handleRecoveryActionClick}
                         />
                       ))}
                     </tbody>
@@ -3166,8 +3344,7 @@ const PatientManagement = () => {
                             {patient.patientCode}
                           </p>
                           <p className="text-sm text-gray-600 break-words">
-                            {patient.patientAge} years,{" "}
-                            {patient.patientGenderId.genderName}
+                            {patient.patientAge} years, {getGenderName(patient)}
                           </p>
                         </div>
                       </div>
@@ -3630,7 +3807,29 @@ const PatientManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={openRecoveryChoice} onOpenChange={setOpenRecoveryChoice}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Restart Patient</DialogTitle>
+            <DialogDescription>
+              {selectedPatientForRecovery?.patientName} is already recovered.
+              Choose one option.
+            </DialogDescription>
+          </DialogHeader>
 
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => handleRecoveryOption("fresh")}>
+              Fresh Start
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleRecoveryOption("continue")}
+            >
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Patient Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="w-[95vw] max-w-4xl max-h-[95vh] flex flex-col p-4 sm:p-6">
@@ -3938,19 +4137,6 @@ const PatientManagement = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      {selectedPatient && (
-                        <div className="space-y-2">
-                          <Label>Is Recovered</Label>
-                          <Button
-                            type="button"
-                            onClick={() => handleToggleClick(selectedPatient)}
-                          >
-                            {selectedPatient.isRecovered
-                              ? "Mark Not Recovered"
-                              : "Mark Recovered"}
-                          </Button>
-                        </div>
-                      )}
                       {selectedPatient && (
                         <div className="space-y-2">
                           <Label>Is Consent Received</Label>
@@ -4477,6 +4663,96 @@ const PatientManagement = () => {
               </DialogFooter>
             </form>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openedDialog} onOpenChange={setOpenedDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Patient Recovered</DialogTitle>
+            <DialogDescription>
+              Select recovered type for {pendingPatient?.patientName}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Recovered Type</Label>
+              <Select value={recoveredType} onValueChange={setRecoveredType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Patient Recovered">
+                    Patient Recovered
+                  </SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {recoveredType === "Other" && (
+              <div>
+                <Label>Reason</Label>
+                <Input
+                  value={otherReason}
+                  onChange={(e) => setOtherReason(e.target.value)}
+                  placeholder="Enter reason"
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenedDialog(false);
+                setPendingPatient(null);
+                setRecoveredType("");
+                setOtherReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmMarkRecovered}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openRecoveryChoice} onOpenChange={setOpenRecoveryChoice}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Restart Patient</DialogTitle>
+            <DialogDescription>
+              {selectedPatientForRecovery?.patientName} is already recovered.
+              Choose one option.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => handleRecoveryOption("fresh")}>
+              Fresh Start
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleRecoveryOption("continue")}
+            >
+              Continue
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setOpenRecoveryChoice(false);
+                setSelectedPatientForRecovery(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

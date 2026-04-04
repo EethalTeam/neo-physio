@@ -255,7 +255,51 @@ const BusinessOverview = () => {
       throw error;
     }
   };
+  const updateExpense = async (data) => {
+    try {
+      const response = await apiRequest("Expense/updateExpense", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      await getExpense();
+      return response?.data || response;
+    } catch (error) {
+      console.error("Error:", error);
+      throw error;
+    }
+  };
+  const openEditDialog = (tx) => {
+    setEditingTx(tx);
 
+    const raw = tx?.raw || {};
+
+    setFormState({
+      ExpenseTypeID: tx?.ExpenseTypeID || "",
+      ExpenseTypeName: tx?.ExpenseTypeName || "",
+      ExpenseCategoryId: tx?.ExpenseCategoryId || "",
+      ExpenseCategoryName: tx?.ExpenseCategoryName || "",
+      expenseDate: raw?.expenseDate ? new Date(raw.expenseDate) : new Date(),
+      expenseAmount: tx?.amount || "",
+      PhysioId: tx?.PhysioId || "",
+      physioDescription: raw?.physioDescription || "",
+      officeExpDes: raw?.officeExpDes || "",
+      ReferenceId: tx?.ReferenceId || "",
+      PatientId: tx?.PatientId || "",
+      referenceDes: raw?.referenceDes || "",
+      MachineiId: tx?.MachineiId || "",
+      machineDes: raw?.machineDes || "",
+      otherDescription: raw?.otherDescription || "",
+      description: raw?.officeExpDes || tx?.description || "",
+      linkedEntity: {
+        physioName: tx?.PhysioId || "",
+        patientName: tx?.PatientId || "",
+        sourceName: tx?.ReferenceId || "",
+        machineId: tx?.MachineiId || "",
+      },
+    });
+
+    setIsFormOpen(true);
+  };
   const getAllPhysio = async (data) => {
     try {
       const response = await apiRequest("Physio/getAllPhysio", {
@@ -417,6 +461,7 @@ const BusinessOverview = () => {
     }
 
     const payload = {
+      _id: editingTx?._id || null,
       ExpenseTypeID: formState.ExpenseTypeID || null,
       ExpenseCategoryId: formState.ExpenseCategoryId || null,
       expenseDate: format(transactionDate, "yyyy-MM-dd"),
@@ -438,22 +483,27 @@ const BusinessOverview = () => {
     };
 
     try {
-      if (editingTx) {
+      if (editingTx?._id) {
+        await updateExpense(payload);
         toast({
-          title: "Info",
-          description: "Update API not connected here yet.",
+          title: "Success",
+          description: "Transaction updated successfully.",
         });
       } else {
         await createExpense(payload);
-        toast({ title: "Success", description: "New transaction added." });
+        toast({
+          title: "Success",
+          description: "New transaction added.",
+        });
       }
 
       setIsFormOpen(false);
+      setEditingTx(null);
       setFormState(initialFormState);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to save transaction. Try again.",
+        description: error?.message || "Failed to save transaction. Try again.",
         variant: "destructive",
       });
     }
@@ -1106,7 +1156,7 @@ const BusinessOverview = () => {
   const TransactionTable = ({ data, type }) => (
     <div className="w-full min-w-0 overflow-hidden rounded-xl border bg-white">
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full min-w-[700px] text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-slate-50">
             <tr className="border-b">
               <th className="p-3 text-left font-semibold text-gray-600">
@@ -1121,6 +1171,11 @@ const BusinessOverview = () => {
               <th className="p-3 text-right font-semibold text-gray-600">
                 Amount
               </th>
+              {Permissions.isEdit && (
+                <th className="p-3 text-center font-semibold text-gray-600">
+                  Action
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -1141,11 +1196,26 @@ const BusinessOverview = () => {
                   >
                     ₹{Number(tx.amount || 0).toLocaleString()}
                   </td>
+
+                  {Permissions.isEdit && (
+                    <td className="p-3 text-center">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEditDialog(tx)}
+                      >
+                        Edit
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="4" className="p-6 text-center text-gray-500">
+                <td
+                  colSpan={Permissions.isEdit ? 5 : 4}
+                  className="p-6 text-center text-gray-500"
+                >
                   No records found
                 </td>
               </tr>
@@ -1172,7 +1242,7 @@ const BusinessOverview = () => {
                 <div className="text-right">
                   <p className="text-[11px] text-gray-500">Amount</p>
                   <p
-                    className={`text-sm font-bold ${
+                    className={`text-sm font-semibold ${
                       type === "Income" ? "text-green-600" : "text-red-600"
                     }`}
                   >
@@ -1181,25 +1251,36 @@ const BusinessOverview = () => {
                 </div>
               </div>
 
-              <div className="mt-3">
-                <p className="text-[11px] text-gray-500">Category</p>
-                <p className="break-words text-sm text-gray-800">
-                  {tx.category || "-"}
-                </p>
+              <div className="mt-3 space-y-2">
+                <div>
+                  <p className="text-[11px] text-gray-500">Category</p>
+                  <p className="text-sm text-gray-800">{tx.category}</p>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-gray-500">Description</p>
+                  <p className="text-sm text-gray-600 break-words">
+                    {tx.description}
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-3">
-                <p className="text-[11px] text-gray-500">Description</p>
-                <p className="break-words text-sm text-gray-700">
-                  {tx.description || "-"}
-                </p>
-              </div>
+              {Permissions.isEdit && (
+                <div className="mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openEditDialog(tx)}
+                  >
+                    Edit
+                  </Button>
+                </div>
+              )}
             </div>
           ))
         ) : (
-          <div className="py-6 text-center text-sm text-gray-500">
-            No records found
-          </div>
+          <div className="p-6 text-center text-gray-500">No records found</div>
         )}
       </div>
     </div>

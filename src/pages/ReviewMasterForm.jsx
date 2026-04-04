@@ -197,18 +197,21 @@ const ReviewMasterForm = () => {
       )
         ? response.pendingRedFlagReviews
         : [];
-
+      const tomorrowReviews = Array.isArray(response?.tomorrowReviews)
+        ? response.tomorrowReviews
+        : [];
       const yesterdayGeneralReviews = Array.isArray(
         response?.yesterdayGeneralReviews,
       )
         ? response.yesterdayGeneralReviews
         : [];
 
-      // ✅ Merge all
+      //  Merge all
       const mergedReviews = [
         ...todayReviews,
         ...yesterdayGeneralReviews,
         ...pendingRedFlagReviews,
+        ...tomorrowReviews,
       ].sort((a, b) => new Date(b.reviewDate) - new Date(a.reviewDate));
 
       setReviews(mergedReviews);
@@ -1034,7 +1037,7 @@ const ReviewMasterForm = () => {
                           <div className="flex space-x-1">
                             {user?.role !== "physio" && (
                               <>
-                                {/* ✅ Review Date icon button */}
+                                {/*  Review Date icon button */}
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1273,7 +1276,22 @@ const ReviewMasterForm = () => {
                       <XCircle size={12} />
                     </Button>
                   )}
-
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingReview(session);
+                      setSessionForm((p) => ({
+                        ...p,
+                        sessionDate: session.reviewDate
+                          ? new Date(session.reviewDate)
+                          : null,
+                      }));
+                      setIsEditDate(true);
+                    }}
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
                   {user?.role !== "Physio" && (
                     <>
                       <Button

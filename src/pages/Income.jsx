@@ -44,7 +44,7 @@ const Income = () => {
   );
 
   const [activeTab, setActiveTab] = useState("income");
-
+  const [billFilterType, setBillFilterType] = useState("lastSession");
   const [physios, setPhysios] = useState([]);
   const [feesType, setFeesType] = useState([]);
   const [billPreview, setBillPreview] = useState({
@@ -60,7 +60,23 @@ const Income = () => {
   const [discountAmount, setDiscountAmount] = useState("");
   const monthlyId = "691af5c343be7d5e2861981f"; // monthly
   const sessionId = "691af5dc43be7d5e28619825"; // per session
+  const [revertConfirmDialog, setRevertConfirmDialog] = useState({
+    open: false,
+    bill: null,
+  });
+  const openRevertConfirmDialog = (bill) => {
+    setRevertConfirmDialog({
+      open: true,
+      bill,
+    });
+  };
 
+  const closeRevertConfirmDialog = () => {
+    setRevertConfirmDialog({
+      open: false,
+      bill: null,
+    });
+  };
   const months = [
     "January",
     "February",
@@ -289,6 +305,7 @@ const Income = () => {
           month: months[selectedBillMonth - 1],
           year: selectedBillYear,
           patientId: selectedBillPatientId,
+          filterType: billFilterType,
         }),
       });
 
@@ -303,8 +320,13 @@ const Income = () => {
     if (activeTab === "bill") {
       fetchBills();
     }
-  }, [activeTab, selectedBillMonth, selectedBillYear, selectedBillPatientId]);
-
+  }, [
+    activeTab,
+    selectedBillMonth,
+    selectedBillYear,
+    selectedBillPatientId,
+    billFilterType,
+  ]);
   const filteredBills = useMemo(() => {
     return bills.filter((b) => {
       const pid = getId(b.patientId);
@@ -312,16 +334,26 @@ const Income = () => {
       const matchPatient =
         selectedBillPatientId === "ALL" ? true : pid === selectedBillPatientId;
 
-      const createdAt = new Date(b.createdAt);
-      const createdMonth = createdAt.getMonth() + 1; // 1 to 12
-      const createdYear = createdAt.getFullYear();
+      const refDate =
+        billFilterType === "lastSession"
+          ? new Date(b.ToDate)
+          : new Date(b.createdAt);
 
-      const matchMonth = createdMonth === Number(selectedBillMonth);
-      const matchYear = createdYear === Number(selectedBillYear);
+      const refMonth = refDate.getMonth() + 1;
+      const refYear = refDate.getFullYear();
+
+      const matchMonth = refMonth === Number(selectedBillMonth);
+      const matchYear = refYear === Number(selectedBillYear);
 
       return matchPatient && matchMonth && matchYear;
     });
-  }, [bills, selectedBillPatientId, selectedBillMonth, selectedBillYear]);
+  }, [
+    bills,
+    selectedBillPatientId,
+    selectedBillMonth,
+    selectedBillYear,
+    billFilterType,
+  ]);
   const totalGeneratedBillAmount = useMemo(() => {
     return filteredBills.reduce(
       (sum, b) => sum + Number(b.NetBilledAmount || 0),
@@ -591,6 +623,7 @@ const Income = () => {
     try {
       const doc = new jsPDF("p", "mm", "a4");
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
 
       const patientName = bill?.patientId?.patientName || "N/A";
       const patientCode = bill?.patientId?.patientCode || "N/A";
@@ -609,10 +642,16 @@ const Income = () => {
       let sessionText = `${totalSessions}`;
 
       if (feeType === "permonth") {
-        rate = Number(bill?.TotalBilledAmount || totalAmount || 0);
+        rate =
+          Number(bill?.ratePerSession || 0) > 0
+            ? Number(bill?.ratePerSession || 0)
+            : totalSessions > 0
+              ? Number((totalAmount / totalSessions).toFixed(2))
+              : 0;
+
         rateLabel = "(Per Month)";
         descriptionText = "Physiotherapy Monthly Package";
-        sessionText = "—";
+        sessionText = `${totalSessions}`;
       } else {
         rate =
           Number(bill?.ratePerSession || 0) > 0
@@ -641,24 +680,16 @@ const Income = () => {
         sortedSessions?.[sortedSessions.length - 1]?.sessionDate ||
         null;
 
-      const adjustIfSunday = (date) => {
-        if (!date) return date;
-        const d = new Date(date);
-        if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);
-        return d;
-      };
-
       const fmt = (date) => {
         if (!date) return "N/A";
-        let d = new Date(date);
+        const d = new Date(date);
         if (Number.isNaN(d.getTime())) return "N/A";
-        d = adjustIfSunday(d);
         const day = String(d.getUTCDate()).padStart(2, "0");
         const month = String(d.getUTCMonth() + 1).padStart(2, "0");
         const year = d.getUTCFullYear();
         return `${day}/${month}/${year}`;
       };
-      console.log(bill, "bill");
+
       const invoiceNo = bill?.invoiceNo || "N/A";
 
       const clinicAddress = [
@@ -678,50 +709,59 @@ const Income = () => {
       const lineColor = [190, 190, 190];
       const tealLine = [120, 200, 215];
 
+      // ===== FULL PAGE BACKGROUND =====
+      // Full background (no margin)
       doc.setFillColor(255, 255, 255);
-      doc.rect(8, 8, 194, 281, "F");
+      doc.rect(0, 0, 210, 297, "F");
 
-      doc.addImage(neoLogo, "PNG", 18, 12, 35, 35);
+      // Light header background (optional but nice)
+      doc.setFillColor(245, 248, 252);
+      doc.rect(0, 0, 210, 56, "F");
+
+      //  Big logo, no top gap but small padding from edge
+      doc.addImage(neoLogo, "PNG", 5, 2, 60, 60);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(20);
+      doc.setFontSize(24);
       doc.setTextColor(...labelColor);
-      doc.text("NEO PHYSIO", 60, 25);
+      doc.text("NEO PHYSIO", 72, 18);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.text("We Are Changing Lives", 60, 33);
+      doc.setFontSize(11);
+      doc.text("We Are Changing Lives", 72, 26);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(...textColor);
 
-      let rightY = 20;
+      let rightY = 12;
       clinicAddress.forEach((line) => {
-        doc.text(line, 118, rightY);
-        rightY += 6;
+        doc.text(line, 138, rightY);
+        rightY += 5;
       });
 
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...labelColor);
-      doc.text("No:", 118, 44);
+      doc.text("No:", 138, 35);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...textColor);
-      doc.text(String(invoiceNo), 145, 44);
+      doc.text(String(invoiceNo), 145, 35);
 
       doc.setDrawColor(...lineColor);
-      doc.setLineWidth(0.3);
-      doc.line(18, 52, 190, 52);
+      doc.setLineWidth(0.4);
+      doc.line(10, 56, 200, 56);
 
+      // ===== TITLE =====
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.setTextColor(...labelColor);
-      doc.text("Treatment Estimate", pageWidth / 2, 61, { align: "center" });
+      doc.text("Treatment Estimate", pageWidth / 2, 64, { align: "center" });
 
       doc.setDrawColor(...lineColor);
-      doc.line(18, 66, 190, 66);
+      doc.line(10, 68, 200, 68);
 
+      // ===== INFO ROWS =====
       const drawInfoRow = (
         y,
         leftLabel,
@@ -732,30 +772,30 @@ const Income = () => {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(...labelColor);
-        doc.text(leftLabel, 18, y);
+        doc.text(leftLabel, 12, y);
 
         doc.setFont("helvetica", "normal");
         doc.setTextColor(...textColor);
-        doc.text(String(leftValue || "N/A"), 42, y);
+        doc.text(String(leftValue || "N/A"), 40, y);
 
         if (rightLabel) {
           doc.setFont("helvetica", "bold");
           doc.setTextColor(...labelColor);
-          doc.text(rightLabel, 132, y);
+          doc.text(rightLabel, 118, y);
 
           doc.setFont("helvetica", "normal");
           doc.setTextColor(...textColor);
-          doc.text(String(rightValue || "N/A"), 155, y);
+          doc.text(String(rightValue || "N/A"), 148, y);
         }
 
         doc.setDrawColor(...lineColor);
-        doc.line(18, y + 4, 190, y + 4);
+        doc.line(10, y + 4, 200, y + 4);
       };
 
-      drawInfoRow(74, "Patient Name:", patientName, "Patient ID:", patientCode);
-      drawInfoRow(83, "Treated By:", physioName, "", "");
+      drawInfoRow(76, "Patient Name:", patientName, "Patient ID:", patientCode);
+      drawInfoRow(85, "Treated By:", physioName, "", "");
       drawInfoRow(
-        92,
+        94,
         "Treated From:",
         fmt(fromDate),
         "Treated To:",
@@ -765,19 +805,16 @@ const Income = () => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(...labelColor);
-      doc.text("No. of Sessions:", 18, 101);
+      doc.text("No. of Sessions:", 12, 103);
 
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...textColor);
-      doc.text(
-        feeType === "permonth" ? "Monthly Plan" : `${totalSessions} Sessions`,
-        50,
-        101,
-      );
+      doc.text(`${totalSessions} Sessions`, 45, 103);
 
+      // ===== TABLE =====
       autoTable(doc, {
-        startY: 107,
-        margin: { left: 18, right: 20 },
+        startY: 108,
+        margin: { left: 10, right: 10 },
         head: [["DESCRIPTION", "UNIT COST", "NO. OF SESSIONS", "TOTAL COST"]],
         body: [
           [
@@ -786,7 +823,6 @@ const Income = () => {
             sessionText,
             `Rs. ${totalAmount.toFixed(2)}`,
           ],
-          ["", "", "", ""],
         ],
         theme: "grid",
         styles: {
@@ -805,42 +841,41 @@ const Income = () => {
           halign: "center",
         },
         columnStyles: {
-          0: { cellWidth: 72, halign: "left" },
-          1: { cellWidth: 30, halign: "center" },
+          0: { cellWidth: 82, halign: "left" },
+          1: { cellWidth: 34, halign: "center" },
           2: { cellWidth: 35, halign: "center" },
           3: { cellWidth: 35, halign: "center" },
         },
       });
 
-      let yAfterTable = doc.lastAutoTable.finalY + 12;
+      let yAfterTable = doc.lastAutoTable.finalY + 8;
 
+      // ===== SUBTOTAL =====
       doc.setDrawColor(...lineColor);
-      doc.line(18, yAfterTable, 190, yAfterTable);
+      doc.line(10, yAfterTable, 200, yAfterTable);
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.setTextColor(80, 80, 80);
-      doc.text("Subtotal:", 22, yAfterTable + 8);
-
-      doc.text(`Rs. ${totalAmount.toFixed(2)}`, 183, yAfterTable + 8, {
+      doc.text("Subtotal:", 14, yAfterTable + 7);
+      doc.text(`Rs. ${totalAmount.toFixed(2)}`, 195, yAfterTable + 7, {
         align: "right",
       });
 
-      doc.line(18, yAfterTable + 12, 190, yAfterTable + 12);
+      doc.line(10, yAfterTable + 11, 200, yAfterTable + 11);
 
-      const companyY = yAfterTable + 20;
-
-      const paymentY = companyY + 14;
+      // ===== PAYMENT SECTION =====
+      const paymentY = yAfterTable + 18;
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
       doc.setTextColor(...labelColor);
-      doc.text("Online Payment:", 18, paymentY);
+      doc.text("Online Payment:", 12, paymentY);
 
-      doc.addImage(neoQR, "PNG", 18, paymentY + 5, 32, 32);
+      doc.addImage(neoQR, "PNG", 12, paymentY + 4, 38, 38);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
+      doc.setFontSize(8);
       doc.setTextColor(...textColor);
 
       let paymentTextY = paymentY + 10;
@@ -894,27 +929,27 @@ const Income = () => {
           },
         });
       } else {
-        const noteY = paymentY + 45;
+        const noteY = paymentY + 48;
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(6);
+        doc.setFontSize(6.5);
         doc.setTextColor(...labelColor);
-        doc.text("Note:", 16, noteY);
+        doc.text("Note:", 12, noteY);
 
         doc.setFont("helvetica", "italic");
-        doc.setFontSize(5.5);
+        doc.setFontSize(6);
         doc.setTextColor(90, 90, 90);
         doc.text(
-          " * This is a treatment estimate only. The invoice will be issued after completion of the treatment.",
+          "* This is a treatment estimate only. The invoice will be issued after completion of the treatment.",
           18,
           noteY + 5,
-          { maxWidth: 170 },
+          { maxWidth: 172 },
         );
 
-        const thankY = Math.max(noteY + 18, 270);
+        const thankY = Math.min(noteY + 22, pageHeight - 18);
 
         doc.setDrawColor(210, 210, 210);
-        doc.line(18, thankY - 4, 190, thankY - 4);
+        doc.line(10, thankY - 4, 200, thankY - 4);
 
         doc.setFont("helvetica", "bolditalic");
         doc.setFontSize(11);
@@ -942,16 +977,12 @@ const Income = () => {
     0,
   );
 
-  const formatBillDate = (date) => {
-    if (!date) return "N/A";
-
+  const formatDate = (date) => {
+    if (!date) return "-";
     const d = new Date(date);
-    if (isNaN(d.getTime())) return "N/A";
-
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const year = d.getUTCFullYear();
     return `${day}-${month}-${year}`;
   };
 
@@ -1019,6 +1050,32 @@ const Income = () => {
         return "bg-red-100 text-red-700";
       default:
         return "bg-gray-100 text-gray-700";
+    }
+  };
+  const handleRevertPayment = async (billId) => {
+    try {
+      const res = await apiRequest("Bill/revertPayment", {
+        method: "POST",
+        body: JSON.stringify({ billId }),
+      });
+
+      if (!res.success) {
+        throw new Error(res.message);
+      }
+
+      toast({
+        title: "Success",
+        description: res.message || "Payment reverted",
+      });
+
+      closeRevertConfirmDialog();
+      await fetchBills();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -1404,7 +1461,34 @@ const Income = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <div className="flex flex-col gap-1">
+                  {/* <Label>Filter Type</Label> */}
+                  <Select
+                    value={billFilterType}
+                    onValueChange={setBillFilterType}
+                  >
+                    <SelectTrigger className="w-52">
+                      <SelectValue placeholder="Filter Type" />
+                    </SelectTrigger>
 
+                    <SelectContent
+                      position="popper"
+                      side="bottom"
+                      align="start"
+                      sideOffset={6}
+                      avoidCollisions={false}
+                      className="z-[99999] max-h-72 overflow-auto bg-white border shadow-lg"
+                    >
+                      <SelectItem value="created">
+                        Bill Created Month Wise
+                      </SelectItem>
+
+                      <SelectItem value="lastSession">
+                        Last Session Wise
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Select
                   onValueChange={(val) => setSelectedBillMonth(Number(val))}
                   value={String(selectedBillMonth)}
@@ -1480,8 +1564,10 @@ const Income = () => {
                     width: "100%",
                     minWidth: 0,
                     overflowX: "auto",
-                    overflowY: "visible",
+                    overflowY: "auto",
+                    maxHeight: "500px",
                     WebkitOverflowScrolling: "touch",
+                    position: "relative",
                   }}
                 >
                   <table
@@ -1494,28 +1580,35 @@ const Income = () => {
                     }}
                   >
                     <thead
-                      style={{ backgroundColor: "#f3f4f6", color: "#374151" }}
+                      style={{
+                        backgroundColor: "#f3f4f6",
+                        color: "#374151",
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 40,
+                      }}
                     >
                       <tr>
-                        {/* STICKY first column - inline styles are required because
-                            Tailwind's sticky can be overridden by parent overflow:hidden */}
                         <th
                           style={{
                             position: "sticky",
                             left: 0,
-                            zIndex: 30,
+                            top: 0,
+                            zIndex: 60,
                             backgroundColor: "#f3f4f6",
-                            minWidth: "160px",
-                            padding: "8px 12px",
+                            minWidth: "180px",
+                            padding: "10px 12px",
                             textAlign: "left",
                             whiteSpace: "nowrap",
                             borderBottom: "1px solid #e5e7eb",
                             borderRight: "2px solid #d1d5db",
                             fontWeight: 600,
+                            boxShadow: "2px 0 4px rgba(0,0,0,0.04)",
                           }}
                         >
                           Patient
                         </th>
+
                         {[
                           "Physio",
                           "Session Start - To date",
@@ -1530,6 +1623,8 @@ const Income = () => {
                           "Payment Status",
                           "Payment Type",
                           "Bill Generate",
+                          "Payment Actions",
+
                           "Receive Payment",
                           "Bill Send",
                           "Is Bad Debt",
@@ -1537,7 +1632,11 @@ const Income = () => {
                           <th
                             key={h}
                             style={{
-                              padding: "8px 12px",
+                              position: "sticky",
+                              top: 0,
+                              zIndex: 50,
+                              backgroundColor: "#f3f4f6",
+                              padding: "10px 12px",
                               textAlign: "left",
                               whiteSpace: "nowrap",
                               borderBottom: "1px solid #e5e7eb",
@@ -1555,14 +1654,17 @@ const Income = () => {
                       {sortedBills.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={17}
+                            colSpan={18}
                             className="p-4 text-center text-gray-500"
+                            style={{
+                              backgroundColor: "#fff",
+                            }}
                           >
                             No bills found for selected filters
                           </td>
                         </tr>
                       ) : (
-                        sortedBills.map((b) => {
+                        sortedBills.map((b, rowIndex) => {
                           const status = getBillPaymentStatus(b);
                           const paymentType = getBillPaymentType(b);
 
@@ -1585,40 +1687,62 @@ const Income = () => {
 
                           const formatDate = (date) => {
                             if (!date) return "-";
-                            const [year, month, day] = new Date(date)
-                              .toISOString()
-                              .split("T")[0]
-                              .split("-");
+                            const d = new Date(date);
+                            const day = String(d.getUTCDate()).padStart(2, "0");
+                            const month = String(d.getUTCMonth() + 1).padStart(
+                              2,
+                              "0",
+                            );
+                            const year = d.getUTCFullYear();
                             return `${day}-${month}-${year}`;
                           };
 
                           const fromDate = b?.startDate;
                           const toDate = b?.ToDate;
 
+                          const rowBg =
+                            rowIndex % 2 === 0 ? "#ffffff" : "#fcfcfc";
+
                           return (
                             <tr
                               key={b._id}
-                              style={{ fontSize: "0.875rem" }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  "#f9fafb")
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor = "")
-                              }
+                              style={{
+                                fontSize: "0.875rem",
+                                backgroundColor: rowBg,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#f9fafb";
+                                const stickyCell =
+                                  e.currentTarget.querySelector(
+                                    "[data-sticky-first-col='true']",
+                                  );
+                                if (stickyCell)
+                                  stickyCell.style.backgroundColor = "#f9fafb";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = rowBg;
+                                const stickyCell =
+                                  e.currentTarget.querySelector(
+                                    "[data-sticky-first-col='true']",
+                                  );
+                                if (stickyCell)
+                                  stickyCell.style.backgroundColor = rowBg;
+                              }}
                             >
-                              {/* STICKY first data cell - inline style required */}
                               <td
+                                data-sticky-first-col="true"
                                 style={{
                                   position: "sticky",
                                   left: 0,
                                   zIndex: 20,
-                                  backgroundColor: "#ffffff",
-                                  minWidth: "160px",
-                                  padding: "8px",
+                                  backgroundColor: rowBg,
+                                  minWidth: "180px",
+                                  padding: "8px 12px",
                                   whiteSpace: "nowrap",
                                   borderBottom: "1px solid #e5e7eb",
                                   borderRight: "2px solid #d1d5db",
+                                  boxShadow: "2px 0 4px rgba(0,0,0,0.04)",
                                 }}
                               >
                                 {b?.patientId?.patientName || "N/A"}{" "}
@@ -1697,7 +1821,21 @@ const Income = () => {
                                   Generate Bill
                                 </Button>
                               </td>
-
+                              <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                <div className="flex flex-col gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => openRevertConfirmDialog(b)}
+                                    disabled={
+                                      Number(b?.ReceivedAmount || 0) <= 0 ||
+                                      b?.isBadDebt
+                                    }
+                                    className="bg-orange-500 text-white hover:bg-orange-600"
+                                  >
+                                    Revert Payment
+                                  </Button>
+                                </div>
+                              </td>
                               <td className="p-2 border border-gray-200 whitespace-nowrap">
                                 <Button
                                   size="sm"
@@ -1808,8 +1946,15 @@ const Income = () => {
                   const pending = getPendingAmount(b);
                   const status = getBillPaymentStatus(b);
 
-                  const fromDate =
-                    b?.patientId?.sessionStartDate || b?.startDate;
+                  const formatDate = (date) => {
+                    if (!date) return "-";
+                    const d = new Date(date);
+                    const day = String(d.getUTCDate()).padStart(2, "0");
+                    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+                    const year = d.getUTCFullYear();
+                    return `${day}-${month}-${year}`;
+                  };
+                  const fromDate = b?.startDate;
                   const toDate = b?.ToDate;
 
                   return (
@@ -1841,13 +1986,9 @@ const Income = () => {
                       </div>
 
                       <div className="mt-2 text-xs text-gray-600">
-                        Period:{" "}
-                        {fromDate
-                          ? new Date(fromDate).toLocaleDateString()
-                          : "-"}{" "}
-                        - {toDate ? new Date(toDate).toLocaleDateString() : "-"}
+                        Period: {fromDate ? formatDate(fromDate) : "-"} -{" "}
+                        {toDate ? formatDate(toDate) : "-"}
                       </div>
-
                       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                         <div className="p-2 rounded-lg bg-gray-50">
                           <p className="text-xs text-gray-500">Sessions</p>
@@ -1899,6 +2040,15 @@ const Income = () => {
                           }}
                         >
                           Generate
+                        </Button>
+                        <Button
+                          className="w-full bg-orange-500 text-white hover:bg-orange-600"
+                          onClick={() => openRevertConfirmDialog(b)}
+                          disabled={
+                            Number(b?.ReceivedAmount || 0) <= 0 || b?.isBadDebt
+                          }
+                        >
+                          Revert Payment
                         </Button>
 
                         <Button
@@ -2174,8 +2324,16 @@ const Income = () => {
                 </div>
 
                 <div className="p-2 border rounded">
-                  Period: {formatBillDate(billPreview.bill?.startDate)} -{" "}
-                  {formatBillDate(billPreview.bill?.ToDate)}
+                  Period:{" "}
+                  {billPreview.bill?.startDate
+                    ? formatDate(billPreview.bill?.startDate)
+                    : "-"}{" "}
+                  -{" "}
+                  {billPreview.bill?.ToDate
+                    ? formatDate(billPreview.bill?.ToDate)
+                    : "-"}
+                  {/* Period: {formatBillDate(billPreview.bill?.startDate)} -{" "}
+                  {formatBillDate(billPreview.bill?.ToDate)} */}
                 </div>
 
                 <div className="p-2 border rounded">
@@ -2252,6 +2410,64 @@ const Income = () => {
 
             <Button variant="destructive" onClick={confirmMarkBadDebt}>
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={revertConfirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) closeRevertConfirmDialog();
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Revert Payment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to revert this payment?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border p-3 bg-slate-50">
+              <p>
+                <span className="font-medium">Patient:</span>{" "}
+                {revertConfirmDialog.bill?.patientId?.patientName || "N/A"}
+              </p>
+              <p>
+                <span className="font-medium">Bill Amount:</span> ₹
+                {Number(revertConfirmDialog.bill?.NetBilledAmount || 0).toFixed(
+                  2,
+                )}
+              </p>
+              <p>
+                <span className="font-medium">Received Amount:</span> ₹
+                {Number(revertConfirmDialog.bill?.ReceivedAmount || 0).toFixed(
+                  2,
+                )}
+              </p>
+              <p>
+                <span className="font-medium">Discount Amount:</span> ₹
+                {Number(revertConfirmDialog.bill?.DiscountAmount || 0).toFixed(
+                  2,
+                )}
+              </p>
+            </div>
+
+            <p className="text-red-600 text-xs">
+              This will reset received amount and discount amount for this bill.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeRevertConfirmDialog}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-orange-500 text-white hover:bg-orange-600"
+              onClick={() => handleRevertPayment(revertConfirmDialog.bill?._id)}
+            >
+              Confirm Revert
             </Button>
           </DialogFooter>
         </DialogContent>
