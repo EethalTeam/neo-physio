@@ -1267,15 +1267,27 @@ const PatientManagement = () => {
           method: "POST",
           body: JSON.stringify(data),
         });
+
         toast({
           title: "Success",
           description: "Assign updated successfully.",
         });
+
         getAllPatient();
         setIsAssignPhysioOpen(false);
+
         return response;
       } catch (error) {
         console.error("Error:", error);
+
+        toast({
+          title: "Error",
+          description:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Something went wrong",
+          variant: "destructive",
+        });
       }
     },
     [activeTab],
@@ -1448,13 +1460,22 @@ const PatientManagement = () => {
       ...initialFormState,
       ...patient,
       _id: patient._id,
+
       patientGenderId:
         patient.patientGenderId?._id || patient.patientGenderId || "",
+
       FeesTypeId: patient.FeesTypeId?._id || patient.FeesTypeId || "",
+
+      feesTypeName:
+        patient.FeesTypeId?.feesTypeName || patient.feesTypeName || "",
+
       ReferenceId: patient.ReferenceId?._id || patient.ReferenceId || "",
+
       physioId: patient.physioId?._id || patient.physioId || "",
+
       patientDocuments: patient.patientDocuments || [],
       removedDocuments: [],
+
       isRecovered: !!patient.isRecovered,
       recoveredType: patient.recoveredType || "",
       stopReason: patient.stopReason || "",
@@ -1578,10 +1599,10 @@ const PatientManagement = () => {
   };
 
   const FeesType =
-    patientForm?.FeesTypeId?.feesTypeName || patientForm?.feesTypeName || "";
-  const isPerSession =
-    FeesType.replace(/\s+/g, "").toLowerCase() === "persession";
+    patientForm?.feesTypeName || patientForm?.FeesTypeId?.feesTypeName || "";
 
+  const isPerSession =
+    (FeesType || "").replace(/\s+/g, "").toLowerCase() === "persession";
   const handleFormSubmit = useCallback(
     async (e) => {
       e.preventDefault();

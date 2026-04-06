@@ -37,10 +37,20 @@ const LeavephysioManagement = () => {
   const [patients, setPatients] = useState([]);
   const [leaveData, setLeaveData] = useState([]);
   const [leavePhysioSessions, setLeavePhysioSessions] = useState([]);
-
+  const [historyPhysioFilter, setHistoryPhysioFilter] = useState("all");
+  const [historyDateFilter, setHistoryDateFilter] = useState("");
   const [dateFilter, setDateFilter] = useState(
     new Date().toISOString().split("T")[0],
   );
+  const formatDateYMD = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   const { user } = useAuth();
 
@@ -49,7 +59,19 @@ const LeavephysioManagement = () => {
     newPhysioId: "",
     LeaveMode: "",
   });
+  const filteredLeaveData = leaveData.filter((leave) => {
+    // Filter by Physio
+    const matchesPhysio =
+      historyPhysioFilter === "all" ||
+      leave.physioId?._id?.toString() === historyPhysioFilter;
 
+    // Filter by Date (YYYY-MM-DD)
+    const leaveDateStr = leave.LeaveDate ? formatDateYMD(leave.LeaveDate) : "";
+    const matchesDate =
+      !historyDateFilter || leaveDateStr === historyDateFilter;
+
+    return matchesPhysio && matchesDate;
+  });
   const [leaveSessionPlan, setLeaveSessionPlan] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [openRowId, setOpenRowId] = useState(null);
@@ -60,16 +82,6 @@ const LeavephysioManagement = () => {
     nextValue: false,
     message: "",
   });
-
-  const formatDateYMD = (date) => {
-    if (!date) return "";
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return "";
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
   const getTodayString = () => formatDateYMD(new Date());
 
@@ -653,161 +665,152 @@ const LeavephysioManagement = () => {
 
       <Card className="medical-card">
         <CardHeader>
-          <CardTitle>Leave History</CardTitle>
-          <CardDescription>Recent physiotherapist leaves.</CardDescription>
-        </CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <CardTitle>Leave History</CardTitle>
+              <CardDescription>Recent physiotherapist leaves.</CardDescription>
+            </div>
 
-        <CardContent>
-          <div className="mb-4 rounded-lg border">
-            <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50">
-              <div>
-                <p className="font-semibold text-gray-800">Leave History</p>
-                <p className="text-xs text-gray-500">Recent leaves</p>
+            {/* FILTER BAR */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-500" />
+                <Select
+                  value={historyPhysioFilter}
+                  onValueChange={setHistoryPhysioFilter}
+                >
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="All Physios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Physios</SelectItem>
+                    {employees.map((p) => (
+                      <SelectItem key={p._id} value={p._id.toString()}>
+                        {p.physioName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Button size="sm" variant="outline" onClick={getLeave}>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <Input
+                  type="date"
+                  className="w-[160px] h-9"
+                  value={historyDateFilter}
+                  onChange={(e) => setHistoryDateFilter(e.target.value)}
+                />
+                {historyDateFilter && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => setHistoryDateFilter("")}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={getLeave}
+                className="h-9"
+              >
                 Refresh
               </Button>
             </div>
+          </div>
+        </CardHeader>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="w-10"></th>
-                    <th className="text-left p-3 font-semibold text-gray-600">
-                      Physio
-                    </th>
-                    <th className="text-left p-3 font-semibold text-gray-600">
-                      Leave Date
-                    </th>
-                    <th className="text-left p-3 font-semibold text-gray-600">
-                      Leave Mode
-                    </th>
-                    <th className="text-left p-3 font-semibold text-gray-600">
-                      Sessions
-                    </th>
-                    <th className="text-left p-3 font-semibold text-gray-600">
-                      Paid / Unpaid Leave
-                    </th>
+        <CardContent>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="w-10"></th>
+                  <th className="text-left p-3 font-semibold text-gray-600">
+                    Physio
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-600">
+                    Leave Date
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-600">
+                    Leave Mode
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-600">
+                    Sessions
+                  </th>
+                  <th className="text-left p-3 font-semibold text-gray-600">
+                    Paid / Unpaid Leave
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredLeaveData.length > 0 ? (
+                  filteredLeaveData.map((leave) => {
+                    const isOpen = openRowId === leave._id;
+                    const rowSessions = leave.SessionGenerateForLeave || [];
+
+                    return (
+                      <React.Fragment key={leave._id}>
+                        <tr
+                          className="border-b hover:bg-gray-50 cursor-pointer"
+                          onClick={() =>
+                            setOpenRowId(isOpen ? null : leave._id)
+                          }
+                        >
+                          <td className="p-3 text-gray-600">
+                            {isOpen ? (
+                              <ChevronDown size={16} />
+                            ) : (
+                              <ChevronRight size={16} />
+                            )}
+                          </td>
+                          <td className="p-3 font-medium text-gray-800">
+                            {leave.physioId?.physioName || "N/A"}
+                          </td>
+                          <td className="p-3 text-gray-700">
+                            {leave.LeaveDate
+                              ? new Date(leave.LeaveDate).toLocaleDateString()
+                              : "N/A"}
+                          </td>
+                          <td className="p-3 text-gray-700">
+                            {leave.LeaveMode || "N/A"}
+                          </td>
+                          <td className="p-3 text-gray-700">
+                            {rowSessions.length}
+                          </td>
+                          <td className="p-3">
+                            <Button
+                              size="sm"
+                              variant={leave.PaidLeave ? "outline" : "default"}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openPaidConfirm(leave);
+                              }}
+                            >
+                              {leave.PaidLeave
+                                ? "Mark as UnPaid"
+                                : "Mark as Paid"}
+                            </Button>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                      No records found matching the filters.
+                    </td>
                   </tr>
-                </thead>
-
-                <tbody>
-                  {leaveData.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-4 text-center text-gray-500">
-                        No leave data found
-                      </td>
-                    </tr>
-                  ) : (
-                    leaveData.map((leave) => {
-                      const isOpen = openRowId === leave._id;
-                      const rowSessions = leave.SessionGenerateForLeave || [];
-
-                      return (
-                        <React.Fragment key={leave._id}>
-                          <tr
-                            className="border-b hover:bg-gray-50 cursor-pointer"
-                            onClick={() =>
-                              setOpenRowId(isOpen ? null : leave._id)
-                            }
-                          >
-                            <td className="p-3 text-gray-600">
-                              {isOpen ? (
-                                <ChevronDown size={16} />
-                              ) : (
-                                <ChevronRight size={16} />
-                              )}
-                            </td>
-
-                            <td className="p-3 font-medium text-gray-800">
-                              {leave.physioId?.physioName || "N/A"}
-                            </td>
-
-                            <td className="p-3 text-gray-700">
-                              {leave.LeaveDate
-                                ? new Date(leave.LeaveDate).toLocaleDateString()
-                                : "N/A"}
-                            </td>
-
-                            <td className="p-3 text-gray-700">
-                              {leave.LeaveMode || "N/A"}
-                            </td>
-
-                            <td className="p-3 text-gray-700">
-                              {rowSessions.length}
-                            </td>
-
-                            <td className="p-3">
-                              <Button
-                                size="sm"
-                                variant={
-                                  leave.PaidLeave ? "outline" : "default"
-                                }
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openPaidConfirm(leave);
-                                }}
-                              >
-                                {leave.PaidLeave
-                                  ? "Mark as UnPaid Leave"
-                                  : "Mark as Paid Leave"}
-                              </Button>
-                            </td>
-                          </tr>
-
-                          {isOpen && (
-                            <tr className="bg-blue-50">
-                              <td colSpan={6} className="p-3">
-                                {rowSessions.length === 0 ? (
-                                  <p className="text-sm text-gray-500">
-                                    No planned sessions
-                                  </p>
-                                ) : (
-                                  <table className="w-full text-sm border rounded-lg overflow-hidden bg-white">
-                                    <thead>
-                                      <tr className="bg-gray-50 border-b">
-                                        <th className="text-left p-3 font-semibold text-gray-600">
-                                          Patient
-                                        </th>
-                                        <th className="text-left p-3 font-semibold text-gray-600">
-                                          Session Time
-                                        </th>
-                                        <th className="text-left p-3 font-semibold text-gray-600">
-                                          Reassigned Physio
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {rowSessions.map((item, index) => (
-                                        <tr key={index} className="border-b">
-                                          <td className="p-3">
-                                            {item.patientId?.patientName ||
-                                              "N/A"}
-                                          </td>
-                                          <td className="p-3">
-                                            {item.sessionTime || "N/A"}
-                                          </td>
-                                          <td className="p-3">
-                                            {item.Re_Assign?.physioName ||
-                                              "N/A"}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                )}
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                )}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

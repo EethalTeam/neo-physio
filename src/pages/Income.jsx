@@ -27,12 +27,151 @@ import neoLogo from "../Assets/images/logo_png.png";
 import neoQR from "../Assets/images/qr.jpg";
 import { toast } from "@/components/ui/use-toast";
 
+import html2canvas from "html2canvas";
+
 const Income = () => {
   const [patients, setPatients] = useState([]);
   const [badDebtDialog, setBadDebtDialog] = useState({
     open: false,
     billId: null,
   });
+
+  const loadImage = (src) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous"; // needed for external images
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = src;
+    });
+
+  // Function to download all bills as PDF
+  // const downloadAllBillsPDF = async () => {
+  //   try {
+  //     // 1️⃣ Fetch bills
+  //     const res = await apiRequest("Bill/getAllBill", {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         month: months[selectedBillMonth - 1],
+  //         year: selectedBillYear,
+  //         patientId: selectedBillPatientId,
+  //         filterType: billFilterType,
+  //       }),
+  //     });
+
+  //     const bills = Array.isArray(res) ? res : [];
+  //     if (!bills.length) {
+  //       toast({
+  //         title: "No bills found",
+  //         description: "Nothing to download",
+  //         variant: "destructive",
+  //       });
+  //       return;
+  //     }
+
+  //     // 2️⃣ Create hidden div
+  //     const hiddenDiv = document.createElement("div");
+  //     hiddenDiv.style.position = "absolute";
+  //     hiddenDiv.style.left = "-9999px";
+  //     hiddenDiv.style.width = "800px"; // same as your visible width
+  //     document.body.appendChild(hiddenDiv);
+
+  //     hiddenDiv.innerHTML = bills
+  //       .map(
+  //         (bill) => `
+  //     <div style="border-bottom:1px solid #ccc; padding:5px; margin-bottom:5px;">
+  //       <p><strong>Bill ID:</strong> ${bill._id}</p>
+  //       <p><strong>Patient:</strong> ${bill.patientName}</p>
+  //       <p><strong>Amount:</strong> ${bill.amount}</p>
+  //       <p><strong>Date:</strong> ${new Date(bill.date).toLocaleDateString()}</p>
+  //     </div>
+  //   `,
+  //       )
+  //       .join("");
+
+  //     hiddenDiv.style.height = hiddenDiv.scrollHeight + "px";
+  //     hiddenDiv.style.overflow = "visible";
+
+  //     // 3️⃣ Capture div as image
+  //     const canvas = await html2canvas(hiddenDiv, { scale: 2 });
+  //     const imgData = canvas.toDataURL("image/png");
+
+  //     // 4️⃣ Remove hidden div
+  //     document.body.removeChild(hiddenDiv);
+
+  //     // 5️⃣ Generate PDF
+  //     const pdf = new jsPDF("p", "mm", "a4");
+  //     const pageWidth = pdf.internal.pageSize.getWidth();
+  //     const pageHeight = (canvas.height * pageWidth) / canvas.width;
+
+  //     // 6️⃣ Add logo (optional)
+  //     const logoBase64 = await loadImage(neoLogo);
+  //     pdf.addImage(logoBase64, "PNG", 10, 10, 30, 30);
+
+  //     // 7️⃣ Company name
+  //     pdf.setFont("helvetica", "bold");
+  //     pdf.setFontSize(18);
+  //     pdf.text("NEO PHYSIO", 50, 25);
+
+  //     // 8️⃣ Download date
+  //     const today = new Date();
+  //     const dateStr = today.toLocaleDateString("en-GB");
+  //     pdf.setFont("helvetica", "normal");
+  //     pdf.setFontSize(10);
+  //     pdf.text(`Download Date: ${dateStr}`, pageWidth - 60, 20);
+
+  //     // 9️⃣ Add captured bills image
+  //     pdf.addImage(imgData, "PNG", 0, 40, pageWidth, pageHeight);
+
+  //     // 🔟 Save PDF
+  //     pdf.save(`All_Bills_${dateStr}.pdf`);
+  //   } catch (err) {
+  //     console.error("Error generating PDF:", err);
+  //     toast({
+  //       title: "Error",
+  //       description: err.message,
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+  // Usage
+  const downloadPageAsPDF = () =>
+    addHeaderAndContentToPDF("pageContent", "Full_Page");
+  // const downloadbillPageAsPdf = () =>
+  //   downloadAllBillsPDF("pageContent1", "Bill_Page");
+  // const downloadPageAsPDF = async () => {
+  //   const element = document.getElementById("pageContent"); // wrap your page in a div with this id
+  //   const canvas = await html2canvas(element, { scale: 2 });
+
+  //   const imgData = canvas.toDataURL("image/png");
+  //   const pdf = new jsPDF("p", "mm", "a4");
+  //   const imgProps = pdf.getImageProperties(imgData);
+  //   const pdfWidth = pdf.internal.pageSize.getWidth();
+  //   const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  //   pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+  //   pdf.save("Page_Download.pdf");
+  // };
+  // const downloadbillPageAsPdf = async () => {
+  //   const element = document.getElementById("pageContent1"); // wrap your page in a div with this id
+  //   const canvas = await html2canvas(element, { scale: 2 });
+
+  //   const imgData = canvas.toDataURL("image/png");
+  //   const pdf = new jsPDF("p", "mm", "a4");
+  //   const imgProps = pdf.getImageProperties(imgData);
+  //   const pdfWidth = pdf.internal.pageSize.getWidth();
+  //   const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  //   pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+  //   pdf.save("Page_Download.pdf");
+  // };
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -1135,60 +1274,330 @@ const Income = () => {
           <TabButton id="bill" label="BILL GENERATE" icon={Bitcoin} />
         </div>
       </div>
+      <div id="pageContent">
+        {activeTab === "income" && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Income Dashboard</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="md:flex flex-wrap justify-between items-center w-full gap-2 grid grid-cols-1">
+                  {/* Left */}
+                  <div className="flex flex-col gap-2 text-sm font-semibold md:flex-row md:gap-8">
+                    <div className="flex justify-between md:w-[220px]">
+                      <span>Total Income:</span>
+                      <span>₹{totalIncomeByFilter.toFixed(2)}</span>
+                    </div>
 
-      {activeTab === "income" && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Income Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="md:flex flex-wrap justify-between items-center w-full gap-2 grid grid-cols-1">
-                {/* Left */}
-                <div className="flex flex-col gap-2 text-sm font-semibold md:flex-row md:gap-8">
-                  <div className="flex justify-between md:w-[220px]">
-                    <span>Total Income:</span>
-                    <span>₹{totalIncomeByFilter.toFixed(2)}</span>
+                    <div className="flex justify-between md:w-[220px] text-green-700">
+                      <span>Billed Amount:</span>
+                      <span>₹{billedAmountFromBills.toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex justify-between md:w-[220px] text-red-600">
+                      <span>Unbilled Amount:</span>
+                      <span>₹{unbilledAmountFromIncome.toFixed(2)}</span>
+                    </div>
+                    <button onClick={downloadPageAsPDF}>
+                      Download Page as PDF
+                    </button>
                   </div>
 
-                  <div className="flex justify-between md:w-[220px] text-green-700">
-                    <span>Billed Amount:</span>
-                    <span>₹{billedAmountFromBills.toFixed(2)}</span>
-                  </div>
+                  {/* Right */}
+                  <div className="md:flex items-center gap-2 grid grid-cols-2">
+                    <Select
+                      value={selectedPhysioId}
+                      onValueChange={(v) => setSelectedPhysioId(v)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Filter by Physiotherapist" />
+                      </SelectTrigger>
+                      <SelectContent className="h-[200px]">
+                        <SelectItem value="ALL">All Physios</SelectItem>
+                        {physios.map((p) => (
+                          <SelectItem key={p._id} value={p._id}>
+                            {p.physioName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                  <div className="flex justify-between md:w-[220px] text-red-600">
-                    <span>Unbilled Amount:</span>
-                    <span>₹{unbilledAmountFromIncome.toFixed(2)}</span>
+                    <Select
+                      value={selectedPatientId}
+                      onValueChange={(v) => setSelectedPatientId(v)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Filter by Patients" />
+                      </SelectTrigger>
+                      <SelectContent className="h-[200px]">
+                        <SelectItem value="ALL">All Patients</SelectItem>
+                        {patients.map((p) => (
+                          <SelectItem key={p._id} value={p._id}>
+                            {p.patientName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={selectedFeeTypeId}
+                      onValueChange={(v) => setSelectedFeeTypeId(v)}
+                    >
+                      <SelectTrigger className="w-full mr-10">
+                        <SelectValue placeholder="Filter by Feestype" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">All Fees Type</SelectItem>
+                        {feesType.map((p) => (
+                          <SelectItem key={p._id} value={p._id}>
+                            {p.feesTypeName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      onValueChange={(val) => setSelectedMonth(Number(val))}
+                      value={selectedMonth}
+                    >
+                      <SelectTrigger className="w-full sm:w-40">
+                        <SelectValue placeholder="Select Month" />
+                      </SelectTrigger>
+                      <SelectContent className="h-[200px]">
+                        {months.map((m, idx) => (
+                          <SelectItem key={idx} value={idx + 1}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      onValueChange={(val) => setSelectedYear(Number(val))}
+                      value={selectedYear}
+                    >
+                      <SelectTrigger className="w-full sm:w-28">
+                        <SelectValue placeholder="Select Year" />
+                      </SelectTrigger>
+                      <SelectContent className="h-[200px]">
+                        {[
+                          2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
+                          2035, 2036, 2037, 2038, 2039, 2040,
+                        ].map((y) => (
+                          <SelectItem key={y} value={y}>
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Right */}
-                <div className="md:flex items-center gap-2 grid grid-cols-2">
-                  <Select
-                    value={selectedPhysioId}
-                    onValueChange={(v) => setSelectedPhysioId(v)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Filter by Physiotherapist" />
-                    </SelectTrigger>
-                    <SelectContent className="h-[200px]">
-                      <SelectItem value="ALL">All Physios</SelectItem>
-                      {physios.map((p) => (
-                        <SelectItem key={p._id} value={p._id}>
-                          {p.physioName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <Card className="medical-card hidden md:block">
+              <CardContent>
+                <div className="hidden md:block overflow-x-auto mt-5">
+                  <table className="min-w-full text-sm border rounded-lg">
+                    <thead className="bg-gray-100 text-gray-700">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Patient Name</th>
+                        <th className="px-3 py-2 text-left">Physio Name</th>
+                        <th className="px-3 py-2 text-left">
+                          Completed Sessions
+                        </th>
+                        <th className="px-3 py-2 text-left">Fees(Fees Type)</th>
+                        <th className="px-3 py-2 text-left">Total Income</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPatients
+                        .filter((p) => p.totalCompletedSessions > 0)
+                        .map((p) => (
+                          <tr
+                            key={p._id}
+                            className="hover:bg-gray-50 text-sm md:text-base"
+                          >
+                            <td className="p-2 border whitespace-nowrap">
+                              {p.patientName}
+                            </td>
+                            <td className="p-2 border whitespace-nowrap">
+                              {selectedPhysioId !== "ALL"
+                                ? p.physioDetails?.find(
+                                    (physio) =>
+                                      physio.physioId === selectedPhysioId,
+                                  )?.physioName
+                                : p.physioDetails
+                                    ?.map((physio) => physio.physioName)
+                                    .join(", ") || "N/A"}
+                            </td>
+                            <td className="p-2 border text-center">
+                              {selectedPhysioId !== "ALL"
+                                ? p.physioDetails?.find(
+                                    (physio) =>
+                                      physio.physioId === selectedPhysioId,
+                                  )?.sessionCount
+                                : p.totalCompletedSessions}
+                            </td>
+                            <td className="p-2 border text-center whitespace-nowrap">
+                              ₹{p.feePerSession || 0} ({p.feeType || "N/A"})
+                            </td>
+                            <td className="p-2 border text-center font-semibold whitespace-nowrap">
+                              ₹{Number(p.totalIncome || 0).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
 
+            {/* MOBILE VIEW - INCOME CARDS */}
+            <Card className="medical-card md:hidden">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Patients (
+                  {
+                    filteredPatients.filter((p) => p.totalCompletedSessions > 0)
+                      .length
+                  }
+                  )
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                {filteredPatients.filter((p) => p.totalCompletedSessions > 0)
+                  .length === 0 ? (
+                  <div className="text-center text-sm text-gray-500 py-6">
+                    No income records found for selected filters.
+                  </div>
+                ) : (
+                  filteredPatients
+                    .filter((p) => p.totalCompletedSessions > 0)
+                    .map((p) => (
+                      <motion.div
+                        key={p._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="border rounded-xl p-4 bg-white shadow-sm"
+                      >
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              {p.patientName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {p.patientCode || ""}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">
+                              Total Income
+                            </p>
+                            <p className="font-bold text-gray-900">
+                              ₹{Number(p.totalIncome || 0).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                          <div className="p-2 rounded-lg bg-gray-50">
+                            <p className="text-xs text-gray-500">Physio</p>
+                            <p className="font-medium text-gray-800">
+                              {p.physioName || "N/A"}
+                            </p>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-gray-50">
+                            <p className="text-xs text-gray-500">Completed</p>
+                            <p className="font-medium text-gray-800">
+                              {p.totalCompletedSessions || 0}
+                            </p>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-gray-50 col-span-2">
+                            <p className="text-xs text-gray-500">Fees</p>
+                            <p className="font-medium text-gray-800">
+                              ₹{p.feePerSession || 0}{" "}
+                              <span className="text-xs text-gray-500">
+                                ({p.feeType || "N/A"})
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
+      <div id="pageContent1">
+        {activeTab === "bill" && (
+          <>
+            <Card style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+              <CardHeader>
+                <CardTitle>Bill Generate Dashboard</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4" style={{ minWidth: 0 }}>
+                {/* Top Summary */}
+                <div className="flex flex-wrap justify-between items-center w-full gap-4">
+                  <h3 className="text-lg font-semibold">
+                    Generated Bills:{" "}
+                    <span className="ml-2">{filteredBills.length}</span>
+                  </h3>
+                  <h3 className="text-lg font-semibold">
+                    Total Received Amount:{" "}
+                    <span className="ml-2">₹{totalReceivedAmt.toFixed(2)}</span>
+                  </h3>
+                  <h3 className="text-lg font-semibold">
+                    Total Pending Amount:{" "}
+                    <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
+                  </h3>
+                  <h3 className="text-lg font-semibold">
+                    Total Discount Amount:{" "}
+                    <span className="ml-2 text-purple-600">
+                      ₹{totalDiscountAmt.toFixed(2)}
+                    </span>
+                  </h3>
+                  <h3 className="text-lg font-semibold">
+                    Total Bad Debt:{" "}
+                    <span className="ml-2 text-red-600">
+                      ₹{totalBadDebtAmount.toFixed(2)}
+                    </span>
+                  </h3>
+                  <h3 className="text-lg font-semibold">
+                    Total Billed Amount:{" "}
+                    <span className="ml-2">
+                      ₹{totalGeneratedBillAmount.toFixed(2)}
+                    </span>
+                  </h3>
+                </div>
+
+                {/* Filters + Button Row */}
+                <div className="flex flex-wrap items-center gap-3 w-full">
                   <Select
-                    value={selectedPatientId}
-                    onValueChange={(v) => setSelectedPatientId(v)}
+                    value={selectedBillPatientId}
+                    onValueChange={(v) => setSelectedBillPatientId(v)}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-56">
                       <SelectValue placeholder="Filter by Patients" />
                     </SelectTrigger>
-                    <SelectContent className="h-[200px]">
+                    <SelectContent
+                      position="popper"
+                      side="bottom"
+                      align="start"
+                      sideOffset={6}
+                      avoidCollisions={false}
+                      className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                    >
                       <SelectItem value="ALL">All Patients</SelectItem>
                       {patients.map((p) => (
                         <SelectItem key={p._id} value={p._id}>
@@ -1197,34 +1606,51 @@ const Income = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <div className="flex flex-col gap-1">
+                    {/* <Label>Filter Type</Label> */}
+                    <Select
+                      value={billFilterType}
+                      onValueChange={setBillFilterType}
+                    >
+                      <SelectTrigger className="w-52">
+                        <SelectValue placeholder="Filter Type" />
+                      </SelectTrigger>
 
-                  <Select
-                    value={selectedFeeTypeId}
-                    onValueChange={(v) => setSelectedFeeTypeId(v)}
-                  >
-                    <SelectTrigger className="w-full mr-10">
-                      <SelectValue placeholder="Filter by Feestype" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Fees Type</SelectItem>
-                      {feesType.map((p) => (
-                        <SelectItem key={p._id} value={p._id}>
-                          {p.feesTypeName}
+                      <SelectContent
+                        position="popper"
+                        side="bottom"
+                        align="start"
+                        sideOffset={6}
+                        avoidCollisions={false}
+                        className="z-[99999] max-h-72 overflow-auto bg-white border shadow-lg"
+                      >
+                        <SelectItem value="created">
+                          Bill Created Month Wise
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
 
+                        <SelectItem value="lastSession">
+                          Last Session Wise
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Select
-                    onValueChange={(val) => setSelectedMonth(Number(val))}
-                    value={selectedMonth}
+                    onValueChange={(val) => setSelectedBillMonth(Number(val))}
+                    value={String(selectedBillMonth)}
                   >
-                    <SelectTrigger className="w-full sm:w-40">
+                    <SelectTrigger className="w-40">
                       <SelectValue placeholder="Select Month" />
                     </SelectTrigger>
-                    <SelectContent className="h-[200px]">
+                    <SelectContent
+                      position="popper"
+                      side="bottom"
+                      align="start"
+                      sideOffset={6}
+                      avoidCollisions={false}
+                      className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
+                    >
                       {months.map((m, idx) => (
-                        <SelectItem key={idx} value={idx + 1}>
+                        <SelectItem key={idx} value={String(idx + 1)}>
                           {m}
                         </SelectItem>
                       ))}
@@ -1232,882 +1658,617 @@ const Income = () => {
                   </Select>
 
                   <Select
-                    onValueChange={(val) => setSelectedYear(Number(val))}
-                    value={selectedYear}
+                    onValueChange={(val) => setSelectedBillYear(Number(val))}
+                    value={String(selectedBillYear)}
                   >
-                    <SelectTrigger className="w-full sm:w-28">
+                    <SelectTrigger className="w-28">
                       <SelectValue placeholder="Select Year" />
                     </SelectTrigger>
-                    <SelectContent className="h-[200px]">
-                      {[
-                        2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
-                        2035, 2036, 2037, 2038, 2039, 2040,
-                      ].map((y) => (
-                        <SelectItem key={y} value={y}>
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="medical-card hidden md:block">
-            <CardContent>
-              <div className="hidden md:block overflow-x-auto mt-5">
-                <table className="min-w-full text-sm border rounded-lg">
-                  <thead className="bg-gray-100 text-gray-700">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Patient Name</th>
-                      <th className="px-3 py-2 text-left">Physio Name</th>
-                      <th className="px-3 py-2 text-left">
-                        Completed Sessions
-                      </th>
-                      <th className="px-3 py-2 text-left">Fees(Fees Type)</th>
-                      <th className="px-3 py-2 text-left">Total Income</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPatients
-                      .filter((p) => p.totalCompletedSessions > 0)
-                      .map((p) => (
-                        <tr
-                          key={p._id}
-                          className="hover:bg-gray-50 text-sm md:text-base"
-                        >
-                          <td className="p-2 border whitespace-nowrap">
-                            {p.patientName}
-                          </td>
-                          <td className="p-2 border whitespace-nowrap">
-                            {selectedPhysioId !== "ALL"
-                              ? p.physioDetails?.find(
-                                  (physio) =>
-                                    physio.physioId === selectedPhysioId,
-                                )?.physioName
-                              : p.physioDetails
-                                  ?.map((physio) => physio.physioName)
-                                  .join(", ") || "N/A"}
-                          </td>
-                          <td className="p-2 border text-center">
-                            {selectedPhysioId !== "ALL"
-                              ? p.physioDetails?.find(
-                                  (physio) =>
-                                    physio.physioId === selectedPhysioId,
-                                )?.sessionCount
-                              : p.totalCompletedSessions}
-                          </td>
-                          <td className="p-2 border text-center whitespace-nowrap">
-                            ₹{p.feePerSession || 0} ({p.feeType || "N/A"})
-                          </td>
-                          <td className="p-2 border text-center font-semibold whitespace-nowrap">
-                            ₹{Number(p.totalIncome || 0).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* MOBILE VIEW - INCOME CARDS */}
-          <Card className="medical-card md:hidden">
-            <CardHeader>
-              <CardTitle className="text-base">
-                Patients (
-                {
-                  filteredPatients.filter((p) => p.totalCompletedSessions > 0)
-                    .length
-                }
-                )
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-3">
-              {filteredPatients.filter((p) => p.totalCompletedSessions > 0)
-                .length === 0 ? (
-                <div className="text-center text-sm text-gray-500 py-6">
-                  No income records found for selected filters.
-                </div>
-              ) : (
-                filteredPatients
-                  .filter((p) => p.totalCompletedSessions > 0)
-                  .map((p) => (
-                    <motion.div
-                      key={p._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="border rounded-xl p-4 bg-white shadow-sm"
-                    >
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-gray-800">
-                            {p.patientName}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {p.patientCode || ""}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">Total Income</p>
-                          <p className="font-bold text-gray-900">
-                            ₹{Number(p.totalIncome || 0).toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Body */}
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                        <div className="p-2 rounded-lg bg-gray-50">
-                          <p className="text-xs text-gray-500">Physio</p>
-                          <p className="font-medium text-gray-800">
-                            {p.physioName || "N/A"}
-                          </p>
-                        </div>
-
-                        <div className="p-2 rounded-lg bg-gray-50">
-                          <p className="text-xs text-gray-500">Completed</p>
-                          <p className="font-medium text-gray-800">
-                            {p.totalCompletedSessions || 0}
-                          </p>
-                        </div>
-
-                        <div className="p-2 rounded-lg bg-gray-50 col-span-2">
-                          <p className="text-xs text-gray-500">Fees</p>
-                          <p className="font-medium text-gray-800">
-                            ₹{p.feePerSession || 0}{" "}
-                            <span className="text-xs text-gray-500">
-                              ({p.feeType || "N/A"})
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
-              )}
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {activeTab === "bill" && (
-        <>
-          <Card style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
-            <CardHeader>
-              <CardTitle>Bill Generate Dashboard</CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4" style={{ minWidth: 0 }}>
-              {/* Top Summary */}
-              <div className="flex flex-wrap justify-between items-center w-full gap-4">
-                <h3 className="text-lg font-semibold">
-                  Generated Bills:{" "}
-                  <span className="ml-2">{filteredBills.length}</span>
-                </h3>
-                <h3 className="text-lg font-semibold">
-                  Total Received Amount:{" "}
-                  <span className="ml-2">₹{totalReceivedAmt.toFixed(2)}</span>
-                </h3>
-                <h3 className="text-lg font-semibold">
-                  Total Pending Amount:{" "}
-                  <span className="ml-2">₹{totalPendingAmt.toFixed(2)}</span>
-                </h3>
-                <h3 className="text-lg font-semibold">
-                  Total Discount Amount:{" "}
-                  <span className="ml-2 text-purple-600">
-                    ₹{totalDiscountAmt.toFixed(2)}
-                  </span>
-                </h3>
-                <h3 className="text-lg font-semibold">
-                  Total Bad Debt:{" "}
-                  <span className="ml-2 text-red-600">
-                    ₹{totalBadDebtAmount.toFixed(2)}
-                  </span>
-                </h3>
-                <h3 className="text-lg font-semibold">
-                  Total Billed Amount:{" "}
-                  <span className="ml-2">
-                    ₹{totalGeneratedBillAmount.toFixed(2)}
-                  </span>
-                </h3>
-              </div>
-
-              {/* Filters + Button Row */}
-              <div className="flex flex-wrap items-center gap-3 w-full">
-                <Select
-                  value={selectedBillPatientId}
-                  onValueChange={(v) => setSelectedBillPatientId(v)}
-                >
-                  <SelectTrigger className="w-56">
-                    <SelectValue placeholder="Filter by Patients" />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    align="start"
-                    sideOffset={6}
-                    avoidCollisions={false}
-                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
-                  >
-                    <SelectItem value="ALL">All Patients</SelectItem>
-                    {patients.map((p) => (
-                      <SelectItem key={p._id} value={p._id}>
-                        {p.patientName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex flex-col gap-1">
-                  {/* <Label>Filter Type</Label> */}
-                  <Select
-                    value={billFilterType}
-                    onValueChange={setBillFilterType}
-                  >
-                    <SelectTrigger className="w-52">
-                      <SelectValue placeholder="Filter Type" />
-                    </SelectTrigger>
-
                     <SelectContent
                       position="popper"
                       side="bottom"
                       align="start"
                       sideOffset={6}
                       avoidCollisions={false}
-                      className="z-[99999] max-h-72 overflow-auto bg-white border shadow-lg"
+                      className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
                     >
-                      <SelectItem value="created">
-                        Bill Created Month Wise
-                      </SelectItem>
-
-                      <SelectItem value="lastSession">
-                        Last Session Wise
-                      </SelectItem>
+                      {[
+                        2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
+                        2035, 2036, 2037, 2038, 2039, 2040,
+                      ].map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+
+                  <Button onClick={fetchBills}>Apply</Button>
+                  {/* <button onClick={downloadbillPageAsPdf}>
+                    Download Page as PDF
+                  </button> */}
+                  <Button
+                    className="ml-auto"
+                    onClick={handleManualGenerateBill}
+                    disabled={
+                      !selectedBillPatientId || selectedBillPatientId === "ALL"
+                    }
+                  >
+                    Generate Manual Bill
+                  </Button>
                 </div>
-                <Select
-                  onValueChange={(val) => setSelectedBillMonth(Number(val))}
-                  value={String(selectedBillMonth)}
-                >
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Select Month" />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    align="start"
-                    sideOffset={6}
-                    avoidCollisions={false}
-                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
-                  >
-                    {months.map((m, idx) => (
-                      <SelectItem key={idx} value={String(idx + 1)}>
-                        {m}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
 
-                <Select
-                  onValueChange={(val) => setSelectedBillYear(Number(val))}
-                  value={String(selectedBillYear)}
-                >
-                  <SelectTrigger className="w-28">
-                    <SelectValue placeholder="Select Year" />
-                  </SelectTrigger>
-                  <SelectContent
-                    position="popper"
-                    side="bottom"
-                    align="start"
-                    sideOffset={6}
-                    avoidCollisions={false}
-                    className="z-[99999] max-h-72 overflow-auto w-[--radix-select-trigger-width] bg-white border shadow-lg h-[200px]"
-                  >
-                    {[
-                      2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034,
-                      2035, 2036, 2037, 2038, 2039, 2040,
-                    ].map((y) => (
-                      <SelectItem key={y} value={String(y)}>
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button onClick={fetchBills}>Apply</Button>
-
-                <Button
-                  className="ml-auto"
-                  onClick={handleManualGenerateBill}
-                  disabled={
-                    !selectedBillPatientId || selectedBillPatientId === "ALL"
-                  }
-                >
-                  Generate Manual Bill
-                </Button>
-              </div>
-
-              {/* ── DESKTOP BILL TABLE ── */}
-              {/* NOTE: We intentionally place this outside any Card that has overflow:hidden,
+                {/* ── DESKTOP BILL TABLE ── */}
+                {/* NOTE: We intentionally place this outside any Card that has overflow:hidden,
                   because overflow:hidden on any ancestor breaks position:sticky.
                   The scrollable wrapper itself uses overflow-x:auto which is fine for sticky. */}
-              <div
-                className="hidden md:block rounded-lg border border-gray-200 bg-white"
-                style={{ width: "100%", minWidth: 0 }}
-              >
                 <div
-                  style={{
-                    width: "100%",
-                    minWidth: 0,
-                    overflowX: "auto",
-                    overflowY: "auto",
-                    maxHeight: "500px",
-                    WebkitOverflowScrolling: "touch",
-                    position: "relative",
-                  }}
+                  className="hidden md:block rounded-lg border border-gray-200 bg-white"
+                  style={{ width: "100%", minWidth: 0 }}
                 >
-                  <table
+                  <div
                     style={{
-                      minWidth: "max-content",
                       width: "100%",
-                      fontSize: "0.875rem",
-                      borderCollapse: "separate",
-                      borderSpacing: 0,
+                      minWidth: 0,
+                      overflowX: "auto",
+                      overflowY: "auto",
+                      maxHeight: "500px",
+                      WebkitOverflowScrolling: "touch",
+                      position: "relative",
                     }}
                   >
-                    <thead
+                    <table
                       style={{
-                        backgroundColor: "#f3f4f6",
-                        color: "#374151",
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 40,
+                        minWidth: "max-content",
+                        width: "100%",
+                        fontSize: "0.875rem",
+                        borderCollapse: "separate",
+                        borderSpacing: 0,
                       }}
                     >
-                      <tr>
-                        <th
-                          style={{
-                            position: "sticky",
-                            left: 0,
-                            top: 0,
-                            zIndex: 60,
-                            backgroundColor: "#f3f4f6",
-                            minWidth: "180px",
-                            padding: "10px 12px",
-                            textAlign: "left",
-                            whiteSpace: "nowrap",
-                            borderBottom: "1px solid #e5e7eb",
-                            borderRight: "2px solid #d1d5db",
-                            fontWeight: 600,
-                            boxShadow: "2px 0 4px rgba(0,0,0,0.04)",
-                          }}
-                        >
-                          Patient
-                        </th>
-
-                        {[
-                          "Physio",
-                          "Session Start - To date",
-                          "Sessions",
-                          "Rate/Session",
-                          "Total Amount",
-                          "Deducted From Advance",
-                          "Net Billed Amount",
-                          "Received Amount",
-                          "Pending Amount",
-                          "Discount Amount",
-                          "Payment Status",
-                          "Payment Type",
-                          "Bill Generate",
-                          "Payment Actions",
-
-                          "Receive Payment",
-                          "Bill Send",
-                          "Is Bad Debt",
-                        ].map((h) => (
+                      <thead
+                        style={{
+                          backgroundColor: "#f3f4f6",
+                          color: "#374151",
+                          position: "sticky",
+                          top: 0,
+                          zIndex: 40,
+                        }}
+                      >
+                        <tr>
                           <th
-                            key={h}
                             style={{
                               position: "sticky",
+                              left: 0,
                               top: 0,
-                              zIndex: 50,
+                              zIndex: 60,
                               backgroundColor: "#f3f4f6",
+                              minWidth: "180px",
                               padding: "10px 12px",
                               textAlign: "left",
                               whiteSpace: "nowrap",
                               borderBottom: "1px solid #e5e7eb",
-                              borderRight: "1px solid #e5e7eb",
+                              borderRight: "2px solid #d1d5db",
                               fontWeight: 600,
+                              boxShadow: "2px 0 4px rgba(0,0,0,0.04)",
                             }}
                           >
-                            {h}
+                            Patient
                           </th>
-                        ))}
-                      </tr>
-                    </thead>
 
-                    <tbody>
-                      {sortedBills.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={18}
-                            className="p-4 text-center text-gray-500"
-                            style={{
-                              backgroundColor: "#fff",
-                            }}
-                          >
-                            No bills found for selected filters
-                          </td>
-                        </tr>
-                      ) : (
-                        sortedBills.map((b, rowIndex) => {
-                          const status = getBillPaymentStatus(b);
-                          const paymentType = getBillPaymentType(b);
+                          {[
+                            "Physio",
+                            "Session Start - To date",
+                            "Sessions",
+                            "Rate/Session",
+                            "Total Amount",
+                            "Deducted From Advance",
+                            "Net Billed Amount",
+                            "Received Amount",
+                            "Pending Amount",
+                            "Discount Amount",
+                            "Payment Status",
+                            "Payment Type",
+                            "Bill Generate",
+                            "Payment Actions",
 
-                          const totalAmount = Number(b?.TotalBilledAmount || 0);
-                          const deductedAmount = Number(
-                            b?.DeductedFromAdvance || 0,
-                          );
-                          const netAmount = Number(b?.NetBilledAmount || 0);
-                          const discountAmt = Number(b?.DiscountAmount || 0);
-                          const receivedAmount = Number(b?.ReceivedAmount || 0);
-
-                          const finalPayable = Math.max(
-                            netAmount - discountAmt,
-                            0,
-                          );
-                          const pendingAmount = Math.max(
-                            finalPayable - receivedAmount,
-                            0,
-                          );
-
-                          const formatDate = (date) => {
-                            if (!date) return "-";
-                            const d = new Date(date);
-                            const day = String(d.getUTCDate()).padStart(2, "0");
-                            const month = String(d.getUTCMonth() + 1).padStart(
-                              2,
-                              "0",
-                            );
-                            const year = d.getUTCFullYear();
-                            return `${day}-${month}-${year}`;
-                          };
-
-                          const fromDate = b?.startDate;
-                          const toDate = b?.ToDate;
-
-                          const rowBg =
-                            rowIndex % 2 === 0 ? "#ffffff" : "#fcfcfc";
-
-                          return (
-                            <tr
-                              key={b._id}
+                            "Receive Payment",
+                            "Bill Send",
+                            "Is Bad Debt",
+                          ].map((h) => (
+                            <th
+                              key={h}
                               style={{
-                                fontSize: "0.875rem",
-                                backgroundColor: rowBg,
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#f9fafb";
-                                const stickyCell =
-                                  e.currentTarget.querySelector(
-                                    "[data-sticky-first-col='true']",
-                                  );
-                                if (stickyCell)
-                                  stickyCell.style.backgroundColor = "#f9fafb";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = rowBg;
-                                const stickyCell =
-                                  e.currentTarget.querySelector(
-                                    "[data-sticky-first-col='true']",
-                                  );
-                                if (stickyCell)
-                                  stickyCell.style.backgroundColor = rowBg;
+                                position: "sticky",
+                                top: 0,
+                                zIndex: 50,
+                                backgroundColor: "#f3f4f6",
+                                padding: "10px 12px",
+                                textAlign: "left",
+                                whiteSpace: "nowrap",
+                                borderBottom: "1px solid #e5e7eb",
+                                borderRight: "1px solid #e5e7eb",
+                                fontWeight: 600,
                               }}
                             >
-                              <td
-                                data-sticky-first-col="true"
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {sortedBills.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={18}
+                              className="p-4 text-center text-gray-500"
+                              style={{
+                                backgroundColor: "#fff",
+                              }}
+                            >
+                              No bills found for selected filters
+                            </td>
+                          </tr>
+                        ) : (
+                          sortedBills.map((b, rowIndex) => {
+                            const status = getBillPaymentStatus(b);
+                            const paymentType = getBillPaymentType(b);
+
+                            const totalAmount = Number(
+                              b?.TotalBilledAmount || 0,
+                            );
+                            const deductedAmount = Number(
+                              b?.DeductedFromAdvance || 0,
+                            );
+                            const netAmount = Number(b?.NetBilledAmount || 0);
+                            const discountAmt = Number(b?.DiscountAmount || 0);
+                            const receivedAmount = Number(
+                              b?.ReceivedAmount || 0,
+                            );
+
+                            const finalPayable = Math.max(
+                              netAmount - discountAmt,
+                              0,
+                            );
+                            const pendingAmount = Math.max(
+                              finalPayable - receivedAmount,
+                              0,
+                            );
+
+                            const formatDate = (date) => {
+                              if (!date) return "-";
+                              const d = new Date(date);
+                              const day = String(d.getUTCDate()).padStart(
+                                2,
+                                "0",
+                              );
+                              const month = String(
+                                d.getUTCMonth() + 1,
+                              ).padStart(2, "0");
+                              const year = d.getUTCFullYear();
+                              return `${day}-${month}-${year}`;
+                            };
+
+                            const fromDate = b?.startDate;
+                            const toDate = b?.ToDate;
+
+                            const rowBg =
+                              rowIndex % 2 === 0 ? "#ffffff" : "#fcfcfc";
+
+                            return (
+                              <tr
+                                key={b._id}
                                 style={{
-                                  position: "sticky",
-                                  left: 0,
-                                  zIndex: 20,
+                                  fontSize: "0.875rem",
                                   backgroundColor: rowBg,
-                                  minWidth: "180px",
-                                  padding: "8px 12px",
-                                  whiteSpace: "nowrap",
-                                  borderBottom: "1px solid #e5e7eb",
-                                  borderRight: "2px solid #d1d5db",
-                                  boxShadow: "2px 0 4px rgba(0,0,0,0.04)",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor =
+                                    "#f9fafb";
+                                  const stickyCell =
+                                    e.currentTarget.querySelector(
+                                      "[data-sticky-first-col='true']",
+                                    );
+                                  if (stickyCell)
+                                    stickyCell.style.backgroundColor =
+                                      "#f9fafb";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = rowBg;
+                                  const stickyCell =
+                                    e.currentTarget.querySelector(
+                                      "[data-sticky-first-col='true']",
+                                    );
+                                  if (stickyCell)
+                                    stickyCell.style.backgroundColor = rowBg;
                                 }}
                               >
-                                {b?.patientId?.patientName || "N/A"}{" "}
-                                <span className="text-xs text-gray-500">
-                                  ({b?.patientId?.patientCode || ""})
-                                </span>
-                              </td>
-
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                {b?.physioId?.physioName || "N/A"}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                {formatDate(fromDate)} - {formatDate(toDate)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center">
-                                {b?.TotalSessionCount ?? 0}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
-                                ₹{Number(b?.ratePerSession || 0).toFixed(2)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap">
-                                ₹{totalAmount.toFixed(2)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-yellow-100">
-                                ₹{deductedAmount.toFixed(2)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-blue-100">
-                                ₹{netAmount.toFixed(2)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-green-300">
-                                ₹{receivedAmount.toFixed(2)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-red-100">
-                                ₹{pendingAmount.toFixed(2)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-purple-100">
-                                ₹{discountAmt.toFixed(2)}
-                              </td>
-
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                <span
-                                  className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(status)}`}
+                                <td
+                                  data-sticky-first-col="true"
+                                  style={{
+                                    position: "sticky",
+                                    left: 0,
+                                    zIndex: 20,
+                                    backgroundColor: rowBg,
+                                    minWidth: "180px",
+                                    padding: "8px 12px",
+                                    whiteSpace: "nowrap",
+                                    borderBottom: "1px solid #e5e7eb",
+                                    borderRight: "2px solid #d1d5db",
+                                    boxShadow: "2px 0 4px rgba(0,0,0,0.04)",
+                                  }}
                                 >
-                                  {status}
-                                </span>
-                              </td>
+                                  {b?.patientId?.patientName || "N/A"}{" "}
+                                  <span className="text-xs text-gray-500">
+                                    ({b?.patientId?.patientCode || ""})
+                                  </span>
+                                </td>
 
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                {paymentType || "-"}
-                              </td>
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  {b?.physioId?.physioName || "N/A"}
+                                </td>
 
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                <Button
-                                  onClick={() => {
-                                    setBillPreview({
-                                      open: true,
-                                      bill: {
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  {formatDate(fromDate)} - {formatDate(toDate)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center">
+                                  {b?.TotalSessionCount ?? 0}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap">
+                                  ₹{Number(b?.ratePerSession || 0).toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap">
+                                  ₹{totalAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-yellow-100">
+                                  ₹{deductedAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center font-semibold whitespace-nowrap bg-blue-100">
+                                  ₹{netAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-green-300">
+                                  ₹{receivedAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-red-100">
+                                  ₹{pendingAmount.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 text-center whitespace-nowrap bg-purple-100">
+                                  ₹{discountAmt.toFixed(2)}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  <span
+                                    className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(status)}`}
+                                  >
+                                    {status}
+                                  </span>
+                                </td>
+
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  {paymentType || "-"}
+                                </td>
+
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  <Button
+                                    onClick={() => {
+                                      setBillPreview({
+                                        open: true,
+                                        bill: {
+                                          ...b,
+                                          pending: pendingAmount,
+                                          finalPayable,
+                                        },
+                                        includeSessions: false,
+                                        loading: false,
+                                      });
+                                    }}
+                                  >
+                                    Generate Bill
+                                  </Button>
+                                </td>
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  <div className="flex flex-col gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => openRevertConfirmDialog(b)}
+                                      disabled={
+                                        Number(b?.ReceivedAmount || 0) <= 0 ||
+                                        b?.isBadDebt
+                                      }
+                                      className="bg-orange-500 text-white hover:bg-orange-600"
+                                    >
+                                      Revert Payment
+                                    </Button>
+                                  </div>
+                                </td>
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      openPaymentDialog({
                                         ...b,
                                         pending: pendingAmount,
                                         finalPayable,
-                                      },
-                                      includeSessions: false,
-                                      loading: false,
-                                    });
-                                  }}
-                                >
-                                  Generate Bill
-                                </Button>
-                              </td>
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                <div className="flex flex-col gap-2">
+                                      })
+                                    }
+                                    disabled={
+                                      status === "Paid" || status === "Bad Debt"
+                                    }
+                                    className={
+                                      status === "Paid" || status === "Bad Debt"
+                                        ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                        : ""
+                                    }
+                                  >
+                                    {status === "Paid" ? (
+                                      <span className="flex items-center gap-2">
+                                        <CheckCircle size={16} />
+                                        Payment Received
+                                      </span>
+                                    ) : status === "Bad Debt" ? (
+                                      "Bad Debt"
+                                    ) : (
+                                      "Receive Payment"
+                                    )}
+                                  </Button>
+                                </td>
+
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
                                   <Button
                                     size="sm"
-                                    onClick={() => openRevertConfirmDialog(b)}
-                                    disabled={
-                                      Number(b?.ReceivedAmount || 0) <= 0 ||
-                                      b?.isBadDebt
-                                    }
-                                    className="bg-orange-500 text-white hover:bg-orange-600"
-                                  >
-                                    Revert Payment
-                                  </Button>
-                                </div>
-                              </td>
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    openPaymentDialog({
-                                      ...b,
-                                      pending: pendingAmount,
-                                      finalPayable,
-                                    })
-                                  }
-                                  disabled={
-                                    status === "Paid" || status === "Bad Debt"
-                                  }
-                                  className={
-                                    status === "Paid" || status === "Bad Debt"
-                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                      : ""
-                                  }
-                                >
-                                  {status === "Paid" ? (
-                                    <span className="flex items-center gap-2">
-                                      <CheckCircle size={16} />
-                                      Payment Received
-                                    </span>
-                                  ) : status === "Bad Debt" ? (
-                                    "Bad Debt"
-                                  ) : (
-                                    "Receive Payment"
-                                  )}
-                                </Button>
-                              </td>
-
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSendBill(b._id)}
-                                  disabled={b?.isSend}
-                                  className={
-                                    b?.isSend
-                                      ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                      : ""
-                                  }
-                                >
-                                  {b?.isSend ? (
-                                    <span className="flex items-center gap-2">
-                                      <CheckCircle size={16} />
-                                      Bill Sent
-                                    </span>
-                                  ) : (
-                                    "Send Bill"
-                                  )}
-                                </Button>
-                              </td>
-
-                              <td className="p-2 border border-gray-200 whitespace-nowrap">
-                                <Button
-                                  onClick={() =>
-                                    setBadDebtDialog({
-                                      open: true,
-                                      billId: b._id,
-                                    })
-                                  }
-                                  disabled={b?.isBadDebt || status === "Paid"}
-                                  className={`px-2 py-1 text-xs rounded ${
-                                    b?.isBadDebt
-                                      ? "bg-gray-400 cursor-not-allowed text-white"
-                                      : status === "Paid"
+                                    onClick={() => handleSendBill(b._id)}
+                                    disabled={b?.isSend}
+                                    className={
+                                      b?.isSend
                                         ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
-                                        : "bg-red-500 text-white hover:bg-red-600"
-                                  }`}
-                                >
-                                  {b?.isBadDebt
-                                    ? "Bad Debt"
-                                    : status === "Paid"
-                                      ? "Paid"
-                                      : "Mark Bad Debt"}
-                                </Button>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
+                                        : ""
+                                    }
+                                  >
+                                    {b?.isSend ? (
+                                      <span className="flex items-center gap-2">
+                                        <CheckCircle size={16} />
+                                        Bill Sent
+                                      </span>
+                                    ) : (
+                                      "Send Bill"
+                                    )}
+                                  </Button>
+                                </td>
+
+                                <td className="p-2 border border-gray-200 whitespace-nowrap">
+                                  <Button
+                                    onClick={() =>
+                                      setBadDebtDialog({
+                                        open: true,
+                                        billId: b._id,
+                                      })
+                                    }
+                                    disabled={b?.isBadDebt || status === "Paid"}
+                                    className={`px-2 py-1 text-xs rounded ${
+                                      b?.isBadDebt
+                                        ? "bg-gray-400 cursor-not-allowed text-white"
+                                        : status === "Paid"
+                                          ? "bg-green-600 text-white hover:bg-green-600 cursor-not-allowed"
+                                          : "bg-red-500 text-white hover:bg-red-600"
+                                    }`}
+                                  >
+                                    {b?.isBadDebt
+                                      ? "Bad Debt"
+                                      : status === "Paid"
+                                        ? "Paid"
+                                        : "Mark Bad Debt"}
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* MOBILE VIEW - BILL CARDS */}
-          <Card className="medical-card md:hidden">
-            <CardHeader>
-              <CardTitle className="text-base">
-                Bills ({sortedBills.length})
-              </CardTitle>
-            </CardHeader>
+            {/* MOBILE VIEW - BILL CARDS */}
+            <Card className="medical-card md:hidden">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Bills ({sortedBills.length})
+                </CardTitle>
+              </CardHeader>
 
-            <CardContent className="space-y-3">
-              {sortedBills.length === 0 ? (
-                <div className="text-center text-sm text-gray-500 py-6">
-                  No bills found for selected filters.
-                </div>
-              ) : (
-                sortedBills.map((b) => {
-                  const net = Number(b?.NetBilledAmount || 0);
-                  const received = Number(b?.ReceivedAmount || 0);
-                  const deducted = Number(b?.DeductedFromAdvance || 0);
-                  const pending = getPendingAmount(b);
-                  const status = getBillPaymentStatus(b);
+              <CardContent className="space-y-3">
+                {sortedBills.length === 0 ? (
+                  <div className="text-center text-sm text-gray-500 py-6">
+                    No bills found for selected filters.
+                  </div>
+                ) : (
+                  sortedBills.map((b) => {
+                    const net = Number(b?.NetBilledAmount || 0);
+                    const received = Number(b?.ReceivedAmount || 0);
+                    const deducted = Number(b?.DeductedFromAdvance || 0);
+                    const pending = getPendingAmount(b);
+                    const status = getBillPaymentStatus(b);
 
-                  const formatDate = (date) => {
-                    if (!date) return "-";
-                    const d = new Date(date);
-                    const day = String(d.getUTCDate()).padStart(2, "0");
-                    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-                    const year = d.getUTCFullYear();
-                    return `${day}-${month}-${year}`;
-                  };
-                  const fromDate = b?.startDate;
-                  const toDate = b?.ToDate;
+                    const formatDate = (date) => {
+                      if (!date) return "-";
+                      const d = new Date(date);
+                      const day = String(d.getUTCDate()).padStart(2, "0");
+                      const month = String(d.getUTCMonth() + 1).padStart(
+                        2,
+                        "0",
+                      );
+                      const year = d.getUTCFullYear();
+                      return `${day}-${month}-${year}`;
+                    };
+                    const fromDate = b?.startDate;
+                    const toDate = b?.ToDate;
 
-                  return (
-                    <motion.div
-                      key={b._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="border rounded-xl p-4 bg-white shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-gray-800">
-                            {b?.patientId?.patientName || "N/A"}{" "}
-                            <span className="text-xs text-gray-500">
-                              ({b?.patientId?.patientCode || ""})
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Physio: {b?.physioId?.physioName || "N/A"}
-                          </p>
+                    return (
+                      <motion.div
+                        key={b._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="border rounded-xl p-4 bg-white shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              {b?.patientId?.patientName || "N/A"}{" "}
+                              <span className="text-xs text-gray-500">
+                                ({b?.patientId?.patientCode || ""})
+                              </span>
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Physio: {b?.physioId?.physioName || "N/A"}
+                            </p>
+                          </div>
+
+                          <div
+                            className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusBadgeClass(status)}`}
+                          >
+                            {status}
+                          </div>
                         </div>
 
-                        <div
-                          className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusBadgeClass(status)}`}
-                        >
-                          {status}
+                        <div className="mt-2 text-xs text-gray-600">
+                          Period: {fromDate ? formatDate(fromDate) : "-"} -{" "}
+                          {toDate ? formatDate(toDate) : "-"}
                         </div>
-                      </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                          <div className="p-2 rounded-lg bg-gray-50">
+                            <p className="text-xs text-gray-500">Sessions</p>
+                            <p className="font-medium">
+                              {b?.TotalSessionCount ?? 0}
+                            </p>
+                          </div>
 
-                      <div className="mt-2 text-xs text-gray-600">
-                        Period: {fromDate ? formatDate(fromDate) : "-"} -{" "}
-                        {toDate ? formatDate(toDate) : "-"}
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                        <div className="p-2 rounded-lg bg-gray-50">
-                          <p className="text-xs text-gray-500">Sessions</p>
-                          <p className="font-medium">
-                            {b?.TotalSessionCount ?? 0}
-                          </p>
+                          <div className="p-2 rounded-lg bg-gray-50">
+                            <p className="text-xs text-gray-500">Rate</p>
+                            <p className="font-medium">
+                              ₹{Number(b?.ratePerSession || 0).toFixed(2)}
+                            </p>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-blue-50">
+                            <p className="text-xs text-gray-500">Net</p>
+                            <p className="font-bold">₹{net.toFixed(2)}</p>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-red-50">
+                            <p className="text-xs text-gray-500">Pending</p>
+                            <p className="font-bold">₹{pending.toFixed(2)}</p>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-gray-50 col-span-2">
+                            <p className="text-xs text-gray-500">
+                              Received / Deducted
+                            </p>
+                            <p className="font-medium">
+                              ₹{received.toFixed(2)}{" "}
+                              <span className="text-xs text-gray-500">
+                                (Deducted: ₹{deducted.toFixed(2)})
+                              </span>
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="p-2 rounded-lg bg-gray-50">
-                          <p className="text-xs text-gray-500">Rate</p>
-                          <p className="font-medium">
-                            ₹{Number(b?.ratePerSession || 0).toFixed(2)}
-                          </p>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <Button
+                            className="w-full"
+                            onClick={() => {
+                              setBillPreview({
+                                open: true,
+                                bill: { ...b, pending },
+                                includeSessions: false,
+                                loading: false,
+                              });
+                            }}
+                          >
+                            Generate
+                          </Button>
+                          <Button
+                            className="w-full bg-orange-500 text-white hover:bg-orange-600"
+                            onClick={() => openRevertConfirmDialog(b)}
+                            disabled={
+                              Number(b?.ReceivedAmount || 0) <= 0 ||
+                              b?.isBadDebt
+                            }
+                          >
+                            Revert Payment
+                          </Button>
+
+                          <Button
+                            className="w-full"
+                            variant="outline"
+                            onClick={() => openPaymentDialog(b)}
+                            disabled={
+                              status === "Paid" || status === "Bad Debt"
+                            }
+                          >
+                            {status === "Paid" ? (
+                              <span className="flex items-center gap-2">
+                                <CheckCircle size={16} /> Paid
+                              </span>
+                            ) : status === "Bad Debt" ? (
+                              "Bad Debt"
+                            ) : (
+                              "Receive"
+                            )}
+                          </Button>
+
+                          <Button
+                            className="w-full col-span-2"
+                            onClick={() => handleSendBill(b._id)}
+                            disabled={b?.isSend}
+                            variant={b?.isSend ? "secondary" : "default"}
+                          >
+                            {b?.isSend ? (
+                              <span className="flex items-center gap-2">
+                                <CheckCircle size={16} /> Bill Sent
+                              </span>
+                            ) : (
+                              "Send Bill"
+                            )}
+                          </Button>
+
+                          <Button
+                            className="w-full col-span-2 bg-red-500 text-white hover:bg-red-600"
+                            onClick={() =>
+                              setBadDebtDialog({
+                                open: true,
+                                billId: b._id,
+                              })
+                            }
+                            disabled={b?.isBadDebt || status === "Paid"}
+                          >
+                            {b?.isBadDebt
+                              ? "Bad Debt"
+                              : status === "Paid"
+                                ? "Paid"
+                                : "Mark Bad Debt"}
+                          </Button>
                         </div>
-
-                        <div className="p-2 rounded-lg bg-blue-50">
-                          <p className="text-xs text-gray-500">Net</p>
-                          <p className="font-bold">₹{net.toFixed(2)}</p>
-                        </div>
-
-                        <div className="p-2 rounded-lg bg-red-50">
-                          <p className="text-xs text-gray-500">Pending</p>
-                          <p className="font-bold">₹{pending.toFixed(2)}</p>
-                        </div>
-
-                        <div className="p-2 rounded-lg bg-gray-50 col-span-2">
-                          <p className="text-xs text-gray-500">
-                            Received / Deducted
-                          </p>
-                          <p className="font-medium">
-                            ₹{received.toFixed(2)}{" "}
-                            <span className="text-xs text-gray-500">
-                              (Deducted: ₹{deducted.toFixed(2)})
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <Button
-                          className="w-full"
-                          onClick={() => {
-                            setBillPreview({
-                              open: true,
-                              bill: { ...b, pending },
-                              includeSessions: false,
-                              loading: false,
-                            });
-                          }}
-                        >
-                          Generate
-                        </Button>
-                        <Button
-                          className="w-full bg-orange-500 text-white hover:bg-orange-600"
-                          onClick={() => openRevertConfirmDialog(b)}
-                          disabled={
-                            Number(b?.ReceivedAmount || 0) <= 0 || b?.isBadDebt
-                          }
-                        >
-                          Revert Payment
-                        </Button>
-
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          onClick={() => openPaymentDialog(b)}
-                          disabled={status === "Paid" || status === "Bad Debt"}
-                        >
-                          {status === "Paid" ? (
-                            <span className="flex items-center gap-2">
-                              <CheckCircle size={16} /> Paid
-                            </span>
-                          ) : status === "Bad Debt" ? (
-                            "Bad Debt"
-                          ) : (
-                            "Receive"
-                          )}
-                        </Button>
-
-                        <Button
-                          className="w-full col-span-2"
-                          onClick={() => handleSendBill(b._id)}
-                          disabled={b?.isSend}
-                          variant={b?.isSend ? "secondary" : "default"}
-                        >
-                          {b?.isSend ? (
-                            <span className="flex items-center gap-2">
-                              <CheckCircle size={16} /> Bill Sent
-                            </span>
-                          ) : (
-                            "Send Bill"
-                          )}
-                        </Button>
-
-                        <Button
-                          className="w-full col-span-2 bg-red-500 text-white hover:bg-red-600"
-                          onClick={() =>
-                            setBadDebtDialog({
-                              open: true,
-                              billId: b._id,
-                            })
-                          }
-                          disabled={b?.isBadDebt || status === "Paid"}
-                        >
-                          {b?.isBadDebt
-                            ? "Bad Debt"
-                            : status === "Paid"
-                              ? "Paid"
-                              : "Mark Bad Debt"}
-                        </Button>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-        </>
-      )}
+                      </motion.div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
 
       {/* Payment Dialog */}
       <Dialog

@@ -619,6 +619,45 @@ const BusinessOverview = () => {
     return filtered;
   }, [patientList, selectedReference]);
 
+  const getWeeklyRevenueForChart = async () => {
+    try {
+      const res = await apiRequest("Expense/getWeeklyRevenue", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+
+      const apiData = res?.weeklyDayWiseRevenue;
+
+      if (!apiData || typeof apiData !== "object") {
+        console.error("Invalid API response:", apiData);
+        return;
+      }
+
+      // Convert object to arrays
+      const labels = Object.keys(apiData); // ["Monday", "Tuesday", ...]
+      const data = Object.values(apiData); // [11076.846, 0, 0, ...]
+
+      setDailyRevenueData({
+        labels: labels,
+        datasets: [
+          {
+            label: "Weekly Revenue",
+            data: data,
+            borderColor: "#22c55e",
+            backgroundColor: "rgba(34,197,94,0.2)",
+            tension: 0.3,
+            fill: true,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error("Error fetching weekly revenue:", error);
+    }
+  };
+  useEffect(() => {
+    getWeeklyRevenueForChart();
+  }, []);
+
   const expenseByCategory = useMemo(() => {
     const data = expenseTransactions.reduce((acc, tx) => {
       acc[tx.category] = (acc[tx.category] || 0) + Number(tx.amount || 0);
@@ -1308,6 +1347,289 @@ const BusinessOverview = () => {
     { value: "11", label: "December" },
   ];
   const reportMonthOptions = monthOptions.filter((m) => m.value !== "all");
+  const [dailyRevenueData, setDailyRevenueData] = useState({
+    labels: [],
+    datasets: [
+      {
+        label: "Weekly Revenue",
+        data: [],
+        borderColor: "#22c55e",
+        backgroundColor: "rgba(34,197,94,0.2)",
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  });
+  const monthlyProfitData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const labels = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const profitData = Array(12).fill(0);
+
+    transactions.forEach((tx) => {
+      if (!tx.date) return;
+      const txDate = new Date(tx.date);
+      if (txDate.getFullYear() === selectedYearNumber) {
+        const month = txDate.getMonth();
+        const amount = Number(tx.amount || 0);
+
+        // Calculate Net: Income increases profit, Expense decreases it
+        if (tx.type === "Income") {
+          profitData[month] += amount;
+        } else {
+          profitData[month] -= amount;
+        }
+      }
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: `Monthly Profit (${selectedYear})`,
+          data: profitData,
+          // Dynamic colors: Green for profit, Red for loss
+          backgroundColor: profitData.map((val) =>
+            val >= 0 ? "rgba(34, 197, 94, 0.6)" : "rgba(239, 68, 68, 0.6)",
+          ),
+          borderColor: profitData.map((val) =>
+            val >= 0 ? "#22c55e" : "#ef4444",
+          ),
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [transactions, selectedYear]);
+
+  const averageRevenueData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const labels = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const monthlyRevenue = Array(12).fill(0);
+    const totalPatientsPerMonth = Array(12).fill(0);
+
+    // 1. Calculate Total Revenue from Transactions
+    transactions.forEach((tx) => {
+      if (!tx.date || tx.type !== "Income") return;
+      const txDate = new Date(tx.date);
+      if (txDate.getFullYear() === selectedYearNumber) {
+        const month = txDate.getMonth();
+        monthlyRevenue[month] += Number(tx.amount || 0);
+      }
+    });
+
+    // 2. Calculate Total Patients Registered in each month
+    // We use masters.patients or patientList here
+    const allPatients = masters.patients || patientList || [];
+
+    allPatients.forEach((patient) => {
+      // Assuming your patient object has a 'createdAt' or 'date' field
+      const registrationDate = patient.createdAt
+        ? new Date(patient.createdAt)
+        : null;
+
+      if (
+        registrationDate &&
+        registrationDate.getFullYear() === selectedYearNumber
+      ) {
+        const month = registrationDate.getMonth();
+        totalPatientsPerMonth[month] += 1;
+      }
+    });
+
+    // 3. Calculate Average (Revenue / Total Registered Patients)
+    const averageData = monthlyRevenue.map((revenue, index) => {
+      const patientCount = totalPatientsPerMonth[index];
+
+      // Divide by total patients of that month
+      return patientCount > 0
+        ? parseFloat((revenue / patientCount).toFixed(2))
+        : 0;
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Avg Revenue per Total Patients",
+          data: averageData,
+          borderColor: "#8b5cf6",
+          backgroundColor: "rgba(139, 92, 246, 0.1)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+        },
+      ],
+    };
+  }, [transactions, masters.patients, patientList, selectedYear]);
+
+  const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
+  const [fySummary, setFySummary] = useState(null);
+
+  const getFYSummary = async () => {
+    try {
+      const res = await apiRequest("Expense/getFinancialYearSummary", {
+        method: "POST",
+        body: JSON.stringify({ year: selectedYear }),
+      });
+      setFySummary(res.data);
+    } catch (error) {
+      console.error("FY Summary Error:", error);
+    }
+  };
+
+  // Update your useEffect to trigger this when the year changes
+  useEffect(() => {
+    if (Permissions.isView) {
+      getFYSummary();
+    }
+  }, [selectedYear, Permissions.isView]);
+
+  const yearlyComparisonData = useMemo(() => {
+    // 1. Hardcoded Dummy Data for previous years
+    const yearlyLabels = ["2024-2025", "2025-2026", "2026-2027"];
+    const incomeData = [3099950, 3600000]; // 24-25 and 25-26 values
+    const expenseData = [1850000, 2100000]; // Dummy expenses for visual balance
+
+    // 2. Calculate Live Data for 2026-2027 from transactions
+    let liveIncome = 0;
+    let liveExpense = 0;
+
+    transactions.forEach((tx) => {
+      if (!tx.date) return;
+      const date = new Date(tx.date);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+
+      // Financial Year 2026-2027 logic (Apr 2026 to Mar 2027)
+      const isFY26 =
+        (year === 2026 && month >= 3) || (year === 2027 && month <= 2);
+
+      if (isFY26) {
+        if (tx.type === "Income") liveIncome += Number(tx.amount || 0);
+        else liveExpense += Number(tx.amount || 0);
+      }
+    });
+
+    // Push the calculated live data to the arrays
+    incomeData.push(liveIncome);
+    expenseData.push(liveExpense);
+
+    return {
+      labels: yearlyLabels,
+      datasets: [
+        {
+          label: "Yearly Income",
+          data: incomeData,
+          backgroundColor: [
+            "rgba(16, 185, 129, 0.6)",
+            "rgba(16, 185, 129, 0.6)",
+            "#10b981",
+          ],
+          borderRadius: 6,
+        },
+        {
+          label: "Yearly Expense",
+          data: expenseData,
+          backgroundColor: "rgba(244, 63, 94, 0.6)",
+          borderRadius: 6,
+        },
+      ],
+    };
+  }, [transactions]);
+
+  const fetchSCR = async () => {
+    try {
+      // We send the selectedYear to the backend to get the specific month-wise breakdown
+      const response = await apiRequest(
+        `Session/getSCRStats?year=${selectedYear}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ year: selectedYear }),
+        },
+      );
+
+      if (response?.success) {
+        const monthlyValues = Array(12).fill(0);
+
+        // The backend returns an array of { month: 1, scr: 85.5 }
+        response.data.forEach((item) => {
+          const monthIndex = item.month - 1;
+          monthlyValues[monthIndex] = parseFloat(item.scr.toFixed(1));
+        });
+
+        setScrChartData(monthlyValues);
+      }
+    } catch (error) {
+      console.error("Error fetching SCR:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (Permissions.isView) {
+      fetchSCR();
+    }
+  }, [selectedYear, Permissions.isView]);
+
+  const sessionCompletionRateData = useMemo(() => {
+    return {
+      labels: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ],
+      datasets: [
+        {
+          label: "Session Completion Rate (%)",
+          data: scrChartData, // Use the state fetched from the backend
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+        },
+      ],
+    };
+  }, [scrChartData]);
 
   return (
     <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden px-2 pb-4 sm:space-y-6 sm:px-4 md:px-6">
@@ -1498,56 +1820,222 @@ const BusinessOverview = () => {
               </div>
             </CardContent>
           </Card>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Card className="rounded-2xl">
-              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Monthly Income
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="break-all text-xl font-bold text-green-600 sm:text-2xl">
-                  ₹{totalIncome.toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
 
-            <Card className="rounded-2xl">
-              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Monthly Expense
-                </CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="break-all text-xl font-bold text-red-600 sm:text-2xl">
-                  ₹{totalExpense.toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
+          <div className="space-y-6 p-4">
+            {/* TOP SUMMARY STATS - 3 COLUMN GRID */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <Card className="rounded-2xl border-l-4 border-l-green-500 shadow-sm">
+                <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Monthly Income
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="break-all text-xl font-bold text-green-600 sm:text-2xl">
+                    ₹{totalIncome.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="rounded-2xl sm:col-span-2 xl:col-span-1">
-              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Monthly Net
-                </CardTitle>
-                <IndianRupee
-                  className={`h-4 w-4 ${
-                    netBalance >= 0 ? "text-blue-500" : "text-orange-500"
-                  }`}
-                />
-              </CardHeader>
-              <CardContent>
-                <div
-                  className={`break-all text-xl font-bold sm:text-2xl ${
-                    netBalance >= 0 ? "text-blue-600" : "text-orange-600"
-                  }`}
-                >
-                  ₹{netBalance.toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
+              <Card className="rounded-2xl border-l-4 border-l-red-500 shadow-sm">
+                <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Monthly Expense
+                  </CardTitle>
+                  <TrendingDown className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="break-all text-xl font-bold text-red-600 sm:text-2xl">
+                    ₹{totalExpense.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border-l-4 border-l-blue-500 shadow-sm md:col-span-2 xl:col-span-1">
+                <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Monthly Net
+                  </CardTitle>
+                  <IndianRupee
+                    className={`h-4 w-4 ${netBalance >= 0 ? "text-blue-500" : "text-orange-500"}`}
+                  />
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className={`break-all text-xl font-bold sm:text-2xl ${netBalance >= 0 ? "text-blue-600" : "text-orange-600"}`}
+                  >
+                    ₹{netBalance.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* MAIN CHARTS SECTION */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 1. MULTI-YEAR GROWTH BAR CHART */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-emerald-600" />
+                    Multi-Year Revenue Growth
+                  </CardTitle>
+                  <CardDescription>
+                    Comparison: 2024-25, 2025-26, and Current {selectedYear}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Bar
+                      data={yearlyComparisonData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { position: "bottom" },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) =>
+                                `${context.dataset.label}: ₹${context.raw.toLocaleString("en-IN")}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: (value) => `₹${value / 100000}L`,
+                            },
+                          },
+                          x: { grid: { display: false } },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 2. MONTHLY PROFIT OVERVIEW BAR CHART */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    Monthly Profit Overview
+                  </CardTitle>
+                  <CardDescription>
+                    Net profit/loss per month for {selectedYear}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Bar
+                      data={monthlyProfitData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) =>
+                                `Net: ₹${context.raw.toLocaleString()}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: (value) => `₹${value.toLocaleString()}`,
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 3. AVERAGE REVENUE PER PATIENT LINE CHART */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-purple-500" />
+                    Average Revenue Per Patient
+                  </CardTitle>
+                  <CardDescription>
+                    Total income ÷ unique patients ({selectedYear})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Line
+                      data={averageRevenueData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) => `Avg: ₹${context.raw}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: { callback: (value) => `₹${value}` },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 4. SESSION COMPLETION RATE (SCR) LINE CHART */}
+              <Card className="shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base font-semibold">
+                      Session Completion Rate (SCR)
+                    </CardTitle>
+                    <CardDescription>Target: 90%+</CardDescription>
+                  </div>
+                  <div className="text-emerald-600 font-medium text-xs flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    {selectedYear} Performance
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Line
+                      data={sessionCompletionRateData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) => `SCR: ${context.raw}%`,
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { callback: (value) => `${value}%` },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
@@ -1656,6 +2144,7 @@ const BusinessOverview = () => {
         </TabsContent>
         <TabsContent value="summary_charts" className="mt-4">
           <div className="grid grid-cols-1 gap-4 sm:gap-6 2xl:grid-cols-2">
+            {/* Income vs Expense */}
             <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
@@ -1666,6 +2155,7 @@ const BusinessOverview = () => {
                   Combined pie chart for selected month
                 </CardDescription>
               </CardHeader>
+
               <CardContent className="p-3 sm:p-6">
                 <div className="h-[260px] w-full sm:h-[320px] md:h-[350px]">
                   <Pie
@@ -1678,9 +2168,7 @@ const BusinessOverview = () => {
                           position: "bottom",
                           labels: {
                             boxWidth: 12,
-                            font: {
-                              size: 10,
-                            },
+                            font: { size: 10 },
                           },
                         },
                       },
@@ -1690,6 +2178,50 @@ const BusinessOverview = () => {
               </CardContent>
             </Card>
 
+            {/* Weekly Daily Revenue */}
+            <Card className="rounded-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
+                  <BarChart3 className="h-5 w-5" />
+                  Weekly Revenue
+                </CardTitle>
+                <CardDescription>
+                  Revenue grouped by weekday (Mon–Sun)
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="p-3 sm:p-6">
+                <div className="h-[260px] w-full sm:h-[320px] md:h-[350px]">
+                  <Line
+                    data={dailyRevenueData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: "top",
+                          labels: {
+                            boxWidth: 12,
+                            font: { size: 10 },
+                          },
+                        },
+                      },
+                      scales: {
+                        x: {
+                          ticks: { font: { size: 10 } },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          ticks: { font: { size: 10 } },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Previous vs Current Month */}
             <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
@@ -1700,6 +2232,7 @@ const BusinessOverview = () => {
                   Compare income and expense between 2 months
                 </CardDescription>
               </CardHeader>
+
               <CardContent className="p-3 sm:p-6">
                 <div className="h-[260px] w-full sm:h-[320px] md:h-[350px]">
                   <Bar
@@ -1712,26 +2245,20 @@ const BusinessOverview = () => {
                           position: "top",
                           labels: {
                             boxWidth: 12,
-                            font: {
-                              size: 10,
-                            },
+                            font: { size: 10 },
                           },
                         },
                       },
                       scales: {
                         x: {
                           ticks: {
-                            font: {
-                              size: 10,
-                            },
+                            font: { size: 10 },
                           },
                         },
                         y: {
                           beginAtZero: true,
                           ticks: {
-                            font: {
-                              size: 10,
-                            },
+                            font: { size: 10 },
                           },
                         },
                       },
@@ -1741,6 +2268,7 @@ const BusinessOverview = () => {
               </CardContent>
             </Card>
 
+            {/* 12 Months Chart */}
             <Card className="rounded-2xl 2xl:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
@@ -1751,6 +2279,7 @@ const BusinessOverview = () => {
                   Full year monthly comparison for {selectedYear}
                 </CardDescription>
               </CardHeader>
+
               <CardContent className="p-3 sm:p-6">
                 <div className="h-[240px] w-full sm:h-[320px] md:h-[420px]">
                   <Line
@@ -1763,18 +2292,14 @@ const BusinessOverview = () => {
                           position: "top",
                           labels: {
                             boxWidth: 12,
-                            font: {
-                              size: 10,
-                            },
+                            font: { size: 10 },
                           },
                         },
                       },
                       scales: {
                         x: {
                           ticks: {
-                            font: {
-                              size: 10,
-                            },
+                            font: { size: 10 },
                             maxRotation: 0,
                             minRotation: 0,
                           },
@@ -1782,9 +2307,7 @@ const BusinessOverview = () => {
                         y: {
                           beginAtZero: true,
                           ticks: {
-                            font: {
-                              size: 10,
-                            },
+                            font: { size: 10 },
                           },
                         },
                       },

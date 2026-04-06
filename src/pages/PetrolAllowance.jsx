@@ -66,9 +66,10 @@ const PetrolAllowance = () => {
   }, []);
 
   useEffect(() => {
-    if (Permissions.isView) getPetrol();
+    if (Permissions.isView && dateRange?.from && dateRange?.to) {
+      getPetrol();
+    }
   }, [Permissions, dateRange, physioFilter]);
-
   const getPhysio = async () => {
     try {
       const response = await apiRequest("Physio/getAllPhysio", {
@@ -81,17 +82,29 @@ const PetrolAllowance = () => {
   };
 
   const getPetrol = async () => {
+    // Guard clause: Don't fetch if dateRange is incomplete
+    if (!dateRange?.from || !dateRange?.to) return;
+
     try {
       const response = await apiRequest(
         "PetrolAllowance/getAllPetrolAllowance",
         {
           method: "POST",
-          body: JSON.stringify({ from: dateRange?.from, to: dateRange?.to }),
+          body: JSON.stringify({
+            from: format(dateRange.from, "yyyy-MM-dd"),
+            to: format(dateRange.to, "yyyy-MM-dd"),
+            physioId: physioFilter === "all" ? null : physioFilter, // Optional: if your backend supports filtering at query level
+          }),
         },
       );
       setDailyData(Array.isArray(response) ? response : []);
     } catch (error) {
-      console.error(error);
+      console.error("Fetch Error:", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch allowance data.",
+        variant: "destructive",
+      });
     }
   };
 
