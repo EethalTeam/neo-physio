@@ -137,20 +137,53 @@ const LeavephysioManagement = () => {
       setEmployees([]);
     }
   };
-
+  const [historyFromDate, setHistoryFromDate] = useState("");
+  const [historyToDate, setHistoryToDate] = useState("");
+  useEffect(() => {
+    // Only call getLeave if any filter has a value
+    if (historyPhysioFilter || historyFromDate || historyToDate) {
+      getLeave();
+    }
+  }, [historyPhysioFilter, historyFromDate, historyToDate]);
+  const refreshHistory = () => {
+    setHistoryPhysioFilter("all");
+    setHistoryFromDate("");
+    setHistoryToDate("");
+    getLeave();
+  };
   const getLeave = async () => {
     try {
+      // Prepare payload
+      const payload = {
+        physioId:
+          historyPhysioFilter !== "all" ? historyPhysioFilter : undefined,
+        fromDate: historyFromDate || undefined,
+        toDate: historyToDate || undefined,
+      };
+
       const response = await apiRequest("LeaveControllers/getAllLeave", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify(payload),
       });
 
+      // Normalize the leave data
       const rows = Array.isArray(response?.Leaves) ? response.Leaves : [];
-      const normalized = rows.map((leave) => ({
-        ...leave,
-        LeaveDate: leave.LeaveDate || leave.Date,
-        PaidLeave: leave.PaidLeave === true || leave.PaidLeave === "true",
-      }));
+      const normalized = rows
+        .map((leave) => ({
+          ...leave,
+          LeaveDate: leave.LeaveDate || leave.Date,
+          PaidLeave: leave.PaidLeave === true || leave.PaidLeave === "true",
+        }))
+        // Filter by date range on the frontend as a safety
+        .filter((leave) => {
+          const leaveDate = new Date(leave.LeaveDate);
+          const from = historyFromDate ? new Date(historyFromDate) : null;
+          const to = historyToDate ? new Date(historyToDate) : null;
+
+          if (from && leaveDate < from) return false;
+          if (to && leaveDate > to) return false;
+          return true;
+        });
 
       setLeaveData(normalized);
     } catch (error) {
@@ -158,7 +191,6 @@ const LeavephysioManagement = () => {
       setLeaveData([]);
     }
   };
-
   const getSession = async () => {
     try {
       const response = await apiRequest("Session/getAllSession", {
@@ -257,7 +289,7 @@ const LeavephysioManagement = () => {
 
   const updatePaidLeave = async (leaveId, nextValue) => {
     try {
-      const res = await apiRequest("LeaveControllers/updateLeavePaidStatus", {
+      const res = await apiRequest("LeaveControllers/updateLeavePaid", {
         method: "POST",
         body: JSON.stringify({ _id: leaveId, PaidLeave: nextValue }),
       });
@@ -700,6 +732,7 @@ const LeavephysioManagement = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {/* Physio Filter */}
               <Select
                 value={historyPhysioFilter}
                 onValueChange={setHistoryPhysioFilter}
@@ -716,18 +749,26 @@ const LeavephysioManagement = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Input
+                type="date"
+                className="w-full sm:w-[160px] h-9"
+                value={historyFromDate}
+                onChange={(e) => setHistoryFromDate(e.target.value)}
+                placeholder="From"
+              />
 
               <Input
                 type="date"
                 className="w-full sm:w-[160px] h-9"
-                value={historyDateFilter}
-                onChange={(e) => setHistoryDateFilter(e.target.value)}
+                value={historyToDate}
+                onChange={(e) => setHistoryToDate(e.target.value)}
+                placeholder="To"
               />
-
+              {/* Refresh Button */}
               <Button
                 size="sm"
                 variant="outline"
-                onClick={getLeave}
+                onClick={refreshHistory}
                 className="h-9 w-full sm:w-auto"
               >
                 Refresh

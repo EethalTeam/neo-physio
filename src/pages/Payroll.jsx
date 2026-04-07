@@ -75,6 +75,9 @@ const Payroll = () => {
     ESI: 0,
     PF: 0,
     savings: 0,
+    paidLeaves: 0,
+    unpaidLeaves: 0,
+    totalLeaves: 0,
     petrolAmountPerKm: 0,
     totalWorkingDays: 0,
     attendedDays: 0,
@@ -85,30 +88,48 @@ const Payroll = () => {
     setEditRow(emp);
 
     const formData = {
+      _id: emp._id,
+      name: emp.name ?? "",
+      role: emp.role ?? "",
+      specialization: emp.specialization ?? "",
+      month: emp.month ?? "",
+      year: emp.year ?? new Date().getFullYear(),
+      payRollDate: emp.payRollDate ?? "",
       basicSalary: Number(emp.basicSalary ?? 0),
       vehicleMaintanance: Number(emp.vehicleMaintanance ?? 0),
       petrolKm: Number(emp.petrolKm ?? 0),
       petrolAmount: Number(emp.petrolAmount ?? 0),
+      petrolAmountPerKm: Number(emp.petrolAmountPerKm ?? 0),
       incentive: Number(emp.incentive ?? 0),
-      leaveDays: Number(emp.leaveDays ?? 0),
-      deducted: Number(emp.deducted ?? 0),
+      paidLeaves: Number(emp.paidLeaves ?? 0),
+      unpaidLeaves: Number(emp.unpaidLeaves ?? 0),
+      totalLeaves: Number(emp.totalLeaves ?? 0),
+      deducted: Number(emp.manualDeduction ?? 0),
       ESI: Number(emp.ESI ?? 0),
       PF: Number(emp.PF ?? 0),
       savings: Number(emp.savings ?? 0),
-      petrolAmountPerKm: Number(emp.petrolAmountPerKm ?? emp.amountperKm ?? 0),
       totalWorkingDays: Number(emp.totalWorkingDays ?? 0),
       attendedDays: Number(emp.attendedDays ?? 0),
+      grossRevenue: Number(emp.grossRevenue ?? 0),
+      netPay: Number(emp.netPay ?? 0),
+      totalSessions: Number(emp.totalSessions ?? 0),
     };
 
     setEditForm(formData);
-    setOriginalForm(formData); // ⭐ store original values
-
+    setOriginalForm(formData);
     setIsEditOpen(true);
   };
+  // const onEditChange = (e) => {
+  //   const { name, value } = e.target;
+  //   // setEditForm((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
+  //   setEditForm((p) => ({ ...p, [name]: value }));
+  // };
   const onEditChange = (e) => {
-    const { name, value } = e.target;
-    // setEditForm((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
-    setEditForm((p) => ({ ...p, [name]: value }));
+    const { name, value, type } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) : value,
+    }));
   };
   const saveEdit = async () => {
     if (!editRow?._id) {
@@ -148,10 +169,12 @@ const Payroll = () => {
             case "petrolAmountPerKm":
               payload.amountperKm = newValue;
               break;
-            case "totalWorkingdays":
+
+            case "totalWorkingDays":
               payload.totalWorkingDays = newValue;
               break;
-            case "physioWorkingdays":
+
+            case "attendedDays":
               payload.attendedDays = newValue;
               break;
             case "incentive":
@@ -159,7 +182,7 @@ const Payroll = () => {
               break;
 
             case "leaveDays":
-              payload.NoofLeave = newValue;
+              payload.TotalLeaves = newValue;
               break;
 
             case "deducted":
@@ -536,39 +559,42 @@ const Payroll = () => {
     )
     .reduce((sum, p) => sum + Number(p.NetSalary || 0), 0);
 
-  const payrollUi = payrollFromDb.map((p) => ({
-    _id: p._id,
-    physioId: p.physioId?._id || p.physioId,
+  const payrollUi = payrollFromDb.map((p) => {
+    const paid = Number(p.PaidLeaves ?? 0);
+    const unpaid = Number(p.NoofLeave ?? 0);
+    const total = paid + unpaid; // calculate total dynamically
 
-    name: p.physioId?.physioName || "N/A",
-    specialization: p.physioId?.physioSpcl || "",
-    role: p.physioId?.roleId?.RoleName || "",
+    return {
+      _id: p._id,
+      physioId: p.physioId?._id || p.physioId,
+      name: p.physioId?.physioName || "N/A",
+      specialization: p.physioId?.physioSpcl || "",
+      role: p.physioId?.roleId?.RoleName || "",
+      savings: p.savings ?? 0,
+      totalSessions: p.payrRollCompletedSessions ?? 0,
+      grossRevenue: p.TotalSalary ?? 0,
+      netPay: p.NetSalary ?? 0,
+      manualDeduction: p.ManualDeduction ?? 0,
+      basicSalary: p.basicSalary ?? 0,
+      vehicleMaintanance: p.vehicleMaintanance ?? 0,
+      petrolKm: p.PetrolKm ?? 0,
+      petrolAmount: p.PetrolAmount ?? 0,
+      petrolAmountPerKm: p.amountperKm ?? 0,
+      totalWorkingDays: p.totalWorkingDays ?? 0,
+      attendedDays: p.attendedDays ?? 0,
+      incentive: p.Incentive ?? 0,
 
-    totalSessions: p.payrRollCompletedSessions ?? 0,
-    cancelledSessions: p.payrRollCancelledSession ?? 0,
+      paidLeaves: paid,
+      unpaidLeaves: unpaid,
+      totalLeaves: total, // dynamically calculated
 
-    grossRevenue: p.TotalSalary ?? 0, // or totalGrossSalary
-    netPay: p.NetSalary ?? 0,
-    savings: p.savings ?? 0,
-    manualDeduction: p.ManualDeduction ?? 0,
-    deducted: p.TotalAmountDeducted ?? 0, // keep this for display
-    basicSalary: p.basicSalary ?? 0,
-    vehicleMaintanance: p.vehicleMaintanance ?? 0,
-    petrolKm: p.PetrolKm ?? 0,
-    petrolAmount: p.PetrolAmount ?? 0,
-    petrolAmountPerKm: p.amountperKm ?? 0,
-    totalWorkingDays: p.totalWorkingDays ?? 0,
-    attendedDays: p.attendedDays ?? 0,
-    incentive: p.Incentive ?? 0,
-    leaveDays: p.NoofLeave ?? 0,
-    // deducted: p.TotalAmountDeducted ?? 0,
-    ESI: p.ESI ?? 0,
-    PF: p.PF ?? 0,
-
-    payRollDate: p.payRollDate,
-    month: p.payrRollMonth,
-    year: p.payrRollYear,
-  }));
+      ESI: p.ESI ?? 0,
+      PF: p.PF ?? 0,
+      payRollDate: p.payRollDate,
+      month: p.payrRollMonth,
+      year: p.payrRollYear,
+    };
+  });
   const handleDelete = async (id) => {
     try {
       if (!id) {
@@ -1258,6 +1284,39 @@ const Payroll = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label>Paid Leaves</Label>
+              <Input
+                name="paidLeaves"
+                type="number"
+                value={editForm.paidLeaves}
+                onChange={onEditChange}
+                disabled
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Unpaid Leaves</Label>
+              <Input
+                name="unpaidLeaves"
+                type="number"
+                value={editForm.unpaidLeaves}
+                onChange={onEditChange}
+                disabled
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Total Leave</Label>
+              <Input
+                name="noOfLeave"
+                type="number"
+                disabled
+                value={editForm.totalLeaves}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+            <div className="space-y-2">
               <Label>Vehicle Maintenance</Label>
               <Input
                 name="vehicleMaintanance"
@@ -1282,6 +1341,7 @@ const Payroll = () => {
               <Input
                 name="petrolAmount"
                 type="number"
+                disabled
                 value={editForm.petrolAmount}
                 onChange={onEditChange}
                 onWheel={(e) => e.target.blur()}
@@ -1307,7 +1367,7 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label>No. of Leave</Label>
               <Input
                 name="leaveDays"
@@ -1316,7 +1376,7 @@ const Payroll = () => {
                 onChange={onEditChange}
                 onWheel={(e) => e.target.blur()}
               />
-            </div>
+            </div> */}
             <div className="space-y-2">
               <Label>Deducted Amount</Label>
               <Input
