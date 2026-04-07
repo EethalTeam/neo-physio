@@ -53,94 +53,120 @@ const Income = () => {
     });
 
   // Function to download all bills as PDF
-  // const downloadAllBillsPDF = async () => {
-  //   try {
-  //     // 1️⃣ Fetch bills
-  //     const res = await apiRequest("Bill/getAllBill", {
-  //       method: "POST",
-  //       body: JSON.stringify({
-  //         month: months[selectedBillMonth - 1],
-  //         year: selectedBillYear,
-  //         patientId: selectedBillPatientId,
-  //         filterType: billFilterType,
-  //       }),
-  //     });
+  const downloadAllBillsPDF = async () => {
+    try {
+      const res = await apiRequest("Bill/getAllBill", {
+        method: "POST",
+        body: JSON.stringify({
+          month: months[selectedBillMonth - 1],
+          year: selectedBillYear,
+          patientId: selectedBillPatientId,
+          filterType: billFilterType,
+        }),
+      });
 
-  //     const bills = Array.isArray(res) ? res : [];
-  //     if (!bills.length) {
-  //       toast({
-  //         title: "No bills found",
-  //         description: "Nothing to download",
-  //         variant: "destructive",
-  //       });
-  //       return;
-  //     }
+      const bills = Array.isArray(res) ? res : [];
 
-  //     // 2️⃣ Create hidden div
-  //     const hiddenDiv = document.createElement("div");
-  //     hiddenDiv.style.position = "absolute";
-  //     hiddenDiv.style.left = "-9999px";
-  //     hiddenDiv.style.width = "800px"; // same as your visible width
-  //     document.body.appendChild(hiddenDiv);
+      if (!bills.length) {
+        toast({
+          title: "No Bills Found",
+          description: "There are no bills for the selected filters.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  //     hiddenDiv.innerHTML = bills
-  //       .map(
-  //         (bill) => `
-  //     <div style="border-bottom:1px solid #ccc; padding:5px; margin-bottom:5px;">
-  //       <p><strong>Bill ID:</strong> ${bill._id}</p>
-  //       <p><strong>Patient:</strong> ${bill.patientName}</p>
-  //       <p><strong>Amount:</strong> ${bill.amount}</p>
-  //       <p><strong>Date:</strong> ${new Date(bill.date).toLocaleDateString()}</p>
-  //     </div>
-  //   `,
-  //       )
-  //       .join("");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
 
-  //     hiddenDiv.style.height = hiddenDiv.scrollHeight + "px";
-  //     hiddenDiv.style.overflow = "visible";
+      const logoBase64 = await loadImage(neoLogo);
+      pdf.addImage(logoBase64, "PNG", 10, 10, 25, 25);
 
-  //     // 3️⃣ Capture div as image
-  //     const canvas = await html2canvas(hiddenDiv, { scale: 2 });
-  //     const imgData = canvas.toDataURL("image/png");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("NEO PHYSIO", 40, 20);
 
-  //     // 4️⃣ Remove hidden div
-  //     document.body.removeChild(hiddenDiv);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
 
-  //     // 5️⃣ Generate PDF
-  //     const pdf = new jsPDF("p", "mm", "a4");
-  //     const pageWidth = pdf.internal.pageSize.getWidth();
-  //     const pageHeight = (canvas.height * pageWidth) / canvas.width;
+      const today = new Date().toLocaleDateString("en-GB");
 
-  //     // 6️⃣ Add logo (optional)
-  //     const logoBase64 = await loadImage(neoLogo);
-  //     pdf.addImage(logoBase64, "PNG", 10, 10, 30, 30);
+      pdf.text(`Download Date : ${today}`, pageWidth - 60, 20);
+      pdf.text(`Total Bills : ${bills.length}`, 40, 28);
+      const totalAmount = bills.reduce(
+        (sum, bill) =>
+          sum + (bill.NetBilledAmount || bill.TotalBilledAmount || 0),
+        0,
+      );
+      const tableRows = bills.map((bill, index) => [
+        index + 1,
+        bill.invoiceNo || "-",
+        bill.patientId?.patientName || "-",
+        bill.NetBilledAmount || bill.TotalBilledAmount || 0,
+        bill.createdAt
+          ? new Date(bill.createdAt).toLocaleDateString("en-GB")
+          : "-",
+        bill.paymentType || "-",
+      ]);
 
-  //     // 7️⃣ Company name
-  //     pdf.setFont("helvetica", "bold");
-  //     pdf.setFontSize(18);
-  //     pdf.text("NEO PHYSIO", 50, 25);
+      autoTable(pdf, {
+        startY: 40,
+        head: [
+          ["#", "Invoice", "Patient Name", "Amount", "Date", "Payment Type"],
+        ],
+        body: tableRows,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [0, 102, 204] },
+      });
+      const finalY = pdf.lastAutoTable.finalY + 10;
 
-  //     // 8️⃣ Download date
-  //     const today = new Date();
-  //     const dateStr = today.toLocaleDateString("en-GB");
-  //     pdf.setFont("helvetica", "normal");
-  //     pdf.setFontSize(10);
-  //     pdf.text(`Download Date: ${dateStr}`, pageWidth - 60, 20);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
 
-  //     // 9️⃣ Add captured bills image
-  //     pdf.addImage(imgData, "PNG", 0, 40, pageWidth, pageHeight);
+      pdf.text(`Total Amount : Rs. ${totalAmount}`, 14, finalY);
 
-  //     // 🔟 Save PDF
-  //     pdf.save(`All_Bills_${dateStr}.pdf`);
-  //   } catch (err) {
-  //     console.error("Error generating PDF:", err);
-  //     toast({
-  //       title: "Error",
-  //       description: err.message,
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
+      pdf.save(`Filtered_Bills_${today}.pdf`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const addHeaderAndContentToPDF = async (elementId, fileName) => {
+    const input = document.getElementById(elementId);
+
+    if (!input) {
+      console.error("Element not found");
+      return;
+    }
+
+    const canvas = await html2canvas(input, {
+      scale: 2,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const imgWidth = 210;
+    const pageHeight = 295;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(`${fileName}.pdf`);
+  };
   // Usage
   const downloadPageAsPDF = () =>
     addHeaderAndContentToPDF("pageContent", "Full_Page");
@@ -1684,9 +1710,9 @@ const Income = () => {
                   </Select>
 
                   <Button onClick={fetchBills}>Apply</Button>
-                  {/* <button onClick={downloadbillPageAsPdf}>
+                  <button onClick={downloadAllBillsPDF}>
                     Download Page as PDF
-                  </button> */}
+                  </button>
                   <Button
                     className="ml-auto"
                     onClick={handleManualGenerateBill}
