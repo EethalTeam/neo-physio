@@ -74,27 +74,41 @@ const Payroll = () => {
     deducted: 0,
     ESI: 0,
     PF: 0,
+    savings: 0,
+    petrolAmountPerKm: 0,
+    totalWorkingDays: 0,
+    attendedDays: 0,
   });
+  const [originalForm, setOriginalForm] = useState({});
   const openEdit = (emp) => {
+    console.log("Editing payroll for:", emp);
     setEditRow(emp);
 
-    setEditForm({
-      basicSalary: Number(emp.basicSalary || 0),
-      vehicleMaintanance: Number(emp.vehicleMaintanance || 0),
-      petrolKm: Number(emp.petrolKm || 0),
-      petrolAmount: Number(emp.petrolAmount || 0),
-      incentive: Number(emp.incentive || 0),
-      leaveDays: Number(emp.leaveDays || 0),
-      deducted: Number(emp.manualDeduction || 0),
-      ESI: Number(emp.ESI || 0),
-      PF: Number(emp.PF || 0),
-    });
+    const formData = {
+      basicSalary: Number(emp.basicSalary ?? 0),
+      vehicleMaintanance: Number(emp.vehicleMaintanance ?? 0),
+      petrolKm: Number(emp.petrolKm ?? 0),
+      petrolAmount: Number(emp.petrolAmount ?? 0),
+      incentive: Number(emp.incentive ?? 0),
+      leaveDays: Number(emp.leaveDays ?? 0),
+      deducted: Number(emp.deducted ?? 0),
+      ESI: Number(emp.ESI ?? 0),
+      PF: Number(emp.PF ?? 0),
+      savings: Number(emp.savings ?? 0),
+      petrolAmountPerKm: Number(emp.petrolAmountPerKm ?? emp.amountperKm ?? 0),
+      totalWorkingDays: Number(emp.totalWorkingDays ?? 0),
+      attendedDays: Number(emp.attendedDays ?? 0),
+    };
+
+    setEditForm(formData);
+    setOriginalForm(formData); // ⭐ store original values
 
     setIsEditOpen(true);
   };
   const onEditChange = (e) => {
     const { name, value } = e.target;
-    setEditForm((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
+    // setEditForm((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
+    setEditForm((p) => ({ ...p, [name]: value }));
   };
   const saveEdit = async () => {
     if (!editRow?._id) {
@@ -107,23 +121,77 @@ const Payroll = () => {
     }
 
     try {
-      // send only what user edits (but here we send all inputs safely)
-      const payload = {
-        _id: editRow._id,
-        basicSalary: Number(editForm.basicSalary ?? 0),
-        vehicleMaintanance: Number(editForm.vehicleMaintanance ?? 0),
+      const payload = { _id: editRow._id };
 
-        PetrolKm: Number(editForm.petrolKm ?? 0),
-        PetrolAmount: Number(editForm.petrolAmount ?? 0), // keep if you allow manual edit
-        Incentive: Number(editForm.incentive ?? 0),
+      // compare edited values with original
+      Object.keys(editForm).forEach((key) => {
+        const newValue = Number(editForm[key] ?? 0);
+        const oldValue = Number(originalForm[key] ?? 0);
 
-        NoofLeave: Number(editForm.leaveDays ?? 0),
+        if (newValue !== oldValue) {
+          switch (key) {
+            case "basicSalary":
+              payload.basicSalary = newValue;
+              break;
 
-        ManualDeduction: Number(editForm.deducted ?? 0), // your "Deducted Amount" input = ManualDeduction
+            case "vehicleMaintanance":
+              payload.vehicleMaintanance = newValue;
+              break;
 
-        ESI: Number(editForm.ESI ?? 0),
-        PF: Number(editForm.PF ?? 0),
-      };
+            case "petrolKm":
+              payload.PetrolKm = newValue;
+              break;
+
+            case "petrolAmount":
+              payload.PetrolAmount = newValue;
+              break;
+            case "petrolAmountPerKm":
+              payload.amountperKm = newValue;
+              break;
+            case "totalWorkingdays":
+              payload.totalWorkingDays = newValue;
+              break;
+            case "physioWorkingdays":
+              payload.attendedDays = newValue;
+              break;
+            case "incentive":
+              payload.Incentive = newValue;
+              break;
+
+            case "leaveDays":
+              payload.NoofLeave = newValue;
+              break;
+
+            case "deducted":
+              payload.ManualDeduction = newValue;
+              break;
+
+            case "ESI":
+              payload.ESI = newValue;
+              break;
+
+            case "PF":
+              payload.PF = newValue;
+              break;
+
+            case "savings":
+              payload.savings = newValue;
+              break;
+
+            default:
+              break;
+          }
+        }
+      });
+
+      // if no fields changed
+      if (Object.keys(payload).length === 1) {
+        toast({
+          title: "No Changes",
+          description: "Nothing was modified",
+        });
+        return;
+      }
 
       await apiRequest("Payroll/updatePayroll", {
         method: "POST",
@@ -131,6 +199,7 @@ const Payroll = () => {
       });
 
       toast({ title: "Updated", description: "Payroll updated successfully" });
+
       setIsEditOpen(false);
       setEditRow(null);
       await getPayrolls();
@@ -444,6 +513,7 @@ const Payroll = () => {
 
       // your API returns array
       setDbPayrolls(Array.isArray(res) ? res : []);
+      console.log("Loaded payrolls:", res);
     } catch (e) {
       console.error("Error loading payrolls:", e);
       setDbPayrolls([]);
@@ -479,12 +549,16 @@ const Payroll = () => {
 
     grossRevenue: p.TotalSalary ?? 0, // or totalGrossSalary
     netPay: p.NetSalary ?? 0,
+    savings: p.savings ?? 0,
     manualDeduction: p.ManualDeduction ?? 0,
     deducted: p.TotalAmountDeducted ?? 0, // keep this for display
     basicSalary: p.basicSalary ?? 0,
     vehicleMaintanance: p.vehicleMaintanance ?? 0,
     petrolKm: p.PetrolKm ?? 0,
     petrolAmount: p.PetrolAmount ?? 0,
+    petrolAmountPerKm: p.amountperKm ?? 0,
+    totalWorkingDays: p.totalWorkingDays ?? 0,
+    attendedDays: p.attendedDays ?? 0,
     incentive: p.Incentive ?? 0,
     leaveDays: p.NoofLeave ?? 0,
     // deducted: p.TotalAmountDeducted ?? 0,
@@ -1163,7 +1237,26 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-
+            <div className="space-y-2">
+              <Label>Total Working Days</Label>
+              <Input
+                name="totalWorkingDays"
+                type="number"
+                value={editForm.totalWorkingDays}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Physio Working Days</Label>
+              <Input
+                name="attendedDays"
+                type="number"
+                value={editForm.attendedDays}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Vehicle Maintenance</Label>
               <Input
@@ -1174,7 +1267,6 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-
             <div className="space-y-2">
               <Label>Petrol Km</Label>
               <Input
@@ -1185,7 +1277,6 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-
             <div className="space-y-2">
               <Label>Petrol Amount</Label>
               <Input
@@ -1195,8 +1286,17 @@ const Payroll = () => {
                 onChange={onEditChange}
                 onWheel={(e) => e.target.blur()}
               />
+            </div>{" "}
+            <div className="space-y-2">
+              <Label>Petrol Amount / KM</Label>
+              <Input
+                name="petrolAmountPerKm"
+                type="number"
+                value={editForm.petrolAmountPerKm}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
             </div>
-
             <div className="space-y-2">
               <Label>Incentive</Label>
               <Input
@@ -1207,7 +1307,6 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-
             <div className="space-y-2">
               <Label>No. of Leave</Label>
               <Input
@@ -1218,7 +1317,6 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-
             <div className="space-y-2">
               <Label>Deducted Amount</Label>
               <Input
@@ -1229,7 +1327,6 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-
             <div className="space-y-2">
               <Label>ESI</Label>
               <Input
@@ -1240,13 +1337,22 @@ const Payroll = () => {
                 onWheel={(e) => e.target.blur()}
               />
             </div>
-
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2">
               <Label>PF</Label>
               <Input
                 name="PF"
                 type="number"
                 value={editForm.PF}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Savings</Label>
+              <Input
+                name="savings"
+                type="number"
+                value={editForm.savings}
                 onChange={onEditChange}
                 onWheel={(e) => e.target.blur()}
               />

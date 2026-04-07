@@ -1512,34 +1512,38 @@ const BusinessOverview = () => {
   }, [selectedYear, Permissions.isView]);
 
   const yearlyComparisonData = useMemo(() => {
-    // 1. Hardcoded Dummy Data for previous years
     const yearlyLabels = ["2024-2025", "2025-2026", "2026-2027"];
-    const incomeData = [3099950, 3600000]; // 24-25 and 25-26 values
-    const expenseData = [1850000, 2100000]; // Dummy expenses for visual balance
 
-    // 2. Calculate Live Data for 2026-2027 from transactions
-    let liveIncome = 0;
-    let liveExpense = 0;
+    // Fixed previous year data
+    const incomeData = [3099950, 3600000, 0];
+    const expenseData = [0, 0, 0];
+
+    let currentIncome = 0;
+    let currentExpense = 0;
 
     transactions.forEach((tx) => {
       if (!tx.date) return;
+
       const date = new Date(tx.date);
       const year = date.getFullYear();
       const month = date.getMonth();
 
-      // Financial Year 2026-2027 logic (Apr 2026 to Mar 2027)
-      const isFY26 =
+      // FY 2026-2027 (Apr 2026 - Mar 2027)
+      const isCurrentFY =
         (year === 2026 && month >= 3) || (year === 2027 && month <= 2);
 
-      if (isFY26) {
-        if (tx.type === "Income") liveIncome += Number(tx.amount || 0);
-        else liveExpense += Number(tx.amount || 0);
+      if (isCurrentFY) {
+        if (tx.type === "Income") {
+          currentIncome += Number(tx.amount || 0);
+        } else if (tx.type === "Expense") {
+          currentExpense += Number(tx.amount || 0);
+        }
       }
     });
 
-    // Push the calculated live data to the arrays
-    incomeData.push(liveIncome);
-    expenseData.push(liveExpense);
+    // push current year calculated values
+    incomeData[2] = currentIncome;
+    expenseData[2] = currentExpense;
 
     return {
       labels: yearlyLabels,
@@ -1563,7 +1567,6 @@ const BusinessOverview = () => {
       ],
     };
   }, [transactions]);
-
   const fetchSCR = async () => {
     try {
       // We send the selectedYear to the backend to get the specific month-wise breakdown
@@ -1881,7 +1884,7 @@ const BusinessOverview = () => {
                     Multi-Year Revenue Growth
                   </CardTitle>
                   <CardDescription>
-                    Comparison: 2024-25, 2025-26, and Current {selectedYear}
+                    Comparison of last 3 Financial Years
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

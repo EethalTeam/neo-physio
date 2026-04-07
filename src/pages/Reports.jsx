@@ -1769,7 +1769,7 @@ const Reports = () => {
         className="flex flex-col space-y-4"
       >
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
             Reports & Analytics
           </h1>
           <p className="text-sm md:text-base text-gray-600">
@@ -1777,12 +1777,12 @@ const Reports = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <Select
             value={selectedReference}
             onValueChange={setSelectedReference}
           >
-            <SelectTrigger className="w-full md:w-48">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Select Reference" />
             </SelectTrigger>
             <SelectContent className="z-[99999] max-h-72 overflow-auto bg-white border shadow-lg">
@@ -1796,7 +1796,7 @@ const Reports = () => {
           </Select>
 
           <Select value={selectedPhysio} onValueChange={setSelectedPhysio}>
-            <SelectTrigger className="w-full md:w-48">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Select Physio" />
             </SelectTrigger>
             <SelectContent className="z-[99999] max-h-72 overflow-auto bg-white border shadow-lg">
@@ -1810,7 +1810,7 @@ const Reports = () => {
           </Select>
 
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-full md:w-40">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Select Month" />
             </SelectTrigger>
@@ -1824,7 +1824,7 @@ const Reports = () => {
           </Select>
 
           <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-full md:w-32">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Select Year" />
             </SelectTrigger>
             <SelectContent className="z-[99999] max-h-72 overflow-auto bg-white border shadow-lg">
@@ -1838,53 +1838,80 @@ const Reports = () => {
 
           {isHodSelected ? (
             <>
-              <Button variant="outline" onClick={handleExportHodReviewXLSX}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportHodReviewXLSX}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Review XLSX
               </Button>
-
-              <Button variant="outline" onClick={handleExportHodReviewPDF}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportHodReviewPDF}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Review PDF
               </Button>
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={handleExportPatientList}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportPatientList}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Patient XLSX
               </Button>
-
-              <Button variant="outline" onClick={handleExportPatientListPDF}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportPatientListPDF}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Patient PDF
               </Button>
-
-              <Button variant="outline" onClick={handleExportPhysioWiseXLSX}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportPhysioWiseXLSX}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Physio XLSX
               </Button>
-
-              <Button variant="outline" onClick={handleExportPhysioWisePDF}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportPhysioWisePDF}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Physio PDF
               </Button>
             </>
           )}
 
-          <Button variant="outline" onClick={handleExportCSV}>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={handleExportCSV}
+          >
             <Download className="h-4 w-4 mr-2" />
             CSV
           </Button>
-
-          <Button variant="outline" onClick={handleExportPDF}>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={handleExportPDF}
+          >
             <Download className="h-4 w-4 mr-2" />
             Report PDF
           </Button>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -1917,7 +1944,7 @@ const Reports = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="medical-card hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -1983,7 +2010,7 @@ const Reports = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card className="medical-card">
           <CardHeader>
             <CardTitle>Expense Breakdown</CardTitle>
@@ -1997,7 +2024,7 @@ const Reports = () => {
                 No expense data for selected month
               </div>
             ) : (
-              <div className="h-[320px]">
+              <div className="h-[260px] sm:h-[300px] md:h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -2006,7 +2033,7 @@ const Reports = () => {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      outerRadius={window.innerWidth < 640 ? 70 : 100}
                       label={({ name, percent }) =>
                         `${name} ${(percent * 100).toFixed(0)}%`
                       }
@@ -2046,7 +2073,7 @@ const Reports = () => {
                 {expensePieData.map((item, index) => (
                   <div
                     key={item.name}
-                    className="flex items-center justify-between border rounded-lg p-3"
+                    className="flex items-center justify-between gap-3 flex-wrap border rounded-lg p-3"
                   >
                     <div className="flex items-center gap-3">
                       <span
@@ -2072,202 +2099,228 @@ const Reports = () => {
       </div>
 
       {!isHodSelected && (
-        <Card className="medical-card">
-          <CardHeader>
-            <CardTitle>Physio Wise Report View</CardTitle>
-            <CardDescription>
-              Assigned patients, session count, completed and canceled session,
+        <Card className="medical-card border-none shadow-sm">
+          <CardHeader className="px-4 py-5 sm:px-6">
+            <CardTitle className="text-xl font-bold text-gray-900">
+              Physio Wise Report View
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Assigned patients, session count, completed/canceled sessions, and
               leave details
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             {physioWiseData.length === 0 ? (
-              <div className="text-sm text-gray-500">
+              <div className="py-10 text-center text-sm text-gray-500 italic">
                 No physio-wise data available for selected filters.
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {physioWiseData.map((item) => (
                   <div
                     key={item.physioId}
-                    className="border rounded-xl p-4 bg-white shadow-sm"
+                    className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm"
                   >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                    {/* Header Section: Name and Quick Stats */}
+                    <div className="p-4 bg-slate-50/50 border-b border-slate-100">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-800">
+                            {item.physioName}
+                          </h3>
+                          <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">
+                            {selectedMonthName}
+                          </p>
+                        </div>
+
+                        {/* Responsive Stats Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 w-full lg:w-auto">
+                          <StatBox
+                            label="Assigned"
+                            value={item.totalAssignedPatients}
+                            bg="bg-blue-50"
+                            text="text-blue-700"
+                          />
+                          <StatBox
+                            label="Sessions"
+                            value={item.totalSessions}
+                            bg="bg-purple-50"
+                            text="text-purple-700"
+                          />
+                          <StatBox
+                            label="Completed"
+                            value={item.completedSessions}
+                            bg="bg-green-50"
+                            text="text-green-700"
+                          />
+                          <StatBox
+                            label="Canceled"
+                            value={item.cancelledSessions}
+                            bg="bg-red-50"
+                            text="text-red-700"
+                          />
+                          <StatBox
+                            label="Leave"
+                            value={item.leaveDays}
+                            bg="bg-yellow-50"
+                            text="text-yellow-700"
+                          />
+                          <StatBox
+                            label="SCR %"
+                            value={`${item.completionPercentage}%`}
+                            bg="bg-cyan-50"
+                            text="text-cyan-700"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-8">
+                      {/* Patient Table Wrapper */}
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          {item.physioName}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {selectedMonthName}
-                        </p>
+                        <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                          <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
+                          Assigned Patients
+                        </h4>
+                        <div className="relative overflow-x-auto rounded-lg border border-slate-100">
+                          <table className="min-w-[700px] w-full text-sm text-left border-collapse">
+                            <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
+                              <tr>
+                                <th className="px-3 py-3 whitespace-nowrap">
+                                  S.No
+                                </th>
+                                <th className="px-3 py-3 whitespace-nowrap">
+                                  Code
+                                </th>
+                                <th className="px-4 py-3 min-w-[150px]">
+                                  Patient Name
+                                </th>
+                                <th className="px-3 py-3 whitespace-nowrap">
+                                  Mobile
+                                </th>
+                                <th className="px-4 py-3 min-w-[150px]">
+                                  Condition
+                                </th>
+                                <th className="px-3 py-3 whitespace-nowrap">
+                                  Reference
+                                </th>
+                                <th className="px-3 py-3 text-center">
+                                  Sessions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                              {item.assignedPatients.length === 0 ? (
+                                <tr>
+                                  <td
+                                    colSpan={7}
+                                    className="px-3 py-6 text-center text-gray-400 italic"
+                                  >
+                                    No assigned patients
+                                  </td>
+                                </tr>
+                              ) : (
+                                item.assignedPatients.map((patient, index) => (
+                                  <tr
+                                    key={patient?._id || index}
+                                    className="hover:bg-slate-50/50 transition-colors"
+                                  >
+                                    <td className="px-3 py-3 text-gray-400">
+                                      {index + 1}
+                                    </td>
+                                    <td className="px-3 py-3 font-mono text-xs text-gray-600">
+                                      {patient?.patientCode || "N/A"}
+                                    </td>
+                                    <td className="px-4 py-3 font-semibold text-gray-800">
+                                      {patient?.patientName || "N/A"}
+                                    </td>
+                                    <td className="px-3 py-3 text-gray-600">
+                                      {patient?.patientNumber || "N/A"}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-600">
+                                      {patient?.patientCondition || "N/A"}
+                                    </td>
+                                    <td className="px-3 py-3 text-gray-500">
+                                      {getPatientReferenceName(patient)}
+                                    </td>
+                                    <td className="px-3 py-3 text-center font-bold text-blue-600">
+                                      {patient?.sessionCount ?? 0}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                        <div className="rounded-lg bg-blue-50 px-4 py-3">
-                          <p className="text-xs text-gray-500">
-                            Assigned Patients
-                          </p>
-                          <p className="text-lg font-bold text-blue-700">
-                            {item.totalAssignedPatients}
-                          </p>
-                        </div>
-
-                        <div className="rounded-lg bg-purple-50 px-4 py-3">
-                          <p className="text-xs text-gray-500">
-                            Total Sessions
-                          </p>
-                          <p className="text-lg font-bold text-purple-700">
-                            {item.totalSessions}
-                          </p>
-                        </div>
-
-                        <div className="rounded-lg bg-green-50 px-4 py-3">
-                          <p className="text-xs text-gray-500">Completed</p>
-                          <p className="text-lg font-bold text-green-700">
-                            {item.completedSessions}
-                          </p>
-                        </div>
-
-                        <div className="rounded-lg bg-red-50 px-4 py-3">
-                          <p className="text-xs text-gray-500">Canceled</p>
-                          <p className="text-lg font-bold text-red-700">
-                            {item.cancelledSessions}
-                          </p>
-                        </div>
-
-                        <div className="rounded-lg bg-yellow-50 px-4 py-3">
-                          <p className="text-xs text-gray-500">Leave Days</p>
-                          <p className="text-lg font-bold text-yellow-700">
-                            {item.leaveDays}
-                          </p>
-                        </div>
-
-                        <div className="rounded-lg bg-cyan-50 px-4 py-3">
-                          <p className="text-xs text-gray-500">
-                            Session Completion Rate(SCR)
-                          </p>
-                          <p className="text-lg font-bold text-cyan-700">
-                            {item.completionPercentage}%
-                          </p>
+                      {/* Leave Details Wrapper */}
+                      <div className="bg-yellow-50/30 p-4 rounded-xl border border-yellow-100/50">
+                        <h4 className="text-sm font-bold text-yellow-800 mb-3 flex items-center gap-2">
+                          <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
+                          Leave Details
+                        </h4>
+                        <div className="relative overflow-x-auto rounded-lg border border-yellow-100 bg-white/50">
+                          <table className="min-w-[700px] w-full text-sm text-left border-collapse">
+                            <thead className="bg-yellow-100/50 text-yellow-900 font-bold border-b border-yellow-100">
+                              <tr>
+                                <th className="px-3 py-2">S.No</th>
+                                <th className="px-3 py-2 whitespace-nowrap">
+                                  Leave Date
+                                </th>
+                                <th className="px-3 py-2 whitespace-nowrap">
+                                  Leave Mode
+                                </th>
+                                <th className="px-3 py-2">Paid</th>
+                                <th className="px-3 py-2">Status</th>
+                                <th className="px-3 py-2 text-center">
+                                  Reassigned
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-yellow-100">
+                              {item.leaveEntries.length === 0 ? (
+                                <tr>
+                                  <td
+                                    colSpan={6}
+                                    className="px-3 py-4 text-center text-yellow-600/50 italic text-xs"
+                                  >
+                                    No leave found
+                                  </td>
+                                </tr>
+                              ) : (
+                                item.leaveEntries.map((leave, index) => (
+                                  <tr
+                                    key={leave?._id || index}
+                                    className="hover:bg-yellow-50/50 transition-colors"
+                                  >
+                                    <td className="px-3 py-2 text-yellow-700/60">
+                                      {index + 1}
+                                    </td>
+                                    <td className="px-3 py-2 font-medium">
+                                      {formatDate(getLeaveDate(leave))}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      {getLeaveMode(leave)}
+                                    </td>
+                                    <td className="px-3 py-2">
+                                      {leave?.PaidLeave ? "Yes" : "No"}
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                      <span className="px-2 py-0.5 rounded-full bg-white border border-yellow-200 text-[10px] font-bold uppercase text-yellow-700">
+                                        {getLeaveStatus(leave)}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 text-center font-bold text-yellow-800">
+                                      {getReassignedCount(leave)}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="overflow-auto mb-5">
-                      <table className="w-full border-collapse text-sm">
-                        <thead>
-                          <tr className="bg-slate-100 text-left">
-                            <th className="border px-3 py-2">S.No</th>
-                            <th className="border px-3 py-2">Patient Code</th>
-                            <th className="border px-3 py-2">Patient Name</th>
-                            <th className="border px-3 py-2">Mobile</th>
-                            <th className="border px-3 py-2">Condition</th>
-                            <th className="border px-3 py-2">Reference</th>
-                            <th className="border px-3 py-2">
-                              Total No. of Session
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {item.assignedPatients.length === 0 ? (
-                            <tr>
-                              <td
-                                colSpan={7}
-                                className="border px-3 py-4 text-center text-gray-500"
-                              >
-                                No assigned patients
-                              </td>
-                            </tr>
-                          ) : (
-                            item.assignedPatients.map((patient, index) => (
-                              <tr
-                                key={patient?._id || index}
-                                className="hover:bg-slate-50"
-                              >
-                                <td className="border px-3 py-2">
-                                  {index + 1}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {patient?.patientCode || "N/A"}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {patient?.patientName || "N/A"}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {patient?.patientNumber || "N/A"}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {patient?.patientCondition || "N/A"}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {getPatientReferenceName(patient)}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {patient?.sessionCount ?? 0}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="overflow-auto">
-                      <h4 className="text-md font-semibold text-gray-800 mb-2">
-                        Leave Details
-                      </h4>
-                      <table className="w-full border-collapse text-sm">
-                        <thead>
-                          <tr className="bg-yellow-100 text-left">
-                            <th className="border px-3 py-2">S.No</th>
-                            <th className="border px-3 py-2">Leave Date</th>
-                            <th className="border px-3 py-2">Leave Mode</th>
-                            <th className="border px-3 py-2">Paid Leave</th>
-                            <th className="border px-3 py-2">Status</th>
-                            <th className="border px-3 py-2">
-                              Reassigned Sessions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {item.leaveEntries.length === 0 ? (
-                            <tr>
-                              <td
-                                colSpan={6}
-                                className="border px-3 py-4 text-center text-gray-500"
-                              >
-                                No leave found
-                              </td>
-                            </tr>
-                          ) : (
-                            item.leaveEntries.map((leave, index) => (
-                              <tr
-                                key={leave?._id || index}
-                                className="hover:bg-yellow-50"
-                              >
-                                <td className="border px-3 py-2">
-                                  {index + 1}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {formatDate(getLeaveDate(leave))}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {getLeaveMode(leave)}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {leave?.PaidLeave ? "Yes" : "No"}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {getLeaveStatus(leave)}
-                                </td>
-                                <td className="border px-3 py-2">
-                                  {getReassignedCount(leave)}
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
                     </div>
                   </div>
                 ))}
@@ -2276,8 +2329,26 @@ const Reports = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Helper component to keep the code clean */}
     </div>
   );
+  function StatBox({ label, value, bg, text }) {
+    return (
+      <div
+        className={`rounded-xl ${bg} p-2 sm:p-3 flex flex-col justify-center border border-black/5`}
+      >
+        <p className="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-1">
+          {label}
+        </p>
+        <p
+          className={`text-base sm:text-lg font-extrabold ${text} leading-none`}
+        >
+          {value}
+        </p>
+      </div>
+    );
+  }
 };
 
 export default Reports;

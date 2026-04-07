@@ -460,126 +460,132 @@ const LeavephysioManagement = () => {
   }, [assignForm.physioId, normalizedDateFilter]);
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-6 px-2 sm:px-4 pb-8 overflow-x-hidden">
+      {/* PAGE HEADER */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4"
+        className="flex flex-col gap-2 pt-4"
       >
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-800 leading-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">
             Leave Management
           </h1>
-
-          <p className="mt-1 text-xs sm:text-sm text-gray-600 leading-snug break-words">
+          <p className="mt-1 text-sm text-gray-600">
             Manage physiotherapist leave and reassign patients to available
-            physiotherapists.
+            providers.
           </p>
         </div>
       </motion.div>
 
-      <Card className="medical-card">
-        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <div className="flex flex-col">
-            <CardTitle>Manage Physio Leave & Reassign Patients</CardTitle>
-            <CardDescription>
-              Select a physiotherapist and date to manage leave.
-            </CardDescription>
-          </div>
+      {/* MANAGE LEAVE CARD */}
+      <Card className="medical-card shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">
+            Manage Physio Leave
+          </CardTitle>
+          <CardDescription>
+            Select a physiotherapist and date to manage leave.
+          </CardDescription>
         </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-500 flex items-center gap-2">
+                <User className="h-4 w-4" /> Physiotherapist
+              </label>
+              <Select
+                onValueChange={(v) =>
+                  setAssignForm((p) => ({ ...p, physioId: v }))
+                }
+                value={assignForm.physioId || ""}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Physio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((p) => (
+                    <SelectItem key={p._id} value={p._id.toString()}>
+                      {p.physioName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-            <User className="h-5 w-5 text-gray-500" />
-            <Select
-              onValueChange={(v) =>
-                setAssignForm((p) => ({ ...p, physioId: v }))
-              }
-              value={assignForm.physioId || ""}
-            >
-              <SelectTrigger className="w-full sm:w-60">
-                <SelectValue placeholder="Select Leave physiotherapist" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((p) => (
-                  <SelectItem key={p._id} value={p._id.toString()}>
-                    {p.physioName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-500 flex items-center gap-2">
+                <Calendar className="h-4 w-4" /> Leave Date
+              </label>
+              <Input
+                type="date"
+                value={normalizedDateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-500 uppercase">
+                Leave Type
+              </label>
+              <Select
+                onValueChange={(v) =>
+                  setAssignForm((p) => ({ ...p, LeaveMode: v }))
+                }
+                value={assignForm.LeaveMode || ""}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Half Day">Half Day</SelectItem>
+                  <SelectItem value="Full Day">Full Day</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button className="w-full" onClick={handleLeave}>
+              Mark as Leave
+            </Button>
           </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <Input
-              type="date"
-              value={normalizedDateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full sm:w-48"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Select
-              onValueChange={(v) =>
-                setAssignForm((p) => ({ ...p, LeaveMode: v }))
-              }
-              value={assignForm.LeaveMode || ""}
-            >
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Select Leave Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Half Day">Half Day</SelectItem>
-                <SelectItem value="Full Day">Full Day</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button className="w-full sm:w-auto" onClick={handleLeave}>
-            Mark as Leave
-          </Button>
         </CardContent>
       </Card>
 
+      {/* TODAY SESSIONS */}
       {isTodaySelected && assignForm.physioId && (
-        <Card className="medical-card">
+        <Card className="medical-card border-amber-200 bg-amber-50/30">
           <CardHeader>
-            <CardTitle>Today Sessions</CardTitle>
-            <CardDescription>
-              After leave is marked, today sessions are auto-cancelled. Select
-              patient, time and new physio below, then save session to change it
-              back to Scheduled.
+            <CardTitle className="text-base text-amber-800">
+              Today Sessions
+            </CardTitle>
+            <CardDescription className="text-amber-700/80">
+              Sessions are auto-cancelled. Reassign below to reschedule.
             </CardDescription>
           </CardHeader>
-
           <CardContent>
             {leavePhysioSessions.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No sessions found for selected physio today.
+              <p className="text-sm text-gray-500 italic">
+                No sessions found for today.
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {leavePhysioSessions.map((session) => (
                   <div
                     key={session._id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border rounded-lg p-3"
+                    className="bg-white border rounded-lg p-3 shadow-sm"
                   >
-                    <div>
-                      <p className="font-medium text-gray-800">
-                        {session.patientId?.patientName || "Unknown Patient"}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Time: {session.sessionTime || "-"}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Status:{" "}
+                    <p className="font-bold text-gray-800">
+                      {session.patientId?.patientName || "Unknown"}
+                    </p>
+                    <div className="flex justify-between mt-2 text-xs text-gray-500">
+                      <span>Time: {session.sessionTime || "-"}</span>
+                      <span className="font-medium text-blue-600">
                         {session.sessionStatusId?.sessionStatusName ||
                           session.sessionStatusName ||
                           "-"}
-                      </p>
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -589,135 +595,140 @@ const LeavephysioManagement = () => {
         </Card>
       )}
 
+      {/* REASSIGNMENT CARD */}
       <Card className="medical-card">
-        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <div className="flex flex-col">
-            <CardTitle>Reassign Patients to the Physios</CardTitle>
-            <CardDescription>
-              Select a patient, set time, and choose new physio.
-            </CardDescription>
-          </div>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">
+            Reassign Patients
+          </CardTitle>
+          <CardDescription>
+            Select patient, set time, and choose a new physio.
+          </CardDescription>
         </CardHeader>
-
-        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-            <User className="h-5 w-5 text-gray-500" />
-
-            <Select
-              value={selectedPatientId}
-              onValueChange={setSelectedPatientId}
-            >
-              <SelectTrigger className="w-full sm:w-56">
-                <SelectValue placeholder="Select Patient" />
-              </SelectTrigger>
-              <SelectContent>
-                {patients.map((p) => (
-                  <SelectItem key={p._id} value={p._id}>
-                    {p.patientName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Input
-              type="time"
-              className="w-full sm:w-36"
-              disabled={!selectedPatientId}
-              value={
-                leaveSessionPlan.find((x) => x.patientId === selectedPatientId)
-                  ?.sessionTime || "09:00"
-              }
-              onChange={(e) =>
-                upsertPlan(selectedPatientId, { sessionTime: e.target.value })
-              }
-            />
-
-            <Select
-              disabled={!selectedPatientId}
-              value={
-                leaveSessionPlan.find((x) => x.patientId === selectedPatientId)
-                  ?.Re_Assign || ""
-              }
-              onValueChange={(v) =>
-                upsertPlan(selectedPatientId, { Re_Assign: v })
-              }
-            >
-              <SelectTrigger className="w-full sm:w-56">
-                <SelectValue placeholder="Reassign Physio" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees
-                  .filter((emp) => emp._id !== assignForm.physioId)
-                  .map((p) => (
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-500">
+                Patient
+              </label>
+              <Select
+                value={selectedPatientId}
+                onValueChange={setSelectedPatientId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Patient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {patients.map((p) => (
                     <SelectItem key={p._id} value={p._id}>
-                      {p.physioName}
+                      {p.patientName}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Button onClick={handleSaveSession}>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-500">
+                New Time
+              </label>
+              <Input
+                type="time"
+                className="w-full"
+                disabled={!selectedPatientId}
+                value={
+                  leaveSessionPlan.find(
+                    (x) => x.patientId === selectedPatientId,
+                  )?.sessionTime || "09:00"
+                }
+                onChange={(e) =>
+                  upsertPlan(selectedPatientId, { sessionTime: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-500">
+                New Physio
+              </label>
+              <Select
+                disabled={!selectedPatientId}
+                value={
+                  leaveSessionPlan.find(
+                    (x) => x.patientId === selectedPatientId,
+                  )?.Re_Assign || ""
+                }
+                onValueChange={(v) =>
+                  upsertPlan(selectedPatientId, { Re_Assign: v })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Substitute" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees
+                    .filter((emp) => emp._id !== assignForm.physioId)
+                    .map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        {p.physioName}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              onClick={handleSaveSession}
+              variant="secondary"
+              className="w-full"
+            >
               {isTodaySelected ? "Save Session" : "Save Reassign Plan"}
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* LEAVE HISTORY */}
       <Card className="medical-card">
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <CardTitle>Leave History</CardTitle>
-              <CardDescription>Recent physiotherapist leaves.</CardDescription>
+              <CardDescription>
+                Recent physiotherapist leaves and reassignment details.
+              </CardDescription>
             </div>
 
-            {/* FILTER BAR */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-500" />
-                <Select
-                  value={historyPhysioFilter}
-                  onValueChange={setHistoryPhysioFilter}
-                >
-                  <SelectTrigger className="w-[180px] h-9">
-                    <SelectValue placeholder="All Physios" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Physios</SelectItem>
-                    {employees.map((p) => (
-                      <SelectItem key={p._id} value={p._id.toString()}>
-                        {p.physioName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select
+                value={historyPhysioFilter}
+                onValueChange={setHistoryPhysioFilter}
+              >
+                <SelectTrigger className="w-full sm:w-[180px] h-9">
+                  <SelectValue placeholder="All Physios" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Physios</SelectItem>
+                  {employees.map((p) => (
+                    <SelectItem key={p._id} value={p._id.toString()}>
+                      {p.physioName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-500" />
-                <Input
-                  type="date"
-                  className="w-[160px] h-9"
-                  value={historyDateFilter}
-                  onChange={(e) => setHistoryDateFilter(e.target.value)}
-                />
-                {historyDateFilter && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => setHistoryDateFilter("")}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </div>
+              <Input
+                type="date"
+                className="w-full sm:w-[160px] h-9"
+                value={historyDateFilter}
+                onChange={(e) => setHistoryDateFilter(e.target.value)}
+              />
 
               <Button
                 size="sm"
                 variant="outline"
                 onClick={getLeave}
-                className="h-9"
+                className="h-9 w-full sm:w-auto"
               >
                 Refresh
               </Button>
@@ -726,65 +737,62 @@ const LeavephysioManagement = () => {
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="w-10"></th>
-                  <th className="text-left p-3 font-semibold text-gray-600">
-                    Physio
-                  </th>
-                  <th className="text-left p-3 font-semibold text-gray-600">
-                    Leave Date
-                  </th>
-                  <th className="text-left p-3 font-semibold text-gray-600">
-                    Leave Mode
-                  </th>
-                  <th className="text-left p-3 font-semibold text-gray-600">
+          {/* DESKTOP VIEW */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="w-10 p-3"></th>
+                  <th className="p-3 font-semibold text-gray-600">Physio</th>
+                  <th className="p-3 font-semibold text-gray-600">Date</th>
+                  <th className="p-3 font-semibold text-gray-600">Mode</th>
+                  <th className="p-3 font-semibold text-gray-600 text-center">
                     Sessions
                   </th>
-                  <th className="text-left p-3 font-semibold text-gray-600">
-                    Paid / Unpaid Leave
+                  <th className="p-3 font-semibold text-gray-600 text-right">
+                    Payroll
                   </th>
                 </tr>
               </thead>
-
               <tbody>
                 {filteredLeaveData.length > 0 ? (
                   filteredLeaveData.map((leave) => {
                     const isOpen = openRowId === leave._id;
-                    const rowSessions = leave.SessionGenerateForLeave || [];
+                    const sessions = leave.SessionGenerateForLeave || [];
 
                     return (
                       <React.Fragment key={leave._id}>
                         <tr
-                          className="border-b hover:bg-gray-50 cursor-pointer"
+                          className={`border-b hover:bg-gray-50 cursor-pointer transition-colors ${isOpen ? "bg-blue-50/30" : ""}`}
                           onClick={() =>
                             setOpenRowId(isOpen ? null : leave._id)
                           }
                         >
-                          <td className="p-3 text-gray-600">
+                          <td className="p-3 text-gray-400">
                             {isOpen ? (
-                              <ChevronDown size={16} />
+                              <ChevronDown
+                                size={18}
+                                className="text-blue-600"
+                              />
                             ) : (
-                              <ChevronRight size={16} />
+                              <ChevronRight size={18} />
                             )}
                           </td>
-                          <td className="p-3 font-medium text-gray-800">
+                          <td className="p-3 font-medium">
                             {leave.physioId?.physioName || "N/A"}
                           </td>
-                          <td className="p-3 text-gray-700">
+                          <td className="p-3 text-gray-600">
                             {leave.LeaveDate
                               ? new Date(leave.LeaveDate).toLocaleDateString()
                               : "N/A"}
                           </td>
-                          <td className="p-3 text-gray-700">
-                            {leave.LeaveMode || "N/A"}
-                          </td>
-                          <td className="p-3 text-gray-700">
-                            {rowSessions.length}
-                          </td>
                           <td className="p-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white border uppercase">
+                              {leave.LeaveMode}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">{sessions.length}</td>
+                          <td className="p-3 text-right">
                             <Button
                               size="sm"
                               variant={leave.PaidLeave ? "outline" : "default"}
@@ -793,41 +801,153 @@ const LeavephysioManagement = () => {
                                 openPaidConfirm(leave);
                               }}
                             >
-                              {leave.PaidLeave
-                                ? "Mark as UnPaid"
-                                : "Mark as Paid"}
+                              {leave.PaidLeave ? "Unpaid" : "Paid"}
                             </Button>
                           </td>
                         </tr>
+                        {/* EXPANDED SECTION FOR REASSIGNED PATIENTS */}
+                        {isOpen && (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="bg-blue-50/20 p-4 border-b"
+                            >
+                              <div className="pl-8 space-y-2">
+                                <h5 className="text-xs font-bold text-blue-800 uppercase tracking-wider">
+                                  Reassigned Patient Details
+                                </h5>
+                                {sessions.length > 0 ? (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {sessions.map((s, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="bg-white border border-blue-100 p-2 rounded shadow-sm text-xs"
+                                      >
+                                        <p className="font-bold text-gray-800">
+                                          {s.patientId?.patientName ||
+                                            "Unknown"}
+                                        </p>
+                                        <p className="text-gray-500">
+                                          Time: {s.sessionTime}
+                                        </p>
+                                        <p className="text-blue-600 font-medium">
+                                          Reassigned To:{" "}
+                                          {s.Re_Assign?.physioName || "TBD"}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-gray-500 italic">
+                                    No reassigned sessions recorded for this
+                                    leave.
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                       </React.Fragment>
                     );
                   })
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-gray-500">
-                      No records found matching the filters.
+                      No records found.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* MOBILE VIEW */}
+          <div className="md:hidden flex flex-col gap-4">
+            {filteredLeaveData.map((leave) => {
+              const isOpen = openRowId === leave._id;
+              const sessions = leave.SessionGenerateForLeave || [];
+
+              return (
+                <div
+                  key={leave._id}
+                  className="border rounded-lg bg-white shadow-sm overflow-hidden"
+                >
+                  <div
+                    className={`p-4 flex justify-between items-start cursor-pointer ${isOpen ? "bg-blue-50/50" : ""}`}
+                    onClick={() => setOpenRowId(isOpen ? null : leave._id)}
+                  >
+                    <div>
+                      <h4 className="font-bold text-gray-900">
+                        {leave.physioId?.physioName || "N/A"}
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        {leave.LeaveDate
+                          ? new Date(leave.LeaveDate).toLocaleDateString()
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold uppercase">
+                        {leave.LeaveMode}
+                      </span>
+                      {isOpen ? (
+                        <ChevronDown size={16} className="text-blue-600" />
+                      ) : (
+                        <ChevronRight size={16} />
+                      )}
+                    </div>
+                  </div>
+
+                  {isOpen && (
+                    <div className="px-4 pb-4 space-y-3 bg-blue-50/20 border-t pt-3">
+                      <p className="text-[10px] font-bold text-blue-800 uppercase">
+                        Reassignments ({sessions.length})
+                      </p>
+                      {sessions.map((s, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-white p-2 rounded border border-blue-100 text-xs"
+                        >
+                          <div className="flex justify-between font-bold">
+                            <span>{s.patientId?.patientName}</span>
+                            <span>{s.sessionTime}</span>
+                          </div>
+                          <p className="text-blue-600 mt-1">
+                            To: {s.Re_Assign?.physioName || "TBD"}
+                          </p>
+                        </div>
+                      ))}
+                      <div className="pt-2 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant={leave.PaidLeave ? "outline" : "default"}
+                          onClick={() => openPaidConfirm(leave)}
+                        >
+                          {leave.PaidLeave ? "Mark Unpaid" : "Mark Paid"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
+      {/* DIALOGS */}
       <AlertDialog
         open={paidConfirm.open}
         onOpenChange={(open) => setPaidConfirm((prev) => ({ ...prev, open }))}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Leave Status Update</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Update</AlertDialogTitle>
             <AlertDialogDescription>
               {paidConfirm.message}
             </AlertDialogDescription>
           </AlertDialogHeader>
-
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2">
             <AlertDialogCancel onClick={closePaidConfirm}>
               Cancel
             </AlertDialogCancel>

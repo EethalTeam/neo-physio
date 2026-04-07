@@ -1796,7 +1796,7 @@ const PatientManagement = () => {
         description: "Patient marked as recovered successfully",
       });
 
-      setOpendialog(false);
+      setOpenedDialog(false);
       setPendingPatient(null);
       setRecoveredType("");
       setOtherReason("");
