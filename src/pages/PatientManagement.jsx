@@ -2036,9 +2036,15 @@ const PatientManagement = () => {
         const sessionItems = sortedSessionsAsc.map((s, index) => {
           const currentStatus =
             s?.sessionStatusId?.sessionStatusName?.toLowerCase() || "";
-          if (index === 0) runningCount = 1;
-          else if (previousStatus !== "canceled") runningCount += 1;
+
+          if (index === 0) {
+            runningCount = 1;
+          } else if (previousStatus === "completed") {
+            runningCount += 1;
+          }
+
           previousStatus = currentStatus;
+
           return {
             ...s,
             itemType: "session",
@@ -2051,13 +2057,6 @@ const PatientManagement = () => {
             status: s?.sessionStatusId?.sessionStatusName || "N/A",
             color: s?.sessionStatusId?.sessionStatusColor || "#4B5563",
             physioName: s?.physioId?.physioName || "N/A",
-            sessionFromTime: s?.sessionFromTime || null,
-            sessionToTime: s?.sessionToTime || null,
-            feedback:
-              s?.sessionFeedbackPros ||
-              s?.sessionCancelReason ||
-              s?.sessionFeedbackCons ||
-              "No feedback",
           };
         });
 
