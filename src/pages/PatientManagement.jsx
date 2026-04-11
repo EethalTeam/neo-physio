@@ -2708,6 +2708,264 @@ const PatientManagement = () => {
     }
   }, [filteredPatients, fmtDate]);
 
+  const downloadReview = useCallback(async () => {
+    try {
+      console.log("Patient History:", patientHistory);
+
+      if (!patientHistory || !patientHistory.length) {
+        toast({
+          title: "No Data",
+          description: "No session history found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Extract all sessions from cycles
+      const rows = patientHistory
+        .flatMap((cycle) => cycle.sessions || [])
+        .filter((item) => item.itemType === "review");
+
+      if (!rows.length) {
+        toast({
+          title: "No Data",
+          description: "No sessions found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const doc = new jsPDF("l", "mm", "a4");
+
+      let logoBase64 = "";
+
+      try {
+        logoBase64 = await getBase64FromUrl(Logo);
+      } catch (err) {
+        console.log("Logo not loaded");
+      }
+
+      // Add Logo
+      if (logoBase64) {
+        doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
+      }
+
+      // Header
+      doc.setFontSize(16);
+      doc.setTextColor(41, 128, 185);
+      doc.text("NEO PHYSIO", 40, 18);
+
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Patients Session History Report", 40, 25);
+
+      doc.setFontSize(10);
+      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
+      doc.text(`Total Sessions: ${rows.length}`, 220, 35);
+
+      doc.setDrawColor(41, 128, 185);
+      doc.line(14, 38, 283, 38);
+
+      autoTable(doc, {
+        startY: 42,
+        head: [
+          [
+            "#",
+            "Review",
+            // "Session Code",
+            "Patient Name",
+            "Physio Name",
+            "Review Date",
+            "Review Type",
+            // "End Time",
+            "Status",
+            "Red flag",
+            "Feedback",
+          ],
+        ],
+
+        body: rows.map((session, idx) => [
+          idx + 1,
+          session.reviewNumber || idx + 1,
+          // session.sessionCode || "-",
+          session.patientId?.patientName || "-",
+          session.physioId?.physioName || "-",
+          fmtDate(session.reviewDate),
+          session.reviewTypeId?.reviewTypeName || "-",
+          // session.sessionToTime || "-",
+          session.reviewStatusId?.reviewStatusName || "-",
+          session.redFlags || "-",
+          session.feedback,
+        ]),
+
+        styles: {
+          fontSize: 8,
+          cellWidth: "wrap",
+        },
+
+        headStyles: {
+          fillColor: [41, 128, 185],
+        },
+
+        columnStyles: {
+          0: { cellWidth: "auto" },
+          1: { cellWidth: "auto" },
+          2: { cellWidth: "auto" },
+          3: { cellWidth: "auto" },
+          4: { cellWidth: "auto" },
+          5: { cellWidth: "auto" },
+          6: { cellWidth: "auto" },
+          7: { cellWidth: "auto" },
+          8: { cellWidth: "auto" },
+          9: { cellWidth: "auto" },
+        },
+      });
+
+      // Footer
+      const pageHeight = doc.internal.pageSize.height;
+
+      doc.setFontSize(9);
+      doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
+
+      doc.save("Session_History_Report.pdf");
+    } catch (error) {
+      console.error("Session History PDF error:", error);
+
+      toast({
+        title: "Error",
+        description: "Failed to download session history PDF.",
+        variant: "destructive",
+      });
+    }
+  }, [patientHistory, fmtDate, getBase64FromUrl]);
+  const downloadSessionHistory = useCallback(async () => {
+    try {
+      console.log("Patient History:", patientHistory);
+
+      if (!patientHistory || !patientHistory.length) {
+        toast({
+          title: "No Data",
+          description: "No session history found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Extract all sessions from cycles
+      const rows = patientHistory
+        .flatMap((cycle) => cycle.sessions || [])
+        .filter((item) => item.itemType === "session");
+
+      if (!rows.length) {
+        toast({
+          title: "No Data",
+          description: "No sessions found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const doc = new jsPDF("l", "mm", "a4");
+
+      let logoBase64 = "";
+
+      try {
+        logoBase64 = await getBase64FromUrl(Logo);
+      } catch (err) {
+        console.log("Logo not loaded");
+      }
+
+      // Add Logo
+      if (logoBase64) {
+        doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
+      }
+
+      // Header
+      doc.setFontSize(16);
+      doc.setTextColor(41, 128, 185);
+      doc.text("NEO PHYSIO", 40, 18);
+
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Patients Session History Report", 40, 25);
+
+      doc.setFontSize(10);
+      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
+      doc.text(`Total Sessions: ${rows.length}`, 220, 35);
+
+      doc.setDrawColor(41, 128, 185);
+      doc.line(14, 38, 283, 38);
+
+      autoTable(doc, {
+        startY: 42,
+        head: [
+          [
+            "#",
+            "Session Count",
+            "Session Code",
+            "Patient Name",
+            "Physio Name",
+            "Session Date",
+            "Start Time",
+            "End Time",
+            "Status",
+            "Feedback",
+          ],
+        ],
+
+        body: rows.map((session, idx) => [
+          idx + 1,
+          session.displaySessionCount || idx + 1,
+          session.sessionCode || "-",
+          session.patientId?.patientName || "-",
+          session.physioId?.physioName || "-",
+          fmtDate(session.sessionDate),
+          session.sessionFromTime || "-",
+          session.sessionToTime || "-",
+          session.sessionStatusId?.sessionStatusName || "-",
+          session.feedback || "-",
+        ]),
+
+        styles: {
+          fontSize: 8,
+          cellWidth: "wrap",
+        },
+
+        headStyles: {
+          fillColor: [41, 128, 185],
+        },
+
+        columnStyles: {
+          0: { cellWidth: "auto" },
+          1: { cellWidth: "auto" },
+          2: { cellWidth: "auto" },
+          3: { cellWidth: "auto" },
+          4: { cellWidth: "auto" },
+          5: { cellWidth: "auto" },
+          6: { cellWidth: "auto" },
+          7: { cellWidth: "auto" },
+          8: { cellWidth: "auto" },
+          9: { cellWidth: "auto" },
+        },
+      });
+
+      // Footer
+      const pageHeight = doc.internal.pageSize.height;
+
+      doc.setFontSize(9);
+      doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
+
+      doc.save("Session_History_Report.pdf");
+    } catch (error) {
+      console.error("Session History PDF error:", error);
+
+      toast({
+        title: "Error",
+        description: "Failed to download session history PDF.",
+        variant: "destructive",
+      });
+    }
+  }, [patientHistory, fmtDate, getBase64FromUrl]);
   const handleDownloadRecoveredPatientsPDF = useCallback(async () => {
     if (!recoveredPatients || recoveredPatients.length === 0) {
       toast({
@@ -3751,6 +4009,19 @@ const PatientManagement = () => {
                       key={cycle.cycleId}
                       className="mb-6 border rounded-lg p-4 bg-white"
                     >
+                      {activeHistoryTab === "sessions" && (
+                        <Button
+                          onClick={downloadSessionHistory}
+                          className="w-full"
+                        >
+                          Download History
+                        </Button>
+                      )}
+                      {activeHistoryTab === "reviews" && (
+                        <Button onClick={downloadReview} className="w-full">
+                          Download Review
+                        </Button>
+                      )}
                       <h3 className="text-lg font-semibold text-blue-600 mb-2">
                         {cycle.cycleTitle}
                       </h3>
@@ -3762,6 +4033,7 @@ const PatientManagement = () => {
                         Sessions: {cycle.totalSessions ?? 0} | Reviews:{" "}
                         {cycle.totalReviews ?? 0}
                       </p>
+
                       <div className="space-y-3">
                         {filteredItems.map((item, index) => (
                           <div
