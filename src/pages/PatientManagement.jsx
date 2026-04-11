@@ -2707,21 +2707,70 @@ const PatientManagement = () => {
       });
     }
   }, [filteredPatients, fmtDate]);
+  const [selectedFields, setSelectedFields] = useState({
+    reviewNumber: true,
+    patientName: true,
+    physioName: true,
+    date: true,
+    type: true,
+    status: true,
+    redFlag: true,
+    feedback: false,
+  });
+  const handleSelectAll = (checked) => {
+    const value = !!checked;
+
+    setSelectedFields({
+      reviewNumber: value,
+      patientName: value,
+      physioName: value,
+      date: value,
+      type: value,
+      status: value,
+      redFlag: value,
+      feedback: value,
+    });
+  };
+  const updateField = (key, value) => {
+    setSelectedFields((prev) => ({
+      ...prev,
+      [key]: !!value,
+    }));
+  };
+  const [openfeedbackdialog, setOpenfeedbackdialog] = useState(false);
+  const [reviewFeedback, setReviewFeedback] = useState(false);
+  const [openfeedbackdialogpdf, setOpenfeedbackdialogpdf] = useState(false);
+  const [reviewFeedbackpdf, setReviewFeedbackpdf] = useState(false);
+
+  const [sessionFields, setSessionFields] = useState({
+    sessionCount: true,
+    sessionCode: true,
+    patientName: true,
+    physioName: true,
+    sessionDate: true,
+    startTime: true,
+    endTime: true,
+    status: true,
+    feedback: false,
+  });
+  const handleSessionSelectAll = (checked) => {
+    const value = !!checked;
+
+    setSessionFields({
+      sessionCount: value,
+      sessionCode: value,
+      patientName: value,
+      physioName: value,
+      sessionDate: value,
+      startTime: value,
+      endTime: value,
+      status: value,
+      feedback: value,
+    });
+  };
 
   const downloadReview = useCallback(async () => {
     try {
-      console.log("Patient History:", patientHistory);
-
-      if (!patientHistory || !patientHistory.length) {
-        toast({
-          title: "No Data",
-          description: "No session history found.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Extract all sessions from cycles
       const rows = patientHistory
         .flatMap((cycle) => cycle.sessions || [])
         .filter((item) => item.itemType === "review");
@@ -2729,7 +2778,7 @@ const PatientManagement = () => {
       if (!rows.length) {
         toast({
           title: "No Data",
-          description: "No sessions found.",
+          description: "No review sessions found.",
           variant: "destructive",
         });
         return;
@@ -2737,235 +2786,308 @@ const PatientManagement = () => {
 
       const doc = new jsPDF("l", "mm", "a4");
 
-      let logoBase64 = "";
-
-      try {
-        logoBase64 = await getBase64FromUrl(Logo);
-      } catch (err) {
-        console.log("Logo not loaded");
-      }
-
-      // Add Logo
-      if (logoBase64) {
-        doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
-      }
-
-      // Header
+      // HEADER
       doc.setFontSize(16);
       doc.setTextColor(41, 128, 185);
       doc.text("NEO PHYSIO", 40, 18);
 
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text("Patients Session History Report", 40, 25);
+      doc.text("Review History Report", 40, 25);
 
       doc.setFontSize(10);
       doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
-      doc.text(`Total Sessions: ${rows.length}`, 220, 35);
+      doc.text(`Total Reviews: ${rows.length}`, 220, 35);
 
-      doc.setDrawColor(41, 128, 185);
       doc.line(14, 38, 283, 38);
+
+      // DYNAMIC HEAD
+      const headers = [];
+
+      if (selectedFields.reviewNumber) headers.push("Review No");
+      if (selectedFields.patientName) headers.push("Patient Name");
+      if (selectedFields.physioName) headers.push("Physio Name");
+      if (selectedFields.reviewDate) headers.push("Date");
+      if (selectedFields.reviewType) headers.push("Type");
+      if (selectedFields.status) headers.push("Status");
+      if (selectedFields.redFlag) headers.push("Red Flag");
+      if (selectedFields.feedback) headers.push("Feedback");
+
+      // DYNAMIC BODY
+      const body = rows.map((s, i) => {
+        const row = [];
+
+        if (selectedFields.reviewNumber) row.push(s.reviewNumber || i + 1);
+        if (selectedFields.patientName)
+          row.push(s.patientId?.patientName || "-");
+        if (selectedFields.physioName) row.push(s.physioId?.physioName || "-");
+        if (selectedFields.reviewDate) row.push(fmtDate(s.reviewDate));
+        if (selectedFields.reviewType)
+          row.push(s.reviewTypeId?.reviewTypeName || "-");
+        if (selectedFields.status)
+          row.push(s.reviewStatusId?.reviewStatusName || "-");
+        if (selectedFields.redFlag) row.push(s.redFlags || "-");
+        if (selectedFields.feedback) row.push(s.feedback || "-");
+
+        return row;
+      });
 
       autoTable(doc, {
         startY: 42,
-        head: [
-          [
-            "#",
-            "Review",
-            // "Session Code",
-            "Patient Name",
-            "Physio Name",
-            "Review Date",
-            "Review Type",
-            // "End Time",
-            "Status",
-            "Red flag",
-            "Feedback",
-          ],
-        ],
-
-        body: rows.map((session, idx) => [
-          idx + 1,
-          session.reviewNumber || idx + 1,
-          // session.sessionCode || "-",
-          session.patientId?.patientName || "-",
-          session.physioId?.physioName || "-",
-          fmtDate(session.reviewDate),
-          session.reviewTypeId?.reviewTypeName || "-",
-          // session.sessionToTime || "-",
-          session.reviewStatusId?.reviewStatusName || "-",
-          session.redFlags || "-",
-          session.feedback,
-        ]),
-
+        head: [headers],
+        body,
         styles: {
           fontSize: 8,
           cellWidth: "wrap",
         },
-
         headStyles: {
           fillColor: [41, 128, 185],
         },
-
-        columnStyles: {
-          0: { cellWidth: "auto" },
-          1: { cellWidth: "auto" },
-          2: { cellWidth: "auto" },
-          3: { cellWidth: "auto" },
-          4: { cellWidth: "auto" },
-          5: { cellWidth: "auto" },
-          6: { cellWidth: "auto" },
-          7: { cellWidth: "auto" },
-          8: { cellWidth: "auto" },
-          9: { cellWidth: "auto" },
-        },
       });
 
-      // Footer
+      // FOOTER
       const pageHeight = doc.internal.pageSize.height;
-
       doc.setFontSize(9);
       doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
 
-      doc.save("Session_History_Report.pdf");
+      doc.save("Review_History_Report.pdf");
     } catch (error) {
-      console.error("Session History PDF error:", error);
-
-      toast({
-        title: "Error",
-        description: "Failed to download session history PDF.",
-        variant: "destructive",
-      });
+      console.error(error);
     }
-  }, [patientHistory, fmtDate, getBase64FromUrl]);
+  }, [patientHistory, fmtDate, selectedFields]);
   const downloadSessionHistory = useCallback(async () => {
     try {
-      console.log("Patient History:", patientHistory);
-
-      if (!patientHistory || !patientHistory.length) {
-        toast({
-          title: "No Data",
-          description: "No session history found.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Extract all sessions from cycles
       const rows = patientHistory
         .flatMap((cycle) => cycle.sessions || [])
         .filter((item) => item.itemType === "session");
 
+      if (!rows.length) return;
+
+      const doc = new jsPDF("l", "mm", "a4");
+
+      const headers = [];
+
+      if (sessionFields.sessionCount) headers.push("Session No");
+      if (sessionFields.sessionCode) headers.push("Session Code");
+      if (sessionFields.patientName) headers.push("Patient Name");
+      if (sessionFields.physioName) headers.push("Physio Name");
+      if (sessionFields.sessionDate) headers.push("Session Date");
+      if (sessionFields.startTime) headers.push("Start Time");
+      if (sessionFields.endTime) headers.push("End Time");
+      if (sessionFields.status) headers.push("Status");
+      if (sessionFields.feedback) headers.push("Feedback");
+
+      const body = rows.map((s, i) => {
+        const row = [];
+
+        if (sessionFields.sessionCount)
+          row.push(s.displaySessionCount || i + 1);
+
+        if (sessionFields.sessionCode) row.push(s.sessionCode || "-");
+
+        if (sessionFields.patientName)
+          row.push(s.patientId?.patientName || "-");
+
+        if (sessionFields.physioName) row.push(s.physioId?.physioName || "-");
+
+        if (sessionFields.sessionDate) row.push(fmtDate(s.sessionDate));
+
+        if (sessionFields.startTime) row.push(s.sessionFromTime || "-");
+
+        if (sessionFields.endTime) row.push(s.sessionToTime || "-");
+
+        if (sessionFields.status)
+          row.push(s.sessionStatusId?.sessionStatusName || "-");
+
+        if (sessionFields.feedback) row.push(s.feedback || "-");
+
+        return row;
+      });
+
+      autoTable(doc, {
+        startY: 42,
+        head: [headers],
+        body,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] },
+      });
+
+      doc.save("Session_History_Report.pdf");
+    } catch (err) {
+      console.error(err);
+    }
+  }, [patientHistory, fmtDate, sessionFields]);
+  const downloadSessionHistoryExcel = useCallback(() => {
+    try {
+      const rows = patientHistory
+        .flatMap((cycle) => cycle.sessions || [])
+        .filter((item) => item.itemType === "session");
+
+      if (!rows.length) return;
+
+      // ✅ Define ORDERED columns
+      const excelData = rows.map((s, i) => {
+        const row = {};
+
+        if (sessionFields.sessionCount)
+          row["Session No"] = s.displaySessionCount || i + 1;
+
+        if (sessionFields.sessionCode)
+          row["Session Code"] = s.sessionCode || "-";
+
+        if (sessionFields.patientName)
+          row["Patient Name"] = s.patientId?.patientName || "-";
+
+        if (sessionFields.physioName)
+          row["Physio Name"] = s.physioId?.physioName || "-";
+
+        if (sessionFields.sessionDate)
+          row["Session Date"] = fmtDate(s.sessionDate);
+
+        if (sessionFields.startTime)
+          row["Start Time"] = s.sessionFromTime || "-";
+
+        if (sessionFields.endTime) row["End Time"] = s.sessionToTime || "-";
+
+        if (sessionFields.status)
+          row["Status"] = s.sessionStatusId?.sessionStatusName || "-";
+
+        if (sessionFields.feedback) row["Feedback"] = s.feedback || "-";
+
+        return row;
+      });
+
+      // ✅ FIX: Build stable column list (IMPORTANT)
+      const columns = [];
+
+      if (sessionFields.sessionCount) columns.push("Session No");
+      if (sessionFields.sessionCode) columns.push("Session Code");
+      if (sessionFields.patientName) columns.push("Patient Name");
+      if (sessionFields.physioName) columns.push("Physio Name");
+      if (sessionFields.sessionDate) columns.push("Session Date");
+      if (sessionFields.startTime) columns.push("Start Time");
+      if (sessionFields.endTime) columns.push("End Time");
+      if (sessionFields.status) columns.push("Status");
+      if (sessionFields.feedback) columns.push("Feedback");
+
+      // ✅ Convert properly ordered data
+      const finalData = rows.map((s, i) => {
+        const obj = {};
+
+        columns.forEach((col) => {
+          switch (col) {
+            case "Session No":
+              obj[col] = s.displaySessionCount || i + 1;
+              break;
+            case "Session Code":
+              obj[col] = s.sessionCode || "-";
+              break;
+            case "Patient Name":
+              obj[col] = s.patientId?.patientName || "-";
+              break;
+            case "Physio Name":
+              obj[col] = s.physioId?.physioName || "-";
+              break;
+            case "Session Date":
+              obj[col] = fmtDate(s.sessionDate);
+              break;
+            case "Start Time":
+              obj[col] = s.sessionFromTime || "-";
+              break;
+            case "End Time":
+              obj[col] = s.sessionToTime || "-";
+              break;
+            case "Status":
+              obj[col] = s.sessionStatusId?.sessionStatusName || "-";
+              break;
+            case "Feedback":
+              obj[col] = s.feedback || "-";
+              break;
+            default:
+              obj[col] = "-";
+          }
+        });
+
+        return obj;
+      });
+
+      // ✅ Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(finalData);
+
+      // ✅ Auto column width safely
+      worksheet["!cols"] = columns.map(() => ({ wch: 20 }));
+
+      // ✅ Workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sessions");
+
+      XLSX.writeFile(workbook, "Session_History_Report.xlsx");
+    } catch (err) {
+      console.error("Excel export error:", err);
+    }
+  }, [patientHistory, fmtDate, sessionFields]);
+  const downloadReviewHistoryExcel = useCallback(() => {
+    try {
+      const rows = patientHistory
+        .flatMap((cycle) => cycle.sessions || [])
+        .filter((item) => item.itemType === "review");
+
       if (!rows.length) {
         toast({
           title: "No Data",
-          description: "No sessions found.",
+          description: "No review sessions found.",
           variant: "destructive",
         });
         return;
       }
 
-      const doc = new jsPDF("l", "mm", "a4");
+      // ✅ BUILD DYNAMIC ROWS
+      const excelData = rows.map((s, i) => {
+        const row = {};
 
-      let logoBase64 = "";
+        if (selectedFields.reviewNumber)
+          row["Review No"] = s.reviewNumber || i + 1;
 
-      try {
-        logoBase64 = await getBase64FromUrl(Logo);
-      } catch (err) {
-        console.log("Logo not loaded");
-      }
+        if (selectedFields.patientName)
+          row["Patient Name"] = s.patientId?.patientName || "-";
 
-      // Add Logo
-      if (logoBase64) {
-        doc.addImage(logoBase64, "PNG", 14, 10, 20, 20);
-      }
+        if (selectedFields.physioName)
+          row["Physio Name"] = s.physioId?.physioName || "-";
 
-      // Header
-      doc.setFontSize(16);
-      doc.setTextColor(41, 128, 185);
-      doc.text("NEO PHYSIO", 40, 18);
+        if (selectedFields.reviewDate)
+          row["Review Date"] = fmtDate(s.reviewDate);
 
-      doc.setFontSize(12);
-      doc.setTextColor(0, 0, 0);
-      doc.text("Patients Session History Report", 40, 25);
+        if (selectedFields.reviewType)
+          row["Review Type"] = s.reviewTypeId?.reviewTypeName || "-";
 
-      doc.setFontSize(10);
-      doc.text(`Downloaded on: ${fmtDate(new Date())}`, 14, 35);
-      doc.text(`Total Sessions: ${rows.length}`, 220, 35);
+        if (selectedFields.status)
+          row["Status"] = s.reviewStatusId?.reviewStatusName || "-";
 
-      doc.setDrawColor(41, 128, 185);
-      doc.line(14, 38, 283, 38);
+        if (selectedFields.redFlag) row["Red Flag"] = s.redFlags || "No";
 
-      autoTable(doc, {
-        startY: 42,
-        head: [
-          [
-            "#",
-            "Session Count",
-            "Session Code",
-            "Patient Name",
-            "Physio Name",
-            "Session Date",
-            "Start Time",
-            "End Time",
-            "Status",
-            "Feedback",
-          ],
-        ],
+        if (selectedFields.feedback) row["Feedback"] = s.feedback || "-";
 
-        body: rows.map((session, idx) => [
-          idx + 1,
-          session.displaySessionCount || idx + 1,
-          session.sessionCode || "-",
-          session.patientId?.patientName || "-",
-          session.physioId?.physioName || "-",
-          fmtDate(session.sessionDate),
-          session.sessionFromTime || "-",
-          session.sessionToTime || "-",
-          session.sessionStatusId?.sessionStatusName || "-",
-          session.feedback || "-",
-        ]),
-
-        styles: {
-          fontSize: 8,
-          cellWidth: "wrap",
-        },
-
-        headStyles: {
-          fillColor: [41, 128, 185],
-        },
-
-        columnStyles: {
-          0: { cellWidth: "auto" },
-          1: { cellWidth: "auto" },
-          2: { cellWidth: "auto" },
-          3: { cellWidth: "auto" },
-          4: { cellWidth: "auto" },
-          5: { cellWidth: "auto" },
-          6: { cellWidth: "auto" },
-          7: { cellWidth: "auto" },
-          8: { cellWidth: "auto" },
-          9: { cellWidth: "auto" },
-        },
+        return row;
       });
 
-      // Footer
-      const pageHeight = doc.internal.pageSize.height;
+      // ✅ CREATE WORKSHEET
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
 
-      doc.setFontSize(9);
-      doc.text("NEO PHYSIO - Patient Management System", 14, pageHeight - 10);
+      // ✅ AUTO COLUMN WIDTH
+      const colWidths = Object.keys(excelData[0] || {}).map(() => ({
+        wch: 20,
+      }));
+      worksheet["!cols"] = colWidths;
 
-      doc.save("Session_History_Report.pdf");
+      // ✅ WORKBOOK
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Reviews");
+
+      XLSX.writeFile(workbook, "Review_History_Report.xlsx");
     } catch (error) {
-      console.error("Session History PDF error:", error);
-
-      toast({
-        title: "Error",
-        description: "Failed to download session history PDF.",
-        variant: "destructive",
-      });
+      console.error("Excel download error:", error);
     }
-  }, [patientHistory, fmtDate, getBase64FromUrl]);
+  }, [patientHistory, fmtDate, selectedFields]);
   const handleDownloadRecoveredPatientsPDF = useCallback(async () => {
     if (!recoveredPatients || recoveredPatients.length === 0) {
       toast({
@@ -4010,17 +4132,41 @@ const PatientManagement = () => {
                       className="mb-6 border rounded-lg p-4 bg-white"
                     >
                       {activeHistoryTab === "sessions" && (
-                        <Button
-                          onClick={downloadSessionHistory}
-                          className="w-full"
-                        >
-                          Download History
-                        </Button>
+                        <>
+                          <div className="flex gap-[10px]">
+                            <Button
+                              onClick={() => setOpenfeedbackdialogpdf(true)}
+                              className="w-full"
+                            >
+                              Download History
+                            </Button>
+                            <Button
+                              onClick={() => setOpenfeedbackdialogpdf(true)}
+                              className="w-full"
+                            >
+                              Download History (Excel)
+                            </Button>
+                          </div>
+                        </>
                       )}
                       {activeHistoryTab === "reviews" && (
-                        <Button onClick={downloadReview} className="w-full">
-                          Download Review
-                        </Button>
+                        <>
+                          <div className="flex gap-[10px]">
+                            {" "}
+                            <Button
+                              onClick={() => setOpenfeedbackdialogpdf(true)}
+                              className="w-full"
+                            >
+                              Download Review
+                            </Button>
+                            <Button
+                              onClick={() => setOpenfeedbackdialog(true)}
+                              className="w-full"
+                            >
+                              Download Review (Excel)
+                            </Button>
+                          </div>
+                        </>
                       )}
                       <h3 className="text-lg font-semibold text-blue-600 mb-2">
                         {cycle.cycleTitle}
@@ -5502,6 +5648,458 @@ const PatientManagement = () => {
               Cancel
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openfeedbackdialog} onOpenChange={setOpenfeedbackdialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Download Review Options</DialogTitle>
+          </DialogHeader>
+
+          {/* SELECT ALL */}
+          <div className="flex items-center gap-2 mb-3">
+            <Checkbox
+              checked={Object.values(selectedFields).every(Boolean)}
+              onCheckedChange={handleSelectAll}
+            />
+            <span className="font-semibold">Select All</span>
+          </div>
+
+          {/* FIELDS */}
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.reviewNumber}
+                onCheckedChange={(v) => updateField("reviewNumber", v)}
+              />
+              Review No
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.patientName}
+                onCheckedChange={(v) => updateField("patientName", v)}
+              />
+              Patient Name
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.physioName}
+                onCheckedChange={(v) => updateField("physioName", v)}
+              />
+              Physio Name
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.reviewDate}
+                onCheckedChange={(v) => updateField("reviewDate", v)}
+              />
+              Review Date
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.reviewType}
+                onCheckedChange={(v) => updateField("reviewType", v)}
+              />
+              Review Type
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.status}
+                onCheckedChange={(v) => updateField("status", v)}
+              />
+              Status
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.redFlag}
+                onCheckedChange={(v) => updateField("redFlag", v)}
+              />
+              Red Flag
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.feedback}
+                onCheckedChange={(v) => updateField("feedback", v)}
+              />
+              Feedback
+            </label>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setOpenfeedbackdialog(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={() => {
+                downloadReviewHistoryExcel();
+                setOpenfeedbackdialog(false);
+              }}
+            >
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={openfeedbackdialogpdf}
+        onOpenChange={setOpenfeedbackdialogpdf}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Download Review Options</DialogTitle>
+          </DialogHeader>
+
+          {/* SELECT ALL */}
+          <div className="flex items-center gap-2 mb-3">
+            <Checkbox
+              checked={Object.values(selectedFields).every(Boolean)}
+              onCheckedChange={handleSelectAll}
+            />
+            <span className="font-semibold">Select All</span>
+          </div>
+
+          {/* FIELDS */}
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.reviewNumber}
+                onCheckedChange={(v) => updateField("reviewNumber", v)}
+              />
+              Review No
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.patientName}
+                onCheckedChange={(v) => updateField("patientName", v)}
+              />
+              Patient Name
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.physioName}
+                onCheckedChange={(v) => updateField("physioName", v)}
+              />
+              Physio Name
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.reviewDate}
+                onCheckedChange={(v) => updateField("reviewDate", v)}
+              />
+              Review Date
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.reviewType}
+                onCheckedChange={(v) => updateField("reviewType", v)}
+              />
+              Review Type
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.status}
+                onCheckedChange={(v) => updateField("status", v)}
+              />
+              Status
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.redFlag}
+                onCheckedChange={(v) => updateField("redFlag", v)}
+              />
+              Red Flag
+            </label>
+
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedFields.feedback}
+                onCheckedChange={(v) => updateField("feedback", v)}
+              />
+              Feedback
+            </label>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setOpenfeedbackdialogpdf(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={() => {
+                downloadReview();
+                setOpenfeedbackdialogpdf(false);
+              }}
+            >
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={openfeedbackdialogpdf}
+        onOpenChange={setOpenfeedbackdialogpdf}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Download Session Options</DialogTitle>
+          </DialogHeader>
+
+          {/* FIELDS */}
+          <div className="flex items-center gap-2 mb-3">
+            <Checkbox
+              checked={Object.values(sessionFields).every((v) => v === true)}
+              onCheckedChange={handleSessionSelectAll}
+            />
+            <span className="font-semibold">Select All</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label>
+              <Checkbox
+                checked={sessionFields.sessionCount}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, sessionCount: !!v }))
+                }
+              />
+              Session No
+            </label>{" "}
+            <label>
+              <Checkbox
+                checked={sessionFields.sessionCode}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, sessionCode: !!v }))
+                }
+              />
+              Session Code
+            </label>{" "}
+            <label>
+              <Checkbox
+                checked={sessionFields.patientName}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, patientName: !!v }))
+                }
+              />
+              Patient Name
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.physioName}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, physioName: !!v }))
+                }
+              />
+              Physio Name
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.feedback}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, feedback: !!v }))
+                }
+              />
+              Feedback
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.sessionDate}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, sessionDate: !!v }))
+                }
+              />
+              Session Date
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.startTime}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, startTime: !!v }))
+                }
+              />
+              Start Time
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.endTime}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, endTime: !!v }))
+                }
+              />
+              End Time
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.status}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, status: !!v }))
+                }
+              />
+              Status
+            </label>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setOpenfeedbackdialogpdf(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={() => {
+                downloadSessionHistory(); // ✅ correct
+                setOpenfeedbackdialogpdf(false);
+              }}
+            >
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={openfeedbackdialogpdf}
+        onOpenChange={setOpenfeedbackdialogpdf}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Download Session Options</DialogTitle>
+          </DialogHeader>
+
+          {/* FIELDS */}
+          <div className="flex items-center gap-2 mb-3">
+            <Checkbox
+              checked={Object.values(sessionFields).every((v) => v === true)}
+              onCheckedChange={handleSessionSelectAll}
+            />
+            <span className="font-semibold">Select All</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label>
+              <Checkbox
+                checked={sessionFields.sessionCount}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, sessionCount: !!v }))
+                }
+              />
+              Session No
+            </label>{" "}
+            <label>
+              <Checkbox
+                checked={sessionFields.sessionCode}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, sessionCode: !!v }))
+                }
+              />
+              Session Code
+            </label>{" "}
+            <label>
+              <Checkbox
+                checked={sessionFields.patientName}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, patientName: !!v }))
+                }
+              />
+              Patient Name
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.physioName}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, physioName: !!v }))
+                }
+              />
+              Physio Name
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.feedback}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, feedback: !!v }))
+                }
+              />
+              Feedback
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.sessionDate}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, sessionDate: !!v }))
+                }
+              />
+              Session Date
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.startTime}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, startTime: !!v }))
+                }
+              />
+              Start Time
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.endTime}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, endTime: !!v }))
+                }
+              />
+              End Time
+            </label>
+            <label>
+              <Checkbox
+                checked={sessionFields.status}
+                onCheckedChange={(v) =>
+                  setSessionFields((p) => ({ ...p, status: !!v }))
+                }
+              />
+              Status
+            </label>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setOpenfeedbackdialogpdf(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={() => {
+                downloadSessionHistoryExcel();
+                setOpenfeedbackdialogpdf(false);
+              }}
+            >
+              Download
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
