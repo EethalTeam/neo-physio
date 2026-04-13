@@ -1786,7 +1786,7 @@ const Income = () => {
                                 </td>
 
                                 <td className="p-3 text-center">
-                                  ₹{b?.ratePerSession}
+                                  ₹{b?.ratePerSession.toFixed(0)}
                                 </td>
 
                                 <td className="p-3 text-center font-semibold">
