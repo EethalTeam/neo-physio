@@ -724,6 +724,7 @@ const PatientManagement = () => {
     KmsfLPatienttoHub: "",
     kmsFromPrevious: "",
   };
+  console.log(physios, "physios");
   const handleViewPatientDocs = (patient) => {
     setPatientDocs(patient?.patientDocuments || []);
     setSelectedPatientName(patient?.patientName || "");
@@ -754,7 +755,7 @@ const PatientManagement = () => {
     patientNumber: "",
     patientAddress: "",
     category: "",
-    MedicalHistoryAndRiskFactor: [],
+    MedicalHistoryAndRiskFactor: {},
 
     consultationDate: null,
     byStandar: "",
@@ -1689,31 +1690,56 @@ const PatientManagement = () => {
           return;
         }
         await AssignPhysio(assignForm);
-        setPatients((prev) =>
-          prev.map((p) => {
-            if (p._id === assigningPatient._id) {
-              return {
-                ...p,
-                physioId: {
-                  _id: assignForm.physioId,
-                  physioName: assignForm.Physiotherapist,
-                },
-                sessionStartDate: assignForm.sessionStartDate,
-                sessionTime: assignForm.sessionTime,
-                totalSessionDays: assignForm.totalSessionDays,
-                InitialShorttermGoal: assignForm.InitialShorttermGoal,
-                goalDuration: assignForm.goalDuration,
-                goalDescription: assignForm.goalDescription,
-                reviewFrequency: assignForm.reviewFrequency,
-                visitOrder: assignForm.visitOrder,
-                KmsfromHub: assignForm.KmsfromHub,
-                KmsfLPatienttoHub: assignForm.KmsfLPatienttoHub,
-                kmsFromPrevious: assignForm.kmsFromPrevious,
-              };
-            }
-            return p;
-          }),
-        );
+        setPatients((prev) => {
+          const physioId = assignForm.physioId;
+          const newOrder = Number(assignForm.visitOrder);
+
+          // patients of same physio
+          const physioPatients = prev.filter(
+            (p) =>
+              (p.physioId?._id || p.physioId) === physioId && !p.isRecovered,
+          );
+
+          // remove current patient
+          const others = physioPatients.filter(
+            (p) => p._id !== assigningPatient._id,
+          );
+
+          // updated patient object
+          const updatedPatient = {
+            ...assigningPatient,
+            physioId: {
+              _id: physioId,
+              physioName: assignForm.Physiotherapist,
+            },
+            sessionStartDate: assignForm.sessionStartDate,
+            sessionTime: assignForm.sessionTime,
+            totalSessionDays: assignForm.totalSessionDays,
+            InitialShorttermGoal: assignForm.InitialShorttermGoal,
+            goalDuration: assignForm.goalDuration,
+            goalDescription: assignForm.goalDescription,
+            reviewFrequency: assignForm.reviewFrequency,
+            visitOrder: newOrder,
+            KmsfromHub: assignForm.KmsfromHub,
+            KmsfLPatienttoHub: assignForm.KmsfLPatienttoHub,
+            kmsFromPrevious: assignForm.kmsFromPrevious,
+          };
+
+          // insert patient at new position
+          others.splice(newOrder - 1, 0, updatedPatient);
+
+          // recalc visitOrder
+          const reordered = others.map((p, index) => ({
+            ...p,
+            visitOrder: index + 1,
+          }));
+
+          // merge back with other patients
+          return prev.map((p) => {
+            const updated = reordered.find((r) => r._id === p._id);
+            return updated ? updated : p;
+          });
+        });
         toast({
           title: "Success",
           description: `Physio assigned for ${assigningPatient.patientName}.`,
@@ -5339,7 +5365,10 @@ const PatientManagement = () => {
                         id="visitOrder"
                         type="number"
                         min="1"
-                        max="7"
+                        max={
+                          physios.find((p) => p._id === assignForm.physioId)
+                            ?.sessionPerDay || 1
+                        }
                         onWheel={(e) => e.target.blur()}
                         placeholder="e.g. 1 for first visit"
                         value={assignForm.visitOrder}
@@ -5365,11 +5394,6 @@ const PatientManagement = () => {
                             return;
                           }
 
-                          if (num > 7) {
-                            setVisitOrderError("Visit order cannot exceed 7");
-                            return;
-                          }
-
                           if (!assignForm.physioId) {
                             setVisitOrderError(
                               "Please select physiotherapist first",
@@ -5377,22 +5401,37 @@ const PatientManagement = () => {
                             return;
                           }
 
-                          const duplicate = patients.find(
-                            (p) =>
-                              p._id !== assigningPatient?._id &&
-                              (p.physioId?._id || p.physioId) ===
-                                assignForm.physioId &&
-                              Number(p.visitOrder) === num &&
-                              !p.isRecovered,
+                          // ADD HERE
+                          const selectedPhysio = physios.find(
+                            (p) => p._id === assignForm.physioId,
                           );
 
-                          if (duplicate) {
+                          const maxSessions = selectedPhysio?.sessionPerDay;
+                          console.log(selectedPhysio, maxSessions);
+                          if (num > maxSessions) {
                             setVisitOrderError(
-                              `Visit order ${num} already exists for this physio`,
+                              `Visit order cannot exceed ${maxSessions}`,
                             );
-                          } else {
-                            setVisitOrderError("");
+                            return;
                           }
+                          setVisitOrderError("");
+
+                          // const duplicate = patients.find(
+                          //   (p) =>
+                          //     p._id !== assigningPatient?._id &&
+                          //     (p.physioId?._id || p.physioId) ===
+                          //       assignForm.physioId &&
+                          //     Number(p.visitOrder) === num &&
+                          //     !p.isRecovered,
+                          // );
+
+                          // if (duplicate) {
+                          //   setVisitOrderError(
+                          //     `Visit order ${num} already exists for this physio`,
+                          //   );
+                          // } else {
+                          //   setVisitOrderError("");
+                          // }
                         }}
                       />
 

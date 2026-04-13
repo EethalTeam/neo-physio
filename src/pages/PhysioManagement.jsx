@@ -97,6 +97,7 @@ const PhysioManagement = () => {
   const initialFormState = {
     _id: "",
     physioName: "",
+    sessionPerDay: "",
     EmpCode: "",
     physioGenderId: "",
     genderName: "",
@@ -430,6 +431,7 @@ const PhysioManagement = () => {
       _id: physio._id,
       physioCode: physio.physioCode || "",
       EmpCode: physio.EmpCode || "",
+      sessionPerDay: physio.sessionPerDay || "",
       physioName: physio.physioName || "",
       physioGenderId: physio.physioGenderId?._id || "",
       genderName: physio.physioGenderId?.genderName || "",
@@ -850,7 +852,6 @@ const PhysioManagement = () => {
                     />
                   </div>
                 )}
-
                 <div className="space-y-2">
                   <Label>
                     Emp Code<span className="text-red-500 ml-1">*</span>
@@ -861,8 +862,19 @@ const PhysioManagement = () => {
                     value={physioForm.EmpCode}
                     onChange={handleFormChange}
                   />
+                </div>{" "}
+                <div className="space-y-2">
+                  <Label>
+                    Session Per Day
+                    {/* <span className="text-red-500 ml-1">*</span> */}
+                  </Label>
+                  <Input
+                    name="sessionPerDay"
+                    type="text"
+                    value={physioForm.sessionPerDay}
+                    onChange={handleFormChange}
+                  />
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Physio Pic<span className="text-red-500 ml-1">*</span>
@@ -876,7 +888,6 @@ const PhysioManagement = () => {
                     }}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Name<span className="text-red-500 ml-1">*</span>
@@ -887,7 +898,6 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Date Of Birth<span className="text-red-500 ml-1">*</span>
@@ -899,7 +909,6 @@ const PhysioManagement = () => {
                     onChange={handleFormChange}
                   />
                 </div>
-
                 <div>
                   <Label>
                     Gender<span className="text-red-500 ml-1">*</span>
@@ -922,7 +931,6 @@ const PhysioManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Contact No<span className="text-red-500 ml-1">*</span>
@@ -936,7 +944,6 @@ const PhysioManagement = () => {
                     pattern="[0-9]{10}"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Alt No<span className="text-red-500 ml-1">*</span>
@@ -959,7 +966,6 @@ const PhysioManagement = () => {
                     placeholder="Enter 10-digit number"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Relation with Alt No
@@ -979,7 +985,6 @@ const PhysioManagement = () => {
                     placeholder="Enter relation"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Alt No 2<span className="text-red-500 ml-1">*</span>
@@ -1002,7 +1007,6 @@ const PhysioManagement = () => {
                     placeholder="Enter 10-digit number"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Relation with Alt No 2
@@ -1022,7 +1026,6 @@ const PhysioManagement = () => {
                     placeholder="Enter relation"
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="password">
                     Password<span className="text-red-500 ml-1">*</span>
@@ -1049,7 +1052,6 @@ const PhysioManagement = () => {
                     )}
                   </button>
                 </div>
-
                 <div className="space-y-2">
                   <Label>
                     Role<span className="text-red-500 ml-1">*</span>
