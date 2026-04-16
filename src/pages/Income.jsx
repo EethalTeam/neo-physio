@@ -1825,6 +1825,7 @@ const Income = () => {
 
                                 <td className="p-3">
                                   <div className="flex flex-col gap-2">
+                                    {/* Receive Payment Button */}
                                     <Button
                                       size="sm"
                                       onClick={() =>
@@ -1835,17 +1836,28 @@ const Income = () => {
                                         })
                                       }
                                       disabled={status === "Paid"}
+                                      className={
+                                        status === "Paid"
+                                          ? "bg-green-500 text-white cursor-not-allowed"
+                                          : ""
+                                      }
                                     >
-                                      Receive
+                                      {status === "Paid" ? "Paid" : "Receive"}
                                     </Button>
 
+                                    {/* Send Bill Button */}
                                     <Button
                                       size="sm"
                                       variant="outline"
                                       onClick={() => handleSendBill(b._id)}
                                       disabled={b?.isSend}
+                                      className={
+                                        b?.isSend
+                                          ? "bg-blue-500 text-white cursor-not-allowed"
+                                          : ""
+                                      }
                                     >
-                                      Send
+                                      {b?.isSend ? "Sent" : "Send"}
                                     </Button>
                                   </div>
                                 </td>
