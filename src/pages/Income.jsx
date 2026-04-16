@@ -461,6 +461,7 @@ const Income = () => {
   };
 
   const [bills, setBills] = useState([]);
+  const [billspending, setBillspending] = useState([]);
 
   const fetchBills = async () => {
     try {
@@ -480,10 +481,58 @@ const Income = () => {
       setBills([]);
     }
   };
+  const fetchBill = async () => {
+    try {
+      const res = await apiRequest("Dashboard/getAllBillforDashboard", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
 
+      setBillspending(Array.isArray(res) ? res : []);
+    } catch (e) {
+      console.error(e);
+      setBillspending([]);
+    }
+  };
+  const monthlyPending = useMemo(() => {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const data = months.map((m) => ({
+      month: m,
+      pending: 0,
+    }));
+
+    billspending.forEach((bill) => {
+      const date = new Date(bill.billDate || bill.createdAt);
+      const monthIndex = date.getMonth();
+
+      const total = Number(bill.totalAmount || 0);
+      const paid = Number(bill.paidAmount || 0);
+
+      const pending = total - paid;
+
+      data[monthIndex].pending += pending;
+    });
+
+    return data;
+  }, [billspending]);
   useEffect(() => {
     if (activeTab === "bill") {
       fetchBills();
+      fetchBill();
     }
   }, [
     activeTab,
@@ -1576,6 +1625,30 @@ const Income = () => {
       <div id="pageContent1">
         {activeTab === "bill" && (
           <>
+            <Card className="medical-card mt-6 mb-6">
+              <CardHeader>
+                <CardTitle>Monthly Pending Amount</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+                <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(180px,1fr))]">
+                  {monthlyPending
+                    .filter((m) => m.pending > 0)
+                    .map((m, i) => (
+                      <div
+                        key={i}
+                        className="border rounded-lg p-4 text-center bg-gray-50"
+                      >
+                        <p className="text-sm text-gray-500">{m.month}</p>
+
+                        <p className="text-lg font-semibold text-red-600">
+                          ₹ {m.pending.toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
             <Card className="w-full overflow-hidden">
               <CardHeader>
                 <CardTitle>Bill Generate Dashboard</CardTitle>
@@ -1854,7 +1927,7 @@ const Income = () => {
                                       className={
                                         b?.isSend
                                           ? "bg-blue-500 text-white cursor-not-allowed"
-                                          : ""
+                                          : "bg-red-300 text-white"
                                       }
                                     >
                                       {b?.isSend ? "Sent" : "Send"}
