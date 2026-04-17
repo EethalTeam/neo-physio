@@ -1796,22 +1796,50 @@ const Income = () => {
                 <div className="hidden md:block border rounded-lg bg-white">
                   <div className="overflow-x-auto max-h-[520px]">
                     <table className="min-w-[1200px] w-full text-sm border-collapse">
-                      <thead className="bg-gray-100 sticky top-0 z-10">
+                      <thead className="bg-gray-100 sticky top-0 z-20">
                         <tr>
-                          <th className="p-3 text-left">Patient</th>
-                          <th className="p-3 text-left">Physio</th>
-                          <th className="p-3 text-left">Session Period</th>
-                          <th className="p-3 text-center">Sessions</th>
-                          <th className="p-3 text-center">Rate</th>
-                          <th className="p-3 text-center">Total</th>
-                          <th className="p-3 text-center">Advance Deducted</th>
-                          <th className="p-3 text-center">Net</th>
-                          <th className="p-3 text-center">Received</th>
-                          <th className="p-3 text-center">Pending</th>
-                          <th className="p-3 text-center">Discount</th>
-                          <th className="p-3 text-left">Status</th>
-                          <th className="p-3 text-left">Payment Type</th>
-                          <th className="p-3 text-center">Actions</th>
+                          <th className="p-3 text-left sticky left-0 bg-gray-100 z-30">
+                            Patient
+                          </th>
+                          <th className="p-3 text-left sticky top-0 bg-gray-100">
+                            Physio
+                          </th>
+                          <th className="p-3 text-left sticky top-0 bg-gray-100">
+                            Session Period
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Sessions
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Rate
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Total
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Advance Deducted
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Net
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Received
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Pending
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Discount
+                          </th>
+                          <th className="p-3 text-left sticky top-0 bg-gray-100">
+                            Status
+                          </th>
+                          <th className="p-3 text-left sticky top-0 bg-gray-100">
+                            Payment Type
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
 
@@ -1841,7 +1869,7 @@ const Income = () => {
                                 key={b._id}
                                 className="border-b hover:bg-gray-50"
                               >
-                                <td className="p-3">
+                                <td className="p-3 sticky left-0 bg-white">
                                   {b?.patientId?.patientName}
                                 </td>
 
