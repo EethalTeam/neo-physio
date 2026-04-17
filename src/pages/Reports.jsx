@@ -34,24 +34,26 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Legend,
+  Tooltip,
+} from "chart.js";
 
+ChartJS.register(BarElement, CategoryScale, LinearScale, Legend, Tooltip);
 const Reports = () => {
   const { user } = useAuth();
 
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
-
+  const [consultations, setConsultations] = useState([]);
   const [selectedReference, setSelectedReference] = useState("all");
   const [selectedPhysio, setSelectedPhysio] = useState("all");
   const [reviews, setReviews] = useState([]);
@@ -61,7 +63,14 @@ const Reports = () => {
   const [patientList, setPatientList] = useState([]);
   const [leaveData, setLeaveData] = useState([]);
   const [todaySessionCount, setTodaySessionCount] = useState(0);
+  const addHeader = (doc, title) => {
+    // Logo
+    doc.addImage(logo, "PNG", 14, 5, 25, 15);
 
+    // Title
+    doc.setFontSize(16);
+    doc.text(title, 45, 15);
+  };
   const [stats, setStats] = useState({
     lead: 0,
     patient: 0,
@@ -82,17 +91,428 @@ const Reports = () => {
   const [summary, setSummary] = useState({
     cancelledSessions: 0,
   });
+  const getAllConsultation = async () => {
+    try {
+      const res = await apiRequest("Consultation/getAllConsultation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
 
+      if (Array.isArray(res)) {
+        setConsultations(res);
+      } else if (Array.isArray(res?.data)) {
+        setConsultations(res.data);
+      } else {
+        setConsultations([]);
+      }
+    } catch (error) {
+      console.error("Error fetching consultations:", error);
+      setConsultations([]);
+    }
+  };
+
+  const [selectedMonth, setSelectedMonth] = useState(String(currentMonth));
+  const [selectedYear, setSelectedYear] = useState(String(currentYear));
+  useEffect(() => {
+    getAllConsultation();
+  }, []);
+  useEffect(() => {
+    const totalConsultations = consultations?.length || 0;
+
+    setFunnel((prev) => ({
+      ...prev,
+      totalConsultations,
+    }));
+  }, [consultations]);
+  useEffect(() => {
+    const totalConsultations =
+      consultations?.filter((c) => {
+        const date = new Date(c.date);
+        return (
+          date.getMonth() === Number(selectedMonth) &&
+          date.getFullYear() === Number(selectedYear)
+        );
+      })?.length || 0;
+
+    setFunnel((prev) => ({
+      ...prev,
+      totalConsultations,
+    }));
+  }, [consultations, selectedMonth, selectedYear]);
+  const totalConsultations = consultations?.length || 0;
   const [funnel, setFunnel] = useState({
     newEnquiries: 0,
     newConsultations: 0,
     newPatients: 0,
     conversionRate: 0,
+    consultations: 0,
+    totalConsultations: 0,
   });
+  console.log(funnel);
 
-  const [selectedMonth, setSelectedMonth] = useState(String(currentMonth));
-  const [selectedYear, setSelectedYear] = useState(String(currentYear));
+  const getSessionsForMonths = (months) => {
+    const today = new Date();
+    const startDate = new Date();
 
+    startDate.setMonth(today.getMonth() - months);
+
+    return sessions.filter((s) => {
+      const d = new Date(s.sessionDate);
+      return d >= startDate && d <= today;
+    });
+  };
+  const getReviewsForMonths = (months) => {
+    const today = new Date();
+    const startDate = new Date();
+
+    startDate.setMonth(today.getMonth() - months);
+
+    return reviews.filter((s) => {
+      const d = new Date(s.reviewDate);
+      console.log(d);
+
+      return d >= startDate && d <= today;
+    });
+  };
+  const generateHodPerformance = (months) => {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+
+    // -------------------------
+    // FILTER REVIEWS
+    // -------------------------
+    const reviewData = filteredReviews.filter((r) => {
+      const d = new Date(r.reviewDate || r.createdAt);
+      return d >= startDate;
+    });
+
+    // -------------------------
+    // FILTER CONSULTATIONS
+    // -------------------------
+    const consultationData = consultations.filter((c) => {
+      const d = new Date(c.consultationDate || c.createdAt);
+      return d >= startDate;
+    });
+    console.log(consultationData);
+    // -------------------------
+    // FINAL METRICS
+    // -------------------------
+    let data = {
+      totalReviews: 0,
+      completedReviews: 0,
+
+      totalConsultations: 0,
+      completedConsultations: 0,
+
+      pending: 0,
+      cancelled: 0,
+
+      convertedPatients: new Set(),
+    };
+
+    // -------------------------
+    // REVIEWS PROCESS
+    // -------------------------
+    reviewData.forEach((r) => {
+      const status = (r.reviewStatusId?.reviewStatusName || "").toLowerCase();
+
+      data.totalReviews++;
+
+      if (status.includes("completed")) data.completedReviews++;
+      else if (status.includes("pending")) data.pending++;
+      else if (status.includes("cancel")) data.cancelled++;
+
+      if (r.patientId) {
+        data.convertedPatients.add(String(r.patientId._id || r.patientId));
+      }
+    });
+
+    // -------------------------
+    // CONSULTATION PROCESS
+    // -------------------------
+    consultationData.forEach((c) => {
+      const status = (c.status || "").toLowerCase();
+
+      data.totalConsultations++;
+
+      if (status.includes("complete")) data.completedConsultations++;
+      else if (status.includes("pending")) data.pending++;
+      else if (status.includes("cancel")) data.cancelled++;
+
+      if (c.patientId) {
+        data.convertedPatients.add(String(c.patientId._id || c.patientId));
+      }
+    });
+
+    // -------------------------
+    // FINAL CALCULATION
+    // -------------------------
+    const totalActivities = data.totalReviews + data.totalConsultations;
+
+    const conversionRate =
+      totalActivities === 0
+        ? 0
+        : Math.round((data.convertedPatients.size / totalActivities) * 100);
+
+    return {
+      ...data,
+      totalActivities,
+      convertedPatients: data.convertedPatients.size,
+      conversionRate,
+    };
+  };
+  const exportHodPerformancePDF = (months) => {
+    const data = generateHodPerformance(months);
+    console.log(data);
+
+    const doc = new jsPDF();
+
+    addHeader(doc, "HOD Performance Report (Reviews + Consultations)");
+
+    doc.setFontSize(12);
+    doc.text(`Last ${months} Months Combined Report`, 14, 40);
+
+    autoTable(doc, {
+      startY: 50,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Reviews", data.totalReviews],
+        ["Completed Reviews", data.completedReviews],
+
+        ["Total Consultations", data.totalConsultations],
+        // ["Completed Consultations", data.completedConsultations],
+
+        ["Pending Activities", data.pending],
+        ["Cancelled Activities", data.cancelled],
+
+        ["Total Patients Engaged", data.convertedPatients],
+        ["Conversion Rate", `${data.conversionRate}%`],
+      ],
+    });
+
+    doc.save(`HOD_Combined_Performance_${months}_Months.pdf`);
+  };
+  const exportHodPerformanceExcel = (months) => {
+    const data = generateHodPerformance(months);
+
+    const rows = [
+      { Metric: "Total Reviews", Value: data.totalReviews },
+      { Metric: "Completed Reviews", Value: data.completedReviews },
+
+      { Metric: "Total Consultations", Value: data.totalConsultations },
+      // { Metric: "Completed Consultations", Value: data.completedConsultations },
+
+      { Metric: "Pending Activities", Value: data.pending },
+      { Metric: "Cancelled Activities", Value: data.cancelled },
+
+      { Metric: "Total Patients Engaged", Value: data.convertedPatients },
+      { Metric: "Conversion Rate", Value: `${data.conversionRate}%` },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb, ws, "HOD Performance");
+
+    XLSX.writeFile(wb, `HOD_Combined_Performance_${months}_Months.xlsx`);
+  };
+  const generatePhysioPerformance = (months, selectedPhysio) => {
+    let reportSessions = getSessionsForMonths(months);
+
+    if (selectedPhysio !== "all") {
+      reportSessions = reportSessions.filter(
+        (s) => String(getSessionPhysioId(s)) === String(selectedPhysio),
+      );
+    }
+
+    const physioMap = {};
+
+    reportSessions.forEach((s) => {
+      const physioId = getSessionPhysioId(s);
+      const physioName = s.physioId.physioName || "Unknown";
+
+      if (!physioMap[physioId]) {
+        physioMap[physioId] = {
+          physioName,
+          totalSessions: 0,
+          completedSessions: 0,
+          cancelledSessions: 0,
+          pendingSessions: 0,
+          patients: new Set(),
+        };
+      }
+
+      physioMap[physioId].totalSessions += 1;
+      if (s.patientId) {
+        const patientId =
+          typeof s.patientId === "object" ? s.patientId._id : s.patientId;
+
+        physioMap[physioId].patients.add(String(patientId));
+      }
+
+      const status = (s.sessionStatusId.sessionStatusName || "").toLowerCase();
+
+      if (status.includes("complete")) {
+        physioMap[physioId].completedSessions += 1;
+      } else if (status.includes("cancel")) {
+        physioMap[physioId].cancelledSessions += 1;
+      } else {
+        physioMap[physioId].pendingSessions += 1;
+      }
+    });
+
+    return Object.values(physioMap).map((p) => {
+      const uniquePatients = p.patients.size;
+
+      const completionPercentage =
+        p.totalSessions === 0
+          ? 0
+          : Math.round((p.completedSessions / p.totalSessions) * 100);
+
+      const avgSessionsPerPatient =
+        uniquePatients === 0
+          ? 0
+          : (p.totalSessions / uniquePatients).toFixed(2);
+
+      const productivityScore = Math.round(
+        completionPercentage * 0.6 +
+          (uniquePatients / (p.totalSessions || 1)) * 40,
+      );
+
+      return {
+        physioName: p.physioName,
+        totalSessions: p.totalSessions,
+        completedSessions: p.completedSessions,
+        cancelledSessions: p.cancelledSessions,
+        pendingSessions: p.pendingSessions,
+        uniquePatients,
+        avgSessionsPerPatient,
+        completionPercentage,
+        productivityScore,
+      };
+    });
+  };
+  const exportPhysioPerformancePDF = (months, selectedPhysio) => {
+    const data = generatePhysioPerformance(months, selectedPhysio);
+
+    const doc = new jsPDF("landscape");
+    addHeader(doc, isHodSelected ? "HOD Report" : "Physio Report");
+
+    doc.setFontSize(14);
+    doc.text(`Physio Performance Report - Last ${months} Months`, 14, 45);
+    // create chart canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = 800;
+    canvas.height = 300;
+
+    const ctx = canvas.getContext("2d");
+
+    const labels = data.map((p) => p.physioName);
+    const completed = data.map((p) => p.completedSessions);
+    const cancelled = data.map((p) => p.cancelledSessions);
+
+    new ChartJS(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Completed Sessions",
+            data: completed,
+            backgroundColor: "#4CAF50",
+          },
+          {
+            label: "Cancelled Sessions",
+            data: cancelled,
+            backgroundColor: "#F44336",
+          },
+        ],
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { position: "top" },
+        },
+      },
+    });
+
+    setTimeout(() => {
+      const chartImage = canvas.toDataURL("image/png");
+
+      // add chart
+      doc.addImage(chartImage, "PNG", 15, 55, 260, 80);
+
+      // table data
+      const tableRows = data.map((p, index) => [
+        index + 1,
+        p.physioName,
+        p.totalSessions,
+        p.completedSessions,
+        p.cancelledSessions,
+        p.pendingSessions,
+        p.uniquePatients,
+        p.avgSessionsPerPatient,
+        p.completionPercentage + "%",
+        p.productivityScore,
+      ]);
+
+      autoTable(doc, {
+        startY: 140,
+        head: [
+          [
+            "S.No",
+            "Physio",
+            "Total Sessions",
+            "Completed",
+            "Cancelled",
+            "Pending",
+            "Unique Patients",
+            "Avg Sessions / Patient",
+            "Completion %",
+            "Productivity Score",
+          ],
+        ],
+        body: tableRows,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: "linebreak",
+        },
+        columnStyles: {
+          1: { cellWidth: 40 },
+        },
+      });
+
+      // download PDF
+      doc.save(`Physio_Performance_Last_${months}_Months.pdf`);
+    }, 300);
+  };
+  const exportPhysioPerformanceExcel = (months, selectedPhysio) => {
+    const data = generatePhysioPerformance(months, selectedPhysio);
+
+    const rows = data.map((p, index) => ({
+      "S.No": index + 1,
+      Physio: p.physioName,
+      "Total Sessions": p.totalSessions,
+      Completed: p.completedSessions,
+      Cancelled: p.cancelledSessions,
+      Pending: p.pendingSessions,
+      "Unique Patients": p.uniquePatients,
+      "Avg Sessions / Patient": p.avgSessionsPerPatient,
+      "Completion %": p.completionPercentage + "%",
+      "Productivity Score": p.productivityScore,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb, ws, "Physio Performance");
+
+    XLSX.writeFile(wb, `Physio_Performance_Last_${months}_Months.xlsx`);
+  };
   const monthNames = [
     "January",
     "February",
@@ -965,14 +1385,7 @@ const Reports = () => {
   // ---------------------------
   // Export functions
   // ---------------------------
-  const addHeader = (doc, title) => {
-    // Logo
-    doc.addImage(logo, "PNG", 14, 5, 25, 15);
 
-    // Title
-    doc.setFontSize(16);
-    doc.text(title, 45, 15);
-  };
   const handleExportHodReviewXLSX = () => {
     if (filteredReviews.length === 0) {
       toast({
@@ -1759,6 +2172,7 @@ const Reports = () => {
       bgColor: "bg-violet-100",
     },
   ];
+  const [months, setMonths] = useState(1);
 
   return (
     <div className="space-y-6 p-2 md:p-0">
@@ -1835,7 +2249,66 @@ const Reports = () => {
               ))}
             </SelectContent>
           </Select>
+          {!isHodSelected && (
+            <div className="flex gap-3 items-center">
+              <label>Select Months:</label>
 
+              <input
+                type="number"
+                min="1"
+                max="12"
+                value={months}
+                onChange={(e) => setMonths(Number(e.target.value))}
+                className="border p-2 w-20"
+              />
+
+              <button
+                onClick={() =>
+                  exportPhysioPerformancePDF(months, selectedPhysio)
+                }
+              >
+                Download PDF
+              </button>
+
+              <button
+                onClick={() =>
+                  exportPhysioPerformanceExcel(months, selectedPhysio)
+                }
+              >
+                Download Excel
+              </button>
+            </div>
+          )}
+          {isHodSelected && (
+            <div className="flex gap-3 items-center">
+              <label>HOD Performance Months:</label>
+
+              <input
+                type="number"
+                min="1"
+                max="12"
+                value={months}
+                onChange={(e) => setMonths(Number(e.target.value))}
+                className="border p-2 w-20"
+              />
+
+              <Button
+                variant="outline"
+                onClick={() => exportHodPerformancePDF(months)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                HOD PDF
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => exportHodPerformanceExcel(months)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                HOD Excel
+              </Button>
+            </div>
+          )}
           {isHodSelected ? (
             <>
               <Button
@@ -1960,6 +2433,25 @@ const Reports = () => {
             </p>
           </CardContent>
         </Card>
+        {isHodSelected && (
+          <Card className="medical-card hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Consultations
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                {totalConsultations}
+              </div>
+
+              <p className="text-xs text-gray-500 mt-1">
+                {monthNames[Number(selectedMonth)]} {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="medical-card hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
