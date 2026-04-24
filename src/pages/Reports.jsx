@@ -32,9 +32,16 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import {
@@ -42,16 +49,21 @@ import {
   BarElement,
   CategoryScale,
   LinearScale,
-  Legend,
-  Tooltip,
+  Legend as ChartLegend,
+  Tooltip as ChartTooltip,
 } from "chart.js";
-
-ChartJS.register(BarElement, CategoryScale, LinearScale, Legend, Tooltip);
+ChartJS.register(
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  ChartLegend,
+  ChartTooltip,
+);
 const Reports = () => {
   const { user } = useAuth();
 
   const currentDate = new Date();
-  const currentMonth = currentDate.getMonth();
+  const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
   const [consultations, setConsultations] = useState([]);
   const [selectedReference, setSelectedReference] = useState("all");
@@ -59,10 +71,393 @@ const Reports = () => {
   const [reviews, setReviews] = useState([]);
   const [referenceList, setReferenceList] = useState([]);
   const [expensesData, setExpensesData] = useState([]);
+  const [physioList, setPhysioList] = useState([]);
+
+  const [selectedMonth, setSelectedMonth] = useState(String(currentMonth));
+  const [selectedYear, setSelectedYear] = useState(String(currentYear));
   const [sessions, setSessions] = useState([]);
   const [patientList, setPatientList] = useState([]);
   const [leaveData, setLeaveData] = useState([]);
   const [todaySessionCount, setTodaySessionCount] = useState(0);
+  useEffect(() => {
+    const now = new Date();
+    setSelectedMonth(String(now.getMonth() + 1)); // FIX
+    setSelectedYear(String(now.getFullYear()));
+  }, []);
+  const physioOptions = useMemo(() => {
+    return physioList
+      .map((physio) => ({
+        _id: String(physio?._id || ""),
+        physioName: physio?.physioName || "Unknown",
+        roleName:
+          physio?.roleId?.RoleName ||
+          physio?.roleName ||
+          physio?.role ||
+          physio?.userRole ||
+          physio?.designation ||
+          "",
+      }))
+      .filter((physio) => physio._id)
+      .sort((a, b) => a.physioName.localeCompare(b.physioName));
+  }, [physioList]);
+
+  const selectedPhysioDetails = useMemo(() => {
+    return physioOptions.find(
+      (phy) => String(phy._id) === String(selectedPhysio),
+    );
+  }, [physioOptions, selectedPhysio]);
+
+  const normalizedRoleName = useMemo(() => {
+    return String(selectedPhysioDetails?.roleName || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }, [selectedPhysioDetails]);
+
+  const isHodSelected = useMemo(() => {
+    return (
+      String(selectedPhysio).trim() !== "all" &&
+      ["hod", "head of department", "head"].includes(normalizedRoleName)
+    );
+  }, [selectedPhysio, normalizedRoleName]);
+
+  const normalize = (val) =>
+    String(val || "")
+      .trim()
+      .toLowerCase();
+  // ---------------------------
+  // Derived data
+  // ---------------------------
+
+  const getReviewPhysioId = (review) => {
+    return review?.physioId?._id || review?.physioId || null;
+  };
+
+  const getReviewPhysioName = (review) => {
+    return review?.physioId?.physioName || "Unknown";
+  };
+
+  const getReviewPatientName = (review) => {
+    return review?.patientId?.patientName || review?.patientName || "N/A";
+  };
+
+  const getReviewPatientCode = (review) => {
+    return review?.patientId?.patientCode || review?.patientCode || "N/A";
+  };
+
+  const getReviewReferenceId = (review) => {
+    return (
+      review?.sourceId?._id ||
+      review?.sourceId ||
+      review?.referenceId?._id ||
+      review?.referenceId ||
+      review?.patientId?.ReferenceId?._id ||
+      review?.patientId?.ReferenceId ||
+      null
+    );
+  };
+
+  const getReviewReferenceName = (review) => {
+    return (
+      review?.sourceId?.sourceName ||
+      review?.referenceId?.sourceName ||
+      review?.patientId?.ReferenceId?.sourceName ||
+      "N/A"
+    );
+  };
+
+  const getReviewDate = (review) => {
+    return review?.reviewDate || review?.createdAt || null;
+  };
+
+  const getReviewStatusName = (review) => {
+    return (
+      review?.reviewStatusId?.reviewStatusName ||
+      review?.reviewStatus ||
+      review?.status ||
+      "Pending"
+    );
+  };
+
+  // ---------------------------
+  // Session helpers
+  // ---------------------------
+  const getSessionReferenceId = (session) => {
+    return (
+      session?.sourceId?._id ||
+      session?.sourceId ||
+      session?.referenceId?._id ||
+      session?.referenceId ||
+      session?.leadId?.sourceId?._id ||
+      session?.leadId?.sourceId ||
+      session?.patientId?.sourceId?._id ||
+      session?.patientId?.sourceId ||
+      session?.patientId?.ReferenceId?._id ||
+      session?.patientId?.ReferenceId ||
+      null
+    );
+  };
+
+  const getSessionPhysioId = (session) => {
+    return session?.physioId?._id || session?.physioId || null;
+  };
+
+  const getSessionPhysioName = (session) => {
+    return session?.physioId?.physioName || "Unassigned";
+  };
+
+  const getSessionPatientId = (session) => {
+    return session?.patientId?._id || session?.patientId || null;
+  };
+  // ---------------------------
+  // Leave helpers
+  // ---------------------------
+  const getLeavePhysioId = (leave) => {
+    return leave?.physioId?._id || leave?.physioId || null;
+  };
+
+  const getLeavePhysioName = (leave) => {
+    return leave?.physioId?.physioName || "Unknown Physio";
+  };
+
+  const getLeaveDate = (leave) => {
+    return leave?.LeaveDate || null;
+  };
+
+  const getLeaveMode = (leave) => {
+    return leave?.LeaveMode || "Full Day";
+  };
+
+  const getLeaveStatus = (leave) => {
+    return leave?.isActive ? "Active" : "Inactive";
+  };
+
+  const getLeaveDaysCount = (leave) => {
+    const mode = String(leave?.LeaveMode || "").toLowerCase();
+    return mode.includes("half") ? 0.5 : 1;
+  };
+
+  const getReassignedCount = (leave) => {
+    return Array.isArray(leave?.SessionGenerateForLeave)
+      ? leave.SessionGenerateForLeave.length
+      : 0;
+  };
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      if (!s.sessionDate) return false;
+      const d = new Date(s.sessionDate);
+
+      const matchesMonthYear =
+        d.getMonth() + 1 === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear);
+
+      const matchesReference =
+        selectedReference === "all" ||
+        String(getSessionReferenceId(s) || "") === String(selectedReference);
+
+      const matchesPhysio =
+        selectedPhysio === "all" ||
+        String(getSessionPhysioId(s) || "") === String(selectedPhysio);
+
+      return matchesMonthYear && matchesReference && matchesPhysio;
+    });
+  }, [
+    sessions,
+    selectedMonth,
+    selectedYear,
+    selectedReference,
+    selectedPhysio,
+  ]);
+  const filteredReviews = useMemo(() => {
+    return reviews.filter((review) => {
+      const reviewDate = getReviewDate(review);
+      if (!reviewDate) return false;
+
+      const d = new Date(reviewDate);
+
+      const matchesMonthYear =
+        d.getMonth() + 1 === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear);
+
+      const matchesReference =
+        selectedReference === "all" ||
+        String(getReviewReferenceId(review) || "") ===
+          String(selectedReference);
+
+      const matchesPhysio =
+        isHodSelected ||
+        selectedPhysio === "all" ||
+        String(getReviewPhysioId(review) || "") === String(selectedPhysio);
+
+      return matchesMonthYear && matchesReference && matchesPhysio;
+    });
+  }, [
+    reviews,
+    selectedMonth,
+    selectedYear,
+    selectedReference,
+    selectedPhysio,
+    isHodSelected,
+  ]);
+
+  const filteredExpenses = useMemo(() => {
+    return expensesData.filter((exp) => {
+      if (!exp.expenseDate) return false;
+      const d = new Date(exp.expenseDate);
+
+      return (
+        d.getMonth() + 1 === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear)
+      );
+    });
+  }, [expensesData, selectedMonth, selectedYear]);
+
+  const filteredPatientList = useMemo(() => {
+    return patientList.filter((patient) => {
+      const patientId = String(patient?._id || "");
+
+      const matchesReference =
+        selectedReference === "all" ||
+        String(getPatientReferenceId(patient) || "") ===
+          String(selectedReference);
+
+      const matchesPhysio =
+        selectedPhysio === "all" ||
+        String(getPatientPhysioId(patient) || "") === String(selectedPhysio);
+
+      if (!matchesReference || !matchesPhysio) return false;
+
+      const hasSessionInSelectedMonth = sessions.some((session) => {
+        const sessionPatientId = String(getSessionPatientId(session) || "");
+        if (sessionPatientId !== patientId) return false;
+        if (!session?.sessionDate) return false;
+
+        const d = new Date(session.sessionDate);
+
+        const matchesMonthYear =
+          d.getMonth() + 1 === Number(selectedMonth) &&
+          d.getFullYear() === Number(selectedYear);
+
+        const matchesSessionReference =
+          selectedReference === "all" ||
+          String(getSessionReferenceId(session) || "") ===
+            String(selectedReference);
+
+        const matchesSessionPhysio =
+          selectedPhysio === "all" ||
+          String(getSessionPhysioId(session) || "") === String(selectedPhysio);
+
+        return (
+          matchesMonthYear && matchesSessionReference && matchesSessionPhysio
+        );
+      });
+
+      return hasSessionInSelectedMonth;
+    });
+  }, [
+    patientList,
+    sessions,
+    selectedReference,
+    selectedPhysio,
+    selectedMonth,
+    selectedYear,
+  ]);
+
+  const filteredLeaves = useMemo(() => {
+    return leaveData.filter((leave) => {
+      const matchesPhysio =
+        selectedPhysio === "all" ||
+        String(getLeavePhysioId(leave) || "") === String(selectedPhysio);
+
+      if (!matchesPhysio) return false;
+
+      const leaveDate = getLeaveDate(leave);
+      if (!leaveDate) return false;
+
+      const d = new Date(leaveDate);
+
+      return (
+        d.getMonth() + 1 === Number(selectedMonth) &&
+        d.getFullYear() === Number(selectedYear)
+      );
+    });
+  }, [leaveData, selectedPhysio, selectedMonth, selectedYear]);
+  const computedStats = useMemo(() => {
+    const normalize = (val) =>
+      String(val || "")
+        .trim()
+        .toLowerCase();
+
+    const monthlyExpenses = filteredExpenses.reduce(
+      (sum, exp) => sum + Number(exp.expenseAmount || 0),
+      0,
+    );
+
+    const completedReviews = filteredReviews.filter(
+      (r) => normalize(getReviewStatusName(r)) === "completed",
+    ).length;
+
+    const pendingReviews = filteredReviews.filter(
+      (r) => normalize(getReviewStatusName(r)) === "pending",
+    ).length;
+
+    const patientSet = new Set();
+    const physioSet = new Set();
+
+    filteredSessions.forEach((s) => {
+      const pId = getSessionPatientId(s);
+      const phyId = getSessionPhysioId(s);
+
+      if (pId) patientSet.add(String(pId));
+      if (phyId) physioSet.add(String(phyId));
+    });
+
+    filteredReviews.forEach((r) => {
+      const pId = r?.patientId?._id || r?.patientId;
+      if (pId) patientSet.add(String(pId));
+    });
+
+    const completedSessions = filteredSessions.filter(
+      (s) => normalize(s.sessionStatusId?.sessionStatusName) === "completed",
+    ).length;
+
+    const cancelledSessions = filteredSessions.filter((s) =>
+      ["canceled", "cancelled"].includes(
+        normalize(s.sessionStatusId?.sessionStatusName),
+      ),
+    ).length;
+
+    const totalLeaveDays = filteredLeaves.reduce(
+      (sum, leave) => sum + getLeaveDaysCount(leave),
+      0,
+    );
+
+    return {
+      totalPatients: patientSet.size,
+      totalPhysio: isHodSelected
+        ? selectedPhysio === "all"
+          ? physioOptions.length
+          : 1
+        : physioSet.size,
+      totalSessions: filteredSessions.length,
+      completedSessions,
+      cancelledSessions,
+      monthlyExpenses,
+      completedReviews,
+      pendingReviews,
+      totalLeaveDays,
+    };
+  }, [
+    filteredSessions,
+    filteredReviews,
+    filteredExpenses,
+    filteredLeaves,
+    isHodSelected,
+    selectedPhysio,
+    physioOptions,
+  ]);
+
   const addHeader = (doc, title) => {
     // Logo
     doc.addImage(logo, "PNG", 14, 5, 25, 15);
@@ -114,8 +509,6 @@ const Reports = () => {
     }
   };
 
-  const [selectedMonth, setSelectedMonth] = useState(String(currentMonth));
-  const [selectedYear, setSelectedYear] = useState(String(currentYear));
   useEffect(() => {
     getAllConsultation();
   }, []);
@@ -550,39 +943,8 @@ const Reports = () => {
   };
 
   const getCompletionPercentage = (completed, total) => {
-    if (!total || Number(total) === 0) return 0;
-    return ((Number(completed) / Number(total)) * 100).toFixed(2);
-  };
-
-  // ---------------------------
-  // Session helpers
-  // ---------------------------
-  const getSessionReferenceId = (session) => {
-    return (
-      session?.sourceId?._id ||
-      session?.sourceId ||
-      session?.referenceId?._id ||
-      session?.referenceId ||
-      session?.leadId?.sourceId?._id ||
-      session?.leadId?.sourceId ||
-      session?.patientId?.sourceId?._id ||
-      session?.patientId?.sourceId ||
-      session?.patientId?.ReferenceId?._id ||
-      session?.patientId?.ReferenceId ||
-      null
-    );
-  };
-
-  const getSessionPhysioId = (session) => {
-    return session?.physioId?._id || session?.physioId || null;
-  };
-
-  const getSessionPhysioName = (session) => {
-    return session?.physioId?.physioName || "Unassigned";
-  };
-
-  const getSessionPatientId = (session) => {
-    return session?.patientId?._id || session?.patientId || null;
+    if (!total) return 0;
+    return ((completed / total) * 100).toFixed(2);
   };
 
   // ---------------------------
@@ -605,40 +967,6 @@ const Reports = () => {
   };
 
   // ---------------------------
-  // Leave helpers
-  // ---------------------------
-  const getLeavePhysioId = (leave) => {
-    return leave?.physioId?._id || leave?.physioId || null;
-  };
-
-  const getLeavePhysioName = (leave) => {
-    return leave?.physioId?.physioName || "Unknown Physio";
-  };
-
-  const getLeaveDate = (leave) => {
-    return leave?.LeaveDate || null;
-  };
-
-  const getLeaveMode = (leave) => {
-    return leave?.LeaveMode || "Full Day";
-  };
-
-  const getLeaveStatus = (leave) => {
-    return leave?.isActive ? "Active" : "Inactive";
-  };
-
-  const getLeaveDaysCount = (leave) => {
-    const mode = String(leave?.LeaveMode || "").toLowerCase();
-    return mode.includes("half") ? 0.5 : 1;
-  };
-
-  const getReassignedCount = (leave) => {
-    return Array.isArray(leave?.SessionGenerateForLeave)
-      ? leave.SessionGenerateForLeave.length
-      : 0;
-  };
-
-  // ---------------------------
   // API calls
   // ---------------------------
   const getAllReviews = async () => {
@@ -646,7 +974,7 @@ const Reports = () => {
       const shouldFilterByPhysio = selectedPhysio !== "all" && !isHodSelected;
 
       const payload = {
-        month: Number(selectedMonth) + 1,
+        month: Number(selectedMonth),
         year: Number(selectedYear),
         ...(shouldFilterByPhysio ? { physioId: selectedPhysio } : {}),
         ...(selectedReference !== "all"
@@ -730,7 +1058,6 @@ const Reports = () => {
       console.error("Error:", error);
     }
   };
-  const [physioList, setPhysioList] = useState([]);
   const getAllPhysio = async () => {
     try {
       const res = await apiRequest("Physio/getAllPhysio", {
@@ -761,7 +1088,7 @@ const Reports = () => {
     if (!Array.isArray(sessionsData)) return;
 
     const cancelledSessions = sessionsData.filter(
-      (s) => s.sessionStatusId?.sessionStatusName === "Canceled",
+      (s) => normalize(s.sessionStatusId?.sessionStatusName) === "cancelled",
     );
 
     setSummary({
@@ -885,7 +1212,7 @@ const Reports = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          month: Number(selectedMonth) + 1,
+          month: Number(selectedMonth),
           year: Number(selectedYear),
         }),
       });
@@ -912,40 +1239,6 @@ const Reports = () => {
       });
     }
   };
-  const physioOptions = useMemo(() => {
-    return physioList
-      .map((physio) => ({
-        _id: String(physio?._id || ""),
-        physioName: physio?.physioName || "Unknown",
-        roleName:
-          physio?.roleId?.RoleName ||
-          physio?.roleName ||
-          physio?.role ||
-          physio?.userRole ||
-          physio?.designation ||
-          "",
-      }))
-      .filter((physio) => physio._id)
-      .sort((a, b) => a.physioName.localeCompare(b.physioName));
-  }, [physioList]);
-
-  const selectedPhysioDetails = useMemo(() => {
-    return physioOptions.find(
-      (phy) => String(phy._id) === String(selectedPhysio),
-    );
-  }, [physioOptions, selectedPhysio]);
-  const normalizedRoleName = useMemo(() => {
-    return String(selectedPhysioDetails?.roleName || "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toLowerCase();
-  }, [selectedPhysioDetails]);
-  const isHodSelected = useMemo(() => {
-    return (
-      String(selectedPhysio).trim() !== "all" &&
-      ["hod", "head of department", "head"].includes(normalizedRoleName)
-    );
-  }, [selectedPhysio, normalizedRoleName]);
 
   useEffect(() => {
     getAllDashBoard();
@@ -963,198 +1256,6 @@ const Reports = () => {
     getMonthlyRevenue();
   }, [selectedMonth, selectedYear, selectedPhysio, selectedReference]);
 
-  // ---------------------------
-  // Derived data
-  // ---------------------------
-  const filteredSessions = useMemo(() => {
-    return sessions.filter((s) => {
-      if (!s.sessionDate) return false;
-      const d = new Date(s.sessionDate);
-
-      const matchesMonthYear =
-        d.getMonth() === Number(selectedMonth) &&
-        d.getFullYear() === Number(selectedYear);
-
-      const matchesReference =
-        selectedReference === "all" ||
-        String(getSessionReferenceId(s) || "") === String(selectedReference);
-
-      const matchesPhysio =
-        selectedPhysio === "all" ||
-        String(getSessionPhysioId(s) || "") === String(selectedPhysio);
-
-      return matchesMonthYear && matchesReference && matchesPhysio;
-    });
-  }, [
-    sessions,
-    selectedMonth,
-    selectedYear,
-    selectedReference,
-    selectedPhysio,
-  ]);
-
-  const filteredExpenses = useMemo(() => {
-    return expensesData.filter((exp) => {
-      if (!exp.expenseDate) return false;
-      const d = new Date(exp.expenseDate);
-
-      return (
-        d.getMonth() === Number(selectedMonth) &&
-        d.getFullYear() === Number(selectedYear)
-      );
-    });
-  }, [expensesData, selectedMonth, selectedYear]);
-
-  const filteredPatientList = useMemo(() => {
-    return patientList.filter((patient) => {
-      const patientId = String(patient?._id || "");
-
-      const matchesReference =
-        selectedReference === "all" ||
-        String(getPatientReferenceId(patient) || "") ===
-          String(selectedReference);
-
-      const matchesPhysio =
-        selectedPhysio === "all" ||
-        String(getPatientPhysioId(patient) || "") === String(selectedPhysio);
-
-      if (!matchesReference || !matchesPhysio) return false;
-
-      const hasSessionInSelectedMonth = sessions.some((session) => {
-        const sessionPatientId = String(getSessionPatientId(session) || "");
-        if (sessionPatientId !== patientId) return false;
-        if (!session?.sessionDate) return false;
-
-        const d = new Date(session.sessionDate);
-
-        const matchesMonthYear =
-          d.getMonth() === Number(selectedMonth) &&
-          d.getFullYear() === Number(selectedYear);
-
-        const matchesSessionReference =
-          selectedReference === "all" ||
-          String(getSessionReferenceId(session) || "") ===
-            String(selectedReference);
-
-        const matchesSessionPhysio =
-          selectedPhysio === "all" ||
-          String(getSessionPhysioId(session) || "") === String(selectedPhysio);
-
-        return (
-          matchesMonthYear && matchesSessionReference && matchesSessionPhysio
-        );
-      });
-
-      return hasSessionInSelectedMonth;
-    });
-  }, [
-    patientList,
-    sessions,
-    selectedReference,
-    selectedPhysio,
-    selectedMonth,
-    selectedYear,
-  ]);
-
-  const filteredLeaves = useMemo(() => {
-    return leaveData.filter((leave) => {
-      const matchesPhysio =
-        selectedPhysio === "all" ||
-        String(getLeavePhysioId(leave) || "") === String(selectedPhysio);
-
-      if (!matchesPhysio) return false;
-
-      const leaveDate = getLeaveDate(leave);
-      if (!leaveDate) return false;
-
-      const d = new Date(leaveDate);
-
-      return (
-        d.getMonth() === Number(selectedMonth) &&
-        d.getFullYear() === Number(selectedYear)
-      );
-    });
-  }, [leaveData, selectedPhysio, selectedMonth, selectedYear]);
-  const getReviewPhysioId = (review) => {
-    return review?.physioId?._id || review?.physioId || null;
-  };
-
-  const getReviewPhysioName = (review) => {
-    return review?.physioId?.physioName || "Unknown";
-  };
-
-  const getReviewPatientName = (review) => {
-    return review?.patientId?.patientName || review?.patientName || "N/A";
-  };
-
-  const getReviewPatientCode = (review) => {
-    return review?.patientId?.patientCode || review?.patientCode || "N/A";
-  };
-
-  const getReviewReferenceId = (review) => {
-    return (
-      review?.sourceId?._id ||
-      review?.sourceId ||
-      review?.referenceId?._id ||
-      review?.referenceId ||
-      review?.patientId?.ReferenceId?._id ||
-      review?.patientId?.ReferenceId ||
-      null
-    );
-  };
-
-  const getReviewReferenceName = (review) => {
-    return (
-      review?.sourceId?.sourceName ||
-      review?.referenceId?.sourceName ||
-      review?.patientId?.ReferenceId?.sourceName ||
-      "N/A"
-    );
-  };
-
-  const getReviewDate = (review) => {
-    return review?.reviewDate || review?.createdAt || null;
-  };
-
-  const getReviewStatusName = (review) => {
-    return (
-      review?.reviewStatusId?.reviewStatusName ||
-      review?.reviewStatus ||
-      review?.status ||
-      "Pending"
-    );
-  };
-  const filteredReviews = useMemo(() => {
-    return reviews.filter((review) => {
-      const reviewDate = getReviewDate(review);
-      if (!reviewDate) return false;
-
-      const d = new Date(reviewDate);
-
-      const matchesMonthYear =
-        d.getMonth() === Number(selectedMonth) &&
-        d.getFullYear() === Number(selectedYear);
-
-      const matchesReference =
-        selectedReference === "all" ||
-        String(getReviewReferenceId(review) || "") ===
-          String(selectedReference);
-
-      const matchesPhysio =
-        isHodSelected ||
-        selectedPhysio === "all" ||
-        String(getReviewPhysioId(review) || "") === String(selectedPhysio);
-
-      return matchesMonthYear && matchesReference && matchesPhysio;
-    });
-  }, [
-    reviews,
-    selectedMonth,
-    selectedYear,
-    selectedReference,
-    selectedPhysio,
-    isHodSelected,
-  ]);
   const totalLeaveDays = useMemo(() => {
     return filteredLeaves.reduce((sum, leave) => {
       return sum + getLeaveDaysCount(leave);
@@ -1162,97 +1263,30 @@ const Reports = () => {
   }, [filteredLeaves]);
 
   useEffect(() => {
-    const monthlyExpenses = filteredExpenses.reduce(
-      (sum, exp) => sum + Number(exp.expenseAmount || 0),
-      0,
-    );
-
-    if (isHodSelected) {
-      const totalReviews = filteredReviews.length;
-
-      const completedReviews = filteredReviews.filter((review) => {
-        return getReviewStatusName(review).trim().toLowerCase() === "completed";
-      }).length;
-
-      const pendingReviews = filteredReviews.filter((review) => {
-        return getReviewStatusName(review).trim().toLowerCase() === "pending";
-      }).length;
-
-      const totalPatients = new Set(
-        filteredReviews
-          .map((review) => review?.patientId?._id || review?.patientId)
-          .filter(Boolean),
-      ).size;
-
-      setStats((prev) => ({
-        ...prev,
-        patient: totalPatients,
-        physio: selectedPhysio === "all" ? physioOptions.length : 1,
-        monthlySessions: totalReviews,
-        sessionCompleted: completedReviews,
-        cancelledSessions: 0,
-        monthlyExpenses,
-        pendingreviews: pendingReviews,
-        completedReview: completedReviews,
-      }));
-
-      setSummary({
-        cancelledSessions: 0,
-      });
-
-      return;
-    }
-
-    const totalPatients = new Set(
-      filteredSessions.map((s) => getSessionPatientId(s)).filter(Boolean),
-    ).size;
-
-    const totalPhysio = new Set(
-      filteredSessions.map((s) => getSessionPhysioId(s)).filter(Boolean),
-    ).size;
-
-    const completedSessions = filteredSessions.filter(
-      (s) => s.sessionStatusId?.sessionStatusName === "Completed",
-    ).length;
-
-    const cancelledSessions = filteredSessions.filter(
-      (s) => s.sessionStatusId?.sessionStatusName === "Canceled",
-    ).length;
-
-    const completedReviews = filteredReviews.filter((review) => {
-      return getReviewStatusName(review).trim().toLowerCase() === "completed";
-    }).length;
-
-    const pendingReviews = filteredReviews.filter((review) => {
-      return getReviewStatusName(review).trim().toLowerCase() === "pending";
-    }).length;
-
     setStats((prev) => ({
       ...prev,
-      patient: totalPatients,
-      physio: totalPhysio,
-      monthlySessions: filteredSessions.length,
-      sessionCompleted: completedSessions,
-      cancelledSessions,
-      monthlyExpenses,
-      pendingreviews: pendingReviews,
-      completedReview: completedReviews,
+      patient: computedStats.totalPatients,
+      physio: computedStats.totalPhysio,
+      monthlySessions: isHodSelected
+        ? filteredReviews.length
+        : computedStats.totalSessions,
+      sessionCompleted: isHodSelected
+        ? computedStats.completedReviews
+        : computedStats.completedSessions,
+      cancelledSessions: computedStats.cancelledSessions,
+      monthlyExpenses: computedStats.monthlyExpenses,
+      pendingreviews: computedStats.pendingReviews,
+      completedReview: computedStats.completedReviews,
     }));
 
     setSummary({
-      cancelledSessions,
+      cancelledSessions: computedStats.cancelledSessions,
     });
-  }, [
-    filteredSessions,
-    filteredExpenses,
-    filteredReviews,
-    isHodSelected,
-    selectedPhysio,
-    physioOptions,
-  ]);
-
+  }, [computedStats, isHodSelected, filteredReviews.length]);
   const avgPatient =
-    stats.physio > 0 ? Math.floor(stats.patient / stats.physio) : 0;
+    computedStats.totalPhysio > 0
+      ? Math.floor(computedStats.totalPatients / computedStats.totalPhysio)
+      : 0;
 
   const expensePieData = useMemo(() => {
     const map = {};
@@ -1321,12 +1355,13 @@ const Reports = () => {
       }
 
       grouped[physioId].totalSessions += 1;
+      const status = normalize(session?.sessionStatusId?.sessionStatusName);
 
-      if (session?.sessionStatusId?.sessionStatusName === "Completed") {
+      if (status === "completed") {
         grouped[physioId].completedSessions += 1;
       }
 
-      if (session?.sessionStatusId?.sessionStatusName === "Canceled") {
+      if (["canceled", "cancelled"].includes(status)) {
         grouped[physioId].cancelledSessions += 1;
       }
     });
@@ -1667,7 +1702,7 @@ const Reports = () => {
       ["Completed Reviews", stats.completedReview],
       ["Today's Sessions", todaySessionCount],
       ["Average Patient per Physio", avgPatient],
-      ["Total Leave Days", totalLeaveDays],
+      ["Total Leave Days", computedStats.totalLeaveDays],
       [
         isHodSelected
           ? "Review Completion Rate (RCR)"
@@ -1728,7 +1763,7 @@ const Reports = () => {
       ["Completed Reviews", stats.completedReview],
       ["Today's Sessions", todaySessionCount],
       ["Avg Patient / Physio", avgPatient],
-      ["Total Leave Days", totalLeaveDays],
+      ["Total Leave Days", computedStats.totalLeaveDays],
       [
         isHodSelected
           ? "Review Completion Rate (RCR)"
@@ -1880,7 +1915,7 @@ const Reports = () => {
       ["Physio:", selectedPhysioName],
       ["Month:", selectedMonthName],
       ["Report Type:", "Physio Leave Details"],
-      ["Total Leave Days:", totalLeaveDays],
+      ["Total Leave Days:", computedStats.totalLeaveDays],
     ]);
 
     leaveSheet["!cols"] = [

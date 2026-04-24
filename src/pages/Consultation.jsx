@@ -2563,19 +2563,23 @@ const Consultation = () => {
                   <AccordionTrigger>Travel Details</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
-                      <Label>Visit Order</Label>
-
+                      <Label htmlFor="visitOrder">Visit Order</Label>
                       <Input
+                        id="visitOrder"
                         type="number"
                         min="1"
-                        max="7"
-                        value={assignForm.visitOrder}
+                        max={
+                          physios.find((p) => p._id === assignForm.physioId)
+                            ?.sessionPerDay || 1
+                        }
                         onWheel={(e) => e.target.blur()}
+                        placeholder="e.g. 1 for first visit"
+                        value={assignForm.visitOrder}
                         onChange={(e) => {
                           const value = e.target.value;
 
-                          setAssignForm((prev) => ({
-                            ...prev,
+                          setAssignForm((p) => ({
+                            ...p,
                             visitOrder: value,
                           }));
 
@@ -2593,11 +2597,6 @@ const Consultation = () => {
                             return;
                           }
 
-                          if (num > 7) {
-                            setVisitOrderError("Visit order cannot exceed 7");
-                            return;
-                          }
-
                           if (!assignForm.physioId) {
                             setVisitOrderError(
                               "Please select physiotherapist first",
@@ -2605,26 +2604,40 @@ const Consultation = () => {
                             return;
                           }
 
-                          const duplicate = patients.find(
-                            (p) =>
-                              p._id !== assigningPatient?._id &&
-                              (p.physioId?._id || p.physioId) ===
-                                assignForm.physioId &&
-                              Number(p.visitOrder) === num &&
-                              !p.isRecovered,
+                          // ADD HERE
+                          const selectedPhysio = physios.find(
+                            (p) => p._id === assignForm.physioId,
                           );
 
-                          if (duplicate) {
+                          const maxSessions = selectedPhysio?.sessionPerDay;
+                          console.log(selectedPhysio, maxSessions);
+                          if (num > maxSessions) {
                             setVisitOrderError(
-                              `Visit order ${value} already exists for this physio`,
+                              `Visit order cannot exceed ${maxSessions}`,
                             );
-                          } else {
-                            setVisitOrderError("");
+                            return;
                           }
+                          setVisitOrderError("");
+
+                          // const duplicate = patients.find(
+                          //   (p) =>
+                          //     p._id !== assigningPatient?._id &&
+                          //     (p.physioId?._id || p.physioId) ===
+                          //       assignForm.physioId &&
+                          //     Number(p.visitOrder) === num &&
+                          //     !p.isRecovered,
+                          // );
+
+                          // if (duplicate) {
+                          //   setVisitOrderError(
+                          //     `Visit order ${num} already exists for this physio`,
+                          //   );
+                          // } else {
+                          //   setVisitOrderError("");
+                          // }
                         }}
                       />
 
-                      {/*ERROR SHOW HERE */}
                       {visitOrderError && (
                         <p className="text-red-500 text-sm">
                           {visitOrderError}

@@ -496,39 +496,52 @@ const Income = () => {
   };
   const monthlyPending = useMemo(() => {
     const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
+      { month: "Jan", pending: 0 },
+      { month: "Feb", pending: 0 },
+      { month: "Mar", pending: 0 },
+      { month: "Apr", pending: 0 },
+      { month: "May", pending: 0 },
+      { month: "Jun", pending: 0 },
+      { month: "Jul", pending: 0 },
+      { month: "Aug", pending: 0 },
+      { month: "Sep", pending: 0 },
+      { month: "Oct", pending: 0 },
+      { month: "Nov", pending: 0 },
+      { month: "Dec", pending: 0 },
     ];
 
-    const data = months.map((m) => ({
-      month: m,
-      pending: 0,
-    }));
+    const monthMap = {
+      January: 0,
+      February: 1,
+      March: 2,
+      April: 3,
+      May: 4,
+      June: 5,
+      July: 6,
+      August: 7,
+      September: 8,
+      October: 9,
+      November: 10,
+      December: 11,
+    };
 
     billspending.forEach((bill) => {
-      const date = new Date(bill.billDate || bill.createdAt);
-      const monthIndex = date.getMonth();
+      const monthIndex = monthMap[bill.month];
 
-      const total = Number(bill.totalAmount || 0);
-      const paid = Number(bill.paidAmount || 0);
+      if (monthIndex === undefined) return;
 
-      const pending = total - paid;
+      const total = Number(bill.NetBilledAmount || bill.TotalBilledAmount || 0);
+      const received = Number(bill.ReceivedAmount || 0);
+      const discount = Number(bill.DiscountAmount || 0);
 
-      data[monthIndex].pending += pending;
+      const pending = Math.max(total - discount - received, 0);
+
+      months[monthIndex].pending += pending;
     });
 
-    return data;
+    return months;
   }, [billspending]);
+  console.log();
   useEffect(() => {
     if (activeTab === "bill") {
       fetchBills();
@@ -1830,6 +1843,12 @@ const Income = () => {
                           </th>
                           <th className="p-3 text-center sticky top-0 bg-gray-100">
                             Discount
+                          </th>{" "}
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Is BadDebt
+                          </th>
+                          <th className="p-3 text-center sticky top-0 bg-gray-100">
+                            Revert Payment
                           </th>
                           <th className="p-3 text-left sticky top-0 bg-gray-100">
                             Status
@@ -1858,9 +1877,12 @@ const Income = () => {
                             const net = Number(b?.NetBilledAmount || 0);
                             const received = Number(b?.ReceivedAmount || 0);
                             const discount = Number(b?.DiscountAmount || 0);
-
+                            const badDebtAmount = Number(b?.badDebtAmount || 0);
                             const final = Math.max(net - discount, 0);
-                            const pending = Math.max(final - received, 0);
+                            const pending = Math.max(
+                              final - received - badDebtAmount,
+                              0,
+                            );
 
                             const status = getBillPaymentStatus(b);
 
@@ -1872,48 +1894,57 @@ const Income = () => {
                                 <td className="p-3 sticky left-0 bg-white">
                                   {b?.patientId?.patientName}
                                 </td>
-
                                 <td className="p-3">
                                   {b?.physioId?.physioName}
                                 </td>
-
                                 <td className="p-3 whitespace-nowrap">
                                   {formatDate(b?.startDate)} -{" "}
                                   {formatDate(b?.ToDate)}
                                 </td>
-
                                 <td className="p-3 text-center">
                                   {b?.TotalSessionCount}
                                 </td>
-
                                 <td className="p-3 text-center">
                                   ₹{b?.ratePerSession.toFixed(0)}
                                 </td>
-
                                 <td className="p-3 text-center font-semibold">
                                   ₹{b?.TotalBilledAmount}
                                 </td>
-
                                 <td className="p-3 text-center bg-yellow-100">
                                   ₹{b?.DeductedFromAdvance}
                                 </td>
-
                                 <td className="p-3 text-center bg-blue-100">
                                   ₹{net.toFixed(2)}
                                 </td>
-
                                 <td className="p-3 text-center bg-green-200">
                                   ₹{received.toFixed(2)}
                                 </td>
-
                                 <td className="p-3 text-center bg-red-100">
                                   ₹{pending.toFixed(2)}
                                 </td>
-
                                 <td className="p-3 text-center bg-purple-100">
                                   ₹{discount.toFixed(2)}
+                                </td>{" "}
+                                <td className="p-3 text-center">
+                                  <Button
+                                    disabled={b.isBadDebt}
+                                    onClick={() =>
+                                      setBadDebtDialog({
+                                        open: true,
+                                        billId: b._id,
+                                      })
+                                    }
+                                  >
+                                    {b.isBadDebt ? "Bad Debt" : "Mark Bad Debt"}
+                                  </Button>
                                 </td>
-
+                                <td className="p-3 text-center">
+                                  <Button
+                                    onClick={() => openRevertConfirmDialog(b)}
+                                  >
+                                    Revert Payment
+                                  </Button>
+                                </td>
                                 <td className="p-3">
                                   <span
                                     className={`px-2 py-1 rounded text-xs ${getStatusBadgeClass(status)}`}
@@ -1921,9 +1952,7 @@ const Income = () => {
                                     {status}
                                   </span>
                                 </td>
-
                                 <td className="p-3">{getBillPaymentType(b)}</td>
-
                                 <td className="p-3">
                                   <div className="flex flex-col gap-2">
                                     {/* Receive Payment Button */}
