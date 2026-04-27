@@ -462,74 +462,61 @@ const Reports = () => {
   }, [selectedMonth, selectedYear, selectedPhysio, selectedReference]);
 
   const totalConsultations = consultations?.length || 0;
+  const downloadFile = (blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
 
+    link.href = url;
+    link.download = filename;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  };
   const downloadReport = async (months, type) => {
     try {
-      const response = await fetch(
-        "http://localhost:8002/api/Report/exportHodPerformanceReport",
+      const payload = {
+        months,
+        type,
+      };
+
+      const blob = await apiRequest(
+        "Report/exportHodPerformanceReport",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            months: months,
-            type: type,
-          }),
+          body: JSON.stringify(payload),
         },
+        "blob",
       );
 
-      const blob = await response.blob();
+      const filename =
+        type === "pdf"
+          ? `HOD_Performance_${months}_Months.pdf`
+          : `HOD_Performance_${months}_Months.xlsx`;
 
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-
-      if (type === "pdf") {
-        a.download = `HOD_Performance_${months}_Months.pdf`;
-      } else {
-        a.download = `HOD_Performance_${months}_Months.xlsx`;
-      }
-
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
+      downloadFile(blob, filename);
     } catch (error) {
       console.error("Download error:", error);
     }
   };
   const exportPhysioPerformancePDF = async (months, selectedPhysio) => {
     try {
-      const response = await fetch(
-        "http://localhost:8002/api/Report/exportPhysioPerformanceReport",
+      const blob = await apiRequest(
+        "Report/exportPhysioPerformanceReport",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({
-            months: months,
+            months,
             physioId: selectedPhysio,
             type: "pdf",
           }),
         },
+        "blob",
       );
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Physio_Performance_${months}_Months.pdf`;
-
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
+      downloadFile(blob, `Physio_Performance_${months}_Months.pdf`);
     } catch (error) {
       console.error("Physio PDF download error:", error);
     }
@@ -537,33 +524,20 @@ const Reports = () => {
 
   const exportPhysioPerformanceExcel = async (months, selectedPhysio) => {
     try {
-      const response = await fetch(
-        "http://localhost:8002/api/Report/exportPhysioPerformanceReport",
+      const blob = await apiRequest(
+        "Report/exportPhysioPerformanceReport",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({
-            months: months,
+            months,
             physioId: selectedPhysio,
             type: "excel",
           }),
         },
+        "blob",
       );
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Physio_Performance_${months}_Months.xlsx`;
-
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
+      downloadFile(blob, `Physio_Performance_${months}_Months.xlsx`);
     } catch (error) {
       console.error("Physio Excel download error:", error);
     }
