@@ -61,7 +61,7 @@ ChartJS.register(
 );
 const Reports = () => {
   const { user } = useAuth();
-
+  const { toast } = useToast();
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
@@ -72,18 +72,18 @@ const Reports = () => {
   const [referenceList, setReferenceList] = useState([]);
   const [expensesData, setExpensesData] = useState([]);
   const [physioList, setPhysioList] = useState([]);
-
+  console.log(currentMonth, "currentMonth");
   const [selectedMonth, setSelectedMonth] = useState(String(currentMonth));
   const [selectedYear, setSelectedYear] = useState(String(currentYear));
   const [sessions, setSessions] = useState([]);
   const [patientList, setPatientList] = useState([]);
   const [leaveData, setLeaveData] = useState([]);
   const [todaySessionCount, setTodaySessionCount] = useState(0);
-  useEffect(() => {
-    const now = new Date();
-    setSelectedMonth(String(now.getMonth() + 1)); // FIX
-    setSelectedYear(String(now.getFullYear()));
-  }, []);
+  // useEffect(() => {
+  //   const now = new Date();
+  //   setSelectedMonth(String(now.getMonth())); // FIX
+  //   setSelectedYear(String(now.getFullYear()));
+  // }, []);
   const physioOptions = useMemo(() => {
     return physioList
       .map((physio) => ({
@@ -100,6 +100,24 @@ const Reports = () => {
       .filter((physio) => physio._id)
       .sort((a, b) => a.physioName.localeCompare(b.physioName));
   }, [physioList]);
+  // ---------------------------
+  // Patient helpers
+  // ---------------------------
+  const getPatientReferenceId = (patient) => {
+    return patient?.ReferenceId?._id || patient?.ReferenceId || null;
+  };
+
+  const getPatientReferenceName = (patient) => {
+    return patient?.ReferenceId?.sourceName || "N/A";
+  };
+
+  const getPatientPhysioId = (patient) => {
+    return patient?.physioId?._id || patient?.physioId || null;
+  };
+
+  const getPatientPhysioName = (patient) => {
+    return patient?.physioId?.physioName || "Unassigned";
+  };
 
   const selectedPhysioDetails = useMemo(() => {
     return physioOptions.find(
@@ -383,80 +401,6 @@ const Reports = () => {
       );
     });
   }, [leaveData, selectedPhysio, selectedMonth, selectedYear]);
-  const computedStats = useMemo(() => {
-    const normalize = (val) =>
-      String(val || "")
-        .trim()
-        .toLowerCase();
-
-    const monthlyExpenses = filteredExpenses.reduce(
-      (sum, exp) => sum + Number(exp.expenseAmount || 0),
-      0,
-    );
-
-    const completedReviews = filteredReviews.filter(
-      (r) => normalize(getReviewStatusName(r)) === "completed",
-    ).length;
-
-    const pendingReviews = filteredReviews.filter(
-      (r) => normalize(getReviewStatusName(r)) === "pending",
-    ).length;
-
-    const patientSet = new Set();
-    const physioSet = new Set();
-
-    filteredSessions.forEach((s) => {
-      const pId = getSessionPatientId(s);
-      const phyId = getSessionPhysioId(s);
-
-      if (pId) patientSet.add(String(pId));
-      if (phyId) physioSet.add(String(phyId));
-    });
-
-    filteredReviews.forEach((r) => {
-      const pId = r?.patientId?._id || r?.patientId;
-      if (pId) patientSet.add(String(pId));
-    });
-
-    const completedSessions = filteredSessions.filter(
-      (s) => normalize(s.sessionStatusId?.sessionStatusName) === "completed",
-    ).length;
-
-    const cancelledSessions = filteredSessions.filter((s) =>
-      ["canceled", "cancelled"].includes(
-        normalize(s.sessionStatusId?.sessionStatusName),
-      ),
-    ).length;
-
-    const totalLeaveDays = filteredLeaves.reduce(
-      (sum, leave) => sum + getLeaveDaysCount(leave),
-      0,
-    );
-
-    return {
-      totalPatients: patientSet.size,
-      totalPhysio: isHodSelected
-        ? selectedPhysio === "all"
-          ? physioOptions.length
-          : 1
-        : physioSet.size,
-      totalSessions: filteredSessions.length,
-      completedSessions,
-      cancelledSessions,
-      monthlyExpenses,
-      completedReviews,
-      pendingReviews,
-      totalLeaveDays,
-    };
-  }, [
-    filteredSessions,
-    filteredReviews,
-    filteredExpenses,
-    filteredLeaves,
-    isHodSelected,
-    selectedPhysio,
-    physioOptions,
-  ]);
 
   const addHeader = (doc, title) => {
     // Logo
@@ -466,445 +410,163 @@ const Reports = () => {
     doc.setFontSize(16);
     doc.text(title, 45, 15);
   };
-  const [stats, setStats] = useState({
-    lead: 0,
-    patient: 0,
-    monthlySessions: 0,
-    cancelledsession: 0,
-    physio: 0,
-    monthlyRevenue: 0,
-    monthlyExpenses: 0,
-    patientRecovered: 0,
-    patientRecoveredOthers: 0,
-    completedReview: 0,
-    cancelledSessions: 0,
-    patientRecover: 0,
-    sessionCompleted: 0,
-    pendingreviews: 0,
-  });
+  const [stats, setStats] = useState([]);
 
-  const [summary, setSummary] = useState({
-    cancelledSessions: 0,
-  });
-  const getAllConsultation = async () => {
+  const getAllExpenses = async () => {
     try {
-      const res = await apiRequest("Consultation/getAllConsultation", {
+      const res = await apiRequest("Expense/getAllExpense", {
+        method: "POST",
+      });
+
+      if (Array.isArray(res?.data)) {
+        setExpensesData(res.data);
+      } else {
+        setExpensesData([]);
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      setExpensesData([]);
+    }
+  };
+  const getallsummary = async () => {
+    try {
+      const res = await apiRequest("Dashboard/getReportsSummary", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          month: Number(selectedMonth),
+          year: Number(selectedYear),
+          physioId: selectedPhysio,
+          referenceId: selectedReference,
+        }),
       });
 
-      if (Array.isArray(res)) {
-        setConsultations(res);
-      } else if (Array.isArray(res?.data)) {
-        setConsultations(res.data);
+      if (res?.stats) {
+        setStats(res.stats); // 👈 THIS is what you need
       } else {
-        setConsultations([]);
+        setStats({});
       }
     } catch (error) {
-      console.error("Error fetching consultations:", error);
-      setConsultations([]);
+      console.error("Error fetching report:", error);
+      setStats({});
     }
   };
+  console.log(stats, "stats from report");
 
   useEffect(() => {
-    getAllConsultation();
-  }, []);
-  useEffect(() => {
-    const totalConsultations = consultations?.length || 0;
+    if (selectedMonth && selectedYear) {
+      getallsummary();
+    }
+  }, [selectedMonth, selectedYear, selectedPhysio, selectedReference]);
 
-    setFunnel((prev) => ({
-      ...prev,
-      totalConsultations,
-    }));
-  }, [consultations]);
-  useEffect(() => {
-    const totalConsultations =
-      consultations?.filter((c) => {
-        const date = new Date(c.date);
-        return (
-          date.getMonth() === Number(selectedMonth) &&
-          date.getFullYear() === Number(selectedYear)
-        );
-      })?.length || 0;
-
-    setFunnel((prev) => ({
-      ...prev,
-      totalConsultations,
-    }));
-  }, [consultations, selectedMonth, selectedYear]);
   const totalConsultations = consultations?.length || 0;
-  const [funnel, setFunnel] = useState({
-    newEnquiries: 0,
-    newConsultations: 0,
-    newPatients: 0,
-    conversionRate: 0,
-    consultations: 0,
-    totalConsultations: 0,
-  });
-  console.log(funnel);
 
-  const getSessionsForMonths = (months) => {
-    const today = new Date();
-    const startDate = new Date();
-
-    startDate.setMonth(today.getMonth() - months);
-
-    return sessions.filter((s) => {
-      const d = new Date(s.sessionDate);
-      return d >= startDate && d <= today;
-    });
-  };
-  const getReviewsForMonths = (months) => {
-    const today = new Date();
-    const startDate = new Date();
-
-    startDate.setMonth(today.getMonth() - months);
-
-    return reviews.filter((s) => {
-      const d = new Date(s.reviewDate);
-      console.log(d);
-
-      return d >= startDate && d <= today;
-    });
-  };
-  const generateHodPerformance = (months) => {
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - months);
-
-    // -------------------------
-    // FILTER REVIEWS
-    // -------------------------
-    const reviewData = filteredReviews.filter((r) => {
-      const d = new Date(r.reviewDate || r.createdAt);
-      return d >= startDate;
-    });
-
-    // -------------------------
-    // FILTER CONSULTATIONS
-    // -------------------------
-    const consultationData = consultations.filter((c) => {
-      const d = new Date(c.consultationDate || c.createdAt);
-      return d >= startDate;
-    });
-    console.log(consultationData);
-    // -------------------------
-    // FINAL METRICS
-    // -------------------------
-    let data = {
-      totalReviews: 0,
-      completedReviews: 0,
-
-      totalConsultations: 0,
-      completedConsultations: 0,
-
-      pending: 0,
-      cancelled: 0,
-
-      convertedPatients: new Set(),
-    };
-
-    // -------------------------
-    // REVIEWS PROCESS
-    // -------------------------
-    reviewData.forEach((r) => {
-      const status = (r.reviewStatusId?.reviewStatusName || "").toLowerCase();
-
-      data.totalReviews++;
-
-      if (status.includes("completed")) data.completedReviews++;
-      else if (status.includes("pending")) data.pending++;
-      else if (status.includes("cancel")) data.cancelled++;
-
-      if (r.patientId) {
-        data.convertedPatients.add(String(r.patientId._id || r.patientId));
-      }
-    });
-
-    // -------------------------
-    // CONSULTATION PROCESS
-    // -------------------------
-    consultationData.forEach((c) => {
-      const status = (c.status || "").toLowerCase();
-
-      data.totalConsultations++;
-
-      if (status.includes("complete")) data.completedConsultations++;
-      else if (status.includes("pending")) data.pending++;
-      else if (status.includes("cancel")) data.cancelled++;
-
-      if (c.patientId) {
-        data.convertedPatients.add(String(c.patientId._id || c.patientId));
-      }
-    });
-
-    // -------------------------
-    // FINAL CALCULATION
-    // -------------------------
-    const totalActivities = data.totalReviews + data.totalConsultations;
-
-    const conversionRate =
-      totalActivities === 0
-        ? 0
-        : Math.round((data.convertedPatients.size / totalActivities) * 100);
-
-    return {
-      ...data,
-      totalActivities,
-      convertedPatients: data.convertedPatients.size,
-      conversionRate,
-    };
-  };
-  const exportHodPerformancePDF = (months) => {
-    const data = generateHodPerformance(months);
-    console.log(data);
-
-    const doc = new jsPDF();
-
-    addHeader(doc, "HOD Performance Report (Reviews + Consultations)");
-
-    doc.setFontSize(12);
-    doc.text(`Last ${months} Months Combined Report`, 14, 40);
-
-    autoTable(doc, {
-      startY: 50,
-      head: [["Metric", "Value"]],
-      body: [
-        ["Total Reviews", data.totalReviews],
-        ["Completed Reviews", data.completedReviews],
-
-        ["Total Consultations", data.totalConsultations],
-        // ["Completed Consultations", data.completedConsultations],
-
-        ["Pending Activities", data.pending],
-        ["Cancelled Activities", data.cancelled],
-
-        ["Total Patients Engaged", data.convertedPatients],
-        ["Conversion Rate", `${data.conversionRate}%`],
-      ],
-    });
-
-    doc.save(`HOD_Combined_Performance_${months}_Months.pdf`);
-  };
-  const exportHodPerformanceExcel = (months) => {
-    const data = generateHodPerformance(months);
-
-    const rows = [
-      { Metric: "Total Reviews", Value: data.totalReviews },
-      { Metric: "Completed Reviews", Value: data.completedReviews },
-
-      { Metric: "Total Consultations", Value: data.totalConsultations },
-      // { Metric: "Completed Consultations", Value: data.completedConsultations },
-
-      { Metric: "Pending Activities", Value: data.pending },
-      { Metric: "Cancelled Activities", Value: data.cancelled },
-
-      { Metric: "Total Patients Engaged", Value: data.convertedPatients },
-      { Metric: "Conversion Rate", Value: `${data.conversionRate}%` },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(wb, ws, "HOD Performance");
-
-    XLSX.writeFile(wb, `HOD_Combined_Performance_${months}_Months.xlsx`);
-  };
-  const generatePhysioPerformance = (months, selectedPhysio) => {
-    let reportSessions = getSessionsForMonths(months);
-
-    if (selectedPhysio !== "all") {
-      reportSessions = reportSessions.filter(
-        (s) => String(getSessionPhysioId(s)) === String(selectedPhysio),
+  const downloadReport = async (months, type) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8002/api/Report/exportHodPerformanceReport",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            months: months,
+            type: type,
+          }),
+        },
       );
-    }
 
-    const physioMap = {};
+      const blob = await response.blob();
 
-    reportSessions.forEach((s) => {
-      const physioId = getSessionPhysioId(s);
-      const physioName = s.physioId.physioName || "Unknown";
+      const url = window.URL.createObjectURL(blob);
 
-      if (!physioMap[physioId]) {
-        physioMap[physioId] = {
-          physioName,
-          totalSessions: 0,
-          completedSessions: 0,
-          cancelledSessions: 0,
-          pendingSessions: 0,
-          patients: new Set(),
-        };
-      }
+      const a = document.createElement("a");
+      a.href = url;
 
-      physioMap[physioId].totalSessions += 1;
-      if (s.patientId) {
-        const patientId =
-          typeof s.patientId === "object" ? s.patientId._id : s.patientId;
-
-        physioMap[physioId].patients.add(String(patientId));
-      }
-
-      const status = (s.sessionStatusId.sessionStatusName || "").toLowerCase();
-
-      if (status.includes("complete")) {
-        physioMap[physioId].completedSessions += 1;
-      } else if (status.includes("cancel")) {
-        physioMap[physioId].cancelledSessions += 1;
+      if (type === "pdf") {
+        a.download = `HOD_Performance_${months}_Months.pdf`;
       } else {
-        physioMap[physioId].pendingSessions += 1;
+        a.download = `HOD_Performance_${months}_Months.xlsx`;
       }
-    });
 
-    return Object.values(physioMap).map((p) => {
-      const uniquePatients = p.patients.size;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
 
-      const completionPercentage =
-        p.totalSessions === 0
-          ? 0
-          : Math.round((p.completedSessions / p.totalSessions) * 100);
-
-      const avgSessionsPerPatient =
-        uniquePatients === 0
-          ? 0
-          : (p.totalSessions / uniquePatients).toFixed(2);
-
-      const productivityScore = Math.round(
-        completionPercentage * 0.6 +
-          (uniquePatients / (p.totalSessions || 1)) * 40,
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+    }
+  };
+  const exportPhysioPerformancePDF = async (months, selectedPhysio) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8002/api/Report/exportPhysioPerformanceReport",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            months: months,
+            physioId: selectedPhysio,
+            type: "pdf",
+          }),
+        },
       );
 
-      return {
-        physioName: p.physioName,
-        totalSessions: p.totalSessions,
-        completedSessions: p.completedSessions,
-        cancelledSessions: p.cancelledSessions,
-        pendingSessions: p.pendingSessions,
-        uniquePatients,
-        avgSessionsPerPatient,
-        completionPercentage,
-        productivityScore,
-      };
-    });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Physio_Performance_${months}_Months.pdf`;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Physio PDF download error:", error);
+    }
   };
-  const exportPhysioPerformancePDF = (months, selectedPhysio) => {
-    const data = generatePhysioPerformance(months, selectedPhysio);
 
-    const doc = new jsPDF("landscape");
-    addHeader(doc, isHodSelected ? "HOD Report" : "Physio Report");
-
-    doc.setFontSize(14);
-    doc.text(`Physio Performance Report - Last ${months} Months`, 14, 45);
-    // create chart canvas
-    const canvas = document.createElement("canvas");
-    canvas.width = 800;
-    canvas.height = 300;
-
-    const ctx = canvas.getContext("2d");
-
-    const labels = data.map((p) => p.physioName);
-    const completed = data.map((p) => p.completedSessions);
-    const cancelled = data.map((p) => p.cancelledSessions);
-
-    new ChartJS(ctx, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Completed Sessions",
-            data: completed,
-            backgroundColor: "#4CAF50",
+  const exportPhysioPerformanceExcel = async (months, selectedPhysio) => {
+    try {
+      const response = await fetch(
+        "http://localhost:8002/api/Report/exportPhysioPerformanceReport",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-          {
-            label: "Cancelled Sessions",
-            data: cancelled,
-            backgroundColor: "#F44336",
-          },
-        ],
-      },
-      options: {
-        responsive: false,
-        plugins: {
-          legend: { position: "top" },
+          body: JSON.stringify({
+            months: months,
+            physioId: selectedPhysio,
+            type: "excel",
+          }),
         },
-      },
-    });
+      );
 
-    setTimeout(() => {
-      const chartImage = canvas.toDataURL("image/png");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
 
-      // add chart
-      doc.addImage(chartImage, "PNG", 15, 55, 260, 80);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Physio_Performance_${months}_Months.xlsx`;
 
-      // table data
-      const tableRows = data.map((p, index) => [
-        index + 1,
-        p.physioName,
-        p.totalSessions,
-        p.completedSessions,
-        p.cancelledSessions,
-        p.pendingSessions,
-        p.uniquePatients,
-        p.avgSessionsPerPatient,
-        p.completionPercentage + "%",
-        p.productivityScore,
-      ]);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
 
-      autoTable(doc, {
-        startY: 140,
-        head: [
-          [
-            "S.No",
-            "Physio",
-            "Total Sessions",
-            "Completed",
-            "Cancelled",
-            "Pending",
-            "Unique Patients",
-            "Avg Sessions / Patient",
-            "Completion %",
-            "Productivity Score",
-          ],
-        ],
-        body: tableRows,
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-          overflow: "linebreak",
-        },
-        columnStyles: {
-          1: { cellWidth: 40 },
-        },
-      });
-
-      // download PDF
-      doc.save(`Physio_Performance_Last_${months}_Months.pdf`);
-    }, 300);
-  };
-  const exportPhysioPerformanceExcel = (months, selectedPhysio) => {
-    const data = generatePhysioPerformance(months, selectedPhysio);
-
-    const rows = data.map((p, index) => ({
-      "S.No": index + 1,
-      Physio: p.physioName,
-      "Total Sessions": p.totalSessions,
-      Completed: p.completedSessions,
-      Cancelled: p.cancelledSessions,
-      Pending: p.pendingSessions,
-      "Unique Patients": p.uniquePatients,
-      "Avg Sessions / Patient": p.avgSessionsPerPatient,
-      "Completion %": p.completionPercentage + "%",
-      "Productivity Score": p.productivityScore,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(wb, ws, "Physio Performance");
-
-    XLSX.writeFile(wb, `Physio_Performance_Last_${months}_Months.xlsx`);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Physio Excel download error:", error);
+    }
   };
   const monthNames = [
     "January",
@@ -948,84 +610,8 @@ const Reports = () => {
   };
 
   // ---------------------------
-  // Patient helpers
-  // ---------------------------
-  const getPatientReferenceId = (patient) => {
-    return patient?.ReferenceId?._id || patient?.ReferenceId || null;
-  };
-
-  const getPatientReferenceName = (patient) => {
-    return patient?.ReferenceId?.sourceName || "N/A";
-  };
-
-  const getPatientPhysioId = (patient) => {
-    return patient?.physioId?._id || patient?.physioId || null;
-  };
-
-  const getPatientPhysioName = (patient) => {
-    return patient?.physioId?.physioName || "Unassigned";
-  };
-
-  // ---------------------------
   // API calls
   // ---------------------------
-  const getAllReviews = async () => {
-    try {
-      const shouldFilterByPhysio = selectedPhysio !== "all" && !isHodSelected;
-
-      const payload = {
-        month: Number(selectedMonth),
-        year: Number(selectedYear),
-        ...(shouldFilterByPhysio ? { physioId: selectedPhysio } : {}),
-        ...(selectedReference !== "all"
-          ? { referenceId: selectedReference }
-          : {}),
-      };
-
-      const res = await apiRequest("Review/getAllReviewDownload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (Array.isArray(res)) {
-        setReviews(res);
-      } else if (Array.isArray(res?.report)) {
-        setReviews(res.report);
-      } else if (Array.isArray(res?.data)) {
-        setReviews(res.data);
-      } else {
-        setReviews([]);
-      }
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-      setReviews([]);
-    }
-  };
-  const getAllPatients = async () => {
-    try {
-      const res = await apiRequest("Patient/getAllPatient", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (Array.isArray(res)) {
-        setPatientList(res);
-      } else if (Array.isArray(res?.data)) {
-        setPatientList(res.data);
-      } else {
-        setPatientList([]);
-      }
-    } catch (error) {
-      console.error("Error fetching patients:", error);
-      setPatientList([]);
-    }
-  };
 
   const getAllReference = async (data) => {
     try {
@@ -1047,17 +633,6 @@ const Reports = () => {
     }
   };
 
-  const getAllDashBoard = async () => {
-    try {
-      const response = await apiRequest("DashBoard/getAllDashBoard", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      setStats((prev) => ({ ...prev, ...response }));
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
   const getAllPhysio = async () => {
     try {
       const res = await apiRequest("Physio/getAllPhysio", {
@@ -1082,100 +657,6 @@ const Reports = () => {
     } catch (error) {
       console.error("Error fetching physios:", error);
       setPhysioList([]);
-    }
-  };
-  const processDashboardData = (sessionsData) => {
-    if (!Array.isArray(sessionsData)) return;
-
-    const cancelledSessions = sessionsData.filter(
-      (s) => normalize(s.sessionStatusId?.sessionStatusName) === "cancelled",
-    );
-
-    setSummary({
-      cancelledSessions: cancelledSessions.length,
-    });
-  };
-
-  const getSession = async () => {
-    try {
-      const storedRole = localStorage.getItem("userRole");
-
-      const payload =
-        storedRole === "Physio"
-          ? { physioId: user?._id, storedRole }
-          : { storedRole };
-
-      const response = await apiRequest("Session/getAllSession", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      if (!Array.isArray(response)) {
-        setSessions([]);
-        return;
-      }
-
-      setSessions(response);
-
-      const today = new Date().toISOString().split("T")[0];
-
-      const todaySessions = response.filter((s) => {
-        if (!s.sessionDate) return false;
-        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
-        return sessionDay === today;
-      });
-
-      setTodaySessionCount(todaySessions.length);
-      processDashboardData(response);
-    } catch (error) {
-      console.error("Error fetching sessions:", error);
-      setSessions([]);
-    }
-  };
-
-  const getMonthlyRevenue = async () => {
-    try {
-      const month = Number(selectedMonth);
-      const year = Number(selectedYear);
-
-      const fromDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-      const toDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
-
-      const res = await apiRequest("DashBoard/getIncomeByDate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ fromDate, toDate }),
-      });
-
-      setStats((prev) => ({
-        ...prev,
-        monthlyRevenue: Number(res?.totalCompletedAmount || 0),
-      }));
-    } catch (error) {
-      console.error("Error fetching monthly revenue:", error);
-      setStats((prev) => ({
-        ...prev,
-        monthlyRevenue: 0,
-      }));
-    }
-  };
-
-  const getAllExpenses = async () => {
-    try {
-      const res = await apiRequest("Expense/getAllExpense", {
-        method: "POST",
-      });
-
-      if (Array.isArray(res?.data)) {
-        setExpensesData(res.data);
-      } else {
-        setExpensesData([]);
-      }
-    } catch (error) {
-      console.error("Error fetching expenses:", error);
-      setExpensesData([]);
     }
   };
 
@@ -1204,57 +685,12 @@ const Reports = () => {
     }
   };
 
-  const funnelmonthly = async () => {
-    try {
-      const res = await apiRequest("DashBoard/monthlyfunnel", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          month: Number(selectedMonth),
-          year: Number(selectedYear),
-        }),
-      });
-
-      setFunnel({
-        newEnquiries: res?.newEnquiries?.length ?? 0,
-        newConsultations: res?.newConsultations?.length ?? 0,
-        newPatients: res?.newPatients?.length ?? 0,
-        conversionRate:
-          res?.newEnquiries?.length > 0
-            ? (
-                (res?.newPatients?.length / res?.newEnquiries?.length) *
-                100
-              ).toFixed(2)
-            : 0,
-      });
-    } catch (error) {
-      console.error("Funnel error:", error);
-      setFunnel({
-        newEnquiries: 0,
-        newConsultations: 0,
-        newPatients: 0,
-        conversionRate: 0,
-      });
-    }
-  };
-
   useEffect(() => {
-    getAllDashBoard();
-    getSession();
-    getAllPatients();
     getAllReference();
-    getAllExpenses();
     getAllLeaves();
     getAllPhysio();
+    getAllExpenses();
   }, []);
-
-  useEffect(() => {
-    getAllReviews();
-    funnelmonthly();
-    getMonthlyRevenue();
-  }, [selectedMonth, selectedYear, selectedPhysio, selectedReference]);
 
   const totalLeaveDays = useMemo(() => {
     return filteredLeaves.reduce((sum, leave) => {
@@ -1262,32 +698,18 @@ const Reports = () => {
     }, 0);
   }, [filteredLeaves]);
 
-  useEffect(() => {
-    setStats((prev) => ({
-      ...prev,
-      patient: computedStats.totalPatients,
-      physio: computedStats.totalPhysio,
-      monthlySessions: isHodSelected
-        ? filteredReviews.length
-        : computedStats.totalSessions,
-      sessionCompleted: isHodSelected
-        ? computedStats.completedReviews
-        : computedStats.completedSessions,
-      cancelledSessions: computedStats.cancelledSessions,
-      monthlyExpenses: computedStats.monthlyExpenses,
-      pendingreviews: computedStats.pendingReviews,
-      completedReview: computedStats.completedReviews,
-    }));
-
-    setSummary({
-      cancelledSessions: computedStats.cancelledSessions,
-    });
-  }, [computedStats, isHodSelected, filteredReviews.length]);
-  const avgPatient =
-    computedStats.totalPhysio > 0
-      ? Math.floor(computedStats.totalPatients / computedStats.totalPhysio)
-      : 0;
-
+  const incomeExpensePieData = useMemo(() => {
+    return [
+      {
+        name: "Income",
+        value: Number(stats?.monthlyRevenue || 0),
+      },
+      {
+        name: "Expense",
+        value: Number(stats?.totalExpense || 0),
+      },
+    ];
+  }, [stats]);
   const expensePieData = useMemo(() => {
     const map = {};
 
@@ -1305,7 +727,6 @@ const Reports = () => {
       value,
     }));
   }, [filteredExpenses]);
-
   const physioWiseData = useMemo(() => {
     const grouped = {};
 
@@ -1415,798 +836,504 @@ const Reports = () => {
       : physioOptions.find((phy) => String(phy._id) === String(selectedPhysio))
           ?.physioName || "Physio";
 
-  const selectedMonthName = `${monthNames[Number(selectedMonth)]} ${selectedYear}`;
+  const selectedMonthName = `${monthNames[Number(selectedMonth) - 1]} ${selectedYear}`;
 
   // ---------------------------
   // Export functions
   // ---------------------------
 
-  const handleExportHodReviewXLSX = () => {
-    if (filteredReviews.length === 0) {
-      toast({
-        title: "No data",
-        description: "No review data found for the selected filters.",
-        variant: "destructive",
-      });
-      return;
+  const handleExportHodReviewXLSX = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: selectedMonth,
+        year: selectedYear,
+        type: "excel",
+      };
+
+      const blob = await apiRequest(
+        "Report/exportHodReviewReport",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+        "blob",
+      );
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `HOD_Review_Report_${selectedMonth}_${selectedYear}.xlsx`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Excel Download Error:", error);
     }
-
-    const exportData = filteredReviews.map((review, index) => ({
-      "S.No": index + 1,
-      "Review Date": formatDate(getReviewDate(review)),
-      "Patient Name": getReviewPatientName(review),
-      Physio: getReviewPhysioName(review),
-      Reference: getReviewReferenceName(review),
-      Status: getReviewStatusName(review),
-      Notes: review?.feedback || "N/A",
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(exportData, { origin: "A6" });
-
-    XLSX.utils.sheet_add_aoa(worksheet, [
-      ["Reference:", selectedReferenceName],
-      ["Physio:", selectedPhysioName],
-      ["Month:", selectedMonthName],
-      ["Total Reviews:", filteredReviews.length],
-    ]);
-
-    worksheet["!cols"] = [
-      { wch: 8 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 35 },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Reviews");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const fileData = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
-
-    saveAs(
-      fileData,
-      `HOD_Review_Report_${selectedPhysioName.replace(/\s+/g, "_")}_${selectedMonthName}.xlsx`,
-    );
   };
 
-  const handleExportHodReviewPDF = () => {
-    if (filteredReviews.length === 0) {
-      toast({
-        title: "No data",
-        description: "No review data found for the selected filters.",
-        variant: "destructive",
-      });
-      return;
+  const handleExportHodReviewPDF = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: selectedMonth,
+        year: selectedYear,
+        type: "pdf",
+      };
+
+      const blob = await apiRequest(
+        "Report/exportHodReviewReport",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+        "blob",
+      );
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `HOD_Review_Report_${selectedMonth}_${selectedYear}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("PDF Download Error:", error);
     }
-
-    const doc = new jsPDF("l", "mm", "a4");
-
-    // doc.setFontSize(16);
-    // doc.text("HOD Review Report", 14, 15);
-    addHeader(doc, "HOD Review Report");
-    doc.setFontSize(11);
-    doc.text(`Reference: ${selectedReferenceName}`, 14, 28);
-    doc.text(`Physio: ${selectedPhysioName}`, 14, 35);
-    doc.text(`Month: ${selectedMonthName}`, 14, 42);
-    doc.text(`Total Reviews: ${filteredReviews.length}`, 14, 49);
-    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 56);
-    const tableData = filteredReviews.map((review, index) => [
-      index + 1,
-      formatDate(getReviewDate(review)),
-      getReviewPatientName(review),
-      getReviewPhysioName(review),
-      getReviewReferenceName(review),
-      getReviewStatusName(review),
-      review?.feedback || "N/A",
-    ]);
-
-    autoTable(doc, {
-      startY: 60,
-      head: [
-        [
-          "S.No",
-          "Review Date",
-          "Patient Name",
-          "Physio",
-          "Reference",
-          "Status",
-          "Notes",
-        ],
-      ],
-      body: tableData,
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        overflow: "linebreak",
-        valign: "middle",
-      },
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-    });
-
-    doc.save(
-      `HOD_Review_Report_${selectedPhysioName.replace(/\s+/g, "_")}_${selectedMonthName}.pdf`,
-    );
   };
 
-  const handleExportPatientList = () => {
-    if (filteredPatientList.length === 0) {
-      toast({
-        title: "No data",
-        description: "No patients found for the selected filters.",
-        variant: "destructive",
-      });
-      return;
+  const handleExportPatientListPDF = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: selectedMonth, // ✅ ADD THIS
+        year: selectedYear,
+      };
+
+      const blob = await apiRequest(
+        "Report/downloadPatientListPDF",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+        "blob",
+      );
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Patient_List_${selectedMonth}_${selectedYear}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("PDF Download Error:", error);
     }
+  };
+  const handleExportPatientListXLSX = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: selectedMonth, // ✅ ADD THIS
+        year: selectedYear,
+      };
 
-    const totalPatients = filteredPatientList.length;
+      const blob = await apiRequest(
+        "Report/downloadPatientListXLSX",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+        "blob",
+      );
 
-    const exportData = filteredPatientList.map((patient, index) => ({
-      "S.No": index + 1,
-      "Patient Code": patient?.patientCode || "N/A",
-      "Patient Name": patient?.patientName || "N/A",
-      "Mobile Number": patient?.patientNumber || "N/A",
-      Gender: patient?.patientGenderId?.genderName || "N/A",
-      Age: patient?.patientAge || "N/A",
-      Address: patient?.patientAddress || "N/A",
-      Condition: patient?.patientCondition || "N/A",
-      Physio: getPatientPhysioName(patient),
-      Reference: getPatientReferenceName(patient),
-      "Session Count": patient?.sessionCount ?? 0,
-    }));
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Patient_List_${selectedMonth}_${selectedYear}.xlsx`;
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData, { origin: "A6" });
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
 
-    XLSX.utils.sheet_add_aoa(worksheet, [
-      ["Reference:", selectedReferenceName],
-      ["Physio:", selectedPhysioName],
-      ["Month:", selectedMonthName],
-      ["Total Patients:", totalPatients],
-    ]);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("XLSX Download Error:", error);
+    }
+  };
+  const handleExportCSV = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+      };
 
-    worksheet["!cols"] = [
-      { wch: 8 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 18 },
-      { wch: 12 },
-      { wch: 10 },
-      { wch: 25 },
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 12 },
-    ];
+      const blob = await apiRequest(
+        "Report/downloadReportCSV",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+        "blob",
+      );
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Patients");
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `report_${selectedMonth}_${selectedYear}.csv`;
 
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
+      document.body.appendChild(link);
+      link.click();
 
-    const fileData = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
-
-    saveAs(
-      fileData,
-      `Patient_List_${selectedReferenceName.replace(/\s+/g, "_")}_${selectedPhysioName.replace(/\s+/g, "_")}_${selectedMonthName}.xlsx`,
-    );
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("CSV export failed:", err);
+    }
   };
 
-  const handleExportPatientListPDF = () => {
-    if (filteredPatientList.length === 0) {
-      toast({
-        title: "No data",
-        description: "No patients found for the selected filters.",
-        variant: "destructive",
-      });
-      return;
+  const handleExportPDF = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+      };
+      const blob = await apiRequest(
+        "Report/downloadReportPDF",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+        "blob",
+      );
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `report_${selectedMonth}_${selectedYear}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF export failed:", err);
     }
-
-    const doc = new jsPDF("l", "mm", "a4");
-    const totalPatients = filteredPatientList.length;
-
-    // doc.setFontSize(16);
-    // doc.text("Reference / Physio Wise Patient List", 14, 15);
-    addHeader(doc, "Reference / Physio Wise Patient List");
-    doc.setFontSize(11);
-    doc.text(`Reference: ${selectedReferenceName}`, 14, 28);
-    doc.text(`Physio: ${selectedPhysioName}`, 14, 35);
-    doc.text(`Month: ${selectedMonthName}`, 14, 42);
-    doc.text(`Total Patients: ${totalPatients}`, 14, 49);
-    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 56);
-    const tableData = filteredPatientList.map((patient, index) => [
-      index + 1,
-      patient?.patientCode || "N/A",
-      patient?.patientName || "N/A",
-      patient?.patientNumber || "N/A",
-      patient?.patientGenderId?.genderName || "N/A",
-      patient?.patientAge || "N/A",
-      patient?.patientCondition || "N/A",
-      getPatientPhysioName(patient),
-      getPatientReferenceName(patient),
-      patient?.sessionCount ?? 0,
-    ]);
-
-    autoTable(doc, {
-      startY: 60,
-      head: [
-        [
-          "S.No",
-          "Patient Code",
-          "Patient Name",
-          "Mobile",
-          "Gender",
-          "Age",
-          "Condition",
-          "Physio",
-          "Reference",
-          "Sessions",
-        ],
-      ],
-      body: tableData,
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-        overflow: "linebreak",
-        valign: "middle",
-      },
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-    });
-
-    doc.save(
-      `Patient_List_${selectedReferenceName.replace(/\s+/g, "_")}_${selectedPhysioName.replace(/\s+/g, "_")}_${selectedMonthName}.pdf`,
-    );
   };
+  const handleExportPhysioWiseXLSX = async () => {
+    const payload = {
+      physioId: selectedPhysio === "all" ? null : selectedPhysio,
+      referenceId: selectedReference === "all" ? null : selectedReference,
+      month: Number(selectedMonth),
+      year: Number(selectedYear),
+    };
 
-  const handleExportCSV = () => {
-    const rows = [
-      ["Metric", "Value"],
-      ["Reference", selectedReferenceName],
-      ["Physio", selectedPhysioName],
-      ["Total Patients", stats.patient],
-      ["Total Physio", stats.physio],
-      [
-        isHodSelected ? "Total Reviews" : "Total Sessions",
-        stats.monthlySessions,
-      ],
-      [
-        isHodSelected ? "Completed Reviews" : "Completed Sessions",
-        stats.sessionCompleted,
-      ],
-      ["Cancelled Sessions", stats.cancelledSessions],
-      ["Monthly Revenue", stats.monthlyRevenue],
-      ["Monthly Expenses", stats.monthlyExpenses],
-      ["Recovered Patients", stats.patientRecover],
-      ["Pending Reviews", stats.pendingreviews],
-      ["Completed Reviews", stats.completedReview],
-      ["Today's Sessions", todaySessionCount],
-      ["Average Patient per Physio", avgPatient],
-      ["Total Leave Days", computedStats.totalLeaveDays],
-      [
-        isHodSelected
-          ? "Review Completion Rate (RCR)"
-          : "Session Completion Rate (SCR)",
-        `${getCompletionPercentage(stats.sessionCompleted, stats.monthlySessions)}%`,
-      ],
-    ];
+    const blob = await apiRequest(
+      "Report/downloadPhysioWiseReportXLSX",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      "blob",
+    );
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      rows.map((e) => e.map((v) => `"${v}"`).join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `report_${selectedReferenceName}_${selectedPhysioName}_${monthNames[Number(selectedMonth)]}_${selectedYear}.csv`,
-    );
+
+    link.href = url;
+    link.download = `Physio_Wise_Report_${selectedMonth}_${selectedYear}.xlsx`;
 
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
   };
+  const handleExportPhysioWisePDF = async () => {
+    try {
+      const payload = {
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+      };
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-
-    // doc.setFontSize(18);
-    // doc.text(isHodSelected ? "HOD Report" : "Physio Report", 14, 20);
-    addHeader(doc, isHodSelected ? "HOD Report" : "Physio Report");
-    doc.setFontSize(12);
-    doc.text(`Reference: ${selectedReferenceName}`, 14, 30);
-    doc.text(`Physio: ${selectedPhysioName}`, 14, 38);
-    doc.text(
-      `Month: ${monthNames[Number(selectedMonth)]} ${selectedYear}`,
-      14,
-      46,
-    );
-
-    const tableData = [
-      ["Total Patients", stats.patient],
-      ["Total Physio", stats.physio],
-      [
-        isHodSelected ? "Total Reviews" : "Total Sessions",
-        stats.monthlySessions,
-      ],
-      [
-        isHodSelected ? "Completed Reviews" : "Completed Sessions",
-        stats.sessionCompleted,
-      ],
-      ["Cancelled Sessions", stats.cancelledSessions],
-      ["Monthly Revenue", `Rs ${stats.monthlyRevenue}`],
-      ["Monthly Expenses", `Rs ${stats.monthlyExpenses}`],
-      ["Recovered Patients", stats.patientRecover],
-      ["Pending Reviews", stats.pendingreviews],
-      ["Completed Reviews", stats.completedReview],
-      ["Today's Sessions", todaySessionCount],
-      ["Avg Patient / Physio", avgPatient],
-      ["Total Leave Days", computedStats.totalLeaveDays],
-      [
-        isHodSelected
-          ? "Review Completion Rate (RCR)"
-          : "Session Completion Rate (SCR)",
-        `${getCompletionPercentage(stats.sessionCompleted, stats.monthlySessions)}%`,
-      ],
-    ];
-
-    autoTable(doc, {
-      startY: 55,
-      head: [["Metric", "Value"]],
-      body: tableData,
-    });
-
-    doc.save(
-      `report_${selectedReferenceName}_${selectedPhysioName}_${monthNames[Number(selectedMonth)]}_${selectedYear}.pdf`,
-    );
-  };
-
-  const handleExportPhysioWiseXLSX = () => {
-    if (physioWiseData.length === 0) {
-      toast({
-        title: "No data",
-        description:
-          "No physio-wise report data found for the selected filters.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const workbook = XLSX.utils.book_new();
-
-    const summaryData = physioWiseData.map((item, index) => ({
-      "S.No": index + 1,
-      Physio: item.physioName,
-      "Assigned Patients": item.totalAssignedPatients,
-      "Total Sessions": item.totalSessions,
-      "Completed Sessions": item.completedSessions,
-      "Canceled Sessions": item.cancelledSessions,
-      "Leave Entries": item.leaveCount,
-      "Leave Days": item.leaveDays,
-      "Session Completion Rate ": item.completionPercentage,
-    }));
-
-    const summarySheet = XLSX.utils.json_to_sheet(summaryData, {
-      origin: "A6",
-    });
-
-    XLSX.utils.sheet_add_aoa(summarySheet, [
-      ["Reference:", selectedReferenceName],
-      ["Physio:", selectedPhysioName],
-      ["Month:", selectedMonthName],
-      ["Report Type:", "Physio Wise Summary"],
-    ]);
-
-    summarySheet["!cols"] = [
-      { wch: 8 },
-      { wch: 22 },
-      { wch: 18 },
-      { wch: 18 },
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 14 },
-    ];
-
-    XLSX.utils.book_append_sheet(workbook, summarySheet, "Physio Summary");
-
-    const patientRows = [];
-    physioWiseData.forEach((item) => {
-      if (item.assignedPatients.length === 0) {
-        patientRows.push({
-          Physio: item.physioName,
-          "Patient Code": "N/A",
-          "Patient Name": "No Assigned Patients",
-          Mobile: "",
-          Condition: "",
-          Reference: "",
-          "Session Count": 0,
-        });
-      } else {
-        item.assignedPatients.forEach((patient) => {
-          patientRows.push({
-            Physio: item.physioName,
-            "Patient Code": patient?.patientCode || "N/A",
-            "Patient Name": patient?.patientName || "N/A",
-            Mobile: patient?.patientNumber || "N/A",
-            Condition: patient?.patientCondition || "N/A",
-            Reference: getPatientReferenceName(patient),
-            "Session Count": patient?.sessionCount ?? 0,
-          });
-        });
-      }
-    });
-
-    const patientSheet = XLSX.utils.json_to_sheet(patientRows, {
-      origin: "A6",
-    });
-
-    XLSX.utils.sheet_add_aoa(patientSheet, [
-      ["Reference:", selectedReferenceName],
-      ["Physio:", selectedPhysioName],
-      ["Month:", selectedMonthName],
-      ["Report Type:", "Physio Wise Patient List"],
-    ]);
-
-    patientSheet["!cols"] = [
-      { wch: 22 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 18 },
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 15 },
-    ];
-
-    XLSX.utils.book_append_sheet(workbook, patientSheet, "Physio Patients");
-
-    const leaveRows = [];
-    physioWiseData.forEach((item) => {
-      if (item.leaveEntries.length === 0) {
-        leaveRows.push({
-          Physio: item.physioName,
-          "Leave Date": "",
-          "Leave Mode": "No Leave",
-          "Paid Leave": "",
-          "Leave Status": "",
-          "Reassigned Sessions": "",
-        });
-      } else {
-        item.leaveEntries.forEach((leave) => {
-          leaveRows.push({
-            Physio: item.physioName,
-            "Leave Date": formatDate(getLeaveDate(leave)),
-            "Leave Mode": getLeaveMode(leave),
-            "Paid Leave": leave?.PaidLeave ? "Yes" : "No",
-            "Leave Status": getLeaveStatus(leave),
-            "Reassigned Sessions": getReassignedCount(leave),
-          });
-        });
-      }
-    });
-
-    const leaveSheet = XLSX.utils.json_to_sheet(leaveRows, { origin: "A6" });
-
-    XLSX.utils.sheet_add_aoa(leaveSheet, [
-      ["Reference:", selectedReferenceName],
-      ["Physio:", selectedPhysioName],
-      ["Month:", selectedMonthName],
-      ["Report Type:", "Physio Leave Details"],
-      ["Total Leave Days:", computedStats.totalLeaveDays],
-    ]);
-
-    leaveSheet["!cols"] = [
-      { wch: 22 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 14 },
-      { wch: 18 },
-    ];
-
-    XLSX.utils.book_append_sheet(workbook, leaveSheet, "Physio Leaves");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const fileData = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
-
-    saveAs(
-      fileData,
-      `Physio_Wise_Report_${selectedReferenceName.replace(/\s+/g, "_")}_${selectedPhysioName.replace(/\s+/g, "_")}_${selectedMonthName}.xlsx`,
-    );
-  };
-
-  const handleExportPhysioWisePDF = () => {
-    if (physioWiseData.length === 0) {
-      toast({
-        title: "No data",
-        description:
-          "No physio-wise report data found for the selected filters.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const doc = new jsPDF("l", "mm", "a4");
-
-    // doc.setFontSize(16);
-    // doc.text("Physio Wise Report", 14, 15);
-    addHeader(doc, "Physio Wise Report");
-    doc.setFontSize(11);
-    doc.text(`Reference: ${selectedReferenceName}`, 14, 28);
-    doc.text(`Physio: ${selectedPhysioName}`, 14, 35);
-    doc.text(`Month: ${selectedMonthName}`, 14, 42);
-    doc.text(`Generated On: ${new Date().toLocaleDateString("en-GB")}`, 14, 49);
-    const summaryTable = physioWiseData.map((item, index) => [
-      index + 1,
-      item.physioName,
-      item.totalAssignedPatients,
-      item.totalSessions,
-      item.completedSessions,
-      item.cancelledSessions,
-      item.leaveCount,
-      item.leaveDays,
-      `${item.completionPercentage}%`,
-    ]);
-
-    autoTable(doc, {
-      startY: 52,
-      head: [
-        [
-          "S.No",
-          "Physio Name",
-          "Assigned Patients",
-          "Total Sessions",
-          "Completed",
-          "Canceled",
-          "Leave Entries",
-          "Leave Days",
-          "Session Completion Rate",
-        ],
-      ],
-      body: summaryTable,
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-      },
-      headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
-    });
-
-    let currentY = doc.lastAutoTable.finalY + 10;
-
-    physioWiseData.forEach((item) => {
-      if (currentY > 170) {
-        doc.addPage();
-        currentY = 20;
-      }
-
-      doc.setFontSize(12);
-      doc.text(
-        `${item.physioName} - Patient List (${item.totalAssignedPatients})`,
-        14,
-        currentY,
+      const blob = await apiRequest(
+        "Report/downloadPhysioWiseReportPDF",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+        "blob",
       );
-      currentY += 4;
 
-      const patientTable = item.assignedPatients.length
-        ? item.assignedPatients.map((patient, index) => [
-            index + 1,
-            patient?.patientCode || "N/A",
-            patient?.patientName || "N/A",
-            patient?.patientNumber || "N/A",
-            patient?.patientCondition || "N/A",
-            patient?.sessionCount ?? 0,
-          ])
-        : [["", "", "No Assigned Patients", "", "", ""]];
-
-      autoTable(doc, {
-        startY: currentY + 2,
-        head: [
-          [
-            "S.No",
-            "Patient Code",
-            "Patient Name",
-            "Mobile",
-            "Condition",
-            "Session Count",
-          ],
-        ],
-        body: patientTable,
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        headStyles: {
-          fillColor: [52, 73, 94],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-        },
-      });
-
-      currentY = doc.lastAutoTable.finalY + 8;
-
-      if (currentY > 170) {
-        doc.addPage();
-        currentY = 20;
+      if (!blob || blob.size === 0) {
+        throw new Error("Empty PDF received");
       }
 
-      doc.setFontSize(12);
-      doc.text(`${item.physioName} - Leave Details`, 14, currentY);
-      currentY += 4;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
 
-      const leaveTable = item.leaveEntries.length
-        ? item.leaveEntries.map((leave, index) => [
-            index + 1,
-            formatDate(getLeaveDate(leave)),
-            getLeaveMode(leave),
-            leave?.PaidLeave ? "Yes" : "No",
-            getLeaveStatus(leave),
-            getReassignedCount(leave),
-          ])
-        : [["", "No Leave", "", "", "", ""]];
+      link.href = url;
+      link.download = `Physio_Wise_Report_${selectedMonth}_${selectedYear}.pdf`;
 
-      autoTable(doc, {
-        startY: currentY + 2,
-        head: [
-          [
-            "S.No",
-            "Leave Date",
-            "Leave Mode",
-            "Paid Leave",
-            "Status",
-            "Reassigned Sessions",
-          ],
-        ],
-        body: leaveTable,
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+    }
+  };
+  const handleExportHodCSV = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+        role: "HOD",
+      };
+
+      const blob = await apiRequest(
+        "Report/downloadHODReportCSV",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
         },
-        headStyles: {
-          fillColor: [234, 179, 8],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
+        "blob",
+      );
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `HOD_Report_${selectedMonth}_${selectedYear}.csv`;
+
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("CSV Export Error:", err);
+    }
+  };
+  const handleExportHodPDF = async () => {
+    try {
+      const payload = {
+        physioId: selectedPhysio === "all" ? null : selectedPhysio,
+        referenceId: selectedReference === "all" ? null : selectedReference,
+        month: Number(selectedMonth),
+        year: Number(selectedYear),
+        role: "HOD",
+      };
+
+      const blob = await apiRequest(
+        "Report/downloadHODReportPDF",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
         },
-      });
+        "blob",
+      );
 
-      currentY = doc.lastAutoTable.finalY + 10;
-    });
+      if (!blob || blob.size === 0) {
+        throw new Error("Empty PDF received");
+      }
 
-    doc.save(
-      `Physio_Wise_Report_${selectedReferenceName.replace(/\s+/g, "_")}_${selectedPhysioName.replace(/\s+/g, "_")}_${selectedMonthName}.pdf`,
-    );
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `HOD_Report_${selectedMonth}_${selectedYear}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+    }
   };
   const statCards = [
-    {
-      title: isHodSelected
-        ? "Review Completion Rate (RCR)"
-        : "Session Completion Rate (SCR)",
+    !isHodSelected && {
+      title: "Session Completion Rate (SCR)",
       value: `${getCompletionPercentage(
-        stats.sessionCompleted,
-        stats.monthlySessions,
+        stats.completedSessions,
+        stats.totalSessions,
       )}%`,
       icon: TrendingUp,
       color: "text-sky-600",
       bgColor: "bg-sky-100",
     },
-    {
+    isHodSelected && {
+      title: "Review Completion Rate (SCR)",
+      value: `${getCompletionPercentage(
+        stats.completedReviews,
+        stats.completedReviews + stats.pendingReviews,
+      )}%`,
+      icon: TrendingUp,
+      color: "text-sky-600",
+      bgColor: "bg-sky-100",
+    },
+    !isHodSelected && {
       title: "Total Patients",
-      value: stats.patient,
+      value: stats.totalActivePatients,
       icon: Users,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },
-    {
+
+    !isHodSelected && {
+      title: "Total Recovered Patients",
+      value: stats.totalRecoveredPatients,
+      icon: Users,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+
+    !isHodSelected && {
+      title: "Patient Recovered Patients",
+      value: stats.patientRecoveredCount,
+      icon: Users,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+
+    !isHodSelected && {
+      title: "Other Recovered Patients",
+      value: stats.otherReasonRecoveredCount,
+      icon: Users,
+      color: "text-green-600",
+      bgColor: "bg-green-100",
+    },
+
+    // ✅ Hide when physio selected
+    selectedPhysio === "all" && {
       title: "Total Physio",
-      value: stats.physio,
+      value: stats.totalPhysio,
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
 
-    {
-      title: isHodSelected ? "Total Reviews" : "Total Sessions",
-      value: stats.monthlySessions,
+    !isHodSelected && {
+      title: "Total Sessions",
+      value: stats.totalSessions,
       icon: Activity,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
     },
-    {
-      title: isHodSelected ? "Completed Reviews" : "Completed Sessions",
-      value: stats.sessionCompleted,
+
+    !isHodSelected && {
+      title: "Completed Sessions",
+      value: stats.completedSessions,
       icon: CheckSquare,
       color: "text-indigo-600",
       bgColor: "bg-indigo-100",
     },
-    {
+
+    !isHodSelected && {
+      title: "Cancelled Sessions",
+      value: stats.cancelledSessions,
+      icon: Calendar,
+      color: "text-rose-600",
+      bgColor: "bg-rose-100",
+    },
+
+    !isHodSelected && {
       title: "Monthly Revenue",
       value: `₹${Number(stats.monthlyRevenue || 0).toLocaleString("en-IN")}`,
       icon: DollarSign,
       color: "text-emerald-600",
       bgColor: "bg-emerald-100",
     },
-    {
-      title: "Monthly Expenses",
-      value: `₹${Number(stats.monthlyExpenses || 0).toLocaleString("en-IN")}`,
-      icon: Wallet,
-      color: "text-red-600",
-      bgColor: "bg-red-100",
-    },
-    {
-      title: "Pending Reviews",
-      value: stats.pendingreviews,
-      icon: BookUser,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
-    },
-    {
-      title: "Completed Reviews",
-      value: stats.completedReview,
-      icon: TrendingUp,
-      color: "text-cyan-600",
-      bgColor: "bg-cyan-100",
-    },
-    {
-      title: "Recovered Patients",
-      value: stats.patientRecover ?? 0,
-      icon: User,
-      color: "text-teal-600",
-      bgColor: "bg-teal-100",
-    },
-    {
-      title: "Cancelled Sessions",
-      value: summary.cancelledSessions,
-      icon: Calendar,
-      color: "text-rose-600",
-      bgColor: "bg-rose-100",
-    },
-    {
+
+    !selectedPhysio ||
+      (!isHodSelected && {
+        title: "Monthly Expenses",
+        value: `₹${Number(stats.totalExpense || 0).toLocaleString("en-IN")}`,
+        icon: Wallet,
+        color: "text-red-600",
+        bgColor: "bg-red-100",
+      }),
+
+    // ✅ Hide reviews when physio selected
+    !selectedPhysio ||
+      (isHodSelected && {
+        title: "Pending Reviews",
+        value: stats.pendingReviews,
+        icon: BookUser,
+        color: "text-orange-600",
+        bgColor: "bg-orange-100",
+      }),
+    !selectedPhysio ||
+      (isHodSelected && {
+        title: "Completed Reviews",
+        value: stats.completedReviews,
+        icon: TrendingUp,
+        color: "text-cyan-600",
+        bgColor: "bg-cyan-100",
+      }),
+    !selectedPhysio ||
+      (isHodSelected && {
+        title: "Consultation From Leads",
+        value: stats.consultationsFromLeads,
+        icon: Calendar,
+        color: "text-cyan-600",
+        bgColor: "bg-cyan-100",
+      }),
+    !selectedPhysio ||
+      (isHodSelected && {
+        title: "Consultation to Patients Rate",
+        value: `${stats.leadConversionRatess}%`,
+        icon: Calendar,
+        color: "text-cyan-600",
+        bgColor: "bg-cyan-100",
+      }),
+
+    !isHodSelected && {
       title: "Today Session Count",
-      value: todaySessionCount,
+      value: stats.todaySession,
       icon: Calendar,
       color: "text-lime-600",
       bgColor: "bg-lime-100",
     },
-    {
+
+    !isHodSelected && {
       title: "Avg Patient / Physio",
-      value: avgPatient,
+      value:
+        stats.totalPhysio > 0
+          ? (stats.totalActivePatients / stats.totalPhysio).toFixed(1)
+          : 0,
       icon: Users,
       color: "text-violet-600",
       bgColor: "bg-violet-100",
     },
-  ];
+  ].filter(Boolean); // 🔥 removes false values
   const [months, setMonths] = useState(1);
 
   return (
@@ -2265,7 +1392,7 @@ const Reports = () => {
             </SelectTrigger>
             <SelectContent className="z-[99999] max-h-72 overflow-auto bg-white border shadow-lg">
               {monthNames.map((month, index) => (
-                <SelectItem key={month} value={String(index)}>
+                <SelectItem key={month} value={String(index + 1)}>
                   {month}
                 </SelectItem>
               ))}
@@ -2327,20 +1454,12 @@ const Reports = () => {
                 className="border p-2 w-20"
               />
 
-              <Button
-                variant="outline"
-                onClick={() => exportHodPerformancePDF(months)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                HOD PDF
+              <Button onClick={() => downloadReport(months, "pdf")}>
+                Download PDF
               </Button>
 
-              <Button
-                variant="outline"
-                onClick={() => exportHodPerformanceExcel(months)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                HOD Excel
+              <Button onClick={() => downloadReport(months, "excel")}>
+                Download Excel
               </Button>
             </div>
           )}
@@ -2368,7 +1487,7 @@ const Reports = () => {
               <Button
                 variant="outline"
                 className="w-full sm:w-auto"
-                onClick={handleExportPatientList}
+                onClick={handleExportPatientListXLSX}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Patient XLSX
@@ -2399,23 +1518,47 @@ const Reports = () => {
               </Button>
             </>
           )}
+          {!isHodSelected && (
+            <>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportCSV}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportPDF}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Report PDF
+              </Button>
+            </>
+          )}
+          {isHodSelected && (
+            <div className="flex gap-3 mt-4">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportHodPDF}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Report PDF
+              </Button>
 
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={handleExportCSV}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            CSV
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={handleExportPDF}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Report PDF
-          </Button>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleExportHodCSV}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -2443,7 +1586,7 @@ const Reports = () => {
                     {stat.value}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {monthNames[Number(selectedMonth)]} {selectedYear}
+                    {monthNames[Number(selectedMonth) - 1]} {selectedYear}
                   </p>
                 </CardContent>
               </Card>
@@ -2461,15 +1604,15 @@ const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-800">
-              {funnel.newEnquiries}
+              {stats.newEnquiries}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth)]} {selectedYear}
+              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
             </p>
           </CardContent>
         </Card>
-        {isHodSelected && (
-          <Card className="medical-card hover:shadow-lg transition-shadow">
+
+        {/* <Card className="medical-card hover:shadow-lg transition-shadow">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
                 Total Consultations
@@ -2482,11 +1625,10 @@ const Reports = () => {
               </div>
 
               <p className="text-xs text-gray-500 mt-1">
-                {monthNames[Number(selectedMonth)]} {selectedYear}
+                {monthNames[Number(selectedMonth) - 1]} {selectedYear}
               </p>
             </CardContent>
-          </Card>
-        )}
+          </Card> */}
 
         <Card className="medical-card hover:shadow-lg transition-shadow">
           <CardHeader className="pb-2">
@@ -2496,10 +1638,10 @@ const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-800">
-              {funnel.newConsultations}
+              {stats.consultationsFromLeads}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth)]} {selectedYear}
+              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
             </p>
           </CardContent>
         </Card>
@@ -2512,10 +1654,10 @@ const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-800">
-              {funnel.newPatients}
+              {stats.newPatients}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth)]} {selectedYear}
+              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
             </p>
           </CardContent>
         </Card>
@@ -2528,10 +1670,10 @@ const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-800">
-              {funnel.conversionRate}%
+              {stats.leadConversionRate}%
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth)]} {selectedYear}
+              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
             </p>
           </CardContent>
         </Card>
@@ -2540,60 +1682,59 @@ const Reports = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card className="medical-card">
           <CardHeader>
-            <CardTitle>Expense Breakdown</CardTitle>
+            <CardTitle>Monthly Financial Overview</CardTitle>
             <CardDescription>
-              {monthNames[Number(selectedMonth)]} {selectedYear}
+              {monthNames[Number(selectedMonth - 1)]} {selectedYear}
             </CardDescription>
           </CardHeader>
+
           <CardContent>
-            {expensePieData.length === 0 ? (
-              <div className="h-[320px] flex items-center justify-center text-sm text-gray-500">
-                No expense data for selected month
-              </div>
-            ) : (
-              <div className="h-[260px] sm:h-[300px] md:h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={expensePieData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={window.innerWidth < 640 ? 70 : 100}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                    >
-                      {expensePieData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={PIE_COLORS[index % PIE_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) =>
-                        `₹${Number(value).toLocaleString("en-IN")}`
-                      }
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <div className="h-[260px] sm:h-[300px] md:h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={incomeExpensePieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={window.innerWidth < 640 ? 70 : 100}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {incomeExpensePieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+
+                  <Tooltip
+                    formatter={(value) =>
+                      `₹${Number(value).toLocaleString("en-IN")}`
+                    }
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
         <Card className="medical-card">
           <CardHeader>
-            <CardTitle>Expense Summary</CardTitle>
-            <CardDescription>Category wise amounts</CardDescription>
+            <CardTitle>Expense Breakdown</CardTitle>
+            <CardDescription>
+              Category-wise expense distribution
+            </CardDescription>
           </CardHeader>
+
           <CardContent>
             {expensePieData.length === 0 ? (
               <p className="text-sm text-gray-500">
-                No expense summary available.
+                No expense data for selected month
               </p>
             ) : (
               <div className="space-y-3">
@@ -2602,6 +1743,7 @@ const Reports = () => {
                     key={item.name}
                     className="flex items-center justify-between gap-3 flex-wrap border rounded-lg p-3"
                   >
+                    {/* Left side: category */}
                     <div className="flex items-center gap-3">
                       <span
                         className="w-4 h-4 rounded-full"
@@ -2614,6 +1756,8 @@ const Reports = () => {
                         {item.name}
                       </span>
                     </div>
+
+                    {/* Right side: value */}
                     <span className="text-sm font-semibold text-gray-800">
                       ₹{Number(item.value).toLocaleString("en-IN")}
                     </span>

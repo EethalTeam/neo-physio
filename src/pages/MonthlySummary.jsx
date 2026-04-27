@@ -27,6 +27,7 @@ import {
   IndianRupee,
   FileText,
   Clock3,
+  PlusCircle,
 } from "lucide-react";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { useAuth } from "@/contexts/AuthContext";
@@ -233,26 +234,33 @@ const MonthlySummary = () => {
           color: "text-red-600",
           bg: "bg-red-50",
         },
-        {
-          label: "ESI",
-          value: payroll.ESI,
-          icon: MinusCircle,
-          color: "text-rose-600",
-          bg: "bg-rose-50",
-        },
-        {
-          label: "PF",
-          value: payroll.PF,
-          icon: MinusCircle,
-          color: "text-pink-600",
-          bg: "bg-pink-50",
-        },
+        // {
+        //   label: "ESI",
+        //   value: payroll.ESI,
+        //   icon: MinusCircle,
+        //   color: "text-rose-600",
+        //   bg: "bg-rose-50",
+        // },
+        // {
+        //   label: "PF",
+        //   value: payroll.PF,
+        //   icon: MinusCircle,
+        //   color: "text-pink-600",
+        //   bg: "bg-pink-50",
+        // },
         {
           label: "Vehicle Maintenance",
           value: payroll.vehicleMaintanance,
           icon: IndianRupee,
           color: "text-yellow-600",
           bg: "bg-yellow-50",
+        },
+        {
+          label: "Savings",
+          value: payroll.savings,
+          icon: PlusCircle,
+          color: "text-pink-600",
+          bg: "bg-pink-50",
         },
         {
           label: "Total Amount Deducted",
@@ -292,15 +300,15 @@ const MonthlySummary = () => {
             ? summary.pendingReviews || summary.upcomingSessions
             : summary.cancelledSessions,
         },
-        {
-          label: "Petrol KM",
-          value: payroll.PetrolKm,
-        },
-        {
-          label: "Amount Per KM",
-          value: payroll.amountperKm,
-          isCurrency: true,
-        },
+        // {
+        //   label: "Petrol KM",
+        //   value: payroll.PetrolKm,
+        // },
+        // {
+        //   label: "Amount Per KM",
+        //   value: payroll.amountperKm,
+        //   isCurrency: true,
+        // },
         {
           label: "No. of Leave",
           value: payroll.NoofLeave,

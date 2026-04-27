@@ -105,6 +105,7 @@ const Payroll = () => {
       unpaidLeaves: Number(emp.unpaidLeaves ?? 0),
       totalLeaves: Number(emp.totalLeaves ?? 0),
       deducted: Number(emp.manualDeduction ?? 0),
+      TotalAmountDeducted: Number(emp.TotalAmountDeducted ?? 0),
       ESI: Number(emp.ESI ?? 0),
       PF: Number(emp.PF ?? 0),
       savings: Number(emp.savings ?? 0),
@@ -188,7 +189,9 @@ const Payroll = () => {
             case "deducted":
               payload.ManualDeduction = newValue;
               break;
-
+            case "TotalAmountDeducted":
+              payload.TotalAmountDeducted = newValue;
+              break;
             case "ESI":
               payload.ESI = newValue;
               break;
@@ -575,6 +578,7 @@ const Payroll = () => {
       grossRevenue: p.TotalSalary ?? 0,
       netPay: p.NetSalary ?? 0,
       manualDeduction: p.ManualDeduction ?? 0,
+      TotalAmountDeducted: p.TotalAmountDeducted ?? 0,
       basicSalary: p.basicSalary ?? 0,
       vehicleMaintanance: p.vehicleMaintanance ?? 0,
       petrolKm: p.PetrolKm ?? 0,
@@ -1100,6 +1104,15 @@ const Payroll = () => {
                         </td>
                       </tr>
                       <tr className="border-b">
+                        <td className="p-2 text-red-600">Total Deduction</td>
+                        <td className="p-2 text-right text-red-600">
+                          - ₹
+                          {Number(
+                            selectedPayslip?.TotalAmountDeducted || 0,
+                          ).toLocaleString("en-IN")}
+                        </td>
+                      </tr>
+                      <tr className="border-b">
                         <td className="p-2 text-red-600">Leave Deduction</td>
                         <td className="p-2 text-right text-red-600">
                           - ₹
@@ -1383,6 +1396,16 @@ const Payroll = () => {
                 name="deducted"
                 type="number"
                 value={editForm.deducted}
+                onChange={onEditChange}
+                onWheel={(e) => e.target.blur()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Total Deducted Amount</Label>
+              <Input
+                name="TotalAmountDeducted"
+                type="number"
+                value={editForm.TotalAmountDeducted}
                 onChange={onEditChange}
                 onWheel={(e) => e.target.blur()}
               />
