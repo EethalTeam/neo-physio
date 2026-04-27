@@ -988,7 +988,7 @@ const PatientManagement = () => {
 
     filteredPatients.forEach((patient) => {
       // Session calc
-      const currentSession = patient.sessionCount || 0;
+      const currentSession = patient.totalSessionCount || 0;
       const targetSession = 26;
       let sessionsToAdd =
         (targetSession - (currentSession % targetSession)) % targetSession;
