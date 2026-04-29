@@ -260,15 +260,16 @@ const Reports = () => {
       ? leave.SessionGenerateForLeave.length
       : 0;
   };
-
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
       if (!s.sessionDate) return false;
+
       const d = new Date(s.sessionDate);
 
+      // ✅ Use UTC to avoid timezone bugs
       const matchesMonthYear =
-        d.getMonth() + 1 === Number(selectedMonth) &&
-        d.getFullYear() === Number(selectedYear);
+        d.getUTCMonth() + 1 === Number(selectedMonth) &&
+        d.getUTCFullYear() === Number(selectedYear);
 
       const matchesReference =
         selectedReference === "all" ||
@@ -375,7 +376,7 @@ const Reports = () => {
     });
   }, [
     patientList,
-    sessions,
+    filteredSessions,
     selectedReference,
     selectedPhysio,
     selectedMonth,
@@ -411,7 +412,94 @@ const Reports = () => {
     doc.text(title, 45, 15);
   };
   const [stats, setStats] = useState([]);
+  const getAllPatients = async () => {
+    try {
+      const res = await apiRequest("Patient/getAllPatient", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
 
+      if (Array.isArray(res)) {
+        setPatientList(res);
+      } else if (Array.isArray(res?.data)) {
+        setPatientList(res.data);
+      } else {
+        setPatientList([]);
+      }
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      setPatientList([]);
+    }
+  };
+
+  const getSession = async () => {
+    try {
+      const storedRole = localStorage.getItem("userRole");
+
+      const payload =
+        storedRole === "Physio"
+          ? {
+              physioId: user?._id,
+              storedRole,
+              month: Number(selectedMonth),
+              year: Number(selectedYear),
+            }
+          : {
+              storedRole,
+              month: Number(selectedMonth),
+              year: Number(selectedYear),
+            };
+
+      const response = await apiRequest("Session/getSessionsByMonthYear", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      console.log("PAYLOAD:", payload);
+      console.log("RESPONSE:", response);
+      const sessionData = Array.isArray(response?.data) ? response.data : [];
+      console.log(sessionData.length, "sessionData");
+      setSessions(sessionData);
+
+      // ✅ Today count (still useful)
+      const today = new Date().toISOString().split("T")[0];
+
+      const todaySessions = sessionData.filter((s) => {
+        if (!s.sessionDate) return false;
+
+        const sessionDay = new Date(s.sessionDate).toISOString().split("T")[0];
+
+        return sessionDay === today;
+      });
+
+      setTodaySessionCount(todaySessions.length);
+
+      processDashboardData(sessionData);
+    } catch (error) {
+      console.error("❌ Error fetching sessions:", error);
+      console.log("⚠️ Overwriting sessions with EMPTY array");
+      // setSessions([]);
+    }
+  };
+  useEffect(() => {
+    console.log("UPDATED sessions:", sessions);
+  }, [sessions]);
+  useEffect(() => {
+    getAllPatients();
+  }, []);
+  const hasFetched = React.useRef(false);
+
+  useEffect(() => {
+    if (selectedMonth && selectedYear && !hasFetched.current) {
+      hasFetched.current = true;
+      getSession();
+    }
+  }, [selectedMonth, selectedYear]);
   const getAllExpenses = async () => {
     try {
       const res = await apiRequest("Expense/getAllExpense", {
@@ -704,9 +792,13 @@ const Reports = () => {
   const physioWiseData = useMemo(() => {
     const grouped = {};
 
+    // ✅ Helper to normalize ID
+    const normalizeId = (id) => (id ? String(id) : "unassigned");
+
+    // ---------------- PATIENTS ----------------
     filteredPatientList.forEach((patient) => {
-      const physioId = String(getPatientPhysioId(patient) || "unassigned");
-      const physioName = getPatientPhysioName(patient);
+      const physioId = normalizeId(getPatientPhysioId(patient));
+      const physioName = getPatientPhysioName(patient) || "Unassigned";
 
       if (!grouped[physioId]) {
         grouped[physioId] = {
@@ -723,16 +815,18 @@ const Reports = () => {
         };
       }
 
-      const patientId = String(patient?._id || "");
-      if (patientId && !grouped[physioId].patientIds.has(patientId)) {
+      const patientId = normalizeId(patient?._id);
+
+      if (!grouped[physioId].patientIds.has(patientId)) {
         grouped[physioId].patientIds.add(patientId);
         grouped[physioId].assignedPatients.push(patient);
       }
     });
 
+    // ---------------- SESSIONS ----------------
     filteredSessions.forEach((session) => {
-      const physioId = String(getSessionPhysioId(session) || "unassigned");
-      const physioName = getSessionPhysioName(session);
+      const physioId = normalizeId(getSessionPhysioId(session));
+      const physioName = getSessionPhysioName(session) || "Unassigned";
 
       if (!grouped[physioId]) {
         grouped[physioId] = {
@@ -749,21 +843,21 @@ const Reports = () => {
         };
       }
 
-      grouped[physioId].totalSessions += 1;
+      grouped[physioId].totalSessions++;
+
       const status = normalize(session?.sessionStatusId?.sessionStatusName);
 
       if (status === "completed") {
-        grouped[physioId].completedSessions += 1;
-      }
-
-      if (["canceled", "cancelled"].includes(status)) {
-        grouped[physioId].cancelledSessions += 1;
+        grouped[physioId].completedSessions++;
+      } else if (["canceled", "cancelled"].includes(status)) {
+        grouped[physioId].cancelledSessions++;
       }
     });
 
+    // ---------------- LEAVES ----------------
     filteredLeaves.forEach((leave) => {
-      const physioId = String(getLeavePhysioId(leave) || "unassigned");
-      const physioName = getLeavePhysioName(leave);
+      const physioId = normalizeId(getLeavePhysioId(leave));
+      const physioName = getLeavePhysioName(leave) || "Unassigned";
 
       if (!grouped[physioId]) {
         grouped[physioId] = {
@@ -781,14 +875,15 @@ const Reports = () => {
       }
 
       grouped[physioId].leaveDays += getLeaveDaysCount(leave);
-      grouped[physioId].leaveCount += 1;
+      grouped[physioId].leaveCount++;
       grouped[physioId].leaveEntries.push(leave);
     });
 
+    // ---------------- FINAL ----------------
     return Object.values(grouped)
       .map((item) => ({
         ...item,
-        totalAssignedPatients: item.assignedPatients.length,
+        totalAssignedPatients: item.patientIds.size, // ✅ more reliable
         completionPercentage:
           item.totalSessions > 0
             ? ((item.completedSessions / item.totalSessions) * 100).toFixed(2)
@@ -796,7 +891,7 @@ const Reports = () => {
       }))
       .sort((a, b) => a.physioName.localeCompare(b.physioName));
   }, [filteredPatientList, filteredSessions, filteredLeaves]);
-
+  console.log(physioWiseData, "physioWiseData");
   const selectedReferenceName =
     selectedReference === "all"
       ? "All References"
@@ -1889,7 +1984,16 @@ const Reports = () => {
                                       {getPatientReferenceName(patient)}
                                     </td>
                                     <td className="px-3 py-3 text-center font-bold text-blue-600">
-                                      {patient?.sessionCount ?? 0}
+                                      {
+                                        sessions.filter(
+                                          (s) =>
+                                            String(
+                                              s?.patientId?._id || s?.patientId,
+                                            ) === String(patient?._id) &&
+                                            s?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                              "completed",
+                                        ).length
+                                      }
                                     </td>
                                   </tr>
                                 ))

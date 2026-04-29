@@ -108,6 +108,7 @@ const PhysioManagement = () => {
     physioPAN: "",
     physioAadhar: "",
     physioSalary: "",
+    JoiningDate: "",
     physioProbation: "",
     physioINCRDate: null,
     physioPetrolAlw: "",
@@ -122,7 +123,13 @@ const PhysioManagement = () => {
     password: "",
     roleId: "",
   };
-
+  const normalizeDate = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return new Date(
+      Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()),
+    ).toISOString();
+  };
   const [physioForm, setPhysioForm] = useState(initialFormState);
   const [physioPic, setPhysioPic] = useState(null);
 
@@ -224,7 +231,12 @@ const PhysioManagement = () => {
 
       Object.keys(data).forEach((key) => {
         if (key !== "physioPic") {
-          formData.append(key, data[key] ?? "");
+          // ✅ HANDLE DATES PROPERLY
+          if (key === "JoiningDate" || key === "physioINCRDate") {
+            formData.append(key, normalizeDate(data[key]));
+          } else {
+            formData.append(key, data[key] ?? "");
+          }
         }
       });
 
@@ -251,7 +263,12 @@ const PhysioManagement = () => {
 
       Object.keys(data).forEach((key) => {
         if (key !== "physioPic" && key !== "_id") {
-          formData.append(key, data[key] ?? "");
+          // ✅ HANDLE DATES PROPERLY
+          if (key === "JoiningDate" || key === "physioINCRDate") {
+            formData.append(key, normalizeDate(data[key]));
+          } else {
+            formData.append(key, data[key] ?? "");
+          }
         }
       });
 
@@ -383,6 +400,12 @@ const PhysioManagement = () => {
         description: "Enter Salary",
         variant: "destructive",
       });
+    } else if (!physioForm.JoiningDate) {
+      toast({
+        title: "Alert",
+        description: "Enter JoiningDate",
+        variant: "destructive",
+      });
     } else if (!physioForm.physioProbation) {
       toast({
         title: "Alert",
@@ -444,6 +467,7 @@ const PhysioManagement = () => {
       physioPAN: physio.physioPAN || "",
       physioAadhar: physio.physioAadhar || "",
       physioSalary: physio.physioSalary || "",
+      JoiningDate: physio.JoiningDate || "",
       physioProbation: physio.physioProbation || "",
       physioINCRDate: physio.physioINCRDate
         ? new Date(physio.physioINCRDate)
@@ -1138,8 +1162,51 @@ const PhysioManagement = () => {
                   />
                 </div>
               </div>
-
               <div className="pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* ================= JOINING DATE ================= */}
+                <div className="space-y-2">
+                  <Label>
+                    Joining Date
+                    <span className="text-red-500 ml-1">*</span>
+                  </Label>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !physioForm.JoiningDate && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {physioForm.JoiningDate ? (
+                          format(physioForm.JoiningDate, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={physioForm.JoiningDate}
+                        onSelect={(date) =>
+                          setPhysioForm((prev) => ({
+                            ...prev,
+                            JoiningDate: date,
+                          }))
+                        }
+                        initialFocus
+                        // ✅ Allow past dates, block future
+                        disabled={(date) => date > new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* ================= SALARY ================= */}
                 <div className="space-y-2">
                   <Label>
                     Salary (₹)<span className="text-red-500 ml-1">*</span>
@@ -1153,6 +1220,7 @@ const PhysioManagement = () => {
                   />
                 </div>
 
+                {/* ================= PROBATION ================= */}
                 <div className="space-y-2">
                   <Label>
                     Probation Period (months)
@@ -1167,15 +1235,17 @@ const PhysioManagement = () => {
                   />
                 </div>
 
+                {/* ================= INCREMENT DATE ================= */}
                 <div className="space-y-2">
                   <Label>
                     Next Increment Date
                     <span className="text-red-500 ml-1">*</span>
                   </Label>
+
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
-                        variant={"outline"}
+                        variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
                           !physioForm.physioINCRDate && "text-muted-foreground",
@@ -1189,21 +1259,25 @@ const PhysioManagement = () => {
                         )}
                       </Button>
                     </PopoverTrigger>
+
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
                         selected={physioForm.physioINCRDate}
-                        onSelect={handleDateChange}
-                        initialFocus
-                        disabled={(date) =>
-                          date < new Date(new Date().setHours(0, 0, 0, 0))
+                        onSelect={(date) =>
+                          setPhysioForm((prev) => ({
+                            ...prev,
+                            physioINCRDate: date,
+                          }))
                         }
+                        initialFocus
+                        // ✅ Allow future dates only
+                        disabled={(date) => date < new Date()}
                       />
                     </PopoverContent>
                   </Popover>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>

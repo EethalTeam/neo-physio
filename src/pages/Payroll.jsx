@@ -1287,7 +1287,7 @@ const Payroll = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Physio Working Days</Label>
+              <Label>Physio Working Days (Includes Sunday)</Label>
               <Input
                 name="attendedDays"
                 type="number"
