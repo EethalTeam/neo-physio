@@ -492,11 +492,8 @@ const Reports = () => {
   useEffect(() => {
     getAllPatients();
   }, []);
-  const hasFetched = React.useRef(false);
-
   useEffect(() => {
-    if (selectedMonth && selectedYear && !hasFetched.current) {
-      hasFetched.current = true;
+    if (selectedMonth && selectedYear) {
       getSession();
     }
   }, [selectedMonth, selectedYear]);
@@ -792,7 +789,6 @@ const Reports = () => {
   const physioWiseData = useMemo(() => {
     const grouped = {};
 
-    // ✅ Helper to normalize ID
     const normalizeId = (id) => (id ? String(id) : "unassigned");
 
     // ---------------- PATIENTS ----------------
@@ -800,15 +796,24 @@ const Reports = () => {
       const physioId = normalizeId(getPatientPhysioId(patient));
       const physioName = getPatientPhysioName(patient) || "Unassigned";
 
+      // 🔥 derive recovery status (adjust field if needed)
+      const isRecovered =
+        patient?.patientStatus?.toLowerCase?.() === "recovered" ||
+        patient?.isRecovered === true;
+
       if (!grouped[physioId]) {
         grouped[physioId] = {
           physioId,
           physioName,
           assignedPatients: [],
           patientIds: new Set(),
-          totalSessions: 0,
+
+          // session buckets
           completedSessions: 0,
           cancelledSessions: 0,
+          otherSessions: 0,
+
+          // leaves
           leaveDays: 0,
           leaveCount: 0,
           leaveEntries: [],
@@ -819,7 +824,12 @@ const Reports = () => {
 
       if (!grouped[physioId].patientIds.has(patientId)) {
         grouped[physioId].patientIds.add(patientId);
-        grouped[physioId].assignedPatients.push(patient);
+
+        // ✅ attach recovery flag for UI
+        grouped[physioId].assignedPatients.push({
+          ...patient,
+          isRecovered,
+        });
       }
     });
 
@@ -834,23 +844,32 @@ const Reports = () => {
           physioName,
           assignedPatients: [],
           patientIds: new Set(),
-          totalSessions: 0,
+
           completedSessions: 0,
           cancelledSessions: 0,
+          otherSessions: 0,
+
           leaveDays: 0,
           leaveCount: 0,
           leaveEntries: [],
         };
       }
 
-      grouped[physioId].totalSessions++;
+      const status = String(session?.sessionStatusId?.sessionStatusName || "")
+        .trim()
+        .toLowerCase();
 
-      const status = normalize(session?.sessionStatusId?.sessionStatusName);
+      const isCompleted = status === "completed" || status === "recovered";
 
-      if (status === "completed") {
+      const isCancelled = status.includes("cancel");
+
+      // strict bucketing
+      if (isCompleted) {
         grouped[physioId].completedSessions++;
-      } else if (["canceled", "cancelled"].includes(status)) {
+      } else if (isCancelled) {
         grouped[physioId].cancelledSessions++;
+      } else {
+        grouped[physioId].otherSessions++;
       }
     });
 
@@ -865,9 +884,11 @@ const Reports = () => {
           physioName,
           assignedPatients: [],
           patientIds: new Set(),
-          totalSessions: 0,
+
           completedSessions: 0,
           cancelledSessions: 0,
+          otherSessions: 0,
+
           leaveDays: 0,
           leaveCount: 0,
           leaveEntries: [],
@@ -881,14 +902,22 @@ const Reports = () => {
 
     // ---------------- FINAL ----------------
     return Object.values(grouped)
-      .map((item) => ({
-        ...item,
-        totalAssignedPatients: item.patientIds.size, // ✅ more reliable
-        completionPercentage:
-          item.totalSessions > 0
-            ? ((item.completedSessions / item.totalSessions) * 100).toFixed(2)
-            : "0.00",
-      }))
+      .map((item) => {
+        const totalSessions =
+          item.completedSessions + item.cancelledSessions + item.otherSessions;
+
+        return {
+          ...item,
+          totalSessions,
+
+          totalAssignedPatients: item.patientIds.size,
+
+          completionPercentage:
+            totalSessions > 0
+              ? ((item.completedSessions / totalSessions) * 100).toFixed(2)
+              : "0.00",
+        };
+      })
       .sort((a, b) => a.physioName.localeCompare(b.physioName));
   }, [filteredPatientList, filteredSessions, filteredLeaves]);
   console.log(physioWiseData, "physioWiseData");
@@ -1972,7 +2001,10 @@ const Reports = () => {
                                       {patient?.patientCode || "N/A"}
                                     </td>
                                     <td className="px-4 py-3 font-semibold text-gray-800">
-                                      {patient?.patientName || "N/A"}
+                                      {patient?.patientName || "N/A"}{" "}
+                                      {patient.isRecovered
+                                        ? " (Recovered)"
+                                        : ""}
                                     </td>
                                     <td className="px-3 py-3 text-gray-600">
                                       {patient?.patientNumber || "N/A"}
