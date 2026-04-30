@@ -1905,7 +1905,8 @@ const Income = () => {
                                   {b?.TotalSessionCount}
                                 </td>
                                 <td className="p-3 text-center">
-                                  ₹{b?.ratePerSession.toFixed(0)}
+                                  ₹{b?.ratePerSession}
+                                  {/* ₹{b?.ratePerSession.toFixed(0)} */}
                                 </td>
                                 <td className="p-3 text-center font-semibold">
                                   ₹{b?.TotalBilledAmount}
@@ -2052,7 +2053,8 @@ const Income = () => {
                           <div className="bg-gray-50 p-2 rounded">
                             Rate
                             <p className="font-bold">
-                              ₹{b?.ratePerSession.toFixed(0)}
+                              ₹{b?.ratePerSession}
+                              {/* ₹{b?.ratePerSession.toFixed(0)} */}
                             </p>
                           </div>
 

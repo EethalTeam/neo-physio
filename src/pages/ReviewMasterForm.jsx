@@ -388,7 +388,7 @@ const ReviewMasterForm = () => {
       });
     }
   };
-
+  console.log(user, "user");
   const createReview = async (data) => {
     try {
       if (!data.sessionDate || !data.patientId || !data.reviewTypeId) {
@@ -409,6 +409,7 @@ const ReviewMasterForm = () => {
         redflagId: data.redflagId || "694e1fc2212f38083803642a",
         feedback: data.feedback || "",
         reviewStatusId: data.reviewStatusId || "",
+        createdBy: user.physioName,
       };
 
       await apiRequest("Review/createReview", {
