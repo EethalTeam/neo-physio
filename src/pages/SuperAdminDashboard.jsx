@@ -322,7 +322,7 @@ const SuperAdminDashboard = () => {
   const [leads, setLead] = useState([]);
   const getCbNotifications = async () => {
     try {
-      const res = await apiRequest("Lead/getAllLead", {
+      const res = await apiRequest("Lead/getThisMonthLeads", {
         method: "POST",
         body: JSON.stringify({}),
       });
@@ -879,9 +879,23 @@ const SuperAdminDashboard = () => {
   const qualifiedCount = safeLeads.filter(
     (lead) => getLeadStatuses(lead) === "qualified",
   ).length;
+  const safePatients = Array.isArray(patients) ? patients : [];
 
+  const isThisMonth = (date) => {
+    if (!date) return false;
+    const d = new Date(date);
+    const now = new Date();
+    return (
+      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    );
+  };
+
+  const convertedPatients = safePatients.filter(
+    (p) => p?.isFromLead === true && p?.leadId && isThisMonth(p.createdAt),
+  );
+
+  const convertedCount = convertedPatients.length;
   // keep this if Converted means total patients in your dashboard
-  const convertedCount = Number(stats?.patient || 0);
 
   // if later you create a real "Converted" lead status, use this instead:
   // const convertedCount = safeLeads.filter(

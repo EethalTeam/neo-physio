@@ -297,7 +297,7 @@ const LeadManagement = () => {
         formData.append("leadDocuments", file); //  MUST MATCH BACKEND
       });
 
-      const response = await fetch("/api/Lead/createLead", {
+      const response = await apiRequest("Lead/createLead", {
         method: "POST",
         body: formData,
       });
