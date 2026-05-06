@@ -3,5 +3,7 @@ export const config = {
   //   // Api: "https://neo-physio-node.onrender.com", // live server
   //   // Api: "https://neo-physio-node-con7.onrender.com", // backup server
   //   // Api: "https://neodesk-node.eniscloud.in", // Hostinger server
+};
+export const config = {
   Api: "",
 };
