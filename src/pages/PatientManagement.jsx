@@ -726,7 +726,19 @@ const PatientManagement = () => {
     KmsfLPatienttoHub: "",
     kmsFromPrevious: "",
   };
-  console.log(physios, "physios");
+  const [sessionStatus, setSessionStatus] = useState({
+    completed: false,
+    cancelled: false,
+    scheduled: false,
+  });
+  const [reviewFromDate, setReviewFromDate] = useState("");
+
+  const [reviewToDate, setReviewToDate] = useState("");
+
+  const [reviewStatus, setReviewStatus] = useState({
+    completed: false,
+    scheduled: false,
+  });
   const handleViewPatientDocs = (patient) => {
     setPatientDocs(patient?.patientDocuments || []);
     setSelectedPatientName(patient?.patientName || "");
@@ -2801,8 +2813,40 @@ const PatientManagement = () => {
     try {
       const rows = patientHistory
         .flatMap((cycle) => cycle.sessions || [])
-        .filter((item) => item.itemType === "review");
+        .filter((item) => {
+          if (item.itemType !== "review") return false;
 
+          const reviewDate = new Date(item.reviewDate);
+
+          const from = reviewFromDate ? new Date(reviewFromDate) : null;
+
+          const to = reviewToDate ? new Date(reviewToDate) : null;
+
+          // FROM DATE
+          if (from && reviewDate < from) return false;
+
+          // TO DATE
+          if (to) {
+            to.setHours(23, 59, 59, 999);
+
+            if (reviewDate > to) return false;
+          }
+
+          // REVIEW STATUS
+          const status = item.reviewStatusId?.reviewStatusName?.toLowerCase();
+
+          const noStatusSelected =
+            !reviewStatus.completed && !reviewStatus.pending;
+
+          // IF NO STATUS SELECTED -> SHOW ALL
+          if (noStatusSelected) return true;
+
+          if (reviewStatus.completed && status === "completed") return true;
+
+          if (reviewStatus.pending && status === "pending") return true;
+
+          return false;
+        });
       if (!rows.length) {
         toast({
           title: "No Data",
@@ -2882,7 +2926,14 @@ const PatientManagement = () => {
     } catch (error) {
       console.error(error);
     }
-  }, [patientHistory, fmtDate, selectedFields]);
+  }, [
+    patientHistory,
+    fmtDate,
+    selectedFields,
+    reviewFromDate,
+    reviewToDate,
+    reviewStatus,
+  ]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -2906,7 +2957,22 @@ const PatientManagement = () => {
             if (sessionDate > to) return false;
           }
 
-          return true;
+          const status = item.sessionStatusId?.sessionStatusName?.toLowerCase();
+
+          const noStatusSelected =
+            !sessionStatus.completed &&
+            !sessionStatus.canceled &&
+            !sessionStatus.scheduled;
+
+          if (noStatusSelected) return true;
+
+          if (sessionStatus.completed && status === "completed") return true;
+
+          if (sessionStatus.canceled && status === "canceled") return true;
+
+          if (sessionStatus.scheduled && status === "scheduled") return true;
+
+          return false;
         });
       if (!rows.length) return;
 
@@ -2963,7 +3029,7 @@ const PatientManagement = () => {
     } catch (err) {
       console.error(err);
     }
-  }, [patientHistory, fmtDate, sessionFields, fromDate, toDate]);
+  }, [patientHistory, fmtDate, sessionFields, fromDate, toDate, sessionStatus]);
   const downloadSessionHistoryExcel = useCallback(() => {
     try {
       const rows = patientHistory
@@ -2984,7 +3050,22 @@ const PatientManagement = () => {
             if (sessionDate > to) return false;
           }
 
-          return true;
+          const status = item.sessionStatusId?.sessionStatusName?.toLowerCase();
+
+          const noStatusSelected =
+            !sessionStatus.completed &&
+            !sessionStatus.canceled &&
+            !sessionStatus.scheduled;
+
+          if (noStatusSelected) return true;
+
+          if (sessionStatus.completed && status === "completed") return true;
+
+          if (sessionStatus.canceled && status === "canceled") return true;
+
+          if (sessionStatus.scheduled && status === "scheduled") return true;
+
+          return false;
         });
       if (!rows.length) return;
 
@@ -3088,12 +3169,45 @@ const PatientManagement = () => {
     } catch (err) {
       console.error("Excel export error:", err);
     }
-  }, [patientHistory, fmtDate, sessionFields, fromDate, toDate]);
+  }, [patientHistory, fmtDate, sessionFields, fromDate, toDate, sessionStatus]);
   const downloadReviewHistoryExcel = useCallback(() => {
     try {
       const rows = patientHistory
         .flatMap((cycle) => cycle.sessions || [])
-        .filter((item) => item.itemType === "review");
+        .filter((item) => {
+          if (item.itemType !== "review") return false;
+
+          const reviewDate = new Date(item.reviewDate);
+
+          const from = reviewFromDate ? new Date(reviewFromDate) : null;
+
+          const to = reviewToDate ? new Date(reviewToDate) : null;
+
+          // FROM DATE
+          if (from && reviewDate < from) return false;
+
+          // TO DATE
+          if (to) {
+            to.setHours(23, 59, 59, 999);
+
+            if (reviewDate > to) return false;
+          }
+
+          // STATUS FILTER
+          const status = item.reviewStatusId?.reviewStatusName?.toLowerCase();
+
+          const noStatusSelected =
+            !reviewStatus.completed && !reviewStatus.pending;
+
+          // IF NOTHING SELECTED -> SHOW ALL
+          if (noStatusSelected) return true;
+
+          if (reviewStatus.completed && status === "completed") return true;
+
+          if (reviewStatus.pending && status === "pending") return true;
+
+          return false;
+        });
 
       if (!rows.length) {
         toast({
@@ -3150,7 +3264,14 @@ const PatientManagement = () => {
     } catch (error) {
       console.error("Excel download error:", error);
     }
-  }, [patientHistory, fmtDate, selectedFields]);
+  }, [
+    patientHistory,
+    fmtDate,
+    selectedFields,
+    reviewFromDate,
+    reviewToDate,
+    reviewStatus,
+  ]);
   const handleDownloadRecoveredPatientsPDF = useCallback(async () => {
     if (!recoveredPatients || recoveredPatients.length === 0) {
       toast({
@@ -5807,7 +5928,62 @@ const PatientManagement = () => {
               Feedback
             </label>
           </div>
+          {/* DATE FILTERS */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div>
+              <label className="text-sm font-medium">From Date</label>
 
+              <input
+                type="date"
+                value={reviewFromDate}
+                onChange={(e) => setReviewFromDate(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">To Date</label>
+
+              <input
+                type="date"
+                value={reviewToDate}
+                onChange={(e) => setReviewToDate(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 mt-1"
+              />
+            </div>
+          </div>
+          {/* REVIEW STATUS FILTER */}
+          <div className="space-y-3 mt-4">
+            <label className="text-sm font-semibold">Review Status</label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={reviewStatus.completed}
+                  onCheckedChange={(v) =>
+                    setReviewStatus((p) => ({
+                      ...p,
+                      completed: !!v,
+                    }))
+                  }
+                />
+                <span>Completed Reviews</span>
+              </label>
+
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={reviewStatus.pending}
+                  onCheckedChange={(v) =>
+                    setReviewStatus((p) => ({
+                      ...p,
+                      pending: !!v,
+                    }))
+                  }
+                />
+                <span>Pending Reviews</span>
+              </label>
+            </div>
+          </div>
           {/* ACTIONS */}
           <div className="flex justify-end gap-2 mt-4">
             <Button
@@ -5912,7 +6088,62 @@ const PatientManagement = () => {
               Feedback
             </label>
           </div>
+          {/* DATE FILTERS */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div>
+              <label className="text-sm font-medium">From Date</label>
 
+              <input
+                type="date"
+                value={reviewFromDate}
+                onChange={(e) => setReviewFromDate(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">To Date</label>
+
+              <input
+                type="date"
+                value={reviewToDate}
+                onChange={(e) => setReviewToDate(e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 mt-1"
+              />
+            </div>
+          </div>
+          {/* REVIEW STATUS FILTER */}
+          <div className="space-y-3 mt-4">
+            <label className="text-sm font-semibold">Review Status</label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={reviewStatus.completed}
+                  onCheckedChange={(v) =>
+                    setReviewStatus((p) => ({
+                      ...p,
+                      completed: !!v,
+                    }))
+                  }
+                />
+                <span>Completed Reviews</span>
+              </label>
+
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={reviewStatus.pending}
+                  onCheckedChange={(v) =>
+                    setReviewStatus((p) => ({
+                      ...p,
+                      pending: !!v,
+                    }))
+                  }
+                />
+                <span>Pending Reviews</span>
+              </label>
+            </div>
+          </div>
           {/* ACTIONS */}
           <div className="flex justify-end gap-2 mt-4">
             <Button
@@ -6030,6 +6261,51 @@ const PatientManagement = () => {
               />
               Status
             </label>
+          </div>
+          {/* SESSION STATUS FILTER */}
+          <div className="space-y-3 mb-4">
+            <label className="text-sm font-semibold">Session Status</label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={sessionStatus.completed}
+                  onCheckedChange={(v) =>
+                    setSessionStatus((p) => ({
+                      ...p,
+                      completed: !!v,
+                    }))
+                  }
+                />
+                <span>Completed Session</span>
+              </label>
+
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={sessionStatus.canceled}
+                  onCheckedChange={(v) =>
+                    setSessionStatus((p) => ({
+                      ...p,
+                      canceled: !!v,
+                    }))
+                  }
+                />
+                <span>Cancelled Session</span>
+              </label>
+
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={sessionStatus.scheduled}
+                  onCheckedChange={(v) =>
+                    setSessionStatus((p) => ({
+                      ...p,
+                      scheduled: !!v,
+                    }))
+                  }
+                />
+                <span>Scheduled Session</span>
+              </label>
+            </div>
           </div>
           {/* DATE FILTERS */}
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -6173,6 +6449,51 @@ const PatientManagement = () => {
               />
               Status
             </label>
+          </div>
+          {/* SESSION STATUS FILTER */}
+          <div className="space-y-3 mb-4">
+            <label className="text-sm font-semibold">Session Status</label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={sessionStatus.completed}
+                  onCheckedChange={(v) =>
+                    setSessionStatus((p) => ({
+                      ...p,
+                      completed: !!v,
+                    }))
+                  }
+                />
+                <span>Completed Session</span>
+              </label>
+
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={sessionStatus.canceled}
+                  onCheckedChange={(v) =>
+                    setSessionStatus((p) => ({
+                      ...p,
+                      cancelled: !!v,
+                    }))
+                  }
+                />
+                <span>Cancelled Session</span>
+              </label>
+
+              <label className="flex items-center gap-2 rounded-lg border p-2 cursor-pointer hover:bg-gray-50">
+                <Checkbox
+                  checked={sessionStatus.scheduled}
+                  onCheckedChange={(v) =>
+                    setSessionStatus((p) => ({
+                      ...p,
+                      scheduled: !!v,
+                    }))
+                  }
+                />
+                <span>Scheduled Session</span>
+              </label>
+            </div>
           </div>
           {/* DATE FILTERS */}
           <div className="grid grid-cols-2 gap-3 mb-4">
