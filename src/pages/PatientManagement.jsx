@@ -684,6 +684,8 @@ const PatientManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const fileInputRef = useRef(null);
+  const [openPdfDialog, setOpenPdfDialog] = useState(false);
+  const [openExcelDialog, setOpenExcelDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("patient");
   const [downloadDialog, setDownloadDialog] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
@@ -2881,12 +2883,31 @@ const PatientManagement = () => {
       console.error(error);
     }
   }, [patientHistory, fmtDate, selectedFields]);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
   const downloadSessionHistory = useCallback(async () => {
     try {
       const rows = patientHistory
         .flatMap((cycle) => cycle.sessions || [])
-        .filter((item) => item.itemType === "session");
+        .filter((item) => {
+          if (item.itemType !== "session") return false;
 
+          const sessionDate = new Date(item.sessionDate);
+
+          const from = fromDate ? new Date(fromDate) : null;
+          const to = toDate ? new Date(toDate) : null;
+
+          if (from && sessionDate < from) return false;
+
+          if (to) {
+            to.setHours(23, 59, 59, 999);
+
+            if (sessionDate > to) return false;
+          }
+
+          return true;
+        });
       if (!rows.length) return;
 
       const doc = new jsPDF("l", "mm", "a4");
@@ -2942,13 +2963,29 @@ const PatientManagement = () => {
     } catch (err) {
       console.error(err);
     }
-  }, [patientHistory, fmtDate, sessionFields]);
+  }, [patientHistory, fmtDate, sessionFields, fromDate, toDate]);
   const downloadSessionHistoryExcel = useCallback(() => {
     try {
       const rows = patientHistory
         .flatMap((cycle) => cycle.sessions || [])
-        .filter((item) => item.itemType === "session");
+        .filter((item) => {
+          if (item.itemType !== "session") return false;
 
+          const sessionDate = new Date(item.sessionDate);
+
+          const from = fromDate ? new Date(fromDate) : null;
+          const to = toDate ? new Date(toDate) : null;
+
+          if (from && sessionDate < from) return false;
+
+          if (to) {
+            to.setHours(23, 59, 59, 999);
+
+            if (sessionDate > to) return false;
+          }
+
+          return true;
+        });
       if (!rows.length) return;
 
       // ✅ Define ORDERED columns
@@ -3051,7 +3088,7 @@ const PatientManagement = () => {
     } catch (err) {
       console.error("Excel export error:", err);
     }
-  }, [patientHistory, fmtDate, sessionFields]);
+  }, [patientHistory, fmtDate, sessionFields, fromDate, toDate]);
   const downloadReviewHistoryExcel = useCallback(() => {
     try {
       const rows = patientHistory
@@ -4161,13 +4198,13 @@ const PatientManagement = () => {
                         <>
                           <div className="flex gap-[10px]">
                             <Button
-                              onClick={() => setOpenfeedbackdialogpdf(true)}
+                              onClick={() => setOpenPdfDialog(true)}
                               className="w-full"
                             >
                               Download History
                             </Button>
                             <Button
-                              onClick={() => setOpenfeedbackdialogpdf(true)}
+                              onClick={() => setOpenExcelDialog(true)}
                               className="w-full"
                             >
                               Download History (Excel)
@@ -5896,10 +5933,7 @@ const PatientManagement = () => {
           </div>
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={openfeedbackdialogpdf}
-        onOpenChange={setOpenfeedbackdialogpdf}
-      >
+      <Dialog open={openPdfDialog} onOpenChange={setOpenPdfDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Download Session Options</DialogTitle>
@@ -5997,7 +6031,30 @@ const PatientManagement = () => {
               Status
             </label>
           </div>
+          {/* DATE FILTERS */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-sm font-medium">From Date</label>
 
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">To Date</label>
+
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 mt-1"
+              />
+            </div>
+          </div>
           {/* ACTIONS */}
           <div className="flex justify-end gap-2 mt-4">
             <Button
@@ -6010,7 +6067,7 @@ const PatientManagement = () => {
             <Button
               onClick={() => {
                 downloadSessionHistory(); // ✅ correct
-                setOpenfeedbackdialogpdf(false);
+                setOpenPdfDialog(false);
               }}
             >
               Download
@@ -6019,10 +6076,7 @@ const PatientManagement = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={openfeedbackdialogpdf}
-        onOpenChange={setOpenfeedbackdialogpdf}
-      >
+      <Dialog open={openExcelDialog} onOpenChange={setOpenExcelDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Download Session Options</DialogTitle>
@@ -6120,7 +6174,30 @@ const PatientManagement = () => {
               Status
             </label>
           </div>
+          {/* DATE FILTERS */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-sm font-medium">From Date</label>
 
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">To Date</label>
+
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 mt-1"
+              />
+            </div>
+          </div>
           {/* ACTIONS */}
           <div className="flex justify-end gap-2 mt-4">
             <Button
@@ -6133,7 +6210,7 @@ const PatientManagement = () => {
             <Button
               onClick={() => {
                 downloadSessionHistoryExcel();
-                setOpenfeedbackdialogpdf(false);
+                setOpenExcelDialog(false);
               }}
             >
               Download
