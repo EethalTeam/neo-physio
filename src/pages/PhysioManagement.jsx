@@ -1163,9 +1163,8 @@ const PhysioManagement = () => {
                 </div>
               </div>
               <div className="pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* ================= JOINING DATE ================= */}
                 <div className="space-y-2">
-                  <Label>
+                  <Label className="text-sm font-medium">
                     Joining Date
                     <span className="text-red-500 ml-1">*</span>
                   </Label>
@@ -1175,20 +1174,24 @@ const PhysioManagement = () => {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !physioForm.JoiningDate && "text-muted-foreground",
+                          "w-full h-11 justify-start rounded-xl border-gray-300 bg-white text-left font-normal shadow-sm hover:bg-gray-50",
+                          !physioForm.JoiningDate && "text-gray-400",
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-3 h-4 w-4 text-gray-500" />
+
                         {physioForm.JoiningDate ? (
-                          format(physioForm.JoiningDate, "PPP")
+                          format(physioForm.JoiningDate, "dd MMM yyyy")
                         ) : (
-                          <span>Pick a date</span>
+                          <span>Select joining date</span>
                         )}
                       </Button>
                     </PopoverTrigger>
 
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent
+                      className="w-auto rounded-2xl border border-gray-200 p-3 shadow-xl"
+                      align="start"
+                    >
                       <Calendar
                         mode="single"
                         selected={physioForm.JoiningDate}
@@ -1198,9 +1201,18 @@ const PhysioManagement = () => {
                             JoiningDate: date,
                           }))
                         }
-                        initialFocus
-                        // ✅ Allow past dates, block future
+                        captionLayout="dropdown"
+                        fromYear={2000}
+                        toYear={new Date().getFullYear()}
                         disabled={(date) => date > new Date()}
+                        initialFocus
+                        classNames={{
+                          caption_label: "hidden",
+                          nav: "hidden",
+                          caption_dropdowns: "flex gap-2 justify-center",
+                          dropdown:
+                            "h-9 rounded-md border border-gray-300 bg-white px-3 text-sm",
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
