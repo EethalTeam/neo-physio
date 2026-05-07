@@ -65,22 +65,22 @@ const Payroll = () => {
   const [editRow, setEditRow] = useState(null);
 
   const [editForm, setEditForm] = useState({
-    basicSalary: 0,
-    vehicleMaintanance: 0,
-    petrolKm: 0,
-    petrolAmount: 0,
-    incentive: 0,
-    leaveDays: 0,
-    deducted: 0,
-    ESI: 0,
-    PF: 0,
-    savings: 0,
-    paidLeaves: 0,
-    unpaidLeaves: 0,
-    totalLeaves: 0,
-    petrolAmountPerKm: 0,
-    totalWorkingDays: 0,
-    attendedDays: 0,
+    basicSalary: "",
+    vehicleMaintanance: "",
+    petrolKm: "",
+    petrolAmount: "",
+    incentive: "",
+    leaveDays: "",
+    deducted: "",
+    ESI: "",
+    PF: "",
+    savings: "",
+    paidLeaves: "",
+    unpaidLeaves: "",
+    totalLeaves: "",
+    petrolAmountPerKm: "",
+    totalWorkingDays: "",
+    attendedDays: "",
   });
   const [originalForm, setOriginalForm] = useState({});
   const openEdit = (emp) => {
@@ -127,9 +127,10 @@ const Payroll = () => {
   // };
   const onEditChange = (e) => {
     const { name, value, type } = e.target;
+
     setEditForm((prev) => ({
       ...prev,
-      [name]: type === "number" ? Number(value) : value,
+      [name]: type === "number" ? (value === "" ? "" : Number(value)) : value,
     }));
   };
   const saveEdit = async () => {
