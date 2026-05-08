@@ -222,9 +222,11 @@ const ReviewMasterForm = () => {
   };
 
   const getPatients = async () => {
+    const body = { view: "active" };
+
     const res = await apiRequest("Patient/getAllPatient", {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify(body),
     });
 
     setPatients(res?.data || res || []);
