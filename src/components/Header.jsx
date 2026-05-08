@@ -342,7 +342,7 @@ const Header = ({ toggleSidebar }) => {
                 </DialogHeader>
 
                 <div className="flex justify-center">
-                  <div className="w-[280px] rounded-2xl overflow-hidden border bg-white shadow-lg">
+                  <div className="w-[300px] rounded-2xl overflow-hidden border bg-white shadow-lg">
                     <div className="px-5 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center gap-3">
                       {/* Logo */}
                       <div className="w-20 h-20 bg-white rounded-full shadow-md flex items-center justify-center overflow-hidden">
