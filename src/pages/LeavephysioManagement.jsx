@@ -572,7 +572,10 @@ const LeavephysioManagement = () => {
                   <SelectValue placeholder="Select Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Half Day">Half Day</SelectItem>
+                  <SelectItem value="First Half Day">First Half Day</SelectItem>
+                  <SelectItem value="Second Half Day">
+                    Second Half Day
+                  </SelectItem>
                   <SelectItem value="Full Day">Full Day</SelectItem>
                 </SelectContent>
               </Select>
