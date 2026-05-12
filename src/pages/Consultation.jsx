@@ -395,7 +395,7 @@ const Consultation = () => {
           JSON.stringify(data.removedDocuments),
         );
       }
-
+      formData.append("updatedBy", user?.physioName || "null");
       if (data.consultationDocuments?.length) {
         data.consultationDocuments.forEach((file) => {
           if (file instanceof File) {
@@ -920,7 +920,11 @@ const Consultation = () => {
       // Call backend to revert the patient
       const response = await apiRequest("Consultation/revertConsultation", {
         method: "POST",
-        body: JSON.stringify({ id: patient._id, status: "Pending" }), // optional: send "Pending" status
+        body: JSON.stringify({
+          id: patient._id,
+          status: "Pending",
+          updatedBy: user?.physioName || "null",
+        }), // optional: send "Pending" status
       });
 
       const data = response; // API returns updated patient
@@ -965,6 +969,7 @@ const Consultation = () => {
       sessionStartDate: patient.sessionStartDate
         ? new Date(patient.sessionStartDate)
         : "",
+      updatedBy: user?.physioName || "null",
       sessionTime: patient.sessionTime || "",
       goalDescription: patient.goalDescription || " ",
       reviewFrequency: patient.reviewFrequency || "",

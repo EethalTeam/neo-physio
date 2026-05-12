@@ -182,6 +182,7 @@ const LeadManagement = () => {
         ...lead,
         ConsultationDate,
         fromEmployeeId: user?._id,
+        updatedBy: user.physioName,
       };
 
       const res = await apiRequest("Lead/QualifyLead", {
@@ -291,7 +292,7 @@ const LeadManagement = () => {
           formData.append(key, data[key]);
         }
       });
-
+      formData.append("createdBy", user.physioName);
       // append files
       data.leadDocuments.forEach((file) => {
         formData.append("leadDocuments", file); //  MUST MATCH BACKEND
@@ -325,6 +326,8 @@ const LeadManagement = () => {
           formData.append(key, data[key] ?? "");
         }
       });
+
+      formData.append("updatedBy", user.physioName);
 
       if (data.removedDocuments?.length) {
         formData.append(

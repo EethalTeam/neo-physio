@@ -258,6 +258,7 @@ const LeavephysioManagement = () => {
           physioId: assignForm.physioId,
           LeaveDate: normalizedDateFilter,
           LeaveMode: assignForm.LeaveMode,
+          createdBy: user?.physioName || "null",
         }),
       });
 
@@ -291,7 +292,11 @@ const LeavephysioManagement = () => {
     try {
       const res = await apiRequest("LeaveControllers/updateLeavePaid", {
         method: "POST",
-        body: JSON.stringify({ _id: leaveId, PaidLeave: nextValue }),
+        body: JSON.stringify({
+          _id: leaveId,
+          PaidLeave: nextValue,
+          updatedBy: user?.physioName || "null",
+        }),
       });
 
       if (res?.success) {
@@ -416,6 +421,7 @@ const LeavephysioManagement = () => {
                 newPhysioId: item.Re_Assign,
                 sessionDate: normalizedDateFilter,
                 sessionTime: item.sessionTime,
+                updatedBy: user?.physioName || "null",
               }),
             }),
           ),
@@ -449,6 +455,7 @@ const LeavephysioManagement = () => {
           LeaveDate: normalizedDateFilter,
           LeaveMode: assignForm.LeaveMode || "Full Day",
           SessionGenerateForLeave: validPlans,
+          updatedBy: user?.physioName || "null",
         }),
       });
 

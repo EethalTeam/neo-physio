@@ -94,6 +94,7 @@ const SessionManagement = () => {
     sessionDate: [],
     sessionDay: "",
     sessionTime: "",
+
     sessionStatusId: "691ecb36b87c5c57dead47a7",
   };
 
@@ -509,7 +510,10 @@ const SessionManagement = () => {
     try {
       await apiRequest("Session/updateSession", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          updatedBy: user?.physioName || "null",
+        }),
       });
 
       getSession(dateFilter);
@@ -533,7 +537,10 @@ const SessionManagement = () => {
     try {
       await apiRequest("Session/deleteSession", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          updatedBy: user?.physioName || "null",
+        }),
       });
 
       getSession(dateFilter);
@@ -570,7 +577,10 @@ const SessionManagement = () => {
     try {
       const response = await apiRequest("Session/SessionCancelRevert", {
         method: "POST",
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({
+          sessionId,
+          updatedBy: user?.physioName || "null",
+        }),
       });
 
       getSession(dateFilter);
@@ -636,6 +646,8 @@ const SessionManagement = () => {
       const payload = {
         ...data,
         modalities: data.modalities,
+        createdBy: user?.physioName || "null",
+        updatedBy: user?.physioName || "null",
       };
 
       const response = await apiRequest("Session/SessionEnd", {
@@ -839,11 +851,16 @@ const SessionManagement = () => {
           _id: sessionId,
           sessionFromTime: CovertTdyTim(),
           action: "Attended",
+          updatedBy: user?.physioName || "null",
         });
       }
 
       if (action === "Scheduled") {
-        await SessionStop({ _id: sessionId, action: "Scheduled" });
+        await SessionStop({
+          _id: sessionId,
+          action: "Scheduled",
+          updatedBy: user?.physioName || "null",
+        });
       }
 
       setSessions((prev) =>
@@ -883,6 +900,7 @@ const SessionManagement = () => {
       action,
       physioId: user?._id,
       userRole,
+      updatedBy: user?.physioName || "null",
       physioName,
       cancelledKms: cancelledKmsValue,
       cancelledReason: cancelledReasonValue,
@@ -1132,9 +1150,9 @@ const SessionManagement = () => {
     );
   };
 
-  const handleSessionCancelRevert = async (sessionId) => {
+  const handleSessionCancelRevert = async (sessionId, updatedBy) => {
     try {
-      const response = await SessionCancelRevert(sessionId);
+      const response = await SessionCancelRevert(sessionId, updatedBy);
 
       if (response?.success) {
         toast({
@@ -1154,6 +1172,7 @@ const SessionManagement = () => {
                   cancelledReason: "",
                   sessionFeedbackCons: "",
                   cancelledKms: 0,
+                  updatedBy: updatedBy,
                 }
               : s,
           ),
@@ -1609,6 +1628,10 @@ const SessionManagement = () => {
                                           onClick={() =>
                                             handleSessionCancelRevert(
                                               session._id,
+                                              {
+                                                updatedBy:
+                                                  user?.physioName || "null",
+                                              },
                                             )
                                           }
                                         >

@@ -26,6 +26,7 @@ import {
 import neoLogo from "../Assets/images/logo_png.png";
 import neoQR from "../Assets/images/qr.jpg";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 import html2canvas from "html2canvas";
 
@@ -35,6 +36,7 @@ const Income = () => {
     open: false,
     billId: null,
   });
+  const { user, getPermissionsByPath } = useAuth();
 
   const loadImage = (src) =>
     new Promise((resolve, reject) => {
@@ -297,6 +299,7 @@ const Income = () => {
           patientId: selectedBillPatientId,
           month: months[selectedBillMonth - 1],
           year: selectedBillYear,
+          createdBy: user.physioName,
         }),
       });
 
@@ -731,6 +734,7 @@ const Income = () => {
         discountAmount: Number(discountAmount || 0),
         notes: "",
         feedback: "",
+        updatedBy: user?.physioName || "Unknown User",
       }),
     });
   };
@@ -1283,7 +1287,10 @@ const Income = () => {
     try {
       const res = await apiRequest("Bill/revertPayment", {
         method: "POST",
-        body: JSON.stringify({ billId }),
+        body: JSON.stringify({
+          billId,
+          updatedBy: user?.physioName || "Unknown User",
+        }),
       });
 
       if (!res.success) {
@@ -1313,7 +1320,10 @@ const Income = () => {
     try {
       const res = await apiRequest("Bill/markBadDebt", {
         method: "POST",
-        body: JSON.stringify({ billId }),
+        body: JSON.stringify({
+          billId,
+          updatedBy: user?.physioName || "Unknown User",
+        }),
       });
 
       if (!res.success) {
@@ -1966,16 +1976,27 @@ const Income = () => {
                                           final,
                                         })
                                       }
-                                      disabled={status === "Paid"}
+                                      disabled={
+                                        status === "Paid" ||
+                                        b?.isBadDebt ||
+                                        pending <= 0
+                                      }
                                       className={
                                         status === "Paid"
                                           ? "bg-green-500 text-white cursor-not-allowed"
-                                          : ""
+                                          : b?.isBadDebt
+                                            ? "bg-red-500 text-white cursor-not-allowed"
+                                            : pending <= 0
+                                              ? "bg-gray-400 text-white cursor-not-allowed"
+                                              : ""
                                       }
                                     >
-                                      {status === "Paid" ? "Paid" : "Receive"}
+                                      {status === "Paid"
+                                        ? "Paid"
+                                        : b?.isBadDebt
+                                          ? "Bad Debt"
+                                          : "Receive"}
                                     </Button>
-
                                     {/* Send Bill Button */}
                                     <Button
                                       size="sm"
@@ -2070,7 +2091,15 @@ const Income = () => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 mt-3">
-                          <Button onClick={() => openPaymentDialog(b)}>
+                          <Button
+                            onClick={() => openPaymentDialog(b)}
+                            disabled={
+                              Number(b?.NetBilledAmount || 0) -
+                                Number(b?.ReceivedAmount || 0) -
+                                Number(b?.DiscountAmount || 0) <=
+                                0 || b?.isBadDebt
+                            }
+                          >
                             Receive
                           </Button>
 

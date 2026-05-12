@@ -492,6 +492,8 @@ const ReviewMasterForm = () => {
     try {
       const payload = {
         ...data,
+        updatedBy: user.physioName,
+
         redFlags:
           data.redFlags && data.redFlags.length > 0
             ? data.redFlags

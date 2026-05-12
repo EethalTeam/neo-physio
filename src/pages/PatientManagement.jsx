@@ -267,7 +267,15 @@ const PatientRow = React.memo(function PatientRow({
             </Button>
           )}
 
-          <Button size="sm" onClick={() => onAssignPhysio(patient)}>
+          <Button
+            size="sm"
+            onClick={() =>
+              onAssignPhysio(
+                patient,
+                user?.physioName || user?.name || "Unknown",
+              )
+            }
+          >
             {patient.physioId ? (
               <UserCheck size={14} />
             ) : (
@@ -431,7 +439,12 @@ const PatientCard = React.memo(function PatientCard({
           )}
         </Button>
 
-        <Button size="sm" onClick={() => onAssignPhysio(patient)}>
+        <Button
+          size="sm"
+          onClick={() =>
+            onAssignPhysio(patient, user?.physioName || user?.name || "Unknown")
+          }
+        >
           {patient.physioId ? <UserCheck size={14} /> : <UserPlus size={14} />}
         </Button>
 
@@ -628,7 +641,15 @@ const RecoveredPatientRow = React.memo(function RecoveredPatientRow({
             </Button>
           )}
 
-          <Button size="sm" onClick={() => onAssignPhysio(patient)}>
+          <Button
+            size="sm"
+            onClick={() =>
+              onAssignPhysio(
+                patient,
+                user?.physioName || user?.name || "Unknown",
+              )
+            }
+          >
             {patient.physioId ? (
               <UserCheck size={14} />
             ) : (
@@ -1187,6 +1208,7 @@ const PatientManagement = () => {
         patientId,
         isRecovered: true,
         recoveredType,
+        updatedBy: user?.physioName || user?.name || "Unknown",
         stopReason: recoveredType === "Other" ? stopReason : null,
       }),
     });
@@ -1224,7 +1246,7 @@ const PatientManagement = () => {
         }
       }
     });
-
+    formData.append("updatedBy", user?.physioName || user?.name || "Unknown");
     if (data.removedDocuments?.length) {
       formData.append(
         "removedDocuments",
@@ -1258,7 +1280,7 @@ const PatientManagement = () => {
         }
       }
     });
-
+    formData.append("createdBy", user?.physioName || user?.name || "Unknown");
     if (data.patientDocuments?.length) {
       data.patientDocuments.forEach((file) => {
         if (file instanceof File) {
@@ -1445,6 +1467,7 @@ const PatientManagement = () => {
       sessionStartDate: patient.sessionStartDate
         ? new Date(patient.sessionStartDate)
         : "",
+      updatedBy: user?.physioName || user?.name || "Unknown",
       sessionTime: patient.sessionTime || "",
       goalDescription: patient.goalDescription || " ",
       reviewFrequency: patient.reviewFrequency || "",
@@ -1915,6 +1938,7 @@ const PatientManagement = () => {
         method: "POST",
         body: JSON.stringify({
           patientId: reviewingPatient._id,
+          updatedBy: user?.physioName || user?.name || "Unknown",
           Feedback: reviewForm.feedback,
           Satisfaction: reviewForm.satisfaction,
         }),
