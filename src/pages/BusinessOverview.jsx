@@ -246,9 +246,14 @@ const BusinessOverview = () => {
     try {
       const response = await apiRequest("Expense/createExpense", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          createdBy: user?.physioName || "",
+          ...data,
+        }),
       });
+
       await getExpense();
+
       return response?.data || response;
     } catch (error) {
       console.error("Error:", error);
@@ -259,9 +264,14 @@ const BusinessOverview = () => {
     try {
       const response = await apiRequest("Expense/updateExpense", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          updatedBy: user?.physioName || "",
+          ...data,
+        }),
       });
+
       await getExpense();
+
       return response?.data || response;
     } catch (error) {
       console.error("Error:", error);
@@ -479,7 +489,6 @@ const BusinessOverview = () => {
       referenceDes: formState.referenceDes || "",
       machineDes: formState.machineDes || "",
       otherDescription: formState.otherDescription || "",
-      createdBy: user?.name || "",
     };
 
     try {

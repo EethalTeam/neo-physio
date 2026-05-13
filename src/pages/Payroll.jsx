@@ -63,7 +63,7 @@ const Payroll = () => {
   const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
-
+  const user = useAuth().user;
   const [editForm, setEditForm] = useState({
     basicSalary: "",
     vehicleMaintanance: "",
@@ -144,7 +144,10 @@ const Payroll = () => {
     }
 
     try {
-      const payload = { _id: editRow._id };
+      const payload = {
+        _id: editRow._id,
+        updatedBy: user?.physioName || "Admin",
+      };
 
       // compare edited values with original
       Object.keys(editForm).forEach((key) => {
@@ -386,40 +389,80 @@ const Payroll = () => {
 
   const handlePrint = () => {
     const el = document.getElementById("payslip-content");
-    if (!el) {
-      toast({ title: "Error", description: "Payslip content not found" });
-      return;
-    }
 
-    const printWindow = window.open("", "_blank", "width=900,height=650");
-    if (!printWindow) {
+    if (!el) {
       toast({
-        title: "Popup blocked",
-        description: "Allow popups to print",
+        title: "Error",
+        description: "Payslip content not found",
         variant: "destructive",
       });
       return;
     }
 
-    // copy styles from current page (tailwind/shadcn styles)
+    // Open print window
+    const printWindow = window.open("", "_blank", "width=1000,height=800");
+
+    if (!printWindow) {
+      toast({
+        title: "Popup Blocked",
+        description: "Please allow popups to print the payslip.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Copy all styles
     const styles = Array.from(
       document.querySelectorAll("link[rel='stylesheet'], style"),
     )
       .map((node) => node.outerHTML)
       .join("\n");
 
+    // Write printable document
     printWindow.document.write(`
     <html>
       <head>
         <title>Payslip</title>
+
         ${styles}
+
         <style>
-          body { padding: 20px; }
-          @media print { 
-            button { display: none !important; } 
+          html, body {
+            background: #ffffff !important;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+          }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          img {
+            width: 120px !important;
+            height: 120px !important;
+            object-fit: contain;
+          }
+
+          @media print {
+            body {
+              background: #ffffff !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+
+            button {
+              display: none !important;
+            }
+
+            img {
+              width: 120px !important;
+              height: 120px !important;
+            }
           }
         </style>
       </head>
+
       <body>
         ${el.outerHTML}
       </body>
@@ -428,10 +471,17 @@ const Payroll = () => {
 
     printWindow.document.close();
 
+    // Wait until fully loaded
     printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+
+        // Close after print
+        setTimeout(() => {
+          printWindow.close();
+        }, 500);
+      }, 500);
     };
   };
 
@@ -459,24 +509,30 @@ const Payroll = () => {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // image size fit to page
-      const imgWidth = pageWidth;
+      // image fit
+      const margin = 20;
+
+      const imgWidth = pageWidth - margin * 2;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      let y = 0;
-      let remainingHeight = imgHeight;
+      let heightLeft = imgHeight;
+      let position = margin;
 
-      // multi-page support
-      pdf.addImage(imgData, "PNG", 0, y, imgWidth, imgHeight);
-      remainingHeight -= pageHeight;
+      // first page
+      pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
 
-      while (remainingHeight > 0) {
+      heightLeft -= pageHeight;
+
+      // multi page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+
         pdf.addPage();
-        y = remainingHeight - imgHeight; // negative offset trick
-        pdf.addImage(imgData, "PNG", 0, y, imgWidth, imgHeight);
-        remainingHeight -= pageHeight;
-      }
 
+        pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
+
+        heightLeft -= pageHeight;
+      }
       const fileName =
         `Payslip_${selectedPayslip?.name || "Employee"}_${months[selectedMonth]}_${selectedYear}`
           .replaceAll(" ", "_")
@@ -1009,7 +1065,7 @@ const Payroll = () => {
                     <img
                       src={Logo}
                       alt="NEO Physio Logo"
-                      className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                      className="h-28 w-28 sm:h-32 sm:w-32 object-contain"
                     />
                     <div>
                       <h2 className="text-xl sm:text-2xl font-bold text-blue-600">

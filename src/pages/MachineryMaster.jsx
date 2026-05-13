@@ -67,6 +67,9 @@ const MachineryMaster = () => {
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState(null);
   const [managingMachine, setManagingMachine] = useState(null);
+  const [returnCount, setReturnCount] = useState("");
+  const user = useAuth();
+  console.log("User in MachineryMaster:", user);
   const initialFormState = {
     // _id: "",
     machineName: "",
@@ -78,6 +81,7 @@ const MachineryMaster = () => {
     // physioName: '',
     modalityId: "",
     categoryName: "",
+    createdBy: user?.user?.physioName || "Null",
   };
   const [machineForm, setMachineForm] = useState(initialFormState);
 
@@ -130,21 +134,27 @@ const MachineryMaster = () => {
   //create the Machine
 
   const createMachine = async (data) => {
-    try {
-      if (!data.machineCategoryID) {
-        delete data.machineCategoryID;
-      }
-
-      const res = await apiRequest("Machinery/createMachinery", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      getAllMachine();
-    } catch (error) {
-      console.error("not able to create Machine:", error);
+    if (!data.machineCategoryID) {
+      delete data.machineCategoryID;
     }
-  };
 
+    const res = await apiRequest("Machinery/createMachinery", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+
+    console.log(machineForm);
+    console.log(res);
+
+    // backend error check
+    if (res?.message === "Machine with this Id already exists") {
+      throw new Error(res.message);
+    }
+
+    getAllMachine();
+
+    return res;
+  };
   const updateMachine = async (data) => {
     if (!editingMachine?._id) return;
 
@@ -152,6 +162,7 @@ const MachineryMaster = () => {
       method: "POST",
       body: JSON.stringify({
         _id: editingMachine._id,
+        updatedBy: user?.user?.physioName || "Null",
         ...data,
       }),
     });
@@ -251,47 +262,39 @@ const MachineryMaster = () => {
     }
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
 
-    if (editingMachine) {
-      updateMachine(machineForm);
-      // setMachines(prev => prev.map(m => {
-      //   if (m.id === editingMachine.id) {
-      //     const countDifference = machineForm.totalCount - m.totalCount;
-      //     return {
-      //       ...m,
-      //       ...machineForm,
-      //       inventory: {
-      //         ...m.inventory,
-      //         available: Math.max(0, m.inventory.available + countDifference)
-      //       }
-      //     };
-      //   }
-      //   return m;
-      // }));
+    try {
+      if (editingMachine) {
+        await updateMachine(machineForm);
+
+        toast({
+          title: "Success",
+          description: "Equipment updated successfully.",
+        });
+      } else {
+        await createMachine(machineForm);
+
+        toast({
+          title: "Success",
+          description: "New equipment added.",
+        });
+      }
+
+      setIsFormOpen(false);
+      setEditingMachine(null);
+      setMachineForm(initialFormState);
+    } catch (error) {
       toast({
-        title: "Success",
-        description: "Equipment updated successfully.",
+        title: "Error",
+        description:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Something went wrong",
+        variant: "destructive",
       });
-    } else {
-      // const newMachine = {
-      //   id: Date.now(),
-      //   ...machineForm,
-      //   active: true,
-      //   inventory: {
-      //     available: parseInt(machineForm.totalCount, 10) || 0,
-      //     inUse: [],
-      //     underMaintenance: 0,
-      //   }
-      // };
-      // setMachines(prev => [newMachine, ...prev]);
-      createMachine(machineForm);
-      toast({ title: "Success", description: "New equipment added." });
     }
-    setIsFormOpen(false);
-    setEditingMachine(null);
-    setMachineForm(initialFormState);
   };
 
   const handleEditMachine = (machine) => {
@@ -405,6 +408,7 @@ const MachineryMaster = () => {
           _id: managingMachine._id,
           Assignedto: updatedAssignedTo,
           AvailableToAssign: updatedAvailable,
+          updatedBy: user?.user?.physioName || "Null",
         }),
       });
 
@@ -437,7 +441,11 @@ const MachineryMaster = () => {
   };
   const handleReturnFromPhysio = async () => {
     try {
-      if (!assignPhysioId || assignCount <= 0) {
+      // Convert return count to number
+      const returnedQty = Number(returnCount);
+
+      // Validation
+      if (!assignPhysioId || returnedQty <= 0) {
         return toast({
           title: "Invalid Input",
           description: "Select a physio and enter a valid count to return.",
@@ -445,66 +453,86 @@ const MachineryMaster = () => {
         });
       }
 
-      // Filter all assignments for the selected physio
+      // Get all assignments for selected physio
       const physioAssignments = (managingMachine.Assignedto || []).filter(
-        (item) => item.physioId === assignPhysioId,
+        (item) => item.physioId?.toString() === assignPhysioId?.toString(),
       );
 
-      // Sum total assigned count for this physio
+      // Total assigned quantity
       const totalAssigned = physioAssignments.reduce(
-        (acc, item) => acc + item.count,
+        (acc, item) => acc + Number(item.count || 0),
         0,
       );
 
+      // No assigned machines
       if (totalAssigned === 0) {
         return toast({
           title: "Invalid Count",
-          description: "This physio has 0 units to return.",
+          description: "This physio has no machines assigned.",
           variant: "destructive",
         });
       }
 
-      if (assignCount > totalAssigned) {
+      // Return count validation
+      if (returnedQty > totalAssigned) {
         return toast({
           title: "Invalid Count",
-          description: `This physio only has ${totalAssigned} units.`,
+          description: `This physio only has ${totalAssigned} machines.`,
           variant: "destructive",
         });
       }
 
-      // Subtract the return count from the assignments
-      let remainingToReturn = assignCount;
+      // Remaining quantity to deduct
+      let remainingToReturn = returnedQty;
+
+      // Update assigned list
       const updatedAssignedTo = (managingMachine.Assignedto || [])
         .map((item) => {
-          if (item.physioId === assignPhysioId && remainingToReturn > 0) {
-            const deduct = Math.min(item.count, remainingToReturn);
+          // Match selected physio
+          if (
+            item.physioId?.toString() === assignPhysioId?.toString() &&
+            remainingToReturn > 0
+          ) {
+            const currentCount = Number(item.count || 0);
+
+            // Deduct amount
+            const deduct = Math.min(currentCount, remainingToReturn);
+
             remainingToReturn -= deduct;
-            return { ...item, count: item.count - deduct };
+
+            return {
+              ...item,
+              count: currentCount - deduct,
+            };
           }
+
           return item;
         })
-        // Remove any physio entries that now have 0 count
-        .filter((item) => item.count > 0);
+        // Remove empty records
+        .filter((item) => Number(item.count) > 0);
 
-      // Recalculate available machines
+      // Recalculate assigned total
+      const totalAssignedAfterReturn = updatedAssignedTo.reduce(
+        (acc, item) => acc + Number(item.count || 0),
+        0,
+      );
+
+      // Recalculate available stock
       const updatedAvailable =
-        managingMachine.TotalStockCount -
-        updatedAssignedTo.reduce((acc, item) => acc + item.count, 0) -
-        (managingMachine.StockInMaintanance || 0);
+        Number(managingMachine.TotalStockCount || 0) -
+        totalAssignedAfterReturn -
+        Number(managingMachine.StockInMaintanance || 0);
 
-      // API call
+      // API request
       await apiRequest("Machinery/assignMachine", {
         method: "POST",
         body: JSON.stringify({
           _id: managingMachine._id,
           Assignedto: updatedAssignedTo,
           AvailableToAssign: updatedAvailable,
+          returnedCount: returnedQty,
+          updatedBy: user?.user?.physioName || "Null",
         }),
-      });
-
-      toast({
-        title: "Success",
-        description: "Machines returned from physio.",
       });
 
       // Update frontend state
@@ -520,11 +548,19 @@ const MachineryMaster = () => {
         ),
       );
 
+      // Success toast
+      toast({
+        title: "Success",
+        description: `${returnedQty} machine(s) returned successfully.`,
+      });
+
+      // Reset states
       setAssignPhysioId("");
-      setAssignCount(1);
+      setReturnCount("");
       setIsInventoryOpen(false);
     } catch (err) {
       console.error(err);
+
       toast({
         title: "Error",
         description: "Failed to return machines.",
@@ -567,6 +603,7 @@ const MachineryMaster = () => {
           _id: managingMachine._id,
           AvailableToAssign: updatedAvailable,
           StockInMaintanance: updatedMaintenance,
+          updatedBy: user?.user?.physioName || "Null",
         }),
       });
 
@@ -617,6 +654,7 @@ const MachineryMaster = () => {
           _id: managingMachine._id,
           AvailableToAssign: updatedAvailable,
           StockInMaintanance: updatedMaintenance,
+          updatedBy: user?.user?.physioName || "Null",
         }),
       });
 
@@ -757,6 +795,7 @@ const MachineryMaster = () => {
         body: JSON.stringify({
           _id: machine._id,
           isActive: newStatus,
+          updatedBy: user?.user?.physioName || "Null",
         }),
       });
 
@@ -1344,11 +1383,11 @@ const MachineryMaster = () => {
                         }}
                         min="1"
                         max={machineForm.TotalStockCount}
-                        value={assignCount}
+                        value={returnCount}
                         onChange={(e) => {
                           const value = Number(e.target.value);
                           if (value <= machineForm.TotalStockCount) {
-                            setAssignCount(value);
+                            setReturnCount(value);
                           }
                         }}
                       />

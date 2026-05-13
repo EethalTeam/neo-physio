@@ -67,7 +67,7 @@ import { apiRequest } from "@/components/CustomComponents/apiRequest";
 
 const PhysioManagement = () => {
   const navigate = useNavigate();
-
+  const { user } = useAuth();
   const [physios, setPhysios] = useState([]);
   const [filteredPhysios, setFilteredPhysios] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -239,7 +239,7 @@ const PhysioManagement = () => {
           }
         }
       });
-
+      formData.append("updatedBy", user.physioName || "Admin");
       if (physioPic) {
         formData.append("physioPic", physioPic);
       }
@@ -271,7 +271,7 @@ const PhysioManagement = () => {
           }
         }
       });
-
+      formData.append("createdBy", user.physioName || "Admin");
       if (physioPic) {
         formData.append("physioPic", physioPic);
       }
@@ -557,6 +557,7 @@ const PhysioManagement = () => {
         body: JSON.stringify({
           _id: physio._id,
           isActive: newStatus,
+          updatedBy: user.physioName || "Admin",
         }),
       });
 
