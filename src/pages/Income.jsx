@@ -756,31 +756,30 @@ const Income = () => {
           ? allSessions.data
           : [];
 
-      const billMonth = bill?.month?.toLowerCase();
-      const billYear = Number(bill?.year);
+      // Bill period
+      const startDate = new Date(bill?.startDate);
+      const endDate = new Date(bill?.ToDate);
+
+      // include full last day
+      endDate.setHours(23, 59, 59, 999);
 
       const filtered = sessionsArr
         .filter((s) => {
-          const date = new Date(s.sessionDate);
-
-          const sessionMonth = date
-            .toLocaleString("default", { month: "long" })
-            .toLowerCase();
-          const sessionYear = date.getFullYear();
+          const sessionDate = new Date(s.sessionDate);
 
           const isCompleted =
             (s?.sessionStatusId?.sessionStatusName || "").toLowerCase() ===
             "completed";
 
-          return (
-            sessionMonth === billMonth &&
-            sessionYear === billYear &&
-            isCompleted
-          );
+          // session inside bill period
+          const isWithinBillPeriod =
+            sessionDate >= startDate && sessionDate <= endDate;
+
+          return isCompleted && isWithinBillPeriod;
         })
         .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
 
-      console.log("Filtered sessions (FIXED):", filtered);
+      console.log("Filtered sessions (BILL PERIOD):", filtered);
 
       return filtered;
     } catch (error) {
@@ -2011,6 +2010,20 @@ const Income = () => {
                                     >
                                       {b?.isSend ? "Sent" : "Send"}
                                     </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() =>
+                                        setBillPreview({
+                                          open: true,
+                                          bill: b,
+                                          includeSessions: false,
+                                          loading: false,
+                                        })
+                                      }
+                                    >
+                                      Generate PDF
+                                    </Button>
                                   </div>
                                 </td>
                               </tr>
@@ -2109,6 +2122,19 @@ const Income = () => {
                             disabled={b?.isSend}
                           >
                             {b?.isSend ? "Sent" : "Send"}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() =>
+                              setBillPreview({
+                                open: true,
+                                bill: b,
+                                includeSessions: false,
+                                loading: false,
+                              })
+                            }
+                          >
+                            PDF
                           </Button>
                         </div>
                       </div>
@@ -2357,9 +2383,14 @@ const Income = () => {
                   Net: ₹
                   {Number(billPreview.bill?.NetBilledAmount || 0).toFixed(2)}
                 </div>
-
                 <div className="p-2 border rounded">
-                  Pending: ₹{Number(billPreview.bill?.pending || 0).toFixed(2)}
+                  Pending: ₹
+                  {(
+                    Number(billPreview.bill?.NetBilledAmount || 0) -
+                    Number(billPreview.bill?.ReceivedAmount || 0) -
+                    Number(billPreview.bill?.DiscountAmount || 0) -
+                    Number(billPreview.bill?.badDebtAmount || 0)
+                  ).toFixed(2)}
                 </div>
               </div>
 
