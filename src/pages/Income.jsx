@@ -925,7 +925,7 @@ const Income = () => {
       const clinicAddress = [
         "Coimbatore, Tamil Nadu",
         "Phone: +91 99439 23231",
-        "Email: info@neophysio.com",
+        "Email: info@neophysio.in",
         "Website: https://neophysio.in/",
       ];
 
