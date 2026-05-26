@@ -879,7 +879,7 @@ const Income = () => {
               ? Number((totalAmount / totalSessions).toFixed(2))
               : 0;
 
-        rateLabel = "(Per Month)";
+        rateLabel = "(Per Session)";
         descriptionText = "Physiotherapy Monthly Package";
         sessionText = `${totalSessions}`;
       } else {
