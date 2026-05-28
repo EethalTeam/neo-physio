@@ -322,7 +322,7 @@ const SuperAdminDashboard = () => {
   const [leads, setLead] = useState([]);
   const getCbNotifications = async () => {
     try {
-      const res = await apiRequest("Lead/getThisMonthLeads", {
+      const res = await apiRequest("Lead/getAllLead", {
         method: "POST",
         body: JSON.stringify({}),
       });
