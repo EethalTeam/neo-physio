@@ -66,6 +66,7 @@ import {
   User2,
   Eye,
   RefreshCcw,
+  Award,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -117,14 +118,26 @@ const PatientRow = React.memo(function PatientRow({
   sessionResult,
   onRecoveryAction,
   badge,
+  isMilestone,
 }) {
   return (
-    <tr className="border-t hover:bg-gray-50 align-top">
+    <tr
+      className="border-t hover:bg-gray-50 align-top"
+      style={isMilestone ? { backgroundColor: "#e8fde7", borderLeft: "4px solid #86F285" } : {}}
+    >
       <td className="px-3 py-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="font-medium truncate max-w-[140px]">
             {patient.patientName}
           </div>
+          {isMilestone && (
+            <span
+              className="flex items-center gap-0.5 px-2 py-0.5 text-[10px] rounded-full font-bold whitespace-nowrap"
+              style={{ backgroundColor: "#e8fde7", color: "#2d7a2d", border: "1px solid #86F285" }}
+            >
+              <Award className="w-3 h-3" style={{ color: "#86F285" }} /> 26th Session!
+            </span>
+          )}
           {badge && (
             <span
               className={`px-2 py-0.5 text-[10px] rounded-full font-medium whitespace-nowrap ${badge.className}`}
@@ -149,8 +162,11 @@ const PatientRow = React.memo(function PatientRow({
         </>
       )}
 
-      <td className="px-3 py-2 hidden md:table-cell">
-        {patient.totalSessionCount || 0}
+      <td className="px-3 py-2 hidden md:table-cell" style={isMilestone ? { fontWeight: "bold", color: "#2d7a2d" } : {}}>
+        <div className="flex items-center gap-1">
+          {patient.totalSessionCount || 0}
+          {isMilestone && <Award className="w-4 h-4" style={{ color: "#86F285" }} />}
+        </div>
       </td>
 
       <td className="px-3 py-2">
@@ -335,6 +351,7 @@ const PatientCard = React.memo(function PatientCard({
   onRecoveryAction,
   sessionResult,
   badge,
+  isMilestone,
 }) {
   return (
     <motion.div
@@ -343,10 +360,17 @@ const PatientCard = React.memo(function PatientCard({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
       className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
+      style={isMilestone ? { borderColor: "#86F285", backgroundColor: "#e8fde7" } : {}}
     >
+      {isMilestone && (
+        <div className="flex items-center gap-1 mb-2">
+          <Award className="w-4 h-4" style={{ color: "#86F285" }} />
+          <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#2d7a2d" }}>26th Session Milestone!</span>
+        </div>
+      )}
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-          <User className="text-blue-600" size={20} />
+        <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0" style={isMilestone ? { backgroundColor: "#d4fbd3" } : { backgroundColor: "#dbeafe" }}>
+          <User style={{ color: isMilestone ? "#2d7a2d" : "#2563eb" }} size={20} />
         </div>
 
         <div className="min-w-0">
@@ -380,8 +404,9 @@ const PatientCard = React.memo(function PatientCard({
         <p>
           <strong>Condition:</strong> {patient.patientCondition || "N/A"}
         </p>
-        <p>
+        <p style={isMilestone ? { color: "#2d7a2d", fontWeight: "600" } : {}}>
           <strong>No of Sessions:</strong> {patient.sessionCount || 0}
+          {isMilestone && <Award className="inline w-4 h-4 ml-1" style={{ color: "#86F285" }} />}
         </p>
         <p>
           <strong>Next Session:</strong>{" "}
@@ -965,6 +990,8 @@ const PatientManagement = () => {
     growth,
     getGrowthColor,
     getGrowthSymbol,
+    thisMonthRecoveredCount,
+    recoveryRate,
   } = useMemo(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -975,15 +1002,31 @@ const PatientManagement = () => {
 
     let thisMonthCount = 0;
     let lastMonthCount = 0;
+    let thisMonthRecoveredCount = 0;
 
     filteredPatients.forEach((patient) => {
-      if (!patient?.createdAt) return;
-      const created = new Date(patient.createdAt);
-      const m = created.getMonth();
-      const y = created.getFullYear();
-      if (m === currentMonth && y === currentYear) thisMonthCount++;
-      if (m === lastMonth && y === lastMonthYear) lastMonthCount++;
+      if (patient?.createdAt) {
+        const created = new Date(patient.createdAt);
+        const m = created.getMonth();
+        const y = created.getFullYear();
+        if (m === currentMonth && y === currentYear) thisMonthCount++;
+        if (m === lastMonth && y === lastMonthYear) lastMonthCount++;
+      }
+
+      if (patient?.isRecovered) {
+        const recoveredDate = new Date(patient.updatedAt || patient.createdAt);
+        if (
+          recoveredDate.getMonth() === currentMonth &&
+          recoveredDate.getFullYear() === currentYear
+        ) {
+          thisMonthRecoveredCount++;
+        }
+      }
     });
+
+    const total = filteredPatients.length;
+    const recoveryRate =
+      total > 0 ? ((thisMonthRecoveredCount / total) * 100).toFixed(1) : "0.0";
 
     let growth = 0;
     if (lastMonthCount === 0 && thisMonthCount > 0) growth = 100;
@@ -1010,6 +1053,8 @@ const PatientManagement = () => {
       growth,
       getGrowthColor,
       getGrowthSymbol,
+      thisMonthRecoveredCount,
+      recoveryRate,
     };
   }, [filteredPatients]);
 
@@ -1067,7 +1112,10 @@ const PatientManagement = () => {
         }
       }
 
-      map.set(patient._id, { sessionResult, badge });
+      const totalSessions = Number(patient.totalSessionCount || 0);
+      const isMilestone = totalSessions > 0 && totalSessions % 26 === 0;
+
+      map.set(patient._id, { sessionResult, badge, isMilestone });
     });
 
     return map;
@@ -1202,7 +1250,7 @@ const PatientManagement = () => {
     recoveredType,
     stopReason,
   }) => {
-    return await apiRequest("Patient/markPatientRecovered", {
+    const res = await apiRequest("Patient/markPatientRecovered", {
       method: "POST",
       body: JSON.stringify({
         patientId,
@@ -1212,6 +1260,10 @@ const PatientManagement = () => {
         stopReason: recoveredType === "Other" ? stopReason : null,
       }),
     });
+    if (res?.success === false || res?.error) {
+      throw new Error(res?.message || res?.error || "Failed to mark patient as recovered.");
+    }
+    return res;
   };
 
   const startFreshCycleForPatient = async (patient) => {
@@ -1439,7 +1491,6 @@ const PatientManagement = () => {
       setRestartType("");
       getAllPatient();
     } catch (error) {
-      console.error("Save patient error:", error);
       toast({
         title: "Error",
         description: error?.message || "Failed to save patient.",
@@ -1703,10 +1754,9 @@ const PatientManagement = () => {
         setEditingPatient(null);
         setPatientForm(initialFormState);
       } catch (error) {
-        console.error(error);
         toast({
           title: "Error",
-          description: "Something went wrong.",
+          description: error?.message || "Something went wrong.",
           variant: "destructive",
         });
       }
@@ -1865,7 +1915,6 @@ const PatientManagement = () => {
       setOtherReason("");
       getAllPatient();
     } catch (error) {
-      console.error(error);
       toast({
         title: "Error",
         description: error?.message || "Failed to mark patient recovered",
@@ -1911,7 +1960,6 @@ const PatientManagement = () => {
         setSelectedPatientForRecovery(null);
         getAllPatient();
       } catch (error) {
-        console.error(error);
         toast({
           title: "Error",
           description: error?.message || "Failed to restart patient",
@@ -3676,6 +3724,7 @@ const PatientManagement = () => {
                                 ?.sessionResult
                             }
                             badge={patientComputedData.get(patient._id)?.badge}
+                            isMilestone={patientComputedData.get(patient._id)?.isMilestone}
                           />
                         );
                       })}
@@ -3706,6 +3755,7 @@ const PatientManagement = () => {
                           patientComputedData.get(patient._id)?.sessionResult
                         }
                         badge={patientComputedData.get(patient._id)?.badge}
+                        isMilestone={patientComputedData.get(patient._id)?.isMilestone}
                       />
                     );
                   })}
@@ -3859,6 +3909,17 @@ const PatientManagement = () => {
               </div>
             </CardContent>
           </Card>
+
+          <div className="bg-white rounded-xl shadow-sm border p-4 flex flex-col gap-2">
+            <p className="text-sm text-gray-500">Recovery Rate (This Month)</p>
+            <p className="text-2xl font-bold text-green-600">{recoveryRate}%</p>
+            <p className="text-sm font-medium text-green-600">
+              {thisMonthRecoveredCount} recovered this month
+            </p>
+            <p className="text-xs text-gray-400">
+              of {filteredPatients.length} total patients
+            </p>
+          </div>
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -5794,7 +5855,7 @@ const PatientManagement = () => {
               onClick={async () => {
                 try {
                   if (!pendingPatient?.isRecovered) {
-                    await apiRequest("Patient/updatePatient", {
+                    const res = await apiRequest("Patient/updatePatient", {
                       method: "POST",
                       body: JSON.stringify({
                         _id: pendingPatient._id,
@@ -5804,6 +5865,11 @@ const PatientManagement = () => {
                           recoveredType === "Other" ? otherReason : null,
                       }),
                     });
+                    if (res?.success === false || res?.error) {
+                      throw new Error(
+                        res?.message || res?.error || "Failed to update patient status.",
+                      );
+                    }
                     toast({
                       title: "Recovered",
                       description: `${pendingPatient.patientName} marked as recovered.`,
@@ -5812,11 +5878,6 @@ const PatientManagement = () => {
                     setSelectedPatientForRecovery(pendingPatient);
                     setOpenRecoveryChoice(true);
                   }
-                  setRecoveredType("");
-                  setOtherReason("");
-                  setOpenAlert(false);
-                  setPendingPatient(null);
-                  getAllPatient();
                 } catch (error) {
                   toast({
                     title: "Error",
@@ -5824,6 +5885,12 @@ const PatientManagement = () => {
                       error?.message || "Failed to update patient status.",
                     variant: "destructive",
                   });
+                } finally {
+                  setRecoveredType("");
+                  setOtherReason("");
+                  setOpenAlert(false);
+                  setPendingPatient(null);
+                  getAllPatient();
                 }
               }}
             >

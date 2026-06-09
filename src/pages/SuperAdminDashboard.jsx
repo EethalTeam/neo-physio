@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import AnimatedNumber from "@/components/CustomComponents/AnimatedNumber";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -488,6 +490,7 @@ const SuperAdminDashboard = () => {
   };
 
   useEffect(() => {
+    AOS.init({ duration: 700, once: true, easing: "ease-out-cubic" });
     refreshDashboardData();
   }, []);
 
@@ -890,17 +893,15 @@ const SuperAdminDashboard = () => {
     );
   };
 
-  const convertedPatients = safePatients.filter(
+  // All-time: patients converted from leads (isFromLead flag + leadId link)
+  const convertedCount = safePatients.filter(
+    (p) => p?.isFromLead === true && p?.leadId,
+  ).length;
+
+  // This month only: consultations converted to patients this month
+  const thisMonthConvertedCount = safePatients.filter(
     (p) => p?.isFromLead === true && p?.leadId && isThisMonth(p.createdAt),
-  );
-
-  const convertedCount = convertedPatients.length;
-  // keep this if Converted means total patients in your dashboard
-
-  // if later you create a real "Converted" lead status, use this instead:
-  // const convertedCount = safeLeads.filter(
-  //   (lead) => getLeadStatuses(lead) === "converted"
-  // ).length;
+  ).length;
 
   const conversionRate =
     totalLeadsCount > 0
@@ -969,10 +970,9 @@ const SuperAdminDashboard = () => {
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div
+        data-aos="fade-down"
+        data-aos-duration="600"
         className="flex flex-col md:flex-row md:items-start md:justify-between gap-4"
       >
         <div>
@@ -984,7 +984,7 @@ const SuperAdminDashboard = () => {
           </p>
         </div>
 
-        <div className="w-full md:w-[240px]">
+        <div className="w-full md:w-[240px]" data-aos="fade-left" data-aos-delay="100">
           <Button
             onClick={handleGenerateLink}
             disabled={loading}
@@ -993,10 +993,10 @@ const SuperAdminDashboard = () => {
             {loading ? "Generating..." : "Generate Link"}
           </Button>
         </div>
-      </motion.div>
+      </div>
 
       {/* FILTER */}
-      <Card className="medical-card">
+      <Card className="medical-card" data-aos="fade-up" data-aos-delay="50">
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col">
@@ -1047,7 +1047,7 @@ const SuperAdminDashboard = () => {
         {/* LEFT CONTENT FLOW */}
         <div className="flex-1 min-w-0 space-y-4">
           {/* CB NOTIFICATIONS */}
-          <Card className="medical-card">
+          <Card className="medical-card" data-aos="fade-up" data-aos-delay="80">
             <CardHeader>
               <CardTitle>CB Notifications</CardTitle>
               <CardDescription>
@@ -1123,7 +1123,7 @@ const SuperAdminDashboard = () => {
           </Card>
 
           {/* TODAY OVERVIEW */}
-          <Card className="medical-card">
+          <Card className="medical-card" data-aos="fade-up" data-aos-delay="100">
             <CardHeader>
               <CardTitle>Today Overview</CardTitle>
               <CardDescription>
@@ -1136,28 +1136,28 @@ const SuperAdminDashboard = () => {
                 <div className="rounded-xl border bg-blue-50 p-4">
                   <p className="text-sm text-gray-600">Today Sessions</p>
                   <h3 className="text-2xl font-bold text-blue-700 mt-1">
-                    {stats.todaysession || 0}
+                    <AnimatedNumber value={stats.todaysession || 0} />
                   </h3>
                 </div>
 
                 <div className="rounded-xl border bg-green-50 p-4">
                   <p className="text-sm text-gray-600">Completed</p>
                   <h3 className="text-2xl font-bold text-green-700 mt-1">
-                    {stats.todayCompletedSession || 0}
+                    <AnimatedNumber value={stats.todayCompletedSession || 0} />
                   </h3>
                 </div>
 
                 <div className="rounded-xl border bg-emerald-50 p-4">
                   <p className="text-sm text-gray-600">Today Revenue</p>
                   <h3 className="text-2xl font-bold text-emerald-700 mt-1">
-                    ₹{Math.round(Number(todayRevenue || 0))}
+                    <AnimatedNumber value={`₹${Math.round(Number(todayRevenue || 0))}`} />
                   </h3>
                 </div>
 
                 <div className="rounded-xl border bg-orange-50 p-4">
                   <p className="text-sm text-gray-600">CB Notifications</p>
                   <h3 className="text-2xl font-bold text-orange-700 mt-1">
-                    {cbNotifications.length}
+                    <AnimatedNumber value={cbNotifications.length} />
                   </h3>
                 </div>
               </div>
@@ -1170,11 +1170,10 @@ const SuperAdminDashboard = () => {
               const Icon = stat.icon;
 
               return (
-                <motion.div
+                <div
                   key={stat.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.08 }}
+                  data-aos="fade-up"
+                  data-aos-delay={index * 60}
                 >
                   <Card className="medical-card hover:shadow-lg transition-shadow h-full">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1188,14 +1187,14 @@ const SuperAdminDashboard = () => {
 
                     <CardContent>
                       <div className="text-2xl font-bold text-gray-800">
-                        {stat.value}
+                        <AnimatedNumber value={stat.value} />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         Updated in real-time
                       </p>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -1203,7 +1202,7 @@ const SuperAdminDashboard = () => {
 
         {/* RIGHT SIDEBAR */}
         <div className="hidden xl:flex xl:flex-col xl:w-[280px] xl:shrink-0 space-y-4 sticky top-4">
-          <Card className="medical-card border shadow-sm">
+          <Card className="medical-card border shadow-sm" data-aos="fade-left" data-aos-delay="80">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Quick Actions</CardTitle>
               <CardDescription>Frequently used operations</CardDescription>
@@ -1277,7 +1276,7 @@ const SuperAdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="medical-card border shadow-sm">
+          <Card className="medical-card border shadow-sm" data-aos="fade-left" data-aos-delay="150">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Monthly Summary</CardTitle>
               <CardDescription>Quick business snapshot</CardDescription>
@@ -1286,28 +1285,28 @@ const SuperAdminDashboard = () => {
               <div className="flex justify-between items-center border rounded-lg p-3">
                 <span className="text-sm text-gray-600">Revenue</span>
                 <span className="font-semibold text-emerald-700">
-                  ₹{Number(stats.monthlyRevenue || 0)}
+                  <AnimatedNumber value={`₹${Number(stats.monthlyRevenue || 0)}`} />
                 </span>
               </div>
 
               <div className="flex justify-between items-center border rounded-lg p-3">
                 <span className="text-sm text-gray-600">Sessions</span>
                 <span className="font-semibold text-purple-700">
-                  {stats.monthlySessions || 0}
+                  <AnimatedNumber value={stats.monthlySessions || 0} />
                 </span>
               </div>
 
               <div className="flex justify-between items-center border rounded-lg p-3">
                 <span className="text-sm text-gray-600">Leads</span>
                 <span className="font-semibold text-blue-700">
-                  {stats.lead || 0}
+                  <AnimatedNumber value={stats.lead || 0} />
                 </span>
               </div>
 
               <div className="flex justify-between items-center border rounded-lg p-3">
                 <span className="text-sm text-gray-600">Patients</span>
                 <span className="font-semibold text-green-700">
-                  {stats.patient || 0}
+                  <AnimatedNumber value={stats.patient || 0} />
                 </span>
               </div>
             </CardContent>
@@ -1317,7 +1316,7 @@ const SuperAdminDashboard = () => {
 
       {/* VISUAL UNDERSTANDING SECTION - OUTSIDE MAIN FLEX */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="medical-card">
+        <Card className="medical-card" data-aos="fade-right" data-aos-delay="50">
           <CardHeader>
             <CardTitle>Lead Funnel</CardTitle>
             <CardDescription>
@@ -1354,7 +1353,7 @@ const SuperAdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="medical-card">
+        <Card className="medical-card" data-aos="fade-left" data-aos-delay="100">
           <CardHeader>
             <CardTitle>Patient Conversion</CardTitle>
             <CardDescription>How many leads become patients</CardDescription>
@@ -1365,23 +1364,29 @@ const SuperAdminDashboard = () => {
               <div className="relative w-40 h-40 rounded-full border-[12px] border-green-100 flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-green-700">
-                    {conversionRate}%
+                    <AnimatedNumber value={`${conversionRate}%`} />
                   </p>
                   <p className="text-sm text-gray-500">Conversion Rate</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 w-full mt-6">
+              <div className="grid grid-cols-3 gap-3 w-full mt-6">
                 <div className="rounded-lg border p-3 text-center">
-                  <p className="text-sm text-gray-500">Total Leads</p>
+                  <p className="text-xs text-gray-500">Total Leads</p>
                   <p className="text-xl font-bold text-blue-700">
-                    {totalLeadsCount}
+                    <AnimatedNumber value={totalLeadsCount} />
                   </p>
                 </div>
                 <div className="rounded-lg border p-3 text-center">
-                  <p className="text-sm text-gray-500">Patients</p>
+                  <p className="text-xs text-gray-500">Converted</p>
                   <p className="text-xl font-bold text-green-700">
-                    {convertedCount}
+                    <AnimatedNumber value={convertedCount} />
+                  </p>
+                </div>
+                <div className="rounded-lg border p-3 text-center bg-blue-50">
+                  <p className="text-xs text-gray-500">This Month</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    <AnimatedNumber value={thisMonthConvertedCount} />
                   </p>
                 </div>
               </div>
@@ -1389,7 +1394,7 @@ const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="medical-card">
+        <Card className="medical-card" data-aos="fade-right" data-aos-delay="50">
           <CardHeader>
             <CardTitle>Revenue Insight</CardTitle>
             <CardDescription>
@@ -1462,7 +1467,7 @@ const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="medical-card">
+        <Card className="medical-card" data-aos="fade-left" data-aos-delay="100">
           <CardHeader>
             <CardTitle>Lead Source Analysis</CardTitle>
             <CardDescription>

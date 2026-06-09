@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import AnimatedNumber from "@/components/CustomComponents/AnimatedNumber";
 import {
   Card,
   CardContent,
@@ -127,6 +129,7 @@ const HODDashboard = () => {
   const [sessionForm, setSessionForm] = useState(initialFormState);
 
   useEffect(() => {
+    AOS.init({ duration: 700, once: true, easing: "ease-out-cubic" });
     getAllDashBoard();
   }, []);
 
@@ -586,10 +589,9 @@ const HODDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div
+        data-aos="fade-down"
+        data-aos-duration="600"
         className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
       >
         <div>
@@ -601,7 +603,7 @@ const HODDashboard = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-2xl border bg-white px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-2 rounded-2xl border bg-white px-4 py-3 shadow-sm" data-aos="fade-left" data-aos-delay="100">
           <Activity className="h-5 w-5 text-blue-600" />
           <div>
             <p className="text-xs text-gray-500">Today Overview</p>
@@ -611,14 +613,16 @@ const HODDashboard = () => {
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {quickActions.map((item) => {
+        {quickActions.map((item, idx) => {
           const Icon = item.icon;
           return (
             <button
               key={item.title}
+              data-aos="zoom-in"
+              data-aos-delay={idx * 60}
               onClick={() => navigate(item.path)}
               className="p-4 text-left border rounded-xl hover:bg-gray-50 transition-colors bg-white shadow-sm"
             >
@@ -633,11 +637,10 @@ const HODDashboard = () => {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <div
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: index * 0.06 }}
+              data-aos="fade-up"
+              data-aos-delay={index * 60}
             >
               <Card className="medical-card hover:shadow-lg transition-shadow border-0 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -650,20 +653,20 @@ const HODDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-800">
-                    {stat.value}
+                    <AnimatedNumber value={stat.value} />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Live dashboard summary
                   </p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Card className="xl:col-span-2 shadow-sm">
+        <Card className="xl:col-span-2 shadow-sm" data-aos="fade-right" data-aos-delay="50">
           <CardHeader>
             <CardTitle>Weekly Sessions & Reviews</CardTitle>
             <CardDescription>
@@ -685,7 +688,7 @@ const HODDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-sm" data-aos="fade-left" data-aos-delay="100">
           <CardHeader>
             <CardTitle>Review Status Distribution</CardTitle>
             <CardDescription>Pending vs completed reviews</CardDescription>
@@ -717,7 +720,7 @@ const HODDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Card className="shadow-sm">
+        <Card className="shadow-sm" data-aos="fade-right" data-aos-delay="50">
           <CardHeader>
             <CardTitle>Review Alert Trend</CardTitle>
             <CardDescription>Red flag review movement</CardDescription>
@@ -768,7 +771,7 @@ const HODDashboard = () => {
           </CardContent>
         </Card> */}
 
-        <Card className="border-l-4 border-red-500 shadow-sm">
+        <Card className="border-l-4 border-red-500 shadow-sm" data-aos="fade-left" data-aos-delay="100">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-red-600" />
@@ -778,7 +781,7 @@ const HODDashboard = () => {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-red-600">
-              {alertReviews.length}
+              <AnimatedNumber value={alertReviews.length} />
             </p>
             <p className="text-sm text-gray-500 mt-2">
               Active issues requiring follow-up
@@ -799,11 +802,7 @@ const HODDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
+        <div data-aos="fade-right" data-aos-delay="50">
           <Card className="medical-card shadow-sm">
             <CardHeader>
               <CardTitle>Pending Reviews</CardTitle>
@@ -841,13 +840,9 @@ const HODDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-        >
+        <div data-aos="fade-left" data-aos-delay="100">
           <Card className="medical-card shadow-sm">
             <CardHeader>
               <CardTitle>Session Alerts</CardTitle>
@@ -1076,14 +1071,10 @@ const HODDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.8 }}
-      >
+      <div data-aos="fade-up" data-aos-delay="50">
         <Card className="medical-card shadow-sm">
           <CardHeader>
             <CardTitle>CB Notifications</CardTitle>
@@ -1153,7 +1144,7 @@ const HODDashboard = () => {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide">

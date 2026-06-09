@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import AnimatedNumber from "@/components/CustomComponents/AnimatedNumber";
 import {
   Card,
   CardContent,
@@ -44,6 +46,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    AOS.init({ duration: 700, once: true, easing: "ease-out-cubic" });
     fetchTodayRevenue();
     getCbNotifications();
   }, []);
@@ -214,21 +217,17 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div data-aos="fade-down" data-aos-duration="600">
         <h1 className="md:text-3xl text-lg font-bold text-gray-800 mb-2">
           Admin Dashboard
         </h1>
         <p className="text-gray-600">
           Complete overview of your physiotherapy service management
         </p>
-      </motion.div>
+      </div>
 
       {/* Date Filter */}
-      <Card className="medical-card">
+      <Card className="medical-card" data-aos="fade-up" data-aos-delay="50">
         <CardContent className="pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex flex-col">
@@ -257,14 +256,6 @@ const AdminDashboard = () => {
                 }
               />
             </div>
-            {/* <div className="flex items-end">
-              <button
-                onClick={applyDateFilter}
-                className="w-full px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-              >
-                Apply Filter
-              </button>
-            </div> */}
 
             <div className="flex items-end">
               <button
@@ -283,11 +274,10 @@ const AdminDashboard = () => {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <div
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              data-aos="fade-up"
+              data-aos-delay={index * 60}
             >
               <Card className="medical-card hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -300,21 +290,21 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-800">
-                    {stat.value}
+                    <AnimatedNumber value={stat.value} />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Updated in real-time
                   </p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="medical-card">
+        <Card className="medical-card" data-aos="fade-right" data-aos-delay="100">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Frequently used operations</CardDescription>
@@ -322,6 +312,8 @@ const AdminDashboard = () => {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <button
+                data-aos="zoom-in"
+                data-aos-delay="150"
                 onClick={() => navigate("/leads")}
                 className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -330,6 +322,8 @@ const AdminDashboard = () => {
               </button>
 
               <button
+                data-aos="zoom-in"
+                data-aos-delay="200"
                 onClick={() => navigate("/sessions")}
                 className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -338,6 +332,8 @@ const AdminDashboard = () => {
               </button>
 
               <button
+                data-aos="zoom-in"
+                data-aos-delay="250"
                 onClick={() => navigate("/physios")}
                 className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -346,6 +342,8 @@ const AdminDashboard = () => {
               </button>
 
               <button
+                data-aos="zoom-in"
+                data-aos-delay="300"
                 onClick={() => navigate("/reports")}
                 className="p-4 text-left border rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -356,8 +354,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Optional: show list of patients revenue (if you want later) */}
-        <Card className="medical-card">
+        <Card className="medical-card" data-aos="fade-left" data-aos-delay="100">
           <CardHeader>
             <CardTitle>CB Notifications</CardTitle>
             <CardDescription>
@@ -372,12 +369,14 @@ const AdminDashboard = () => {
               </p>
             ) : (
               <div className="space-y-3">
-                {cbNotifications.map((lead) => {
+                {cbNotifications.map((lead, idx) => {
                   const daysLeft = getDaysLeft(lead.cbDate);
 
                   return (
                     <div
                       key={lead._id}
+                      data-aos="fade-up"
+                      data-aos-delay={idx * 60}
                       className="border rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 hover:bg-gray-50 transition"
                     >
                       <div className="min-w-0">

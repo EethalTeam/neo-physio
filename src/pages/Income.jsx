@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { Bitcoin, CheckCircle, InboxIcon } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import {
   Dialog,
   DialogContent,
@@ -219,6 +220,7 @@ const Income = () => {
     bill: null,
     includeSessions: false,
     loading: false,
+    mode: "download",
   });
   const [selectedPhysioId, setSelectedPhysioId] = useState("ALL");
   const [selectedPatientId, setSelectedPatientId] = useState("ALL");
@@ -231,6 +233,93 @@ const Income = () => {
     open: false,
     bill: null,
   });
+  console.log("Phone number for WhatsApp sharing:", billPreview);
+  const generateBillPDF = async () => {
+    const bill = billPreview.bill;
+    if (!bill) return null;
+
+    let billedSessions = [];
+
+    if (billPreview.includeSessions) {
+      billedSessions = await fetchBilledSessionsForBill(bill);
+    }
+
+    const doc = downloadBillPdf({
+      bill,
+      includeSessions: billPreview.includeSessions,
+      billedSessions,
+    });
+
+    return doc.output("blob");
+  };
+  const handleShareWhatsAppPDF = async () => {
+    const pdfBlob = await generateBillPDF();
+    if (!pdfBlob) return;
+
+    const fileName = `Bill_${billPreview.bill?.patientId?.patientName || "Patient"}.pdf`;
+    const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+    const phone =
+      billPreview.bill?.patientId?.patientNumber ||
+      billPreview.bill?.patientId?.patientAltNum;
+
+    const billId = billPreview.bill?._id;
+
+    // ✅ Try Web Share API first (works on mobile — can share file directly to WhatsApp)
+    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({
+          files: [pdfFile],
+          title: "Bill",
+          text: "Please find your bill attached.",
+        });
+        if (billId) await handleSendBill(billId);
+        return; // Done — user picks WhatsApp from share sheet
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          console.error("Share failed:", err);
+        }
+      }
+    }
+
+    // ✅ Fallback for desktop: auto-download PDF + open WhatsApp Web
+    const url = window.URL.createObjectURL(pdfBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    if (!phone) {
+      toast({
+        title: "Phone number not found",
+        description: "Please share the downloaded PDF manually.",
+        variant: "destructive",
+      });
+      if (billId) await handleSendBill(billId);
+      return;
+    }
+
+    const message =
+      `Hi, please find your bill attached.\n\n` +
+      `📎 File "${fileName}" has been downloaded to your device.\n` +
+      `Please attach it to this chat and tap Send.`;
+
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+
+    if (billId) await handleSendBill(billId);
+
+    // Show instruction toast on desktop
+    toast({
+      title: "PDF Downloaded",
+      description:
+        "WhatsApp is opening. Attach the downloaded PDF and tap Send.",
+      duration: 6000,
+    });
+  };
   const openRevertConfirmDialog = (bill) => {
     setRevertConfirmDialog({
       open: true,
@@ -536,8 +625,8 @@ const Income = () => {
       const total = Number(bill.NetBilledAmount || bill.TotalBilledAmount || 0);
       const received = Number(bill.ReceivedAmount || 0);
       const discount = Number(bill.DiscountAmount || 0);
-
-      const pending = Math.max(total - discount - received, 0);
+      const badDebtAmount = Number(bill.badDebtAmount || 0);
+      const pending = Math.max(total - discount - received - badDebtAmount, 0);
 
       months[monthIndex].pending += pending;
     });
@@ -832,7 +921,7 @@ const Income = () => {
         console.log("Fetched billedSessions:", billedSessions);
       }
 
-      downloadBillPdf({
+      await downloadBillPdf({
         bill,
         includeSessions: billPreview.includeSessions,
         billedSessions,
@@ -845,7 +934,11 @@ const Income = () => {
       }));
     } catch (err) {
       console.error("Bill PDF download failed:", err);
-      setBillPreview((s) => ({ ...s, loading: false }));
+
+      setBillPreview((s) => ({
+        ...s,
+        loading: false,
+      }));
     }
   };
 
@@ -1197,6 +1290,7 @@ const Income = () => {
         .replace(/[^\w\-.]/g, "");
 
       doc.save(fileName);
+      return doc;
     } catch (error) {
       console.error("PDF generation error:", error);
     }
@@ -2000,7 +2094,15 @@ const Income = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => handleSendBill(b._id)}
+                                      onClick={() =>
+                                        setBillPreview({
+                                          open: true,
+                                          bill: b,
+                                          includeSessions: false,
+                                          loading: false,
+                                          mode: "share", // 👈 important
+                                        })
+                                      }
                                       disabled={b?.isSend}
                                       className={
                                         b?.isSend
@@ -2019,6 +2121,7 @@ const Income = () => {
                                           bill: b,
                                           includeSessions: false,
                                           loading: false,
+                                          mode: "download",
                                         })
                                       }
                                     >
@@ -2117,9 +2220,23 @@ const Income = () => {
                           </Button>
 
                           <Button
+                            size="sm"
                             variant="outline"
-                            onClick={() => handleSendBill(b._id)}
+                            onClick={() =>
+                              setBillPreview({
+                                open: true,
+                                bill: b,
+                                includeSessions: false,
+                                loading: false,
+                                mode: "share", // 👈 important
+                              })
+                            }
                             disabled={b?.isSend}
+                            className={
+                              b?.isSend
+                                ? "bg-blue-500 text-white cursor-not-allowed"
+                                : "bg-red-300 text-white"
+                            }
                           >
                             {b?.isSend ? "Sent" : "Send"}
                           </Button>
@@ -2420,9 +2537,23 @@ const Income = () => {
             >
               Cancel
             </Button>
-            <Button onClick={handleDownloadBill} disabled={billPreview.loading}>
-              {billPreview.loading ? "Preparing..." : "Download PDF"}
-            </Button>
+
+            {billPreview.mode === "download" ? (
+              <Button
+                onClick={handleDownloadBill}
+                disabled={billPreview.loading}
+              >
+                {billPreview.loading ? "Preparing..." : "Download PDF"}
+              </Button>
+            ) : (
+              <Button
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                onClick={handleShareWhatsAppPDF}
+              >
+                <FaWhatsapp className="h-4 w-4" />
+                Share via WhatsApp
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

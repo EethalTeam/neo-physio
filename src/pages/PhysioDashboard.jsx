@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import AnimatedNumber from "@/components/CustomComponents/AnimatedNumber";
 import {
   Card,
   CardContent,
@@ -42,6 +44,7 @@ const PhysioDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
+    AOS.init({ duration: 700, once: true, easing: "ease-out-cubic" });
     if (user?._id) {
       loadDashboardData();
     }
@@ -249,28 +252,23 @@ const PhysioDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div data-aos="fade-down" data-aos-duration="600">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Physiotherapist Dashboard
         </h1>
         <p className="text-gray-600">
           Your daily operational overview and upcoming tasks
         </p>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <div
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              data-aos="fade-up"
+              data-aos-delay={index * 70}
             >
               <Card className="medical-card hover:shadow-lg transition-shadow w-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -284,21 +282,17 @@ const PhysioDashboard = () => {
 
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-800">
-                    {stat.value}
+                    <AnimatedNumber value={stat.value} />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-      >
+      <div data-aos="fade-up" data-aos-delay="100">
         <Card className="medical-card">
           <CardHeader>
             <CardTitle>Upcoming Sessions</CardTitle>
@@ -310,9 +304,11 @@ const PhysioDashboard = () => {
           <CardContent>
             <div className="max-h-96 overflow-y-auto space-y-4">
               {sessions.length > 0 ? (
-                sessions.map((session) => (
+                sessions.map((session, idx) => (
                   <div
                     key={session.id}
+                    data-aos="fade-up"
+                    data-aos-delay={idx * 60}
                     className="flex items-center justify-between p-2 border rounded-lg hover:bg-gray-50/50 transition-colors"
                   >
                     <div className="flex items-center space-x-2">
@@ -403,7 +399,7 @@ const PhysioDashboard = () => {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       <PatientDetailsDialog
         isOpen={isDetailsOpen}

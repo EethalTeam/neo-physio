@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import AnimatedNumber from "@/components/CustomComponents/AnimatedNumber";
 import {
   Card,
   CardContent,
@@ -59,6 +61,22 @@ ChartJS.register(
   ChartLegend,
   ChartTooltip,
 );
+
+function StatBox({ label, value, bg, text }) {
+  return (
+    <div
+      className={`rounded-xl ${bg} p-2 sm:p-3 flex flex-col justify-center border border-black/5`}
+    >
+      <p className="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-1">
+        {label}
+      </p>
+      <p className={`text-base sm:text-lg font-extrabold ${text} leading-none`}>
+        <AnimatedNumber value={value} />
+      </p>
+    </div>
+  );
+}
+
 const Reports = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -490,6 +508,7 @@ const Reports = () => {
     console.log("UPDATED sessions:", sessions);
   }, [sessions]);
   useEffect(() => {
+    AOS.init({ duration: 700, once: true, easing: "ease-out-cubic" });
     getAllPatients();
   }, []);
   useEffect(() => {
@@ -1436,12 +1455,7 @@ const Reports = () => {
 
   return (
     <div className="space-y-6 p-2 md:p-0">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col space-y-4"
-      >
+      <div className="flex flex-col space-y-4">
         <div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">
             Reports & Analytics
@@ -1658,17 +1672,16 @@ const Reports = () => {
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <div
               key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.05 }}
+              data-aos="fade-up"
+              data-aos-delay={index * 100}
             >
               <Card className="medical-card hover:shadow-lg transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1681,34 +1694,36 @@ const Reports = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-800">
-                    {stat.value}
+                    <AnimatedNumber value={stat.value} />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {monthNames[Number(selectedMonth) - 1]} {selectedYear}
                   </p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              New Enquiries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.newEnquiries}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
-            </p>
-          </CardContent>
-        </Card>
+        <div data-aos="fade-up" data-aos-delay="0">
+          <Card className="medical-card hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                New Enquiries
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                <AnimatedNumber value={stats.newEnquiries} />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {monthNames[Number(selectedMonth) - 1]} {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* <Card className="medical-card hover:shadow-lg transition-shadow">
             <CardHeader className="pb-2">
@@ -1728,56 +1743,65 @@ const Reports = () => {
             </CardContent>
           </Card> */}
 
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              New Consultations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.consultationsFromLeads}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
-            </p>
-          </CardContent>
-        </Card>
+        <div data-aos="fade-up" data-aos-delay="100">
+          <Card className="medical-card hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                New Consultations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                <AnimatedNumber value={stats.consultationsFromLeads} />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {monthNames[Number(selectedMonth) - 1]} {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              New Patients
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.newPatients}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
-            </p>
-          </CardContent>
-        </Card>
+        <div data-aos="fade-up" data-aos-delay="200">
+          <Card className="medical-card hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                New Patients
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                <AnimatedNumber value={stats.newPatients} />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {monthNames[Number(selectedMonth) - 1]} {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="medical-card hover:shadow-lg transition-shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Lead Conversion Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-800">
-              {stats.leadConversionRate}%
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {monthNames[Number(selectedMonth) - 1]} {selectedYear}
-            </p>
-          </CardContent>
-        </Card>
+        <div data-aos="fade-up" data-aos-delay="300">
+          <Card className="medical-card hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Lead Conversion Rate
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800">
+                <AnimatedNumber value={`${stats.leadConversionRate}%`} />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {monthNames[Number(selectedMonth) - 1]} {selectedYear}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div
+        data-aos="fade-up"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
+      >
         <Card className="medical-card">
           <CardHeader>
             <CardTitle>Monthly Financial Overview</CardTitle>
@@ -1868,268 +1892,261 @@ const Reports = () => {
       </div>
 
       {!isHodSelected && (
-        <Card className="medical-card border-none shadow-sm">
-          <CardHeader className="px-4 py-5 sm:px-6">
-            <CardTitle className="text-xl font-bold text-gray-900">
-              Physio Wise Report View
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Assigned patients, session count, completed/canceled sessions, and
-              leave details
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-2 sm:px-6">
-            {physioWiseData.length === 0 ? (
-              <div className="py-10 text-center text-sm text-gray-500 italic">
-                No physio-wise data available for selected filters.
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {physioWiseData.map((item) => (
-                  <div
-                    key={item.physioId}
-                    className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm"
-                  >
-                    {/* Header Section: Name and Quick Stats */}
-                    <div className="p-4 bg-slate-50/50 border-b border-slate-100">
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div>
+          <Card className="medical-card border-none shadow-sm">
+            <CardHeader className="px-4 py-5 sm:px-6">
+              <CardTitle className="text-xl font-bold text-gray-900">
+                Physio Wise Report View
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Assigned patients, session count, completed/canceled sessions,
+                and leave details
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-2 sm:px-6">
+              {physioWiseData.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-500 italic">
+                  No physio-wise data available for selected filters.
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {physioWiseData.map((item) => (
+                    <div
+                      key={item.physioId}
+                      className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm"
+                    >
+                      {/* Header Section: Name and Quick Stats */}
+                      <div className="p-4 bg-slate-50/50 border-b border-slate-100">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-800">
+                              {item.physioName}
+                            </h3>
+                            <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">
+                              {selectedMonthName}
+                            </p>
+                          </div>
+
+                          {/* Responsive Stats Grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 w-full lg:w-auto">
+                            <StatBox
+                              label="Assigned"
+                              value={item.totalAssignedPatients}
+                              bg="bg-blue-50"
+                              text="text-blue-700"
+                            />
+
+                            <StatBox
+                              label="Sessions"
+                              value={item.totalSessions}
+                              bg="bg-purple-50"
+                              text="text-purple-700"
+                            />
+
+                            <StatBox
+                              label="Completed"
+                              value={item.completedSessions}
+                              bg="bg-green-50"
+                              text="text-green-700"
+                            />
+                            <StatBox
+                              label="Canceled"
+                              value={item.cancelledSessions}
+                              bg="bg-red-50"
+                              text="text-red-700"
+                            />
+                            <StatBox
+                              label="Leave"
+                              value={item.leaveDays}
+                              bg="bg-yellow-50"
+                              text="text-yellow-700"
+                            />
+                            <StatBox
+                              label="SCR %"
+                              value={`${item.completionPercentage ?? 0}%`}
+                              bg="bg-cyan-50"
+                              text="text-cyan-700"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-8">
+                        {/* Patient Table Wrapper */}
                         <div>
-                          <h3 className="text-lg font-bold text-gray-800">
-                            {item.physioName}
-                          </h3>
-                          <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">
-                            {selectedMonthName}
-                          </p>
+                          <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                            <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
+                            Assigned Patients
+                          </h4>
+                          <div className="relative overflow-x-auto rounded-lg border border-slate-100">
+                            <table className="min-w-[700px] w-full text-sm text-left border-collapse">
+                              <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
+                                <tr>
+                                  <th className="px-3 py-3 whitespace-nowrap">
+                                    S.No
+                                  </th>
+                                  <th className="px-3 py-3 whitespace-nowrap">
+                                    Code
+                                  </th>
+                                  <th className="px-4 py-3 min-w-[150px]">
+                                    Patient Name
+                                  </th>
+                                  <th className="px-3 py-3 whitespace-nowrap">
+                                    Mobile
+                                  </th>
+                                  <th className="px-4 py-3 min-w-[150px]">
+                                    Condition
+                                  </th>
+                                  <th className="px-3 py-3 whitespace-nowrap">
+                                    Reference
+                                  </th>
+                                  <th className="px-3 py-3 text-center">
+                                    Sessions
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-50">
+                                {item.assignedPatients.length === 0 ? (
+                                  <tr>
+                                    <td
+                                      colSpan={7}
+                                      className="px-3 py-6 text-center text-gray-400 italic"
+                                    >
+                                      No assigned patients
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  item.assignedPatients.map(
+                                    (patient, index) => (
+                                      <tr
+                                        key={patient?._id || index}
+                                        data-aos="fade-up"
+                                        data-aos-delay={index * 60}
+                                        className="hover:bg-slate-50/50 transition-colors"
+                                      >
+                                        <td className="px-3 py-3 text-gray-400">
+                                          {index + 1}
+                                        </td>
+                                        <td className="px-3 py-3 font-mono text-xs text-gray-600">
+                                          {patient?.patientCode || "N/A"}
+                                        </td>
+                                        <td className="px-4 py-3 font-semibold text-gray-800">
+                                          {patient?.patientName || "N/A"}{" "}
+                                          {patient.isRecovered
+                                            ? " (Recovered)"
+                                            : ""}
+                                        </td>
+                                        <td className="px-3 py-3 text-gray-600">
+                                          {patient?.patientNumber || "N/A"}
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600">
+                                          {patient?.patientCondition || "N/A"}
+                                        </td>
+                                        <td className="px-3 py-3 text-gray-500">
+                                          {getPatientReferenceName(patient)}
+                                        </td>
+                                        <td className="px-3 py-3 text-center font-bold text-blue-600">
+                                          {
+                                            sessions.filter(
+                                              (s) =>
+                                                String(
+                                                  s?.patientId?._id ||
+                                                    s?.patientId,
+                                                ) === String(patient?._id) &&
+                                                s?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
+                                                  "completed",
+                                            ).length
+                                          }
+                                        </td>
+                                      </tr>
+                                    ),
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
 
-                        {/* Responsive Stats Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 w-full lg:w-auto">
-                          <StatBox
-                            label="Assigned"
-                            value={item.totalAssignedPatients}
-                            bg="bg-blue-50"
-                            text="text-blue-700"
-                          />
-                          <StatBox
-                            label="Sessions"
-                            value={item.totalSessions}
-                            bg="bg-purple-50"
-                            text="text-purple-700"
-                          />
-                          <StatBox
-                            label="Completed"
-                            value={item.completedSessions}
-                            bg="bg-green-50"
-                            text="text-green-700"
-                          />
-                          <StatBox
-                            label="Canceled"
-                            value={item.cancelledSessions}
-                            bg="bg-red-50"
-                            text="text-red-700"
-                          />
-                          <StatBox
-                            label="Leave"
-                            value={item.leaveDays}
-                            bg="bg-yellow-50"
-                            text="text-yellow-700"
-                          />
-                          <StatBox
-                            label="SCR %"
-                            value={`${item.completionPercentage}%`}
-                            bg="bg-cyan-50"
-                            text="text-cyan-700"
-                          />
+                        {/* Leave Details Wrapper */}
+                        <div className="bg-yellow-50/30 p-4 rounded-xl border border-yellow-100/50">
+                          <h4 className="text-sm font-bold text-yellow-800 mb-3 flex items-center gap-2">
+                            <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
+                            Leave Details
+                          </h4>
+                          <div className="relative overflow-x-auto rounded-lg border border-yellow-100 bg-white/50">
+                            <table className="min-w-[700px] w-full text-sm text-left border-collapse">
+                              <thead className="bg-yellow-100/50 text-yellow-900 font-bold border-b border-yellow-100">
+                                <tr>
+                                  <th className="px-3 py-2">S.No</th>
+                                  <th className="px-3 py-2 whitespace-nowrap">
+                                    Leave Date
+                                  </th>
+                                  <th className="px-3 py-2 whitespace-nowrap">
+                                    Leave Mode
+                                  </th>
+                                  <th className="px-3 py-2">Paid</th>
+                                  <th className="px-3 py-2">Status</th>
+                                  <th className="px-3 py-2 text-center">
+                                    Reassigned
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-yellow-100">
+                                {item.leaveEntries.length === 0 ? (
+                                  <tr>
+                                    <td
+                                      colSpan={6}
+                                      className="px-3 py-4 text-center text-yellow-600/50 italic text-xs"
+                                    >
+                                      No leave found
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  item.leaveEntries.map((leave, index) => (
+                                    <tr
+                                      key={leave?._id || index}
+                                      data-aos="fade-up"
+                                      data-aos-delay={index * 60}
+                                      className="hover:bg-yellow-50/50 transition-colors"
+                                    >
+                                      <td className="px-3 py-2 text-yellow-700/60">
+                                        {index + 1}
+                                      </td>
+                                      <td className="px-3 py-2 font-medium">
+                                        {formatDate(getLeaveDate(leave))}
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        {getLeaveMode(leave)}
+                                      </td>
+                                      <td className="px-3 py-2">
+                                        {leave?.PaidLeave ? "Yes" : "No"}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap">
+                                        <span className="px-2 py-0.5 rounded-full bg-white border border-yellow-200 text-[10px] font-bold uppercase text-yellow-700">
+                                          {getLeaveStatus(leave)}
+                                        </span>
+                                      </td>
+                                      <td className="px-3 py-2 text-center font-bold text-yellow-800">
+                                        {getReassignedCount(leave)}
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    <div className="p-4 space-y-8">
-                      {/* Patient Table Wrapper */}
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                          <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
-                          Assigned Patients
-                        </h4>
-                        <div className="relative overflow-x-auto rounded-lg border border-slate-100">
-                          <table className="min-w-[700px] w-full text-sm text-left border-collapse">
-                            <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
-                              <tr>
-                                <th className="px-3 py-3 whitespace-nowrap">
-                                  S.No
-                                </th>
-                                <th className="px-3 py-3 whitespace-nowrap">
-                                  Code
-                                </th>
-                                <th className="px-4 py-3 min-w-[150px]">
-                                  Patient Name
-                                </th>
-                                <th className="px-3 py-3 whitespace-nowrap">
-                                  Mobile
-                                </th>
-                                <th className="px-4 py-3 min-w-[150px]">
-                                  Condition
-                                </th>
-                                <th className="px-3 py-3 whitespace-nowrap">
-                                  Reference
-                                </th>
-                                <th className="px-3 py-3 text-center">
-                                  Sessions
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                              {item.assignedPatients.length === 0 ? (
-                                <tr>
-                                  <td
-                                    colSpan={7}
-                                    className="px-3 py-6 text-center text-gray-400 italic"
-                                  >
-                                    No assigned patients
-                                  </td>
-                                </tr>
-                              ) : (
-                                item.assignedPatients.map((patient, index) => (
-                                  <tr
-                                    key={patient?._id || index}
-                                    className="hover:bg-slate-50/50 transition-colors"
-                                  >
-                                    <td className="px-3 py-3 text-gray-400">
-                                      {index + 1}
-                                    </td>
-                                    <td className="px-3 py-3 font-mono text-xs text-gray-600">
-                                      {patient?.patientCode || "N/A"}
-                                    </td>
-                                    <td className="px-4 py-3 font-semibold text-gray-800">
-                                      {patient?.patientName || "N/A"}{" "}
-                                      {patient.isRecovered
-                                        ? " (Recovered)"
-                                        : ""}
-                                    </td>
-                                    <td className="px-3 py-3 text-gray-600">
-                                      {patient?.patientNumber || "N/A"}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-600">
-                                      {patient?.patientCondition || "N/A"}
-                                    </td>
-                                    <td className="px-3 py-3 text-gray-500">
-                                      {getPatientReferenceName(patient)}
-                                    </td>
-                                    <td className="px-3 py-3 text-center font-bold text-blue-600">
-                                      {
-                                        sessions.filter(
-                                          (s) =>
-                                            String(
-                                              s?.patientId?._id || s?.patientId,
-                                            ) === String(patient?._id) &&
-                                            s?.sessionStatusId?.sessionStatusName?.toLowerCase() ===
-                                              "completed",
-                                        ).length
-                                      }
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-
-                      {/* Leave Details Wrapper */}
-                      <div className="bg-yellow-50/30 p-4 rounded-xl border border-yellow-100/50">
-                        <h4 className="text-sm font-bold text-yellow-800 mb-3 flex items-center gap-2">
-                          <span className="w-1.5 h-4 bg-yellow-400 rounded-full"></span>
-                          Leave Details
-                        </h4>
-                        <div className="relative overflow-x-auto rounded-lg border border-yellow-100 bg-white/50">
-                          <table className="min-w-[700px] w-full text-sm text-left border-collapse">
-                            <thead className="bg-yellow-100/50 text-yellow-900 font-bold border-b border-yellow-100">
-                              <tr>
-                                <th className="px-3 py-2">S.No</th>
-                                <th className="px-3 py-2 whitespace-nowrap">
-                                  Leave Date
-                                </th>
-                                <th className="px-3 py-2 whitespace-nowrap">
-                                  Leave Mode
-                                </th>
-                                <th className="px-3 py-2">Paid</th>
-                                <th className="px-3 py-2">Status</th>
-                                <th className="px-3 py-2 text-center">
-                                  Reassigned
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-yellow-100">
-                              {item.leaveEntries.length === 0 ? (
-                                <tr>
-                                  <td
-                                    colSpan={6}
-                                    className="px-3 py-4 text-center text-yellow-600/50 italic text-xs"
-                                  >
-                                    No leave found
-                                  </td>
-                                </tr>
-                              ) : (
-                                item.leaveEntries.map((leave, index) => (
-                                  <tr
-                                    key={leave?._id || index}
-                                    className="hover:bg-yellow-50/50 transition-colors"
-                                  >
-                                    <td className="px-3 py-2 text-yellow-700/60">
-                                      {index + 1}
-                                    </td>
-                                    <td className="px-3 py-2 font-medium">
-                                      {formatDate(getLeaveDate(leave))}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      {getLeaveMode(leave)}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      {leave?.PaidLeave ? "Yes" : "No"}
-                                    </td>
-                                    <td className="px-3 py-2 whitespace-nowrap">
-                                      <span className="px-2 py-0.5 rounded-full bg-white border border-yellow-200 text-[10px] font-bold uppercase text-yellow-700">
-                                        {getLeaveStatus(leave)}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-2 text-center font-bold text-yellow-800">
-                                      {getReassignedCount(leave)}
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
-
-      {/* Helper component to keep the code clean */}
     </div>
   );
-  function StatBox({ label, value, bg, text }) {
-    return (
-      <div
-        className={`rounded-xl ${bg} p-2 sm:p-3 flex flex-col justify-center border border-black/5`}
-      >
-        <p className="text-[10px] sm:text-xs text-gray-500 font-medium leading-tight mb-1">
-          {label}
-        </p>
-        <p
-          className={`text-base sm:text-lg font-extrabold ${text} leading-none`}
-        >
-          {value}
-        </p>
-      </div>
-    );
-  }
 };
 
 export default Reports;

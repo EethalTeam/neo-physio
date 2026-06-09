@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, User, LogOut, Menu, Check, X } from "lucide-react";
+import { Bell, User, LogOut, Menu, Check, X, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { config } from "./CustomComponents/config";
@@ -255,57 +255,77 @@ const Header = ({ toggleSidebar }) => {
               <div className="p-2 font-semibold">Notifications</div>
               <DropdownMenuSeparator />
               {userNotifications.length > 0 ? (
-                userNotifications.map((notification) => (
-                  <div key={notification._id} className="px-2 py-1.5 text-sm">
-                    <p className="mb-2">{notification.message}</p>
-                    {user?.role === "SuperAdmin" &&
-                    notification.fromEmployeeId !== user._id &&
-                    notification.status !== "approved" &&
-                    notification.status !== "rejected" &&
-                    notification.type === "Petrol-Allowance" ? (
-                      <div className="flex gap-2 mt-1">
-                        <Button
-                          size="sm"
-                          className="bg-green-500/80 hover:bg-green-500 h-7"
-                          onClick={() =>
-                            handleNotificationAction(notification, "approve")
-                          }
-                        >
-                          <Check className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
+                userNotifications.map((notification) => {
+                  const isMilestone =
+                    notification.type === "Monthly-Bill-Alert";
 
-                        <Button
-                          size="sm"
-                          className="bg-red-500/80 hover:bg-red-500 h-7"
-                          onClick={() =>
-                            handleNotificationAction(notification, "reject")
-                          }
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-3 items-center">
-                        {notification.status === "unseen" && (
+                  return (
+                    <div
+                      key={notification._id}
+                      className="px-2 py-1.5 text-sm rounded-md mb-1"
+                      style={isMilestone ? { backgroundColor: "#e8fde7", border: "1.5px solid #86F285" } : {}}
+                    >
+                      {isMilestone && (
+                        <div className="flex items-center gap-1 mb-1">
+                          <Trophy className="w-4 h-4" style={{ color: "#86F285" }} />
+                          <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#2d7a2d" }}>
+                            26th Session Milestone
+                          </span>
+                        </div>
+                      )}
+                      <p className={`mb-2 ${isMilestone ? "font-semibold" : ""}`} style={isMilestone ? { color: "#1a4d1a" } : {}}>
+                        {notification.message}
+                      </p>
+                      {user?.role === "SuperAdmin" &&
+                      notification.fromEmployeeId !== user._id &&
+                      notification.status !== "approved" &&
+                      notification.status !== "rejected" &&
+                      notification.type === "Petrol-Allowance" ? (
+                        <div className="flex gap-2 mt-1">
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="h-7 mt-[10px]"
-                            onClick={() => markAsRead(notification._id)}
+                            className="bg-green-500/80 hover:bg-green-500 h-7"
+                            onClick={() =>
+                              handleNotificationAction(notification, "approve")
+                            }
                           >
-                            Mark as read
+                            <Check className="w-4 h-4 mr-1" />
+                            Approve
                           </Button>
-                        )}
 
-                        <p>
-                          {new Date(notification.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))
+                          <Button
+                            size="sm"
+                            className="bg-red-500/80 hover:bg-red-500 h-7"
+                            onClick={() =>
+                              handleNotificationAction(notification, "reject")
+                            }
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3 items-center">
+                          {notification.status === "unseen" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 mt-[10px]"
+                              style={{ backgroundColor: "#F2D585" }}
+                              onClick={() => markAsRead(notification._id)}
+                            >
+                              Mark as read
+                            </Button>
+                          )}
+
+                          <p className="text-xs" style={isMilestone ? { color: "#2d7a2d" } : {}}>
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="px-2 py-4 text-center text-sm text-gray-400">
                   No new notifications

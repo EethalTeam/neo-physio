@@ -47,6 +47,7 @@ import {
   TrendingUp,
   CheckSquare,
   Activity,
+  Award,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -1226,6 +1227,11 @@ const SessionManagement = () => {
     setIsFormOpen(true);
   };
 
+  const is26thMilestone = (session) =>
+    session?.sessionStatusId?.sessionStatusName === "Completed" &&
+    Number(session?.monthlySessionCount) > 0 &&
+    Number(session?.monthlySessionCount) % 26 === 0;
+
   const getCompletionPercentage = (completed, total) => {
     if (!total || Number(total) === 0) return "0.00";
     return ((Number(completed) / Number(total)) * 100).toFixed(2);
@@ -1422,6 +1428,7 @@ const SessionManagement = () => {
                         <tr
                           key={session._id}
                           className="border-b hover:bg-gray-50"
+                          style={is26thMilestone(session) ? { backgroundColor: "#e8fde7", borderLeft: "4px solid #86F285" } : {}}
                         >
                           <td className="p-2">
                             {session.sessionCode ||
@@ -1486,7 +1493,12 @@ const SessionManagement = () => {
                           </td>
 
                           <td className="p-2">
-                            {session?.monthlySessionCount || "-"}
+                            <div className="flex items-center gap-1">
+                              {session?.monthlySessionCount || "-"}
+                              {is26thMilestone(session) && (
+                                <Award className="w-4 h-4" style={{ color: "#86F285" }} title="26th Session Milestone!" />
+                              )}
+                            </div>
                           </td>
 
                           {/* <td className="p-2">
@@ -1720,7 +1732,16 @@ const SessionManagement = () => {
                   <Card
                     key={session._id}
                     className="p-4 shadow-lg rounded-2xl border"
+                    style={is26thMilestone(session) ? { borderColor: "#86F285", backgroundColor: "#e8fde7" } : {}}
                   >
+                    {is26thMilestone(session) && (
+                      <div className="flex items-center gap-1 mb-2">
+                        <Award className="w-4 h-4" style={{ color: "#86F285" }} />
+                        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#2d7a2d" }}>
+                          26th Session Milestone
+                        </span>
+                      </div>
+                    )}
                     <div className="mb-2">
                       <p className="text-base font-bold">
                         {session.patientId?.patientName || "-"}
@@ -1738,7 +1759,7 @@ const SessionManagement = () => {
 
                     <p className="text-sm text-gray-500">
                       Session
-                      <span className="font-medium text-gray-800 ml-1">
+                      <span className="font-medium ml-1" style={is26thMilestone(session) ? { color: "#2d7a2d" } : { color: "#1f2937" }}>
                         {session.monthlySessionCount || "-"}
                       </span>
                     </p>

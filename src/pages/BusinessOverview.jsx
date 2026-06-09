@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import AnimatedNumber from "@/components/CustomComponents/AnimatedNumber";
 import {
   Card,
   CardContent,
@@ -152,6 +154,7 @@ const BusinessOverview = () => {
   const [expenseCategory, setExpenseCategory] = useState([]);
 
   useEffect(() => {
+    AOS.init({ duration: 700, once: true, easing: "ease-out-cubic" });
     const fetchAll = async () => {
       try {
         await Promise.all([
@@ -1645,10 +1648,9 @@ const BusinessOverview = () => {
 
   return (
     <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden px-2 pb-4 sm:space-y-6 sm:px-4 md:px-6">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div
+        data-aos="fade-down"
+        data-aos-duration="600"
         className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
       >
         <div className="min-w-0">
@@ -1670,7 +1672,7 @@ const BusinessOverview = () => {
             Add Transaction
           </Button>
         )}
-      </motion.div>
+      </div>
 
       <Tabs defaultValue="monthly_report" className="w-full min-w-0">
         <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-xl bg-muted p-1 sm:grid-cols-3 xl:grid-cols-7">
@@ -1722,7 +1724,7 @@ const BusinessOverview = () => {
           value="monthly_report"
           className="mt-4 space-y-4 sm:space-y-6"
         >
-          <Card className="rounded-2xl">
+          <div data-aos="fade-down"><Card className="rounded-2xl">
             <CardHeader className="pb-3 sm:pb-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
@@ -1831,11 +1833,12 @@ const BusinessOverview = () => {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+          </Card></div>
 
           <div className="space-y-6 p-4">
             {/* TOP SUMMARY STATS - 3 COLUMN GRID */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div data-aos="fade-up" data-aos-delay="0">
               <Card className="rounded-2xl border-l-4 border-l-green-500 shadow-sm">
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -1845,11 +1848,13 @@ const BusinessOverview = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="break-all text-xl font-bold text-green-600 sm:text-2xl">
-                    ₹{totalIncome.toLocaleString()}
+                    <AnimatedNumber value={`₹${totalIncome.toLocaleString()}`} />
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
+              <div data-aos="fade-up" data-aos-delay="80">
               <Card className="rounded-2xl border-l-4 border-l-red-500 shadow-sm">
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -1859,12 +1864,14 @@ const BusinessOverview = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="break-all text-xl font-bold text-red-600 sm:text-2xl">
-                    ₹{totalExpense.toLocaleString()}
+                    <AnimatedNumber value={`₹${totalExpense.toLocaleString()}`} />
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
-              <Card className="rounded-2xl border-l-4 border-l-blue-500 shadow-sm md:col-span-2 xl:col-span-1">
+              <div data-aos="fade-up" data-aos-delay="160" className="md:col-span-2 xl:col-span-1">
+              <Card className="rounded-2xl border-l-4 border-l-blue-500 shadow-sm">
                 <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
                     Monthly Net
@@ -1877,14 +1884,15 @@ const BusinessOverview = () => {
                   <div
                     className={`break-all text-xl font-bold sm:text-2xl ${netBalance >= 0 ? "text-blue-600" : "text-orange-600"}`}
                   >
-                    ₹{netBalance.toLocaleString()}
+                    <AnimatedNumber value={`₹${netBalance.toLocaleString()}`} />
                   </div>
                 </CardContent>
               </Card>
+              </div>
             </div>
 
             {/* MAIN CHARTS SECTION */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div data-aos="fade-up" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* 1. MULTI-YEAR GROWTH BAR CHART */}
               <Card className="shadow-sm">
                 <CardHeader>
@@ -2052,7 +2060,7 @@ const BusinessOverview = () => {
         </TabsContent>
 
         <TabsContent value="all_records" className="mt-4">
-          <Card className="rounded-2xl">
+          <div data-aos="fade-up"><Card className="rounded-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <List size={18} />
@@ -2065,11 +2073,11 @@ const BusinessOverview = () => {
             <CardContent className="px-3 pb-4 sm:px-6">
               <TransactionTable data={transactions} type="Expense" />
             </CardContent>
-          </Card>
+          </Card></div>
         </TabsContent>
 
         <TabsContent value="expenses" className="mt-4">
-          <Card className="rounded-2xl">
+          <div data-aos="fade-up"><Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Expense Records</CardTitle>
               <CardDescription>
@@ -2082,11 +2090,11 @@ const BusinessOverview = () => {
             <CardContent className="px-3 pb-4 sm:px-6">
               <TransactionTable data={expenseTransactions} type="Expense" />
             </CardContent>
-          </Card>
+          </Card></div>
         </TabsContent>
 
         <TabsContent value="income" className="mt-4">
-          <Card className="rounded-2xl">
+          <div data-aos="fade-up"><Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Income Records</CardTitle>
               <CardDescription>
@@ -2099,13 +2107,13 @@ const BusinessOverview = () => {
             <CardContent className="px-3 pb-4 sm:px-6">
               <TransactionTable data={incomeTransactions} type="Income" />
             </CardContent>
-          </Card>
+          </Card></div>
         </TabsContent>
         <TabsContent
           value="expense_chart"
           className="mt-4 w-full min-w-0 max-w-full overflow-hidden"
         >
-          <Card className="w-full min-w-0 max-w-full rounded-2xl overflow-hidden">
+          <div data-aos="fade-up"><Card className="w-full min-w-0 max-w-full rounded-2xl overflow-hidden">
             <CardHeader className="px-3 py-3">
               <CardTitle className="text-sm font-semibold sm:text-base md:text-2xl">
                 Expense Breakdown
@@ -2152,10 +2160,10 @@ const BusinessOverview = () => {
                 )}
               </div>
             </CardContent>
-          </Card>
+          </Card></div>
         </TabsContent>
         <TabsContent value="summary_charts" className="mt-4">
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 2xl:grid-cols-2">
+          <div data-aos="fade-up" className="grid grid-cols-1 gap-4 sm:gap-6 2xl:grid-cols-2">
             {/* Income vs Expense */}
             <Card className="rounded-2xl">
               <CardHeader>
@@ -2332,7 +2340,7 @@ const BusinessOverview = () => {
         </TabsContent>
 
         <TabsContent value="advanced_filter" className="mt-4 space-y-4">
-          <Card className="rounded-2xl">
+          <div data-aos="fade-up"><Card className="rounded-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-2xl">
                 <Search className="h-5 w-5" />
@@ -2444,10 +2452,10 @@ const BusinessOverview = () => {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+          </Card></div>
 
           {advancedFilteredTransactions && (
-            <Card className="rounded-2xl">
+            <div data-aos="fade-up"><Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Filtered Results</CardTitle>
 
@@ -2484,7 +2492,7 @@ const BusinessOverview = () => {
                   type="Expense"
                 />
               </CardContent>
-            </Card>
+            </Card></div>
           )}
         </TabsContent>
       </Tabs>
