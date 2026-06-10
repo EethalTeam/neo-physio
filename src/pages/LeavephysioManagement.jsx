@@ -834,7 +834,7 @@ const LeavephysioManagement = () => {
                           </td>
                           <td className="p-3 text-gray-600">
                             {leave.LeaveDate
-                              ? new Date(leave.LeaveDate).toLocaleDateString()
+                              ? new Date(leave.LeaveDate).toLocaleDateString("en-GB")
                               : "N/A"}
                           </td>
                           <td className="p-3">
@@ -933,7 +933,7 @@ const LeavephysioManagement = () => {
                       </h4>
                       <p className="text-xs text-gray-500">
                         {leave.LeaveDate
-                          ? new Date(leave.LeaveDate).toLocaleDateString()
+                          ? new Date(leave.LeaveDate).toLocaleDateString("en-GB")
                           : "N/A"}
                       </p>
                     </div>
