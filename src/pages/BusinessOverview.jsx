@@ -92,6 +92,7 @@ const BusinessOverview = () => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [patientList, setPatientList] = useState([]);
+  const [allSessions, setAllSessions] = useState([]);
   const [selectedReference, setSelectedReference] = useState("all");
 
   const [masters, setMasters] = useState({
@@ -187,6 +188,10 @@ const BusinessOverview = () => {
       getExpense();
     }
   }, [Permissions]);
+
+  useEffect(() => {
+    getAllSessionsData(Number(selectedYear));
+  }, [selectedYear]);
 
   const getExpense = async (data) => {
     try {
@@ -397,6 +402,27 @@ const BusinessOverview = () => {
     } catch (error) {
       console.error("Error:", error);
       throw error;
+    }
+  };
+
+  const getAllSessionsData = async (year) => {
+    try {
+      const targetYear = year || Number(selectedYear);
+      // Fetch all 12 months in parallel to get full-year session data
+      const results = await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          apiRequest("Session/getSessionsByMonthYear", {
+            method: "POST",
+            body: JSON.stringify({ month: i + 1, year: targetYear }),
+          })
+        )
+      );
+      const sessions = results.flatMap((res) =>
+        Array.isArray(res?.data) ? res.data : []
+      );
+      setAllSessions(sessions);
+    } catch (error) {
+      console.error("Error fetching yearly sessions:", error);
     }
   };
 
@@ -1444,42 +1470,35 @@ const BusinessOverview = () => {
     ];
 
     const monthlyRevenue = Array(12).fill(0);
-    const totalPatientsPerMonth = Array(12).fill(0);
+    // Unique patients who had a session each month of the selected year
+    const sessionPatientsPerMonth = Array.from({ length: 12 }, () => new Set());
 
-    // 1. Calculate Total Revenue from Transactions
+    // 1. Monthly revenue from income transactions
     transactions.forEach((tx) => {
       if (!tx.date || tx.type !== "Income") return;
       const txDate = new Date(tx.date);
       if (txDate.getFullYear() === selectedYearNumber) {
-        const month = txDate.getMonth();
-        monthlyRevenue[month] += Number(tx.amount || 0);
+        monthlyRevenue[txDate.getMonth()] += Number(tx.amount || 0);
       }
     });
 
-    // 2. Calculate Total Patients Registered in each month
-    // We use masters.patients or patientList here
-    const allPatients = masters.patients || patientList || [];
-
-    allPatients.forEach((patient) => {
-      // Assuming your patient object has a 'createdAt' or 'date' field
-      const registrationDate = patient.createdAt
-        ? new Date(patient.createdAt)
-        : null;
-
-      if (
-        registrationDate &&
-        registrationDate.getFullYear() === selectedYearNumber
-      ) {
-        const month = registrationDate.getMonth();
-        totalPatientsPerMonth[month] += 1;
+    // 2. Unique patients with sessions in each month
+    allSessions.forEach((session) => {
+      const dateStr = session.sessionDate || session.date;
+      if (!dateStr) return;
+      const sDate = new Date(dateStr);
+      if (sDate.getFullYear() !== selectedYearNumber) return;
+      const patientId =
+        session.patientId?._id || session.patientId || session.PatientId;
+      if (patientId) {
+        sessionPatientsPerMonth[sDate.getMonth()].add(String(patientId));
       }
     });
 
-    // 3. Calculate Average (Revenue / Total Registered Patients)
+    // 3. Average = revenue / unique patients with sessions that month
+    const patientCounts = sessionPatientsPerMonth.map((s) => s.size);
     const averageData = monthlyRevenue.map((revenue, index) => {
-      const patientCount = totalPatientsPerMonth[index];
-
-      // Divide by total patients of that month
+      const patientCount = patientCounts[index];
       return patientCount > 0
         ? parseFloat((revenue / patientCount).toFixed(2))
         : 0;
@@ -1489,17 +1508,31 @@ const BusinessOverview = () => {
       labels,
       datasets: [
         {
-          label: "Avg Revenue per Total Patients",
+          type: "line",
+          label: "Avg Revenue per Patient (₹)",
           data: averageData,
           borderColor: "#8b5cf6",
           backgroundColor: "rgba(139, 92, 246, 0.1)",
           borderWidth: 2,
           fill: true,
           tension: 0.4,
+          yAxisID: "y",
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          type: "bar",
+          label: "Patient Count",
+          data: patientCounts,
+          backgroundColor: "rgba(34, 197, 94, 0.4)",
+          borderColor: "rgba(34, 197, 94, 0.8)",
+          borderWidth: 1,
+          borderRadius: 4,
+          yAxisID: "y1",
         },
       ],
     };
-  }, [transactions, masters.patients, patientList, selectedYear]);
+  }, [transactions, allSessions, selectedYear]);
 
   const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
   const [fySummary, setFySummary] = useState(null);
@@ -1995,17 +2028,35 @@ const BusinessOverview = () => {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                          legend: { display: false },
+                          legend: { display: true, position: "top" },
                           tooltip: {
                             callbacks: {
-                              label: (context) => `Avg: ₹${context.raw}`,
+                              label: (context) =>
+                                context.dataset.yAxisID === "y1"
+                                  ? `Patients: ${context.raw}`
+                                  : `Avg Revenue: ₹${Number(context.raw).toLocaleString()}`,
                             },
                           },
                         },
                         scales: {
                           y: {
+                            type: "linear",
+                            position: "left",
                             beginAtZero: true,
-                            ticks: { callback: (value) => `₹${value}` },
+                            ticks: {
+                              callback: (value) => `₹${value.toLocaleString()}`,
+                            },
+                            grid: { color: "rgba(0,0,0,0.05)" },
+                          },
+                          y1: {
+                            type: "linear",
+                            position: "right",
+                            beginAtZero: true,
+                            ticks: {
+                              stepSize: 1,
+                              callback: (value) => `${value} pts`,
+                            },
+                            grid: { drawOnChartArea: false },
                           },
                         },
                       }}
@@ -2060,20 +2111,47 @@ const BusinessOverview = () => {
         </TabsContent>
 
         <TabsContent value="all_records" className="mt-4">
-          <div data-aos="fade-up"><Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <List size={18} />
-                All Expense / Income Records
-              </CardTitle>
-              <CardDescription>
-                Showing all available data from backend
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-3 pb-4 sm:px-6">
-              <TransactionTable data={transactions} type="Expense" />
-            </CardContent>
-          </Card></div>
+          <div className="space-y-6">
+            <div data-aos="fade-up">
+              <Card className="rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-green-700">
+                    <List size={18} />
+                    Income Records
+                  </CardTitle>
+                  <CardDescription>
+                    All income entries ({transactions.filter(t => t.type === "Income").length} records)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-3 pb-4 sm:px-6">
+                  <TransactionTable
+                    data={transactions.filter(t => t.type === "Income")}
+                    type="Income"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div data-aos="fade-up">
+              <Card className="rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-red-700">
+                    <List size={18} />
+                    Expense Records
+                  </CardTitle>
+                  <CardDescription>
+                    All expense entries ({transactions.filter(t => t.type === "Expense").length} records)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-3 pb-4 sm:px-6">
+                  <TransactionTable
+                    data={transactions.filter(t => t.type === "Expense")}
+                    type="Expense"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="expenses" className="mt-4">
