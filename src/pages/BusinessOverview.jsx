@@ -1534,6 +1534,72 @@ const BusinessOverview = () => {
     };
   }, [transactions, allSessions, selectedYear]);
 
+  const avgRevenuePerSessionData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const labels = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+
+    const monthlyRevenue = Array(12).fill(0);
+    const sessionCountPerMonth = Array(12).fill(0);
+
+    // 1. Monthly revenue from income transactions
+    transactions.forEach((tx) => {
+      if (!tx.date || tx.type !== "Income") return;
+      const txDate = new Date(tx.date);
+      if (txDate.getFullYear() === selectedYearNumber) {
+        monthlyRevenue[txDate.getMonth()] += Number(tx.amount || 0);
+      }
+    });
+
+    // 2. Total sessions per month
+    allSessions.forEach((session) => {
+      const dateStr = session.sessionDate || session.date;
+      if (!dateStr) return;
+      const sDate = new Date(dateStr);
+      if (sDate.getFullYear() !== selectedYearNumber) return;
+      sessionCountPerMonth[sDate.getMonth()]++;
+    });
+
+    // 3. Average = revenue / total sessions that month
+    const averageData = monthlyRevenue.map((revenue, index) => {
+      const sessionCount = sessionCountPerMonth[index];
+      return sessionCount > 0
+        ? parseFloat((revenue / sessionCount).toFixed(2))
+        : 0;
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          type: "line",
+          label: "Avg Revenue per Session (₹)",
+          data: averageData,
+          borderColor: "#0ea5e9",
+          backgroundColor: "rgba(14, 165, 233, 0.1)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          yAxisID: "y",
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          type: "bar",
+          label: "Session Count",
+          data: sessionCountPerMonth,
+          backgroundColor: "rgba(249, 115, 22, 0.4)",
+          borderColor: "rgba(249, 115, 22, 0.8)",
+          borderWidth: 1,
+          borderRadius: 4,
+          yAxisID: "y1",
+        },
+      ],
+    };
+  }, [transactions, allSessions, selectedYear]);
+
   const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
   const [fySummary, setFySummary] = useState(null);
 
@@ -2065,7 +2131,63 @@ const BusinessOverview = () => {
                 </CardContent>
               </Card>
 
-              {/* 4. SESSION COMPLETION RATE (SCR) LINE CHART */}
+              {/* 4. AVERAGE REVENUE PER SESSION LINE CHART */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-sky-500" />
+                    Average Revenue Per Session
+                  </CardTitle>
+                  <CardDescription>
+                    Total income ÷ total sessions ({selectedYear})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Line
+                      data={avgRevenuePerSessionData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: true, position: "top" },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) =>
+                                context.dataset.yAxisID === "y1"
+                                  ? `Sessions: ${context.raw}`
+                                  : `Avg Revenue: ₹${Number(context.raw).toLocaleString()}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            type: "linear",
+                            position: "left",
+                            beginAtZero: true,
+                            ticks: {
+                              callback: (value) => `₹${value.toLocaleString()}`,
+                            },
+                            grid: { color: "rgba(0,0,0,0.05)" },
+                          },
+                          y1: {
+                            type: "linear",
+                            position: "right",
+                            beginAtZero: true,
+                            ticks: {
+                              stepSize: 1,
+                              callback: (value) => `${value} sess`,
+                            },
+                            grid: { drawOnChartArea: false },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 5. SESSION COMPLETION RATE (SCR) LINE CHART */}
               <Card className="shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <div className="space-y-1">
