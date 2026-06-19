@@ -49,6 +49,8 @@ import {
   Download,
   BarChart3,
   PieChart as PieChartIcon,
+  Users,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
@@ -1600,7 +1602,162 @@ const BusinessOverview = () => {
     };
   }, [transactions, allSessions, selectedYear]);
 
-  const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
+  // Feature 9: Expense category spend trend across 12 months
+  const expenseCategoryTrendData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const categoryMap = {};
+
+    transactions.forEach((tx) => {
+      if (!tx.date || tx.type !== "Expense") return;
+      const txDate = new Date(tx.date);
+      if (txDate.getFullYear() !== selectedYearNumber) return;
+      const cat = tx.ExpenseCategoryName || tx.category || "Other";
+      if (!categoryMap[cat]) categoryMap[cat] = Array(12).fill(0);
+      categoryMap[cat][txDate.getMonth()] += Number(tx.amount || 0);
+    });
+
+    const palette = ["#ef4444","#f97316","#eab308","#22c55e","#0ea5e9","#8b5cf6","#ec4899","#14b8a6"];
+    const datasets = Object.entries(categoryMap).map(([name, data], i) => ({
+      label: name,
+      data,
+      borderColor: palette[i % palette.length],
+      backgroundColor: palette[i % palette.length] + "33",
+      borderWidth: 2,
+      tension: 0.4,
+      fill: false,
+      pointRadius: 3,
+    }));
+
+    return { labels, datasets };
+  }, [transactions, selectedYear]);
+
+  // Feature 4: Session count by day of week
+  const sessionByDayData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0]; // 0=Sun … 6=Sat
+
+    allSessions.forEach((session) => {
+      const dateStr = session.sessionDate || session.date;
+      if (!dateStr) return;
+      const sDate = new Date(dateStr);
+      if (sDate.getFullYear() !== selectedYearNumber) return;
+      dayCounts[sDate.getDay()]++;
+    });
+
+    // Reorder Mon→Sun
+    const ordered = [dayCounts[1],dayCounts[2],dayCounts[3],dayCounts[4],dayCounts[5],dayCounts[6],dayCounts[0]];
+
+    return {
+      labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+      datasets: [{
+        label: "Sessions",
+        data: ordered,
+        backgroundColor: ordered.map((_, i) =>
+          i >= 5 ? "rgba(239,68,68,0.5)" : "rgba(14,165,233,0.5)"
+        ),
+        borderColor: ordered.map((_, i) => i >= 5 ? "#ef4444" : "#0ea5e9"),
+        borderWidth: 1,
+        borderRadius: 6,
+      }],
+    };
+  }, [allSessions, selectedYear]);
+
+  // Feature 5: New vs Returning patients per month
+  const newVsReturningData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthPatients = Array.from({ length: 12 }, () => new Set());
+
+    allSessions.forEach((session) => {
+      const dateStr = session.sessionDate || session.date;
+      if (!dateStr) return;
+      const sDate = new Date(dateStr);
+      if (sDate.getFullYear() !== selectedYearNumber) return;
+      const pid = String(session.patientId?._id || session.patientId || "");
+      if (pid) monthPatients[sDate.getMonth()].add(pid);
+    });
+
+    const seenBefore = new Set();
+    const newCounts = Array(12).fill(0);
+    const returningCounts = Array(12).fill(0);
+
+    monthPatients.forEach((patients, monthIdx) => {
+      patients.forEach((pid) => {
+        if (seenBefore.has(pid)) {
+          returningCounts[monthIdx]++;
+        } else {
+          newCounts[monthIdx]++;
+          seenBefore.add(pid);
+        }
+      });
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: "New Patients",
+          data: newCounts,
+          backgroundColor: "rgba(34,197,94,0.6)",
+          borderColor: "#22c55e",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: "Returning Patients",
+          data: returningCounts,
+          backgroundColor: "rgba(99,102,241,0.6)",
+          borderColor: "#6366f1",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [allSessions, selectedYear]);
+
+  // Feature 1: Month-over-month patient retention rate
+  const patientRetentionData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthPatients = Array.from({ length: 12 }, () => new Set());
+
+    allSessions.forEach((session) => {
+      const dateStr = session.sessionDate || session.date;
+      if (!dateStr) return;
+      const sDate = new Date(dateStr);
+      if (sDate.getFullYear() !== selectedYearNumber) return;
+      const pid = String(session.patientId?._id || session.patientId || "");
+      if (pid) monthPatients[sDate.getMonth()].add(pid);
+    });
+
+    const retentionRates = labels.map((_, i) => {
+      if (i === 0) return null;
+      const prev = monthPatients[i - 1];
+      const curr = monthPatients[i];
+      if (prev.size === 0) return null;
+      const retained = [...prev].filter((pid) => curr.has(pid)).length;
+      return parseFloat(((retained / prev.size) * 100).toFixed(1));
+    });
+
+    return {
+      labels,
+      datasets: [{
+        label: "Retention Rate (%)",
+        data: retentionRates,
+        borderColor: "#f59e0b",
+        backgroundColor: "rgba(245,158,11,0.1)",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        spanGaps: true,
+      }],
+    };
+  }, [allSessions, selectedYear]);
+
+const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
   const [fySummary, setFySummary] = useState(null);
 
   const getFYSummary = async () => {
@@ -2187,6 +2344,164 @@ const BusinessOverview = () => {
                 </CardContent>
               </Card>
 
+              {/* 6. SESSION FREQUENCY BY DAY OF WEEK */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-sky-500" />
+                    Session Frequency by Day
+                  </CardTitle>
+                  <CardDescription>
+                    Total sessions per weekday — weekends highlighted ({selectedYear})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Bar
+                      data={sessionByDayData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) => `Sessions: ${context.raw}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, callback: (v) => `${v}` },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 7. NEW VS RETURNING PATIENTS BAR CHART */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-indigo-500" />
+                    New vs Returning Patients
+                  </CardTitle>
+                  <CardDescription>
+                    First-visit vs repeat patients per month ({selectedYear})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Bar
+                      data={newVsReturningData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: true, position: "top" },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) =>
+                                `${context.dataset.label}: ${context.raw}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          x: { stacked: false },
+                          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 8. PATIENT RETENTION RATE */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-amber-500" />
+                    Patient Retention Rate
+                  </CardTitle>
+                  <CardDescription>
+                    % of last month's patients who returned this month ({selectedYear})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Line
+                      data={patientRetentionData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) =>
+                                context.raw != null
+                                  ? `Retention: ${context.raw}%`
+                                  : "No data",
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { callback: (v) => `${v}%` },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 9. EXPENSE CATEGORY TREND */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingDown className="h-5 w-5 text-red-500" />
+                    Expense Category Trend
+                  </CardTitle>
+                  <CardDescription>
+                    Monthly spend per category — spot creeping costs ({selectedYear})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Line
+                      data={expenseCategoryTrendData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: true, position: "top" },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) =>
+                                `${context.dataset.label}: ₹${Number(context.raw).toLocaleString()}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            ticks: {
+                              callback: (v) => `₹${v.toLocaleString()}`,
+                            },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* 5. SESSION COMPLETION RATE (SCR) LINE CHART */}
               <Card className="shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -2229,6 +2544,7 @@ const BusinessOverview = () => {
                 </CardContent>
               </Card>
             </div>
+
           </div>
         </TabsContent>
 
