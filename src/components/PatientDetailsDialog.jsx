@@ -636,7 +636,9 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                   <Label>Short-term Goals</Label>
                   <textarea
                     className="w-full p-2 border rounded-md min-h-[100px]"
-                    value={goalsForm.shortTermGoals}
+                    value={
+                      goalsForm.physioshortTermGoals || goalsForm.shortTermGoals
+                    }
                     onChange={(e) =>
                       setGoalsForm((prev) => ({
                         ...prev,
@@ -666,7 +668,9 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
                   <Label>Long-term Goals</Label>
                   <textarea
                     className="w-full p-2 border rounded-md min-h-[100px]"
-                    value={goalsForm.longTermGoals}
+                    value={
+                      goalsForm.physiolongTermGoals || goalsForm.longTermGoals
+                    }
                     onChange={(e) =>
                       setGoalsForm((prev) => ({
                         ...prev,
