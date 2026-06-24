@@ -84,7 +84,7 @@ const SessionManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
-  const [del200PhysioId, setDel200PhysioId] = useState("");
+
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
@@ -1344,25 +1344,6 @@ const SessionManagement = () => {
     }
   };
 
-  const deleteFirst200Sessions = async () => {
-    if (!del200PhysioId) return;
-    try {
-      const res = await apiRequest("Session/deleteFirst200Sessions", {
-        method: "POST",
-        body: JSON.stringify({ physioId: del200PhysioId }),
-      });
-      toast({
-        title: "Sessions Deleted",
-        description: res?.message || "First 200 sessions deleted.",
-        variant: "destructive",
-      });
-      setDel200PhysioId("");
-      getSession(dateFilter);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to delete sessions.", variant: "destructive" });
-    }
-  };
-
   const handleDeleteSession = (id) => {
     deleteSession({ _id: id });
     toast({
@@ -1472,62 +1453,11 @@ const SessionManagement = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {user?.role === "SuperAdmin" && (
-            <AlertDialog>
-              <div className="flex items-center gap-2">
-                <Select value={del200PhysioId} onValueChange={setDel200PhysioId}>
-                  <SelectTrigger className="w-44">
-                    <SelectValue placeholder="Select Physio" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {physios.map((p) => (
-                      <SelectItem key={p._id} value={p._id}>
-                        {p.physioName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    className="bg-orange-600 hover:bg-orange-700"
-                    disabled={!del200PhysioId}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" /> Del 200 Sessions
-                  </Button>
-                </AlertDialogTrigger>
-              </div>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete First 200 Sessions?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete the oldest 200 sessions for{" "}
-                    <strong>
-                      {physios.find((p) => p._id === del200PhysioId)?.physioName}
-                    </strong>
-                    . This cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDel200PhysioId("")}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-orange-600 hover:bg-orange-700"
-                    onClick={deleteFirst200Sessions}
-                  >
-                    Yes, Delete 200
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-
-          {Permissions.isAdd && (
-            <Button onClick={openNewSessionDialog}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Schedule Session
-            </Button>
-          )}
-        </div>
+        {Permissions.isAdd && (
+          <Button onClick={openNewSessionDialog}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Schedule Session
+          </Button>
+        )}
       </motion.div>
 
       <Card className="medical-card max-w-fit md:max-w-full">
