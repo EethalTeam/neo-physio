@@ -48,6 +48,7 @@ import {
   CheckSquare,
   Activity,
   Award,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -191,7 +192,7 @@ const SessionManagement = () => {
     try {
       const res = await apiRequest("Patient/getAllPatient", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({ view: "active" }),
       });
 
       setFilteredPatients(res);
@@ -205,7 +206,7 @@ const SessionManagement = () => {
     try {
       const response = await apiRequest("Physio/getAllPhysio", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data ?? {}),
       });
       setPhysios(response.physios || []);
     } catch (error) {
@@ -1212,6 +1213,50 @@ const SessionManagement = () => {
     }
   };
 
+  const handleRevertCompleted = async (session) => {
+    try {
+      const response = await apiRequest("Session/revertSessionByCode", {
+        method: "POST",
+        body: JSON.stringify({
+          sessionCode: session.sessionCode,
+          updatedBy: user?.physioName || "SuperAdmin",
+        }),
+      });
+
+      if (response?.success) {
+        const scheduledStatus = sessionStatus.find(
+          (s) => s.sessionStatusName === "Scheduled",
+        );
+        setSessions((prev) =>
+          (Array.isArray(prev) ? prev : []).map((s) =>
+            s._id === session._id
+              ? {
+                  ...s,
+                  sessionStatusId: scheduledStatus
+                    ? {
+                        _id: scheduledStatus._id,
+                        sessionStatusName: scheduledStatus.sessionStatusName,
+                        sessionStatusColor: scheduledStatus.sessionStatusColor,
+                        sessionStatusTextColor: scheduledStatus.sessionStatusTextColor,
+                      }
+                    : { ...(s.sessionStatusId || {}), sessionStatusName: "Scheduled" },
+                  isBilled: false,
+                  billId: null,
+                  sessionFeedbackPros: "",
+                  sessionFeedbackCons: "",
+                }
+              : s,
+          ),
+        );
+        toast({ title: "Session reverted to Scheduled" });
+      } else {
+        toast({ title: response?.message || "Revert failed", variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Something went wrong", variant: "destructive" });
+    }
+  };
+
   const handleDeleteSession = (id) => {
     deleteSession({ _id: id });
     toast({
@@ -1648,6 +1693,49 @@ const SessionManagement = () => {
                                           }
                                         >
                                           Revert Cancel
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+
+                              {user?.role === "SuperAdmin" &&
+                                session.sessionStatusId?.sessionStatusName ===
+                                  "Completed" && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-orange-400 text-orange-600 hover:bg-orange-50"
+                                      >
+                                        <RotateCcw size={12} />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                          Revert Completed Session?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will change the session status
+                                          from <strong>Completed</strong> back
+                                          to <strong>Scheduled</strong> and
+                                          clear all feedback and billing data.
+                                          This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>
+                                          Cancel
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                          className="bg-orange-500 hover:bg-orange-600"
+                                          onClick={() =>
+                                            handleRevertCompleted(session)
+                                          }
+                                        >
+                                          Yes, Revert
                                         </AlertDialogAction>
                                       </AlertDialogFooter>
                                     </AlertDialogContent>

@@ -114,7 +114,7 @@ const MenuForm = ({ open, setOpen, menu, onSave, getAllMenus }) => {
   const getParentMenuList = async () => {
     try {
       SetData([]);
-      const response = await apiRequest("Menu/getAllMenus/", {
+      const response = await apiRequest("Menu/getAllMenus", {
         method: "POST",
         body: JSON.stringify({}),
       });
@@ -380,7 +380,7 @@ const MenusPage = () => {
 
   const getAllMenus = async () => {
     try {
-      const response = await apiRequest("Menu/getAllMenus/", {
+      const response = await apiRequest("Menu/getAllMenus", {
         method: "POST",
         body: JSON.stringify({ _id: user._id, role: user.role }),
       });

@@ -173,7 +173,7 @@ const City = () => {
   };
   const createCity = async (data) => {
     try {
-      const response = await apiRequest("City/CreateCity", {
+      const response = await apiRequest("City/createCity", {
         method: "POST",
         body: JSON.stringify(data),
       });

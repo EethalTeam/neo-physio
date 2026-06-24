@@ -139,7 +139,7 @@ const Country = () => {
   };
   const createCountry = async (data) => {
     try {
-      const response = await apiRequest("Country/CreateCountry", {
+      const response = await apiRequest("Country/createCountry", {
         method: "POST",
         body: JSON.stringify(data),
       });

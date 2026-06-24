@@ -333,7 +333,7 @@ const LeavephysioManagement = () => {
     closePaidConfirm();
   };
 
-  useEffect(() => {
+useEffect(() => {
     if (!leavePhysioSessions.length) {
       setPatients([]);
       setLeaveSessionPlan([]);
