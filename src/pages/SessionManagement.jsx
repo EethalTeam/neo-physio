@@ -84,6 +84,7 @@ const SessionManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
+  const [del200PhysioId, setDel200PhysioId] = useState("");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
@@ -144,6 +145,8 @@ const SessionManagement = () => {
   const [viewingPatient, setViewingPatient] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [pendingWarningOpen, setPendingWarningOpen] = useState(false);
+  const [okayCountdown, setOkayCountdown] = useState(5);
 
   useEffect(() => {
     getPhysio();
@@ -171,6 +174,21 @@ const SessionManagement = () => {
       getSession(dateFilter);
     }
   }, [dateFilter, Permissions]);
+
+  useEffect(() => {
+    if (!pendingWarningOpen) return;
+    setOkayCountdown(5);
+    const interval = setInterval(() => {
+      setOkayCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [pendingWarningOpen]);
 
   const handleCheckboxChange = () => {
     setClaimPetrol((prev) => !prev);
@@ -307,6 +325,44 @@ const SessionManagement = () => {
       const merged = [...complete, ...incomplete];
       setSessions(merged);
       setMsg(response?.message || "");
+
+      // Show pending warning only for Physio role
+      if (storedRole === "Physio") {
+        const toISTDate = (iso) =>
+          new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+        const hasPending = merged.some((session) => {
+          const physioId = session?.physioId?._id || session?.physioId || "";
+          const date = session?.sessionDate ? toISTDate(session.sessionDate) : "";
+          if (!physioId || !date) return false;
+
+          const sameGroup = merged
+            .filter((s) => {
+              const pid = s?.physioId?._id || s?.physioId || "";
+              const sd = s?.sessionDate ? toISTDate(s.sessionDate) : "";
+              return pid === physioId && sd === date;
+            })
+            .sort(
+              (a, b) =>
+                Number(a?.patientId?.visitOrder || 0) -
+                Number(b?.patientId?.visitOrder || 0),
+            );
+
+          const idx = sameGroup.findIndex(
+            (s) => String(s._id) === String(session._id),
+          );
+          if (idx === 0) {
+            return session?.sessionStatusId?.sessionStatusName === "Scheduled";
+          }
+          return (
+            sameGroup[idx - 1]?.sessionStatusId?.sessionStatusName === "Scheduled"
+          );
+        });
+
+        if (hasPending) {
+          setPendingWarningOpen(true);
+        }
+      }
 
       const countMap = {};
       merged.forEach((s) => {
@@ -800,6 +856,37 @@ const SessionManagement = () => {
     return prevStatus === "Completed" || prevStatus === "Canceled";
   };
 
+  const isPrevSessionPending = (session) => {
+    const currentPhysioId = session?.physioId?._id || session?.physioId || "";
+    const toISTDate = (iso) =>
+      new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    const currentDate = session?.sessionDate ? toISTDate(session.sessionDate) : "";
+
+    if (!currentPhysioId || !currentDate) return false;
+
+    const sameGroup = (Array.isArray(sessions) ? sessions : []).filter((s) => {
+      const pid = s?.physioId?._id || s?.physioId || "";
+      const sd = s?.sessionDate ? toISTDate(s.sessionDate) : "";
+      return pid === currentPhysioId && sd === currentDate;
+    });
+
+    const ordered = sameGroup.sort(
+      (a, b) =>
+        Number(a?.patientId?.visitOrder || 0) -
+        Number(b?.patientId?.visitOrder || 0),
+    );
+
+    const idx = ordered.findIndex((s) => String(s._id) === String(session._id));
+
+    // First in order — highlight if it itself is still pending
+    if (idx === 0) {
+      return session?.sessionStatusId?.sessionStatusName === "Scheduled";
+    }
+
+    const prevStatus = ordered[idx - 1]?.sessionStatusId?.sessionStatusName;
+    return prevStatus === "Scheduled";
+  };
+
   const handleSessionAction = async (session, action) => {
     try {
       const sessionId = session?._id;
@@ -1257,6 +1344,25 @@ const SessionManagement = () => {
     }
   };
 
+  const deleteFirst200Sessions = async () => {
+    if (!del200PhysioId) return;
+    try {
+      const res = await apiRequest("Session/deleteFirst200Sessions", {
+        method: "POST",
+        body: JSON.stringify({ physioId: del200PhysioId }),
+      });
+      toast({
+        title: "Sessions Deleted",
+        description: res?.message || "First 200 sessions deleted.",
+        variant: "destructive",
+      });
+      setDel200PhysioId("");
+      getSession(dateFilter);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete sessions.", variant: "destructive" });
+    }
+  };
+
   const handleDeleteSession = (id) => {
     deleteSession({ _id: id });
     toast({
@@ -1319,6 +1425,36 @@ const SessionManagement = () => {
 
   return (
     <div className="md:space-y-6 space-y-10">
+
+      {/* PENDING SESSIONS WARNING DIALOG */}
+      <Dialog open={pendingWarningOpen} onOpenChange={() => {}}>
+        <DialogContent
+          className="sm:max-w-md"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              ⚠️ Pending Sessions Alert
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm text-gray-700 leading-relaxed">
+              One or more patients have sessions that are still{" "}
+              <span className="font-semibold text-red-600">pending</span> from
+              the previous visit order. Please ensure sessions are completed in
+              order before proceeding.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="pt-4">
+            <Button
+              disabled={okayCountdown > 0}
+              onClick={() => setPendingWarningOpen(false)}
+              className="w-full"
+            >
+              {okayCountdown > 0 ? `Okay (${okayCountdown}s)` : "Okay"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1336,11 +1472,62 @@ const SessionManagement = () => {
           </p>
         </div>
 
-        {Permissions.isAdd && (
-          <Button onClick={openNewSessionDialog}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Schedule Session
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {user?.role === "SuperAdmin" && (
+            <AlertDialog>
+              <div className="flex items-center gap-2">
+                <Select value={del200PhysioId} onValueChange={setDel200PhysioId}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Select Physio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {physios.map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        {p.physioName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    className="bg-orange-600 hover:bg-orange-700"
+                    disabled={!del200PhysioId}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Del 200 Sessions
+                  </Button>
+                </AlertDialogTrigger>
+              </div>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete First 200 Sessions?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the oldest 200 sessions for{" "}
+                    <strong>
+                      {physios.find((p) => p._id === del200PhysioId)?.physioName}
+                    </strong>
+                    . This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDel200PhysioId("")}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-orange-600 hover:bg-orange-700"
+                    onClick={deleteFirst200Sessions}
+                  >
+                    Yes, Delete 200
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {Permissions.isAdd && (
+            <Button onClick={openNewSessionDialog}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Schedule Session
+            </Button>
+          )}
+        </div>
       </motion.div>
 
       <Card className="medical-card max-w-fit md:max-w-full">
@@ -1473,7 +1660,13 @@ const SessionManagement = () => {
                         <tr
                           key={session._id}
                           className="border-b hover:bg-gray-50"
-                          style={is26thMilestone(session) ? { backgroundColor: "#e8fde7", borderLeft: "4px solid #86F285" } : {}}
+                          style={
+                            is26thMilestone(session)
+                              ? { backgroundColor: "#e8fde7", borderLeft: "4px solid #86F285" }
+                              : isPrevSessionPending(session)
+                              ? { backgroundColor: "#fee2e2", borderLeft: "3px solid #fca5a5" }
+                              : {}
+                          }
                         >
                           <td className="p-2">
                             {session.sessionCode ||

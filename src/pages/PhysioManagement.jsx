@@ -289,6 +289,8 @@ const PhysioManagement = () => {
     }
   };
 
+
+
   const deletePhysio = async (id) => {
     try {
       await apiRequest("Physio/deletePhysio", {
@@ -831,6 +833,7 @@ const PhysioManagement = () => {
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
+
                   </div>
                 </motion.div>
               ))}
