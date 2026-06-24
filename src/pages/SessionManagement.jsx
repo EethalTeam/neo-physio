@@ -322,43 +322,16 @@ const SessionManagement = () => {
             ? response
             : [];
 
-      const merged = [...complete, ...incomplete];
+      const merged = [
+        ...complete,
+        ...incomplete.map((s) => ({ ...s, _isIncomplete: true })),
+      ];
       setSessions(merged);
       setMsg(response?.message || "");
 
-      // Show pending warning only for Physio role
+      // Show pending warning only for Physio role when there are past-date pending sessions
       if (storedRole === "Physio") {
-        const toISTDate = (iso) =>
-          new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-
-        const hasPending = merged.some((session) => {
-          const physioId = session?.physioId?._id || session?.physioId || "";
-          const date = session?.sessionDate ? toISTDate(session.sessionDate) : "";
-          if (!physioId || !date) return false;
-
-          const sameGroup = merged
-            .filter((s) => {
-              const pid = s?.physioId?._id || s?.physioId || "";
-              const sd = s?.sessionDate ? toISTDate(s.sessionDate) : "";
-              return pid === physioId && sd === date;
-            })
-            .sort(
-              (a, b) =>
-                Number(a?.patientId?.visitOrder || 0) -
-                Number(b?.patientId?.visitOrder || 0),
-            );
-
-          const idx = sameGroup.findIndex(
-            (s) => String(s._id) === String(session._id),
-          );
-          if (idx === 0) {
-            return session?.sessionStatusId?.sessionStatusName === "Scheduled";
-          }
-          return (
-            sameGroup[idx - 1]?.sessionStatusId?.sessionStatusName === "Scheduled"
-          );
-        });
-
+        const hasPending = incomplete.length > 0;
         if (hasPending) {
           setPendingWarningOpen(true);
         }
@@ -856,36 +829,6 @@ const SessionManagement = () => {
     return prevStatus === "Completed" || prevStatus === "Canceled";
   };
 
-  const isPrevSessionPending = (session) => {
-    const currentPhysioId = session?.physioId?._id || session?.physioId || "";
-    const toISTDate = (iso) =>
-      new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-    const currentDate = session?.sessionDate ? toISTDate(session.sessionDate) : "";
-
-    if (!currentPhysioId || !currentDate) return false;
-
-    const sameGroup = (Array.isArray(sessions) ? sessions : []).filter((s) => {
-      const pid = s?.physioId?._id || s?.physioId || "";
-      const sd = s?.sessionDate ? toISTDate(s.sessionDate) : "";
-      return pid === currentPhysioId && sd === currentDate;
-    });
-
-    const ordered = sameGroup.sort(
-      (a, b) =>
-        Number(a?.patientId?.visitOrder || 0) -
-        Number(b?.patientId?.visitOrder || 0),
-    );
-
-    const idx = ordered.findIndex((s) => String(s._id) === String(session._id));
-
-    // First in order — highlight if it itself is still pending
-    if (idx === 0) {
-      return session?.sessionStatusId?.sessionStatusName === "Scheduled";
-    }
-
-    const prevStatus = ordered[idx - 1]?.sessionStatusId?.sessionStatusName;
-    return prevStatus === "Scheduled";
-  };
 
   const handleSessionAction = async (session, action) => {
     try {
@@ -1593,7 +1536,7 @@ const SessionManagement = () => {
                           style={
                             is26thMilestone(session)
                               ? { backgroundColor: "#e8fde7", borderLeft: "4px solid #86F285" }
-                              : isPrevSessionPending(session)
+                              : session._isIncomplete
                               ? { backgroundColor: "#fee2e2", borderLeft: "3px solid #fca5a5" }
                               : {}
                           }
