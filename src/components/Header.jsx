@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, User, LogOut, Menu, Check, X, Trophy } from "lucide-react";
+import { Bell, User, LogOut, Menu, Check, X, Trophy, StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { config } from "./CustomComponents/config";
@@ -258,12 +258,20 @@ const Header = ({ toggleSidebar }) => {
                 userNotifications.map((notification) => {
                   const isMilestone =
                     notification.type === "Monthly-Bill-Alert";
+                  const isHodAlert =
+                    notification.type === "HOD-Notes-Alert";
 
                   return (
                     <div
                       key={notification._id}
                       className="px-2 py-1.5 text-sm rounded-md mb-1"
-                      style={isMilestone ? { backgroundColor: "#e8fde7", border: "1.5px solid #86F285" } : {}}
+                      style={
+                        isMilestone
+                          ? { backgroundColor: "#e8fde7", border: "1.5px solid #86F285" }
+                          : isHodAlert
+                          ? { backgroundColor: "#fff7ed", border: "1.5px solid #fb923c" }
+                          : {}
+                      }
                     >
                       {isMilestone && (
                         <div className="flex items-center gap-1 mb-1">
@@ -273,7 +281,18 @@ const Header = ({ toggleSidebar }) => {
                           </span>
                         </div>
                       )}
-                      <p className={`mb-2 ${isMilestone ? "font-semibold" : ""}`} style={isMilestone ? { color: "#1a4d1a" } : {}}>
+                      {isHodAlert && (
+                        <div className="flex items-center gap-1 mb-1">
+                          <StickyNote className="w-4 h-4" style={{ color: "#ea580c" }} />
+                          <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#ea580c" }}>
+                            HOD Notes Missing
+                          </span>
+                        </div>
+                      )}
+                      <p
+                        className={`mb-2 ${isMilestone ? "font-semibold" : isHodAlert ? "font-medium" : ""}`}
+                        style={isMilestone ? { color: "#1a4d1a" } : isHodAlert ? { color: "#7c2d12" } : {}}
+                      >
                         {notification.message}
                       </p>
                       {user?.role === "SuperAdmin" &&
@@ -318,7 +337,7 @@ const Header = ({ toggleSidebar }) => {
                             </Button>
                           )}
 
-                          <p className="text-xs" style={isMilestone ? { color: "#2d7a2d" } : {}}>
+                          <p className="text-xs" style={isMilestone ? { color: "#2d7a2d" } : isHodAlert ? { color: "#ea580c" } : {}}>
                             {new Date(notification.createdAt).toLocaleString()}
                           </p>
                         </div>

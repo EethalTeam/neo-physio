@@ -89,9 +89,12 @@ import {
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import socket from "@/socket/Socket";
 
 const HODDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [stats, setStats] = useState({
     patient: 0,
@@ -109,6 +112,7 @@ const HODDashboard = () => {
   const [reviewStatuses, setReviewStatuses] = useState([]);
   const [reviewTypes, setReviewTypes] = useState([]);
   const [redFlags, setRedFlags] = useState([]);
+  const [missingNotesAlerts, setMissingNotesAlerts] = useState([]);
 
   const [editingReview, setEditingReview] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -154,6 +158,31 @@ const HODDashboard = () => {
     getRedFlags();
     getCbNotifications();
   }, []);
+
+  const fetchMissingNotesAlerts = async () => {
+    if (!user?._id) return;
+    try {
+      const res = await apiRequest("Notifications/getNotifications", {
+        method: "POST",
+        body: JSON.stringify({ employeeId: user._id }),
+      });
+      const all = res?.data || [];
+      setMissingNotesAlerts(
+        all.filter((n) => n.type === "HOD-Notes-Alert"),
+      );
+    } catch (e) {
+      console.error("fetchMissingNotesAlerts error", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!user?._id) return;
+    fetchMissingNotesAlerts();
+    socket.on("receiveNotification", fetchMissingNotesAlerts);
+    return () => {
+      socket.off("receiveNotification", fetchMissingNotesAlerts);
+    };
+  }, [user?._id]);
 
   const getReviews = async () => {
     try {
@@ -1145,6 +1174,45 @@ const HODDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {missingNotesAlerts.length > 0 && (
+        <div data-aos="fade-up">
+          <Card className="border-l-4 border-orange-500 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <StickyNote className="h-5 w-5 text-orange-600" />
+                Missing HOD Notes Alerts
+                <span className="ml-auto px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-xs font-semibold">
+                  {missingNotesAlerts.length}
+                </span>
+              </CardTitle>
+              <CardDescription>
+                Patients who reached session 3+ without HOD Notes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {missingNotesAlerts.map((alert, idx) => (
+                  <div
+                    key={alert._id || idx}
+                    className="flex items-start justify-between p-3 border border-orange-200 rounded-lg bg-orange-50"
+                  >
+                    <p className="text-sm text-gray-800">{alert.message}</p>
+                    <p className="text-xs text-gray-400 shrink-0 ml-4">
+                      {alert.createdAt
+                        ? new Date(alert.createdAt).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto scrollbar-hide">

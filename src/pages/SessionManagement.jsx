@@ -885,6 +885,7 @@ const SessionManagement = () => {
           action: "Attended",
           updatedBy: user?.physioName || "null",
         });
+
       }
 
       if (action === "Scheduled") {
