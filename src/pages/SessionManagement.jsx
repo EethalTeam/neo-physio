@@ -2565,7 +2565,7 @@ const SessionManagement = () => {
                   <SelectValue placeholder="Select a patient" />
                 </SelectTrigger>
                 <SelectContent>
-                  {patients.map((p) => (
+                  {filteredPatients.map((p) => (
                     <SelectItem key={p._id} value={p._id}>
                       {p.patientName}
                     </SelectItem>
