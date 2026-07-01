@@ -1577,13 +1577,26 @@ const PatientManagement = () => {
     setIsFormOpen(true);
   }, []);
 
-  const handleNewPatient = useCallback(() => {
+  const handleNewPatient = useCallback(async () => {
     setEditingPatient(null);
-    setPatientForm((prev) => ({
-      ...initialFormState,
-      patientCode: generatePatientId(),
-    }));
+    setPatientForm({ ...initialFormState, patientCode: "Generating..." });
     setIsFormOpen(true);
+    try {
+      const [activeRes, recoveredRes] = await Promise.all([
+        apiRequest("Patient/getAllPatient", { method: "POST", body: JSON.stringify({ view: "active" }) }),
+        apiRequest("Patient/getAllPatient", { method: "POST", body: JSON.stringify({ view: "recovered" }) }),
+      ]);
+      const all = [
+        ...(Array.isArray(activeRes) ? activeRes : []),
+        ...(Array.isArray(recoveredRes) ? recoveredRes : []),
+      ];
+      const lastId = all.length > 0
+        ? Math.max(0, ...all.filter((p) => p.patientCode?.startsWith("HNP")).map((p) => parseInt(p.patientCode.replace("HNP", ""), 10) || 0))
+        : 0;
+      setPatientForm((prev) => ({ ...prev, patientCode: `HNP${String(lastId + 1).padStart(6, "0")}` }));
+    } catch {
+      setPatientForm((prev) => ({ ...prev, patientCode: generatePatientId() }));
+    }
   }, [patients]);
 
   // ─────────────────────────────────────────────
@@ -1614,12 +1627,6 @@ const PatientManagement = () => {
   // ─────────────────────────────────────────────
   // FORM HELPERS
   // ─────────────────────────────────────────────
-  useEffect(() => {
-    if (isFormOpen && !editingPatient) {
-      setPatientForm((prev) => ({ ...prev, patientCode: generatePatientId() }));
-    }
-  }, [isFormOpen, editingPatient]);
-
   const generatePatientId = () => {
     const lastId =
       patients.length > 0
@@ -1629,7 +1636,7 @@ const PatientManagement = () => {
               .map((p) => parseInt(p.patientCode.replace("HNP", ""), 10)),
           )
         : 0;
-    return `HNP${String(lastId + 1).padStart(4, "0")}`;
+    return `HNP${String(lastId + 1).padStart(6, "0")}`;
   };
 
   const handleFormChange = useCallback((e) => {
@@ -1693,20 +1700,48 @@ const PatientManagement = () => {
   const handleFormSubmit = useCallback(
     async (e) => {
       e.preventDefault();
-      if (!patientForm.patientName) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Patient Name",
-          variant: "destructive",
-        });
+      if (!patientForm.patientName?.trim()) {
+        toast({ title: "Alert", description: "Please Enter Patient Name", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.patientAge) {
+        toast({ title: "Alert", description: "Please Enter Patient Age", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.patientGenderId) {
+        toast({ title: "Alert", description: "Please Select Gender", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.byStandar?.trim()) {
+        toast({ title: "Alert", description: "Please Enter Bystander Name", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.Relation?.trim()) {
+        toast({ title: "Alert", description: "Please Enter Relation With Patient", variant: "destructive" });
         return;
       }
       if (!patientForm.patientNumber) {
-        toast({
-          title: "Alert",
-          description: "Please Enter Patient Mobile number",
-          variant: "destructive",
-        });
+        toast({ title: "Alert", description: "Please Enter Patient Mobile Number", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.patientAltNum) {
+        toast({ title: "Alert", description: "Please Enter Alternate Mobile Number", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.patientAddress?.trim()) {
+        toast({ title: "Alert", description: "Please Enter Address", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.patientPinCode?.toString().trim()) {
+        toast({ title: "Alert", description: "Please Enter PIN Code", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.FeesTypeId) {
+        toast({ title: "Alert", description: "Please Select Fees Type", variant: "destructive" });
+        return;
+      }
+      if (!patientForm.feeAmount) {
+        toast({ title: "Alert", description: "Please Enter Fees Amount", variant: "destructive" });
         return;
       }
       try {
