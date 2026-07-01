@@ -95,17 +95,12 @@ const LeadSource = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "LeadSource has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getLeadSource();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -149,16 +144,13 @@ const LeadSource = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "LeadSource Create successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getLeadSource();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateLeadSource = async (data) => {
@@ -167,16 +159,13 @@ const LeadSource = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "LeadSource updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getLeadSource();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (leadSource) => {

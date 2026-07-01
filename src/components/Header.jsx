@@ -62,27 +62,11 @@ const Header = ({ toggleSidebar }) => {
         }),
       });
 
-      if (res) {
-        // Re-fetch updated notifications
-        fetchNotifications();
-        toast({
-          title: `Request ${action}ed`,
-          description: `The request has been ${action}ed.`,
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: res.message,
-          variant: "destructive",
-        });
-      }
+      fetchNotifications();
+      toast({ title: "Success", description: res.message });
     } catch (err) {
       console.error("Error updating notification:", err);
-      toast({
-        title: "Error",
-        description: "Failed to update notification.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
   };
   // useEffect(() => {
@@ -117,27 +101,11 @@ const Header = ({ toggleSidebar }) => {
         body: JSON.stringify({ notificationId }),
       });
 
-      if (res) {
-        // Re-fetch updated notifications
-        fetchNotifications();
-        toast({
-          title: "Marked as read",
-          description: "Notification marked as seen.",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: res.message,
-          variant: "destructive",
-        });
-      }
+      fetchNotifications();
+      toast({ title: "Marked as read", description: res.message });
     } catch (err) {
       console.error("Error marking notification:", err);
-      toast({
-        title: "Error",
-        description: "Failed to mark notification as seen.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
   };
   const fetchNotifications = async () => {

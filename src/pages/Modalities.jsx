@@ -98,17 +98,12 @@ const FeesType = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "Modalities has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getModalities();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -172,8 +167,7 @@ const FeesType = () => {
 
       toast({
         title: "Error",
-        description:
-          error?.message || "Modalities with this code or name already exists",
+        description: error?.message,
         variant: "destructive",
       });
 
@@ -187,16 +181,13 @@ const FeesType = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "Modalities updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getModalities();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (modalities) => {
@@ -206,13 +197,7 @@ const FeesType = () => {
   };
 
   const handleDelete = (id) => {
-    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     deleteModalities(id);
-    toast({
-      title: "Deleted",
-      description: " Modalities has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewDialog = () => {

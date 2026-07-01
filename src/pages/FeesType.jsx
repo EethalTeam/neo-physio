@@ -90,17 +90,12 @@ const FeesType = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "FeesType has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getFeesType();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -144,13 +139,13 @@ const FeesType = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "FeesType Create successfully." });
+      toast({ title: "Success", description: response.message });
       getFeesType();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateFeesType = async (data) => {
@@ -159,16 +154,13 @@ const FeesType = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "FeesType updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getFeesType();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (FeesType) => {
@@ -178,13 +170,7 @@ const FeesType = () => {
   };
 
   const handleDelete = (id) => {
-    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     deleteFeesType(id);
-    toast({
-      title: "Deleted",
-      description: "FeesType has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewDialog = () => {

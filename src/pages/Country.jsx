@@ -89,17 +89,12 @@ const Country = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "Country has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getCountry();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -143,13 +138,13 @@ const Country = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "Country Create successfully." });
+      toast({ title: "Success", description: response.message });
       getCountry();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateCountry = async (data) => {
@@ -158,13 +153,13 @@ const Country = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "Country updated successfully." });
+      toast({ title: "Success", description: response.message });
       getCountry();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (countryData) => {

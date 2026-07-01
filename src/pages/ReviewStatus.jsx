@@ -89,17 +89,12 @@ const ReviewStatus = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "ReviewStatus has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getReviewStatus();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -143,16 +138,13 @@ const ReviewStatus = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "ReviewStatus Create successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getReviewStatus();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateReviewStatus = async (data) => {
@@ -161,16 +153,13 @@ const ReviewStatus = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "ReviewStatus updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getReviewStatus();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (review) => {
@@ -180,13 +169,7 @@ const ReviewStatus = () => {
   };
 
   const handleDelete = (id) => {
-    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     deleteReviewStatus(id);
-    toast({
-      title: "Deleted",
-      description: "ReviewStatus has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewDialog = () => {

@@ -99,17 +99,12 @@ const LeadStatus = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "LeadStatus has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getLeadStatus();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -153,16 +148,13 @@ const LeadStatus = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "LeadStatus Create successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getLeadStatus();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateLeadStatus = async (data) => {
@@ -171,16 +163,13 @@ const LeadStatus = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "LeadStatus updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getLeadStatus();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (lead) => {
@@ -190,13 +179,7 @@ const LeadStatus = () => {
   };
 
   const handleDelete = (id) => {
-    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     deleteLeadStatus(id);
-    toast({
-      title: "Deleted",
-      description: "leadStatus has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewDialog = () => {

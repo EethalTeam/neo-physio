@@ -553,21 +553,21 @@ const SuperAdminDashboard = () => {
       };
 
       if (editingSession) {
-        await updateSession({
+        const res = await updateSession({
           ...formData,
           _id: editingSession?._id,
         });
 
         toast({
           title: "Success",
-          description: "Session updated successfully",
+          description: res.message,
         });
       } else {
-        await getCreateSession(formData);
+        const res = await getCreateSession(formData);
 
         toast({
           title: "Success",
-          description: "Session scheduled successfully",
+          description: res.message,
         });
       }
 
@@ -578,8 +578,7 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error?.message || "Something went wrong while saving session",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -651,11 +650,11 @@ const SuperAdminDashboard = () => {
         cbDate: leadForm.cbDate || "",
       };
 
-      await createLead(payload);
+      const res = await createLead(payload);
 
       toast({
         title: "Success",
-        description: "Lead created successfully",
+        description: res.message,
       });
 
       setLeadForm(initialLeadFormState);
@@ -664,7 +663,7 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error?.message || "Failed to create lead",
+        description: error?.message,
         variant: "destructive",
       });
     } finally {

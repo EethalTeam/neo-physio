@@ -520,18 +520,18 @@ const SessionManagement = () => {
         sessionStatusId: data.sessionStatusId,
       };
 
-      await apiRequest("Session/createSession", {
+      const res = await apiRequest("Session/createSession", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      toast({ title: "Success", description: "Sessions created" });
+      toast({ title: "Success", description: res.message });
       getSession(dateFilter);
     } catch (e) {
       console.error(e);
       toast({
         title: "Error",
-        description: "Failed to create sessions",
+        description: e?.message,
         variant: "destructive",
       });
     }
@@ -539,7 +539,7 @@ const SessionManagement = () => {
 
   const updateSession = async (data) => {
     try {
-      await apiRequest("Session/updateSession", {
+      const res = await apiRequest("Session/updateSession", {
         method: "POST",
         body: JSON.stringify({
           ...data,
@@ -551,14 +551,14 @@ const SessionManagement = () => {
 
       toast({
         title: "Updated",
-        description: "Session updated successfully",
+        description: res.message,
       });
     } catch (error) {
       console.log(error);
 
       toast({
         title: "Error",
-        description: "Failed to update session",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -566,7 +566,7 @@ const SessionManagement = () => {
 
   const deleteSession = async (data) => {
     try {
-      await apiRequest("Session/deleteSession", {
+      const res = await apiRequest("Session/deleteSession", {
         method: "POST",
         body: JSON.stringify({
           ...data,
@@ -578,14 +578,15 @@ const SessionManagement = () => {
 
       toast({
         title: "Deleted",
-        description: "Session deleted successfully",
+        description: res.message,
+        variant: "destructive",
       });
     } catch (error) {
       console.log(error);
 
       toast({
         title: "Error",
-        description: "Failed to delete session",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -632,7 +633,7 @@ const SessionManagement = () => {
 
       toast({
         title: "Session Started",
-        description: "Session marked as attended",
+        description: response.message,
       });
 
       return response;
@@ -641,7 +642,7 @@ const SessionManagement = () => {
 
       toast({
         title: "Error",
-        description: "Failed to start session",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -657,7 +658,7 @@ const SessionManagement = () => {
 
       toast({
         title: "Canceled",
-        description: "Session canceled successfully",
+        description: response.message,
       });
 
       return response;
@@ -666,7 +667,7 @@ const SessionManagement = () => {
 
       toast({
         title: "Error",
-        description: "Failed to cancel session",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -690,17 +691,17 @@ const SessionManagement = () => {
         if ((feedback.redFlags || []).length > 0) {
           toast({
             title: "HOD Notification",
-            description: "Red flags have been reported to HOD for review.",
+            description: response.message,
+          });
+        } else {
+          toast({
+            title: "Session Completed",
+            description: response.message,
           });
         }
 
         setFeedbackDialog({ open: false, sessionId: null, physioId: "" });
         setFeedback(initialFeedbackState);
-
-        toast({
-          title: "Session Completed",
-          description: "Session feedback has been recorded.",
-        });
 
         getSession(dateFilter);
       }
@@ -915,7 +916,7 @@ const SessionManagement = () => {
       console.error("handleSessionAction error:", err);
       toast({
         title: "Error",
-        description: "API failed while updating session",
+        description: err?.message,
         variant: "destructive",
       });
     }
@@ -960,24 +961,6 @@ const SessionManagement = () => {
       cancelledReason,
       claimPetrol,
     );
-
-    // setFilteredSessions((prev) =>
-    //   prev.map((s) =>
-    //     s._id === sessionId
-    //       ? {
-    //           ...s,
-    //           status: "Canceled",
-    //           cancelledKms: parseFloat(cancelledKms) || 0,
-    //           petrolAllowanceClaimed: claimPetrol,
-    //         }
-    //       : s,
-    //   ),
-    // );
-
-    toast({
-      title: "Session Canceled",
-      description: "Session has been marked as Canceled.",
-    });
 
     setCancelDialog({ open: false, sessionId: null });
     setCancelledKms("");
@@ -1112,18 +1095,8 @@ const SessionManagement = () => {
     try {
       if (editingSession) {
         updateSession({ ...sessionForm });
-
-        toast({
-          title: "Success",
-          description: "Session updated successfully",
-        });
       } else {
         getCreateSession({ ...formData });
-
-        toast({
-          title: "Success",
-          description: "Session scheduled successfully",
-        });
       }
 
       setIsFormOpen(false);
@@ -1134,7 +1107,7 @@ const SessionManagement = () => {
 
       toast({
         title: "Error",
-        description: "Something went wrong",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -1158,9 +1131,21 @@ const SessionManagement = () => {
     setIsFormOpen(true);
   };
 
-  const renderPhysioBadge = (physioId) => {
+  const renderPhysioBadge = (physioId, fallbackName) => {
     const physio = (getPhysioCounts || []).find((p) => p.physioId === physioId);
-    if (!physio) return <span>Physio not found</span>;
+    if (!physio)
+      return (
+        <span
+          style={{
+            backgroundColor: "gray",
+            color: "white",
+            padding: "2px 8px",
+            borderRadius: "4px",
+          }}
+        >
+          {fallbackName || "Unknown"}
+        </span>
+      );
 
     const bgColor =
       physio.activePatientCount > 6
@@ -1190,7 +1175,7 @@ const SessionManagement = () => {
       if (response?.success) {
         toast({
           title: "Success",
-          description: response.message || "Session reverted successfully",
+          description: response.message,
         });
 
         setSessions((prev) =>
@@ -1230,7 +1215,7 @@ const SessionManagement = () => {
       } else {
         toast({
           title: "Error",
-          description: response?.message || response?.error || "Revert failed",
+          description: response?.message,
           variant: "destructive",
         });
       }
@@ -1238,7 +1223,7 @@ const SessionManagement = () => {
       console.error("handleSessionCancelRevert error:", error);
       toast({
         title: "Error",
-        description: "Something went wrong while reverting the session",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -1290,11 +1275,6 @@ const SessionManagement = () => {
 
   const handleDeleteSession = (id) => {
     deleteSession({ _id: id });
-    toast({
-      title: "Deleted",
-      description: "Session has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewSessionDialog = () => {
@@ -1555,7 +1535,7 @@ const SessionManagement = () => {
 
                           {user?.role !== "Physio" && (
                             <td className="p-2">
-                              {renderPhysioBadge(session.physioId?._id)}
+                              {renderPhysioBadge(session.physioId?._id, session.physioId?.physioName)}
                             </td>
                           )}
 

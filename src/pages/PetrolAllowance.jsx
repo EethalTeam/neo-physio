@@ -110,7 +110,7 @@ const PetrolAllowance = () => {
 
   const handleAdjustment = async (allowanceId, delta) => {
     try {
-      await apiRequest("PetrolAllowance/updateManualKms", {
+      const res = await apiRequest("PetrolAllowance/updateManualKms", {
         method: "POST",
         body: JSON.stringify({
           petrolAllowanceId: allowanceId,
@@ -118,11 +118,11 @@ const PetrolAllowance = () => {
         }),
       });
       getPetrol();
-      toast({ title: "Success", description: "Adjustment saved." });
+      toast({ title: "Success", description: res.message });
     } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to save.",
+        description: err?.message,
         variant: "destructive",
       });
     }

@@ -158,7 +158,7 @@ const MachineryMaster = () => {
   const updateMachine = async (data) => {
     if (!editingMachine?._id) return;
 
-    await apiRequest("Machinery/updateMachinery", {
+    const res = await apiRequest("Machinery/updateMachinery", {
       method: "POST",
       body: JSON.stringify({
         _id: editingMachine._id,
@@ -168,6 +168,7 @@ const MachineryMaster = () => {
     });
 
     getAllMachine();
+    return res;
   };
 
   //api for delete
@@ -179,14 +180,14 @@ const MachineryMaster = () => {
       });
       toast({
         title: "Deleted",
-        description: "Machine has been removed.",
+        description: response.message,
         variant: "destructive",
       });
       getAllMachine();
       return response;
     } catch (error) {
       console.error("Error:", error);
-      throw error;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -267,19 +268,11 @@ const MachineryMaster = () => {
 
     try {
       if (editingMachine) {
-        await updateMachine(machineForm);
-
-        toast({
-          title: "Success",
-          description: "Equipment updated successfully.",
-        });
+        const res = await updateMachine(machineForm);
+        toast({ title: "Success", description: res.message });
       } else {
-        await createMachine(machineForm);
-
-        toast({
-          title: "Success",
-          description: "New equipment added.",
-        });
+        const res = await createMachine(machineForm);
+        toast({ title: "Success", description: res.message });
       }
 
       setIsFormOpen(false);
@@ -288,10 +281,7 @@ const MachineryMaster = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description:
-          error?.response?.data?.message ||
-          error?.message ||
-          "Something went wrong",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -318,13 +308,7 @@ const MachineryMaster = () => {
   };
 
   const handleDeleteMachine = (id) => {
-    // setMachines(prev => prev.filter(m => m.id !== machineId));
     deleteMachine(id);
-    toast({
-      title: "Deleted",
-      description: "Equipment has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewMachineDialog = () => {
@@ -402,7 +386,7 @@ const MachineryMaster = () => {
         updatedAssignedTo.reduce((acc, item) => acc + item.count, 0);
 
       // API call
-      await apiRequest("Machinery/assignMachine", {
+      const res = await apiRequest("Machinery/assignMachine", {
         method: "POST",
         body: JSON.stringify({
           _id: managingMachine._id,
@@ -412,7 +396,7 @@ const MachineryMaster = () => {
         }),
       });
 
-      toast({ title: "Success", description: "Equipment assigned to physio." });
+      toast({ title: "Success", description: res.message });
 
       // Update local state
       setMachines((prev) =>
@@ -432,11 +416,7 @@ const MachineryMaster = () => {
       setIsInventoryOpen(false);
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: "Failed to assign machine.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
   };
   const handleReturnFromPhysio = async () => {
@@ -524,7 +504,7 @@ const MachineryMaster = () => {
         Number(managingMachine.StockInMaintanance || 0);
 
       // API request
-      await apiRequest("Machinery/assignMachine", {
+      const returnRes = await apiRequest("Machinery/assignMachine", {
         method: "POST",
         body: JSON.stringify({
           _id: managingMachine._id,
@@ -549,10 +529,7 @@ const MachineryMaster = () => {
       );
 
       // Success toast
-      toast({
-        title: "Success",
-        description: `${returnedQty} machine(s) returned successfully.`,
-      });
+      toast({ title: "Success", description: returnRes.message });
 
       // Reset states
       setAssignPhysioId("");
@@ -560,12 +537,7 @@ const MachineryMaster = () => {
       setIsInventoryOpen(false);
     } catch (err) {
       console.error(err);
-
-      toast({
-        title: "Error",
-        description: "Failed to return machines.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
   };
   const handleUnderMaintanace = async (count = 1) => {
@@ -597,7 +569,7 @@ const MachineryMaster = () => {
         (managingMachine.StockInMaintanance || 0) + count;
 
       // API call
-      await apiRequest("Machinery/updateMachinery", {
+      const maintRes = await apiRequest("Machinery/updateMachinery", {
         method: "POST",
         body: JSON.stringify({
           _id: managingMachine._id,
@@ -607,10 +579,7 @@ const MachineryMaster = () => {
         }),
       });
 
-      toast({
-        title: "Success",
-        description: `${count} machine(s) moved to maintenance.`,
-      });
+      toast({ title: "Success", description: maintRes.message });
 
       // Update frontend state
       setMachines((prev) =>
@@ -626,11 +595,7 @@ const MachineryMaster = () => {
       );
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: "Failed to move machines to maintenance.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
     setIsInventoryOpen(false);
   };
@@ -648,7 +613,7 @@ const MachineryMaster = () => {
       const updatedAvailable = (managingMachine.AvailableToAssign || 0) + count;
       const updatedMaintenance = inMaintenance - count;
 
-      await apiRequest("Machinery/updateMachinery", {
+      const returnMaintRes = await apiRequest("Machinery/updateMachinery", {
         method: "POST",
         body: JSON.stringify({
           _id: managingMachine._id,
@@ -658,10 +623,7 @@ const MachineryMaster = () => {
         }),
       });
 
-      toast({
-        title: "Success",
-        description: `${count} machine(s) returned from maintenance.`,
-      });
+      toast({ title: "Success", description: returnMaintRes.message });
 
       setMachines((prev) =>
         prev.map((m) =>
@@ -676,11 +638,7 @@ const MachineryMaster = () => {
       );
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: "Failed to return machines from maintenance.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
 
     setIsInventoryOpen(false);
@@ -800,12 +758,7 @@ const MachineryMaster = () => {
       });
 
       if (res) {
-        toast({
-          title: "Status Updated",
-          description: `${machine?.machineName || machine.modalityId.modalitiesName} is now ${
-            newStatus ? "Active" : "Inactive"
-          }.`,
-        });
+        toast({ title: "Status Updated", description: res.message });
 
         setMachines((prev) =>
           prev.map((m) =>
@@ -814,11 +767,7 @@ const MachineryMaster = () => {
         );
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update machine status.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 

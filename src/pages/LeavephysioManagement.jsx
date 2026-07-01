@@ -263,28 +263,17 @@ const LeavephysioManagement = () => {
       });
 
       if (!response?.success) {
-        toast({
-          title: "Error",
-          description: response?.message || "Failed to mark leave.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: response?.message, variant: "destructive" });
         return;
       }
 
-      toast({
-        title: "Success",
-        description: response?.message || "Leave marked successfully.",
-      });
+      toast({ title: "Success", description: response?.message });
 
       await getLeave();
       await getSession();
     } catch (error) {
       console.error("Error marking leave:", error);
-      toast({
-        title: "Error",
-        description: "Failed to mark leave.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -300,10 +289,7 @@ const LeavephysioManagement = () => {
       });
 
       if (res?.success) {
-        toast({
-          title: "Success",
-          description: res?.message || "Updated successfully.",
-        });
+        toast({ title: "Success", description: res?.message });
 
         setLeaveData((prev) =>
           prev.map((l) =>
@@ -311,19 +297,11 @@ const LeavephysioManagement = () => {
           ),
         );
       } else {
-        toast({
-          title: "Error",
-          description: res?.message || "Update failed.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: res?.message, variant: "destructive" });
       }
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Error",
-        description: err?.message || "Update failed.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err?.message, variant: "destructive" });
     }
   };
 
@@ -432,14 +410,11 @@ useEffect(() => {
         if (failed.length > 0) {
           toast({
             title: "Partial Error",
-            description: "Some sessions failed to update.",
+            description: results.find((r) => !r?.success)?.message || "Some sessions failed to update.",
             variant: "destructive",
           });
         } else {
-          toast({
-            title: "Success",
-            description: "Selected session(s) changed to Scheduled.",
-          });
+          toast({ title: "Success", description: results[0]?.message });
         }
 
         setSelectedPatientId("");
@@ -460,26 +435,15 @@ useEffect(() => {
       });
 
       if (response?.success) {
-        toast({
-          title: "Success",
-          description: "Future reassignment plan saved successfully.",
-        });
+        toast({ title: "Success", description: response?.message });
         setSelectedPatientId("");
         await getLeave();
       } else {
-        toast({
-          title: "Error",
-          description: response?.message || "Failed to save leave plan.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: response?.message, variant: "destructive" });
       }
     } catch (error) {
       console.error("handleSaveSession error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save session.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 

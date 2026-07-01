@@ -99,17 +99,12 @@ const ExpenseType = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "ExpenseType has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getExpenseType();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -153,16 +148,13 @@ const ExpenseType = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "ExpenseType Create successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getExpenseType();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateExpenseType = async (data) => {
@@ -171,16 +163,13 @@ const ExpenseType = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "ExpenseType updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getExpenseType();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (expense) => {
@@ -190,13 +179,7 @@ const ExpenseType = () => {
   };
 
   const handleDelete = (id) => {
-    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     deleteExpenseType(id);
-    toast({
-      title: "Deleted",
-      description: "ExpenseType has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewDialog = () => {

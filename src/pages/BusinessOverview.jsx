@@ -149,6 +149,7 @@ const BusinessOverview = () => {
     machineDes: "",
     otherDescription: "",
     description: "",
+    subType: "",
     linkedEntity: {},
   };
 
@@ -207,13 +208,17 @@ const BusinessOverview = () => {
       const mappedTransactions = expenseList.map((item) => ({
         id: item._id,
         _id: item._id,
-        type:
-          item?.ExpenseTypeID?.ExpenseTypeName === "Income" ||
-          item?.ExpenseTypeID?.ExpenseTypeName === "Revenue" ||
-          item?.ExpenseTypeID?.ExpenseTypeName === "Revenue from Patient"
-            ? "Income"
-            : "Expense",
-        category: item?.ExpenseCategoryId?.ExpenseCategoryName || "-",
+        type: (() => {
+          const tn = item?.ExpenseTypeID?.ExpenseTypeName?.toLowerCase();
+          if (tn === "income" || tn === "revenue" || tn === "revenue from patient") return "Income";
+          if (tn === "other") return "Other";
+          return "Expense";
+        })(),
+        category:
+          item?.ExpenseCategoryId?.ExpenseCategoryName === "Other" &&
+          item?.otherDescription
+            ? `Other: ${item.otherDescription}`
+            : item?.ExpenseCategoryId?.ExpenseCategoryName || "-",
         date: item?.expenseDate,
         amount: Number(item?.expenseAmount || 0),
         description:
@@ -235,6 +240,7 @@ const BusinessOverview = () => {
         sourceName: item?.ReferenceId?.sourceName || "",
         MachineiId: item?.MachineiId?._id || "",
         machineName: item?.MachineiId?.machineName || "",
+        subType: item?.subType || "",
         linkedEntity: {
           physioName: item?.PhysioId?._id || "",
           patientName: item?.PatientId?._id || "",
@@ -253,40 +259,30 @@ const BusinessOverview = () => {
   };
 
   const createExpense = async (data) => {
-    try {
-      const response = await apiRequest("Expense/createExpense", {
-        method: "POST",
-        body: JSON.stringify({
-          createdBy: user?.physioName || "",
-          ...data,
-        }),
-      });
+    const response = await apiRequest("Expense/createExpense", {
+      method: "POST",
+      body: JSON.stringify({
+        createdBy: user?.physioName || "",
+        ...data,
+      }),
+    });
 
-      await getExpense();
+    await getExpense();
 
-      return response?.data || response;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
+    return response;
   };
   const updateExpense = async (data) => {
-    try {
-      const response = await apiRequest("Expense/updateExpense", {
-        method: "POST",
-        body: JSON.stringify({
-          updatedBy: user?.physioName || "",
-          ...data,
-        }),
-      });
+    const response = await apiRequest("Expense/updateExpense", {
+      method: "POST",
+      body: JSON.stringify({
+        updatedBy: user?.physioName || "",
+        ...data,
+      }),
+    });
 
-      await getExpense();
+    await getExpense();
 
-      return response?.data || response;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
+    return response;
   };
   const openEditDialog = (tx) => {
     setEditingTx(tx);
@@ -309,6 +305,7 @@ const BusinessOverview = () => {
       MachineiId: tx?.MachineiId || "",
       machineDes: raw?.machineDes || "",
       otherDescription: raw?.otherDescription || "",
+      subType: raw?.subType || "",
       description: raw?.officeExpDes || tx?.description || "",
       linkedEntity: {
         physioName: tx?.PhysioId || "",
@@ -488,6 +485,30 @@ const BusinessOverview = () => {
       return;
     }
 
+    if (
+      formState.ExpenseCategoryName === "Other" &&
+      !formState.otherDescription?.trim()
+    ) {
+      toast({
+        title: "Error",
+        description: "Please specify the category for 'Other'",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      formState.ExpenseTypeName?.toLowerCase() === "other" &&
+      !formState.subType
+    ) {
+      toast({
+        title: "Error",
+        description: "Please select a sub-type for 'Other' transaction",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const transactionDate = formState.expenseDate
       ? new Date(formState.expenseDate)
       : new Date();
@@ -520,20 +541,23 @@ const BusinessOverview = () => {
       referenceDes: formState.referenceDes || "",
       machineDes: formState.machineDes || "",
       otherDescription: formState.otherDescription || "",
+      subType: formState.ExpenseTypeName?.toLowerCase() === "other"
+        ? formState.subType || null
+        : null,
     };
 
     try {
       if (editingTx?._id) {
-        await updateExpense(payload);
+        const res = await updateExpense(payload);
         toast({
           title: "Success",
-          description: "Transaction updated successfully.",
+          description: res.message,
         });
       } else {
-        await createExpense(payload);
+        const res = await createExpense(payload);
         toast({
           title: "Success",
-          description: "New transaction added.",
+          description: res.message,
         });
       }
 
@@ -543,7 +567,7 @@ const BusinessOverview = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error?.message || "Failed to save transaction. Try again.",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -766,7 +790,7 @@ const BusinessOverview = () => {
       if (year === selectedYearNumber) {
         if (tx.type === "Income") {
           incomeData[month] += Number(tx.amount || 0);
-        } else {
+        } else if (tx.type === "Expense") {
           expenseData[month] += Number(tx.amount || 0);
         }
       }
@@ -821,12 +845,12 @@ const BusinessOverview = () => {
 
       if (year === currentYear && month === currentMonth) {
         if (tx.type === "Income") currentIncome += amount;
-        else currentExpense += amount;
+        else if (tx.type === "Expense") currentExpense += amount;
       }
 
       if (year === prevYear && month === prevMonth) {
         if (tx.type === "Income") previousIncome += amount;
-        else previousExpense += amount;
+        else if (tx.type === "Expense") previousExpense += amount;
       }
     });
     const monthOptions = [
@@ -1359,6 +1383,77 @@ const BusinessOverview = () => {
             </div>
           ))
         ) : (
+          <div className="p-6 text-center text-gray-500">No records found</div>
+        )}
+      </div>
+    </div>
+  );
+
+  const SUBTYPE_LABELS = {
+    asset_purchase: "Asset Purchase",
+    loan_received: "Loan Received",
+    transfer: "Transfer",
+    adjustment: "Adjustment",
+  };
+
+  const OtherTransactionTable = ({ data }) => (
+    <div className="w-full overflow-hidden rounded-xl border bg-white">
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full min-w-[600px] text-sm">
+          <thead className="bg-slate-50">
+            <tr className="border-b">
+              <th className="p-3 text-left font-semibold text-gray-600">Date</th>
+              <th className="p-3 text-left font-semibold text-gray-600">Sub-type</th>
+              <th className="p-3 text-left font-semibold text-gray-600">Description</th>
+              <th className="p-3 text-right font-semibold text-gray-600">Amount</th>
+              {Permissions.isEdit && (
+                <th className="p-3 text-center font-semibold text-gray-600">Action</th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {data.length > 0 ? data.map((tx) => (
+              <tr key={tx.id} className="border-b hover:bg-gray-50/50">
+                <td className="p-3 text-gray-700">{tx.date ? format(new Date(tx.date), "dd MMM, yyyy") : "-"}</td>
+                <td className="p-3 text-gray-700">{SUBTYPE_LABELS[tx.subType] || tx.subType || "-"}</td>
+                <td className="max-w-xs truncate p-3 text-gray-500">{tx.description}</td>
+                <td className="p-3 text-right font-medium text-gray-700">₹{Number(tx.amount || 0).toLocaleString()}</td>
+                {Permissions.isEdit && (
+                  <td className="p-3 text-center">
+                    <Button size="sm" variant="outline" onClick={() => openEditDialog(tx)}>Edit</Button>
+                  </td>
+                )}
+              </tr>
+            )) : (
+              <tr><td colSpan={Permissions.isEdit ? 5 : 4} className="p-6 text-center text-gray-500">No records found</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="space-y-3 p-3 md:hidden">
+        {data.length > 0 ? data.map((tx) => (
+          <div key={tx.id} className="rounded-xl border bg-white p-3 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] text-gray-500">Date</p>
+                <p className="text-sm font-medium text-gray-800">{tx.date ? format(new Date(tx.date), "dd MMM, yyyy") : "-"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] text-gray-500">Amount</p>
+                <p className="text-sm font-semibold text-gray-700">₹{Number(tx.amount || 0).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="mt-2 space-y-1">
+              <p className="text-[11px] text-gray-500">Sub-type: <span className="text-gray-700">{SUBTYPE_LABELS[tx.subType] || tx.subType || "-"}</span></p>
+              {tx.description && <p className="text-[11px] text-gray-500">Note: <span className="text-gray-700">{tx.description}</span></p>}
+            </div>
+            {Permissions.isEdit && (
+              <div className="mt-2 flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => openEditDialog(tx)}>Edit</Button>
+              </div>
+            )}
+          </div>
+        )) : (
           <div className="p-6 text-center text-gray-500">No records found</div>
         )}
       </div>
@@ -2589,6 +2684,27 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                 </CardContent>
               </Card>
             </div>
+
+            {transactions.some(t => t.type === "Other") && (
+              <div data-aos="fade-up">
+                <Card className="rounded-2xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg text-gray-600">
+                      <List size={18} />
+                      Other Transactions
+                    </CardTitle>
+                    <CardDescription>
+                      Non P&amp;L entries ({transactions.filter(t => t.type === "Other").length} records) — not included in income or expense totals
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="px-3 pb-4 sm:px-6">
+                    <OtherTransactionTable
+                      data={transactions.filter(t => t.type === "Other")}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -3044,6 +3160,7 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                     handleSelectChange("ExpenseCategoryId", "");
                     handleSelectChange("ExpenseCategoryName", "");
                     handleSelectChange("linkedEntity", {});
+                    handleSelectChange("subType", "");
                   }}
                 >
                   <SelectTrigger className="w-full">
@@ -3127,6 +3244,9 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                       handleSelectChange("ExpenseCategoryId", selected.id);
                       handleSelectChange("ExpenseCategoryName", selected.name);
                       handleSelectChange("linkedEntity", {});
+                      if (selected.name !== "Other") {
+                        handleSelectChange("otherDescription", "");
+                      }
                     }}
                   >
                     <SelectTrigger className="w-full">
@@ -3149,6 +3269,46 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                 </div>
               )}
             </div>
+
+            {formState.ExpenseCategoryName === "Other" && (
+              <div className="space-y-2">
+                <Label htmlFor="otherDescription">
+                  Specify Category <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="otherDescription"
+                  type="text"
+                  placeholder="Enter custom category name"
+                  value={formState.otherDescription}
+                  onChange={(e) =>
+                    handleFormChange("otherDescription", e.target.value)
+                  }
+                  required
+                />
+              </div>
+            )}
+
+            {formState.ExpenseTypeName?.toLowerCase() === "other" && (
+              <div className="space-y-2">
+                <Label htmlFor="subType">
+                  Sub-type <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formState.subType}
+                  onValueChange={(v) => handleSelectChange("subType", v)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select sub-type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asset_purchase">Asset Purchase (reduces cash, increases assets)</SelectItem>
+                    <SelectItem value="loan_received">Loan Received (increases cash, increases liability)</SelectItem>
+                    <SelectItem value="transfer">Transfer (between accounts, no P&amp;L impact)</SelectItem>
+                    <SelectItem value="adjustment">Adjustment (internal correction only)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {renderDynamicFields(formState, handleFormChange)}
 

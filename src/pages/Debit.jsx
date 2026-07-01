@@ -182,17 +182,17 @@ const Debit = () => {
       };
 
       if (editingDebit?._id) {
-        await apiRequest("Debit/updateDebit", {
+        const res = await apiRequest("Debit/updateDebit", {
           method: "POST",
           body: JSON.stringify({ _id: editingDebit._id, ...payload }),
         });
-        toast({ title: "Success", description: "Debit updated successfully" });
+        toast({ title: "Success", description: res.message });
       } else {
-        await apiRequest("Debit/createDebit", {
+        const res = await apiRequest("Debit/createDebit", {
           method: "POST",
           body: JSON.stringify(payload),
         });
-        toast({ title: "Success", description: "Debit created successfully" });
+        toast({ title: "Success", description: res.message });
       }
 
       setIsFormOpen(false);
@@ -200,7 +200,7 @@ const Debit = () => {
     } catch (err) {
       toast({
         title: "Error",
-        description: err?.message || "Failed",
+        description: err?.message,
         variant: "destructive",
       });
     }
@@ -229,16 +229,16 @@ const Debit = () => {
   }, [Permissions]);
   const handleDelete = async (id) => {
     try {
-      await apiRequest("Debit/deleteDebit", {
+      const res = await apiRequest("Debit/deleteDebit", {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({ title: "Deleted", description: "Debit deleted successfully" });
+      toast({ title: "Deleted", description: res.message, variant: "destructive" });
       await getAllDebits();
     } catch (err) {
       toast({
         title: "Error",
-        description: err?.message || "Delete failed",
+        description: err?.message,
         variant: "destructive",
       });
     }

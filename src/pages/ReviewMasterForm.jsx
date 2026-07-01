@@ -368,26 +368,19 @@ const ReviewMasterForm = () => {
         reviewStatusId: pendingStatus._id,
       };
 
-      await apiRequest("Review/createReview", {
+      const feedbackRes = await apiRequest("Review/createReview", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      toast({
-        title: "Success",
-        description: "Feedback submitted successfully.",
-      });
+      toast({ title: "Success", description: feedbackRes.message });
 
       setFeedbackDialog({ open: false, sessionId: null, patientId: null });
       setFeedback(initialFeedbackState);
       getReviews();
     } catch (err) {
       console.error("Error submitting feedback:", err);
-      toast({
-        title: "Submission Failed",
-        description: "Failed to submit feedback.",
-        variant: "destructive",
-      });
+      toast({ title: "Submission Failed", description: err?.message, variant: "destructive" });
     }
   };
   console.log(user, "user");
@@ -414,25 +407,18 @@ const ReviewMasterForm = () => {
         createdBy: user.physioName,
       };
 
-      await apiRequest("Review/createReview", {
+      const createRes = await apiRequest("Review/createReview", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      toast({
-        title: "Success",
-        description: "New review scheduled successfully.",
-      });
+      toast({ title: "Success", description: createRes.message });
 
       getReviews();
       return true;
     } catch (error) {
       console.error("Error creating review:", error);
-      toast({
-        title: "Creation Failed",
-        description: "Failed to create review.",
-        variant: "destructive",
-      });
+      toast({ title: "Creation Failed", description: error?.message, variant: "destructive" });
       return false;
     }
   };
@@ -500,64 +486,42 @@ const ReviewMasterForm = () => {
             : editingReview?.redFlags || [],
       };
 
-      await apiRequest("Review/updateReview", {
+      const updateRes = await apiRequest("Review/updateReview", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
       getReviews();
 
-      toast({
-        title: "Success",
-        description: "Review updated successfully.",
-      });
+      toast({ title: "Success", description: updateRes.message });
 
       return true;
     } catch (error) {
-      toast({
-        title: "Update Failed",
-        description: "Failed to update review.",
-        variant: "destructive",
-      });
+      toast({ title: "Update Failed", description: error?.message, variant: "destructive" });
       return false;
     }
   };
 
   const deleteReview = async (data) => {
     try {
-      await apiRequest("Review/deleteReview", {
+      const deleteRes = await apiRequest("Review/deleteReview", {
         method: "POST",
         body: JSON.stringify(data),
       });
 
       getReviews();
 
-      toast({
-        title: "Deleted",
-        description: "Review has been removed successfully.",
-      });
+      toast({ title: "Deleted", description: deleteRes.message, variant: "destructive" });
 
       return true;
     } catch (error) {
-      toast({
-        title: "Delete Failed",
-        description: "Failed to delete review.",
-        variant: "destructive",
-      });
+      toast({ title: "Delete Failed", description: error?.message, variant: "destructive" });
       return false;
     }
   };
 
   const handleDeleteReview = async (id) => {
-    const deleted = await deleteReview({ _id: id });
-
-    if (!deleted) {
-      toast({
-        title: "Delete Failed",
-        description: "Review could not be removed.",
-        variant: "destructive",
-      });
-    }
+    deleteReview({ _id: id });
   };
   const selectedPatientObj = patients.find(
     (p) => p._id === sessionForm.patientId,
@@ -689,7 +653,7 @@ const ReviewMasterForm = () => {
         newDate.getMonth() + 1,
       ).padStart(2, "0")}-${String(newDate.getDate()).padStart(2, "0")}`;
 
-      await apiRequest("Review/updateReviewDate", {
+      const postponeRes = await apiRequest("Review/updateReviewDate", {
         method: "POST",
         body: JSON.stringify({
           _id: review._id,
@@ -697,10 +661,7 @@ const ReviewMasterForm = () => {
         }),
       });
 
-      toast({
-        title: "Success",
-        description: "Review date updated successfully",
-      });
+      toast({ title: "Success", description: postponeRes.message });
 
       setIsEditDate(false);
       setEditingReview(null);
@@ -708,11 +669,7 @@ const ReviewMasterForm = () => {
       getReviews();
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to update review date",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -753,7 +710,7 @@ const ReviewMasterForm = () => {
     }
 
     try {
-      await apiRequest("Review/updateReview", {
+      const dateRes = await apiRequest("Review/updateReview", {
         method: "POST",
         body: JSON.stringify({
           _id: editingReview._id,
@@ -761,21 +718,14 @@ const ReviewMasterForm = () => {
         }),
       });
 
-      toast({
-        title: "Success",
-        description: "Review date updated successfully",
-      });
+      toast({ title: "Success", description: dateRes.message });
 
       setIsEditDate(false);
       setEditingReview(null);
       getReviews(); // refresh table
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to update review date",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
   const getReviewStatus = async (data) => {

@@ -128,59 +128,50 @@ const MenuForm = ({ open, setOpen, menu, onSave, getAllMenus }) => {
   };
 
   const createMenu = async (data) => {
-    try {
-      await apiRequest("Menu/createMenu/", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      SetData([]);
-      getAllMenus();
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
+    const res = await apiRequest("Menu/createMenu/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    SetData([]);
+    getAllMenus();
+    return res;
   };
 
   const updateMenu = async (data) => {
-    try {
-      await apiRequest("Menu/updateMenu/", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      SetData([]);
-      getAllMenus();
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
+    const res = await apiRequest("Menu/updateMenu/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    SetData([]);
+    getAllMenus();
+    return res;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData._id) {
-      updateMenu({
-        ...formData,
-        order: parseInt(formData.order),
-        _id: formData._id,
-        parentId: formData.parentId || null,
-      });
-      toast({
-        title: "Menu Updated",
-        description: "Menu has been updated successfully.",
-      });
-    } else {
-      createMenu({
-        ...formData,
-        order: parseInt(formData.order),
-        parentId: formData.parentId || null,
-      });
-      toast({
-        title: "Menu Added",
-        description: `${formData.label} has been added to the system.`,
-      });
+    try {
+      if (formData._id) {
+        const res = await updateMenu({
+          ...formData,
+          order: parseInt(formData.order),
+          _id: formData._id,
+          parentId: formData.parentId || null,
+        });
+        toast({ title: "Menu Updated", description: res.message });
+      } else {
+        const res = await createMenu({
+          ...formData,
+          order: parseInt(formData.order),
+          parentId: formData.parentId || null,
+        });
+        toast({ title: "Menu Added", description: res.message });
+      }
+      setOpen(false);
+    } catch (error) {
+      console.error("Error:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
-    setOpen(false);
   };
 
   // NEW DESIGN: Shadcn Dialog Layout

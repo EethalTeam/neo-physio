@@ -115,17 +115,12 @@ const State = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "State has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getState();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -169,13 +164,13 @@ const State = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "State Create successfully." });
+      toast({ title: "Success", description: response.message });
       getState();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateState = async (data) => {
@@ -184,13 +179,13 @@ const State = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "State updated successfully." });
+      toast({ title: "Success", description: response.message });
       getState();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (StateData) => {

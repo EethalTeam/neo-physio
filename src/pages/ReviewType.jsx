@@ -32,6 +32,7 @@ import { PlusCircle, Edit, Trash2, FileSearch } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
+import { apiRequest } from "@/components/CustomComponents/apiRequest";
 import { id } from "date-fns/locale";
 // import { json } from 'stream/consumers';
 
@@ -77,45 +78,27 @@ const ReviewType = () => {
 
     const createReviewType = async () => {
       try {
-        const res = await fetch(
-          "http://localhost:8001/api/ReviewType/createReviewType",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              reviewTypeName: reviewTypeData.reviewTypeName,
-              isActive: true,
-              reviewTypeCode: reviewTypeData.reviewTypeCode,
-            }),
-          },
-        );
-        if (res.ok) {
-          const newType = await res.json();
-          // setRedFlags([...redFlags, red])
-          handleGetReviewTypes();
-          setReviewTypeData({
-            initialReviewType: "",
-          });
-          toast({ title: "Success", description: "New review type added." });
-        }
+        const res = await apiRequest("ReviewType/createReviewType", {
+          method: "POST",
+          body: JSON.stringify({
+            reviewTypeName: reviewTypeData.reviewTypeName,
+            isActive: true,
+            reviewTypeCode: reviewTypeData.reviewTypeCode,
+          }),
+        });
+        toast({ title: "Success", description: res.message });
+        handleGetReviewTypes();
+        setReviewTypeData(initialReviewType);
       } catch (error) {
+        toast({ title: "Error", description: error?.message, variant: "destructive" });
         console.log(error);
       }
     };
 
     if (editingType) {
       updateReviewType(reviewTypeData);
-      setReviewTypes((prev) =>
-        prev.map((type) =>
-          type.id === editingType.id
-            ? { ...type, name: reviewTypeData.reviewTypeName }
-            : type,
-        ),
-      );
     } else {
       createReviewType(reviewTypeData);
-      const newType = { id: Date.now(), name: reviewTypeData.reviewTypeName };
-      setReviewTypes((prev) => [...prev, newType]);
     }
     setIsFormOpen(false);
     setEditingType(null);
@@ -140,39 +123,25 @@ const ReviewType = () => {
 
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(
-        "http://localhost:8001/api/ReviewType/deleteReviewType",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ _id: id }),
-        },
-      );
+      const res = await apiRequest("ReviewType/deleteReviewType", {
+        method: "POST",
+        body: JSON.stringify({ _id: id }),
+      });
+      toast({ title: "Deleted", description: res.message, variant: "destructive" });
       handleGetReviewTypes();
-      if (res.ok) {
-        // setRedFlags(prev => prev.filter(flag => flag.id !== _id));
-        toast({
-          title: "Deleted",
-          description: "Review Type has been removed.",
-          variant: "destructive",
-        });
-      }
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.log(error);
     }
   };
 
   const handleGetReviewTypes = async () => {
     try {
-      const res = await fetch(
-        "http://localhost:8001/api/ReviewType/getAllReviewType",
-        {
-          method: "POST",
-          body: JSON.stringify({}),
-        },
-      );
-      const result = await res.json();
-      setReviewTypes(result);
+      const res = await apiRequest("ReviewType/getAllReviewType", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setReviewTypes(res);
     } catch (error) {
       console.log(error);
     }
@@ -202,33 +171,22 @@ const ReviewType = () => {
   // }
   const updateReviewType = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:8001/api/ReviewType/updateReviewType",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            _id: reviewTypeData._id,
-            reviewTypeName: reviewTypeData.reviewTypeName,
-            reviewTypeCode: reviewTypeData.reviewTypeCode,
-            isActive: reviewTypeData.isActive,
-          }),
-        },
-      );
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-
-      toast({
-        title: "Success",
-        description: "Category updated successfully.",
+      const response = await apiRequest("ReviewType/updateReviewType", {
+        method: "POST",
+        body: JSON.stringify({
+          _id: reviewTypeData._id,
+          reviewTypeName: reviewTypeData.reviewTypeName,
+          reviewTypeCode: reviewTypeData.reviewTypeCode,
+          isActive: reviewTypeData.isActive,
+        }),
       });
+      toast({ title: "Success", description: response.message });
       handleGetReviewTypes();
       setIsFormOpen(false);
-      return data;
+      return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 

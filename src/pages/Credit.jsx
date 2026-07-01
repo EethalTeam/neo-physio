@@ -200,17 +200,17 @@ const Credit = () => {
       };
 
       if (editingCredit?._id) {
-        await apiRequest("Credit/updateCredit", {
+        const res = await apiRequest("Credit/updateCredit", {
           method: "POST",
           body: JSON.stringify({ _id: editingCredit._id, ...payload }),
         });
-        toast({ title: "Success", description: "Credit updated successfully" });
+        toast({ title: "Success", description: res.message });
       } else {
-        await apiRequest("Credit/createCredit", {
+        const res = await apiRequest("Credit/createCredit", {
           method: "POST",
           body: JSON.stringify(payload),
         });
-        toast({ title: "Success", description: "Credit created successfully" });
+        toast({ title: "Success", description: res.message });
       }
 
       setIsFormOpen(false);
@@ -218,7 +218,7 @@ const Credit = () => {
     } catch (err) {
       toast({
         title: "Error",
-        description: err?.message || "Failed",
+        description: err?.message,
         variant: "destructive",
       });
     }
@@ -226,16 +226,16 @@ const Credit = () => {
 
   const handleDelete = async (id) => {
     try {
-      await apiRequest("Credit/deleteCredit", {
+      const res = await apiRequest("Credit/deleteCredit", {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({ title: "Deleted", description: "Credit deleted successfully" });
+      toast({ title: "Deleted", description: res.message, variant: "destructive" });
       await getAllCredits();
     } catch (err) {
       toast({
         title: "Error",
-        description: err?.message || "Delete failed",
+        description: err?.message,
         variant: "destructive",
       });
     }
@@ -318,7 +318,7 @@ const Credit = () => {
     }
 
     try {
-      await apiRequest("Credit/payCredit", {
+      const res = await apiRequest("Credit/payCredit", {
         method: "POST",
         body: JSON.stringify({
           creditId: payingCredit._id,
@@ -328,14 +328,14 @@ const Credit = () => {
         }),
       });
 
-      toast({ title: "Success", description: "Payment recorded successfully" });
+      toast({ title: "Success", description: res.message });
       setIsPayOpen(false);
       setPayingCredit(null);
       await getAllCredits();
     } catch (err) {
       toast({
         title: "Error",
-        description: err?.message || "Payment failed",
+        description: err?.message,
         variant: "destructive",
       });
     }

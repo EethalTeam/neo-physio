@@ -65,12 +65,12 @@ const PhysioCategory = () => {
         method: 'POST',
         body: JSON.stringify({_id:id}),
       });
-        toast({ title: "Deleted", description: "PhysioCategory has been removed.", variant: "destructive" });
+        toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getPhysio();
       return response;
-    } catch (error) {0
+    } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error('Error:', error);
-      throw error;    
     }
   }
 
@@ -115,13 +115,13 @@ const PhysioCategory = () => {
           method: 'POST',
           body: JSON.stringify(data),
         });
-         toast({ title: "Success", description: "PhysioCategory Create successfully." });
+         toast({ title: "Success", description: response.message });
         getPhysio()
         setIsFormOpen(false)
         return response;
       } catch (error) {
+        toast({ title: "Error", description: error?.message, variant: "destructive" });
         console.error('Error:', error);
-        throw error;
       }
     };
    const updatePhysio = async(data)=>{
@@ -130,13 +130,13 @@ const PhysioCategory = () => {
         method: 'POST',
         body: JSON.stringify(data),
       });
-        toast({ title: "Success", description: "PhysioCategory updated successfully." });
+        toast({ title: "Success", description: response.message });
         getPhysio()
        setIsFormOpen(false)
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error('Error:', error);
-      throw error;
     }
    }
   const handleEdit = (physioCate) => {

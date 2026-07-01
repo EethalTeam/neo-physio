@@ -190,20 +190,11 @@ const LeadManagement = () => {
         body: JSON.stringify(payload),
       });
 
-      if (res) {
-        getLead();
-        toast({
-          title: "Success",
-          description: "Lead qualified successfully.",
-        });
-      } else {
-        toast({
-          title: "Failed",
-          description: "Lead qualify failed.",
-        });
-      }
+      getLead();
+      toast({ title: "Success", description: res.message });
     } catch (error) {
       console.error("Error qualifying lead:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -303,17 +294,13 @@ const LeadManagement = () => {
         body: formData,
       });
 
-      const res = await response.json();
-
-      toast({
-        title: "Success",
-        description: "Lead created successfully.",
-      });
+      toast({ title: "Success", description: response.message });
 
       getLead();
       setIsFormOpen(false);
     } catch (error) {
       console.error(error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -350,10 +337,7 @@ const LeadManagement = () => {
         body: formData,
       });
 
-      toast({
-        title: "Updated",
-        description: "Lead updated successfully.",
-      });
+      toast({ title: "Updated", description: res.message });
 
       setIsFormOpen(false);
       getLead();
@@ -361,25 +345,23 @@ const LeadManagement = () => {
       return res;
     } catch (error) {
       console.error("Error updating lead:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
   const deleteLead = async (id) => {
     try {
-      await apiRequest("Lead/deleteLead", {
+      const delRes = await apiRequest("Lead/deleteLead", {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
 
-      toast({
-        title: "Deleted",
-        description: "Lead has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: delRes.message, variant: "destructive" });
 
       getLead();
     } catch (error) {
       console.error("Error deleting lead:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 

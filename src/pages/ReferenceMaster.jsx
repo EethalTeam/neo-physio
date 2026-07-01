@@ -116,8 +116,10 @@ const ReferenceMaster = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
+      toast({ title: "Success", description: res.message });
       getAllReference();
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Not able to Create Reference:", error);
     }
   };
@@ -129,9 +131,10 @@ const ReferenceMaster = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-
+      toast({ title: "Success", description: res.message });
       getAllReference();
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Not able to update Reference:", error);
     }
   };
@@ -143,16 +146,12 @@ const ReferenceMaster = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "Reference has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getAllReference();
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -173,14 +172,9 @@ const ReferenceMaster = () => {
     };
 
     if (editingReference) {
-      // setReferences(prev => prev.map(ref => ref._id === editingReference._id ? { ...ref, ...newReferenceData } : ref));
       updateReference(referenceForm);
-      toast({ title: "Success", description: "Reference source updated." });
     } else {
-      // const newReference = { _id: Date.now(), ...newReferenceData };
-      // setReferences(prev => [newReference, ...prev]);
       createReference(referenceForm);
-      toast({ title: "Success", description: "New reference source added." });
     }
     setIsFormOpen(false);
     setEditingReference(null);

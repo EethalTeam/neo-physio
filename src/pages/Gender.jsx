@@ -90,17 +90,12 @@ const Gender = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "Gender has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getGender();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -144,13 +139,13 @@ const Gender = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "Gender Create successfully." });
+      toast({ title: "Success", description: response.message });
       getGender();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateGender = async (data) => {
@@ -159,13 +154,13 @@ const Gender = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({ title: "Success", description: "Gender updated successfully." });
+      toast({ title: "Success", description: response.message });
       getGender();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (gender) => {

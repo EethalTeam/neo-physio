@@ -223,12 +223,12 @@ const Payroll = () => {
         return;
       }
 
-      await apiRequest("Payroll/updatePayroll", {
+      const res = await apiRequest("Payroll/updatePayroll", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      toast({ title: "Updated", description: "Payroll updated successfully" });
+      toast({ title: "Updated", description: res.message });
 
       setIsEditOpen(false);
       setEditRow(null);
@@ -237,7 +237,7 @@ const Payroll = () => {
       console.log(err);
       toast({
         title: "Update Failed",
-        description: err?.message || "Could not update payroll",
+        description: err?.message,
         variant: "destructive",
       });
     }
@@ -667,17 +667,17 @@ const Payroll = () => {
         return;
       }
 
-      await apiRequest("Payroll/deletePayroll", {
+      const res = await apiRequest("Payroll/deletePayroll", {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
 
-      toast({ title: "Deleted", description: "Payroll deleted successfully" });
-      await getPayrolls(); // ✅ refresh
+      toast({ title: "Deleted", description: res.message, variant: "destructive" });
+      await getPayrolls();
     } catch (err) {
       toast({
         title: "Error",
-        description: err?.message || "Delete failed",
+        description: err?.message,
         variant: "destructive",
       });
     }

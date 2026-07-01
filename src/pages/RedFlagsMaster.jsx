@@ -79,37 +79,24 @@ const RedFlagsMaster = () => {
       try {
         const res = await apiRequest("Redflag/createRedflag", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             redflagName: flagName.redflagName,
             isActive: true,
             redflagCode: flagName.redflagCode,
           }),
         });
-        if (res.ok) {
-          const red = await res.json();
-          // setRedFlags([...redFlags, red])
-          handleget();
-          setFlagName({
-            initialRedflag: "",
-          });
-          toast({ title: "Success", description: "New red flag added." });
-        }
+        toast({ title: "Success", description: res.message });
+        handleget();
+        setFlagName(initialRedflag);
       } catch (error) {
+        toast({ title: "Error", description: error?.message, variant: "destructive" });
         console.log(error);
       }
     };
     if (editingFlag) {
       updateRedflag(flagName);
-      setRedFlags((prev) =>
-        prev.map((flag) =>
-          flag.id === editingFlag.id ? { ...flag, name: flagName } : flag,
-        ),
-      );
     } else {
       createRedflag(flagName);
-      const newFlag = { id: Date.now(), name: flagName };
-      setRedFlags((prev) => [...prev, newFlag]);
     }
     setIsFormOpen(false);
     setEditingFlag(null);
@@ -132,19 +119,12 @@ const RedFlagsMaster = () => {
     try {
       const res = await apiRequest("Redflag/deleteRedflag", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ _id: id }),
       });
+      toast({ title: "Deleted", description: res.message, variant: "destructive" });
       handleget();
-      if (res.ok) {
-        // setRedFlags(prev => prev.filter(flag => flag.id !== _id));
-        toast({
-          title: "Deleted",
-          description: "Red flag has been removed.",
-          variant: "destructive",
-        });
-      }
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.log(error);
     }
   };
@@ -177,16 +157,13 @@ const RedFlagsMaster = () => {
           RedflagIDPK: flagName.RedflagIDPK,
         }),
       });
-      toast({
-        title: "Success",
-        description: "Category updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       handleget();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 

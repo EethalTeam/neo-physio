@@ -1229,18 +1229,19 @@ const PatientManagement = () => {
   const deletePatient = useCallback(
     async (id) => {
       try {
-        await apiRequest("Patient/deletePatient", {
+        const res = await apiRequest("Patient/deletePatient", {
           method: "POST",
           body: JSON.stringify({ _id: id }),
         });
         toast({
           title: "Deleted",
-          description: "Patient has been removed.",
+          description: res.message,
           variant: "destructive",
         });
         getAllPatient();
       } catch (error) {
         console.error("Error:", error);
+        toast({ title: "Error", description: error?.message, variant: "destructive" });
       }
     },
     [activeTab],
@@ -1341,12 +1342,12 @@ const PatientManagement = () => {
       });
     }
 
-    await apiRequest("Patient/createPatients", {
+    const response = await apiRequest("Patient/createPatients", {
       method: "POST",
       body: formData,
     });
     getAllPatient();
-    return;
+    return response;
   };
 
   const AssignPhysio = useCallback(
@@ -1359,7 +1360,7 @@ const PatientManagement = () => {
 
         toast({
           title: "Success",
-          description: "Assign updated successfully.",
+          description: response.message,
         });
 
         getAllPatient();
@@ -1371,10 +1372,7 @@ const PatientManagement = () => {
 
         toast({
           title: "Error",
-          description:
-            error?.response?.data?.message ||
-            error?.message ||
-            "Something went wrong",
+          description: error?.message,
           variant: "destructive",
         });
       }
@@ -1431,7 +1429,7 @@ const PatientManagement = () => {
           });
 
           // then mark recovered using separate API
-          await markPatientRecovered({
+          const recoveredRes = await markPatientRecovered({
             patientId: editingPatient._id,
             recoveredType,
             stopReason: otherReason.trim(),
@@ -1439,7 +1437,7 @@ const PatientManagement = () => {
 
           toast({
             title: "Success",
-            description: "Patient marked as recovered successfully.",
+            description: recoveredRes.message,
           });
         }
 
@@ -1456,7 +1454,7 @@ const PatientManagement = () => {
         // CASE 3: recovered -> recovered normal edit
         // CASE 4: active -> active normal edit
         else {
-          await updatePatient({
+          const updateRes = await updatePatient({
             ...patientForm,
             isRecovered: wasRecovered,
             recoveredType: wasRecovered
@@ -1471,14 +1469,14 @@ const PatientManagement = () => {
 
           toast({
             title: "Success",
-            description: "Patient updated successfully.",
+            description: updateRes.message,
           });
         }
       } else {
-        await createPatient(patientForm);
+        const createRes = await createPatient(patientForm);
         toast({
           title: "Success",
-          description: "Patient created successfully.",
+          description: createRes.message,
         });
       }
 
@@ -1493,7 +1491,7 @@ const PatientManagement = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error?.message || "Failed to save patient.",
+        description: error?.message,
         variant: "destructive",
       });
     } finally {
@@ -1725,7 +1723,7 @@ const PatientManagement = () => {
             });
             return;
           }
-          toast({ title: "Success", description: "New patient created." });
+          toast({ title: "Success", description: response.message });
         } else {
           await updatePatient({
             ...patientForm,
@@ -1777,6 +1775,7 @@ const PatientManagement = () => {
           return;
         }
         await AssignPhysio(assignForm);
+        // toast is shown inside AssignPhysio
         setPatients((prev) => {
           const physioId = assignForm.physioId;
           const newOrder = Number(assignForm.visitOrder);
@@ -1827,10 +1826,6 @@ const PatientManagement = () => {
             return updated ? updated : p;
           });
         });
-        toast({
-          title: "Success",
-          description: `Physio assigned for ${assigningPatient.patientName}.`,
-        });
         setIsAssignPhysioOpen(false);
         setAssigningPatient(null);
         setAssignForm(initialAssignState);
@@ -1838,7 +1833,7 @@ const PatientManagement = () => {
         console.error("Error assigning physio:", error);
         toast({
           title: "Error",
-          description: "Failed to assign physio",
+          description: error?.message,
           variant: "destructive",
         });
       }
@@ -1859,7 +1854,7 @@ const PatientManagement = () => {
       if (res) {
         toast({
           title: "Status Updated",
-          description: `${patient.patientName} consent status updated.`,
+          description: res.message,
         });
         setPatients((prev) =>
           prev.map((p) =>
@@ -1870,7 +1865,7 @@ const PatientManagement = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update patient status.",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -1898,7 +1893,7 @@ const PatientManagement = () => {
         return;
       }
 
-      await markPatientRecovered({
+      const res = await markPatientRecovered({
         patientId: pendingPatient._id,
         recoveredType,
         stopReason: otherReason.trim(),
@@ -1906,7 +1901,7 @@ const PatientManagement = () => {
 
       toast({
         title: "Success",
-        description: "Patient marked as recovered successfully",
+        description: res.message,
       });
 
       setOpenedDialog(false);
@@ -1917,7 +1912,7 @@ const PatientManagement = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error?.message || "Failed to mark patient recovered",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -1941,18 +1936,18 @@ const PatientManagement = () => {
         if (!selectedPatientForRecovery?._id) return;
 
         if (type === "fresh") {
-          await startFreshCycleForPatient(selectedPatientForRecovery);
+          const res = await startFreshCycleForPatient(selectedPatientForRecovery);
           toast({
             title: "Success",
-            description: "Fresh cycle started successfully",
+            description: res.message,
           });
         }
 
         if (type === "continue") {
-          await continueOldCycleForPatient(selectedPatientForRecovery);
+          const res = await continueOldCycleForPatient(selectedPatientForRecovery);
           toast({
             title: "Success",
-            description: "Old cycle continued successfully",
+            description: res.message,
           });
         }
 
@@ -1962,7 +1957,7 @@ const PatientManagement = () => {
       } catch (error) {
         toast({
           title: "Error",
-          description: error?.message || "Failed to restart patient",
+          description: error?.message,
           variant: "destructive",
         });
       }
@@ -1982,7 +1977,7 @@ const PatientManagement = () => {
   const handleUpdateFeedback = useCallback(async () => {
     if (!reviewingPatient) return;
     try {
-      await apiRequest("Patient/updatePatientFeedbacks", {
+      const res = await apiRequest("Patient/updatePatientFeedbacks", {
         method: "POST",
         body: JSON.stringify({
           patientId: reviewingPatient._id,
@@ -2004,14 +1999,14 @@ const PatientManagement = () => {
       );
       toast({
         title: "Feedback Updated",
-        description: `Feedback for ${reviewingPatient.patientName} saved.`,
+        description: res.message,
       });
       setIsReviewOpen(false);
     } catch (err) {
       console.error("Failed to save feedback", err);
       toast({
         title: "Error",
-        description: "Failed to save feedback",
+        description: err?.message,
         variant: "destructive",
       });
     }
@@ -2021,7 +2016,7 @@ const PatientManagement = () => {
     async (e) => {
       e.preventDefault();
       try {
-        await apiRequest("Patient/updatePatientFeedbacks", {
+        const res = await apiRequest("Patient/updatePatientFeedbacks", {
           method: "POST",
           body: JSON.stringify({
             patientId: reviewingPatient._id,
@@ -2042,7 +2037,7 @@ const PatientManagement = () => {
         );
         toast({
           title: "Feedback Updated",
-          description: `Feedback for ${reviewingPatient.patientName} saved.`,
+          description: res.message,
         });
         setIsReviewOpen(false);
         setIsNewGoalOpen(true);
@@ -2050,7 +2045,7 @@ const PatientManagement = () => {
         console.error("Failed to save feedback", err);
         toast({
           title: "Error",
-          description: "Failed to save feedback",
+          description: err?.message,
           variant: "destructive",
         });
       }
@@ -2063,7 +2058,7 @@ const PatientManagement = () => {
       e.preventDefault();
       if (!reviewingPatient?._id) return;
       try {
-        await apiRequest("Patient/updatePatientGoals", {
+        const res = await apiRequest("Patient/updatePatientGoals", {
           method: "POST",
           body: JSON.stringify({
             patientId: reviewingPatient._id,
@@ -2075,7 +2070,7 @@ const PatientManagement = () => {
         });
         toast({
           title: "New Goal Set!",
-          description: "Previous goal archived and new goal assigned.",
+          description: res.message,
         });
         setIsNewGoalOpen(false);
         setNewGoalForm(initialNewGoalState);
@@ -2085,7 +2080,7 @@ const PatientManagement = () => {
         console.error(err);
         toast({
           title: "Error",
-          description: "Failed to save new goal",
+          description: err?.message,
           variant: "destructive",
         });
       }

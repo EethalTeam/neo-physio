@@ -97,17 +97,12 @@ const CategoryMaster = () => {
           body: JSON.stringify({ _id: id }),
         },
       );
-      toast({
-        title: "Deleted",
-        description: "Category has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getExpenseCategory();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -154,13 +149,13 @@ const CategoryMaster = () => {
           body: JSON.stringify(data),
         },
       );
-      toast({ title: "Success", description: "Category Create successfully." });
+      toast({ title: "Success", description: response.message });
       getExpenseCategory();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateProjectStatus = async (data) => {
@@ -172,16 +167,13 @@ const CategoryMaster = () => {
           body: JSON.stringify(data),
         },
       );
-      toast({
-        title: "Success",
-        description: "Category updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getExpenseCategory();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (category) => {
@@ -191,13 +183,7 @@ const CategoryMaster = () => {
   };
 
   const handleDelete = (id) => {
-    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     deleteExpenseCategory(id);
-    toast({
-      title: "Deleted",
-      description: "Category has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewDialog = () => {

@@ -96,24 +96,16 @@ const PatientDetailsDialog = ({ isOpen, onOpenChange, patient }) => {
         payload.goalDuration = goalsForm.goalDuration;
       }
 
-      await apiRequest("Patient/updatePatientGoals", {
+      const res = await apiRequest("Patient/updatePatientGoals", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      toast({
-        title: "Success",
-        description: "Patient goals updated successfully",
-      });
-
+      toast({ title: "Success", description: res.message });
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to update patient goals",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 

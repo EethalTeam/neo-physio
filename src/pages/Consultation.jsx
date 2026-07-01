@@ -357,7 +357,7 @@ const Consultation = () => {
       });
       toast({
         title: "Deleted",
-        description: "Patients has been removed.",
+        description: response.message,
         variant: "destructive",
       });
       getAllConsultation();
@@ -369,7 +369,7 @@ const Consultation = () => {
       return response;
     } catch (error) {
       console.error("Error:", error);
-      throw error;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -411,7 +411,7 @@ const Consultation = () => {
 
       toast({
         title: "Success",
-        description: "Patient updated successfully.",
+        description: response.message,
       });
 
       getAllConsultation();
@@ -420,6 +420,7 @@ const Consultation = () => {
       return response;
     } catch (error) {
       console.error("Error:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
   //api for create patients
@@ -449,7 +450,7 @@ const Consultation = () => {
 
       toast({
         title: "Success",
-        description: "Patient created successfully.",
+        description: response.message,
       });
 
       getAllConsultation();
@@ -458,6 +459,7 @@ const Consultation = () => {
       return response;
     } catch (error) {
       console.error("Error:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -494,14 +496,14 @@ const Consultation = () => {
       if (!response.success) {
         toast({
           title: "Error",
-          description: response.message || "Failed to assign physio.",
+          description: response.message,
           variant: "destructive",
         });
         return response;
       } else {
         toast({
           title: "Success",
-          description: "Physio assigned and sessions created.",
+          description: response.message,
         });
       }
       setIsAssignPhysioOpen(false);
@@ -523,7 +525,7 @@ const Consultation = () => {
       console.error("Error:", error);
       toast({
         title: "Error",
-        description: error.message || "Something went wrong",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -649,7 +651,6 @@ const Consultation = () => {
         ...patientForm,
         MedicalHistoryAndRiskFactor: radio,
       });
-      toast({ title: "Success", description: "Patient details updated." });
     } else {
       // const newPatient = { id: Date.now(), ...patientForm, patientId: generatePatientId(), registeredAt: new Date().toISOString().split('T')[0] };
       // setPatients(prev => [newPatient, ...prev]);
@@ -657,7 +658,6 @@ const Consultation = () => {
         ...patientForm,
         MedicalHistoryAndRiskFactor: radio,
       });
-      toast({ title: "Success", description: "New patient created." });
     }
     setIsFormOpen(false);
     setEditingPatient(null);
@@ -812,12 +812,6 @@ const Consultation = () => {
   const handleDeletePatient = (id) => {
     setPatients((prev) => prev.filter((p) => p.id !== id));
     deletePatient(id);
-
-    toast({
-      title: "Deleted",
-      description: "Patient has been removed.",
-      variant: "destructive",
-    });
   };
 
   const handleViewConsultation = (patient) => {
@@ -935,9 +929,7 @@ const Consultation = () => {
 
       toast({
         title: "Reverted",
-        description: `${
-          patient.patientName || "Patient"
-        } has been reverted to lead.`,
+        description: response.message,
         variant: "default",
       });
 
@@ -949,7 +941,7 @@ const Consultation = () => {
       console.error("Error:", error);
       toast({
         title: "Error",
-        description: error.message || "Something went wrong",
+        description: error?.message,
         variant: "destructive",
       });
     }
@@ -1093,10 +1085,6 @@ const Consultation = () => {
     // }));
 
     AssignPhysio(assignForm);
-    toast({
-      title: "Success",
-      description: `Physio assigned and plan updated for ${assigningPatient.patientName}.`,
-    });
     getAllConsultation();
     // setIsAssignPhysioOpen(false);
     // setAssigningPatient(null);

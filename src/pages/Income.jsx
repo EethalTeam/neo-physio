@@ -406,10 +406,7 @@ const Income = () => {
         return;
       }
 
-      toast({
-        title: "Success",
-        description: response?.message || "Manual bill generated successfully",
-      });
+      toast({ title: "Success", description: response?.message });
 
       await fetchBills();
       await fetchData();
@@ -1390,10 +1387,7 @@ const Income = () => {
         throw new Error(res.message);
       }
 
-      toast({
-        title: "Success",
-        description: res.message || "Payment reverted",
-      });
+      toast({ title: "Success", description: res.message });
 
       closeRevertConfirmDialog();
       await fetchBills();
@@ -1420,13 +1414,10 @@ const Income = () => {
       });
 
       if (!res.success) {
-        throw new Error(res.message || "Failed to mark bad debt");
+        throw new Error(res.message);
       }
 
-      toast({
-        title: "Marked",
-        description: res.message || "Marked as Bad Debt",
-      });
+      toast({ title: "Marked", description: res.message });
 
       await fetchBills();
 

@@ -91,17 +91,12 @@ const SessionStatus = () => {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
-      toast({
-        title: "Deleted",
-        description: "SessionStatus has been removed.",
-        variant: "destructive",
-      });
+      toast({ title: "Deleted", description: response.message, variant: "destructive" });
       getSessionStatus();
       return response;
     } catch (error) {
-      0;
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
 
@@ -145,16 +140,13 @@ const SessionStatus = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "SessionStatus Create successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getSessionStatus();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const updateSessionStatus = async (data) => {
@@ -163,16 +155,13 @@ const SessionStatus = () => {
         method: "POST",
         body: JSON.stringify(data),
       });
-      toast({
-        title: "Success",
-        description: "SessionStatus updated successfully.",
-      });
+      toast({ title: "Success", description: response.message });
       getSessionStatus();
       setIsFormOpen(false);
       return response;
     } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
       console.error("Error:", error);
-      throw error;
     }
   };
   const handleEdit = (session) => {
@@ -182,13 +171,7 @@ const SessionStatus = () => {
   };
 
   const handleDelete = (id) => {
-    // setCategories(prev => prev.filter(cat => cat.id !== categoryId));
     deleteSessionStatus(id);
-    toast({
-      title: "Deleted",
-      description: "SessionStatus has been removed.",
-      variant: "destructive",
-    });
   };
 
   const openNewDialog = () => {

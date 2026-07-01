@@ -395,37 +395,35 @@ const HODDashboard = () => {
             : editingReview?.redFlags || [],
       };
 
-      await apiRequest("Review/updateReview", {
+      const res = await apiRequest("Review/updateReview", {
         method: "POST",
         body: JSON.stringify(payload),
       });
 
-      toast({ title: "Success", description: "Review updated." });
+      toast({ title: "Success", description: res.message });
       getReviews();
     } catch (error) {
       console.error(error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
   const deleteReview = async (data) => {
     try {
-      await apiRequest("Review/deleteReview", {
+      const res = await apiRequest("Review/deleteReview", {
         method: "POST",
         body: JSON.stringify(data),
       });
+      toast({ title: "Deleted", description: res.message, variant: "destructive" });
       getReviews();
     } catch (e) {
       console.error(e);
+      toast({ title: "Error", description: e?.message, variant: "destructive" });
     }
   };
 
   const handleDeleteReview = (id) => {
     deleteReview({ _id: id });
-    toast({
-      title: "Deleted",
-      description: "Review has been removed.",
-      variant: "destructive",
-    });
   };
 
   const handleEditReview = (review) => {

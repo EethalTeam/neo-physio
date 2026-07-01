@@ -80,21 +80,21 @@ const Login = () => {
       if (res?.success) {
         toast({
           title: "Success",
-          description: "Login successful!",
+          description: res?.message,
         });
         navigate("/dashboard");
       } else {
         toast({
           title: "Login Failed",
-          description: res?.message || "Invalid physio code or password",
+          description: res?.message,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: res?.message,
-        variant: "alert",
+        description: error?.message,
+        variant: "destructive",
       });
     }
   };

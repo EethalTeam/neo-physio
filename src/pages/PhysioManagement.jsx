@@ -244,16 +244,17 @@ const PhysioManagement = () => {
         formData.append("physioPic", physioPic);
       }
 
-      await apiRequest("Physio/updatePhysio", {
+      const res = await apiRequest("Physio/updatePhysio", {
         method: "POST",
         body: formData,
       });
 
-      toast({ title: "Updated", description: "Physio updated successfully." });
+      toast({ title: "Updated", description: res.message });
       getPhysio();
       setIsFormOpen(false);
     } catch (error) {
       console.error("Error updating physio:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -276,16 +277,17 @@ const PhysioManagement = () => {
         formData.append("physioPic", physioPic);
       }
 
-      await apiRequest("Physio/createPhysio", {
+      const res = await apiRequest("Physio/createPhysio", {
         method: "POST",
         body: formData,
       });
 
-      toast({ title: "Success", description: "Physio created successfully." });
+      toast({ title: "Success", description: res.message });
       getPhysio();
       setIsFormOpen(false);
     } catch (error) {
       console.error("Error creating physio:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -293,18 +295,19 @@ const PhysioManagement = () => {
 
   const deletePhysio = async (id) => {
     try {
-      await apiRequest("Physio/deletePhysio", {
+      const res = await apiRequest("Physio/deletePhysio", {
         method: "POST",
         body: JSON.stringify({ _id: id }),
       });
       toast({
         title: "Deleted",
-        description: "Physio deleted successfully.",
+        description: res.message,
         variant: "destructive",
       });
       getPhysio();
     } catch (error) {
       console.error("Error deleting physio:", error);
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
