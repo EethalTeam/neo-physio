@@ -94,6 +94,14 @@ const PhysioManagement = () => {
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
   const [selectedPhysio, setSelectedPhysio] = useState(null);
 
+  const [showReassignDialog, setShowReassignDialog] = useState(false);
+  const [deactivatingPhysio, setDeactivatingPhysio] = useState(null);
+  const [reassignPatients, setReassignPatients] = useState([]);
+  const [reassignPendingCount, setReassignPendingCount] = useState(0);
+  const [patientAssignments, setPatientAssignments] = useState({}); // { [patientId]: physioId }
+  const [needsReassignment, setNeedsReassignment] = useState(false);
+  const [loadingDeactivateCheck, setLoadingDeactivateCheck] = useState(false);
+
   const initialFormState = {
     _id: "",
     physioName: "",
@@ -551,41 +559,83 @@ const PhysioManagement = () => {
       setCompletedSessions([]);
     }
   };
-  const handleToggleStatus = async (physio) => {
-    if (!physio) return;
-
+  const handleActivate = async (physio) => {
     try {
-      const newStatus = !physio.isActive;
-
       const res = await apiRequest("Physio/updatePhysio", {
         method: "POST",
         body: JSON.stringify({
           _id: physio._id,
-          isActive: newStatus,
+          isActive: true,
           updatedBy: user.physioName || "Admin",
         }),
       });
+      toast({ title: "Status Updated", description: res.message });
+      setPhysios((prev) =>
+        prev.map((p) => (p._id === physio._id ? { ...p, isActive: true } : p)),
+      );
+    } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
+    }
+  };
 
-      if (res) {
-        toast({
-          title: "Status Updated",
-          description: `${physio.physioName} is now ${
-            newStatus ? "Active" : "Inactive"
-          }.`,
-        });
+  const handleDeactivateClick = async (physio) => {
+    setDeactivatingPhysio(physio);
+    setPatientAssignments({});
+    setReassignPatients([]);
+    setReassignPendingCount(0);
+    setNeedsReassignment(false);
+    setLoadingDeactivateCheck(true);
+    setShowReassignDialog(true);
 
-        setPhysios((prev) =>
-          prev.map((p) =>
-            p._id === physio._id ? { ...p, isActive: newStatus } : p,
-          ),
-        );
+    try {
+      const res = await apiRequest("Physio/deactivatePhysio", {
+        method: "POST",
+        body: JSON.stringify({ physioId: physio._id }),
+      });
+
+      if (res.requiresReassignment) {
+        setNeedsReassignment(true);
+        setReassignPatients(res.activePatients || []);
+        setReassignPendingCount(res.pendingSessionCount || 0);
+      } else {
+        setNeedsReassignment(false);
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update physiotherapist status.",
-        variant: "destructive",
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
+      setShowReassignDialog(false);
+    } finally {
+      setLoadingDeactivateCheck(false);
+    }
+  };
+
+  const handleConfirmDeactivate = async () => {
+    try {
+      const body = { physioId: deactivatingPhysio._id };
+      if (needsReassignment) {
+        body.patientReassignments = reassignPatients.map((p) => ({
+          patientId: p._id,
+          reassignToPhysioId: patientAssignments[p._id],
+        }));
+      }
+
+      const res = await apiRequest("Physio/deactivatePhysio", {
+        method: "POST",
+        body: JSON.stringify(body),
       });
+
+      toast({ title: "Done", description: res.message });
+      setShowReassignDialog(false);
+      setDeactivatingPhysio(null);
+      setReassignPatients([]);
+      setPatientAssignments({});
+      setNeedsReassignment(false);
+      setPhysios((prev) =>
+        prev.map((p) =>
+          p._id === deactivatingPhysio._id ? { ...p, isActive: false } : p,
+        ),
+      );
+    } catch (error) {
+      toast({ title: "Error", description: error?.message, variant: "destructive" });
     }
   };
 
@@ -761,50 +811,26 @@ const PhysioManagement = () => {
                     )}
                   </div>
 
-                  <AlertDialog
-                    open={openStatusDialog}
-                    onOpenChange={setOpenStatusDialog}
-                  >
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Action</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to{" "}
-                          <strong>
-                            {selectedPhysio?.isActive
-                              ? "deactivate"
-                              : "activate"}
-                          </strong>{" "}
-                          <strong>{selectedPhysio?.physioName}</strong>?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => {
-                            handleToggleStatus(selectedPhysio);
-                            setOpenStatusDialog(false);
-                          }}
-                        >
-                          Confirm
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
                   <div className="flex space-x-2 mt-2">
-                    <Button
-                      size="sm"
-                      variant={physio.isActive ? "secondary" : "default"}
-                      onClick={() => {
-                        setSelectedPhysio(physio);
-                        setOpenStatusDialog(true);
-                      }}
-                      className="flex-1"
-                    >
-                      {physio.isActive ? "Deactivate" : "Activate"}
-                    </Button>
+                    {physio.isActive ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleDeactivateClick(physio)}
+                        className="flex-1"
+                      >
+                        Deactivate
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handleActivate(physio)}
+                        className="flex-1"
+                      >
+                        Activate
+                      </Button>
+                    )}
 
                     {Permissions.isDelete && (
                       <AlertDialog>
@@ -1546,6 +1572,97 @@ const PhysioManagement = () => {
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Physio Deactivation Dialog */}
+      <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Deactivate Physiotherapist</DialogTitle>
+            <DialogDescription>
+              {loadingDeactivateCheck ? (
+                "Checking active patients and sessions..."
+              ) : needsReassignment ? (
+                <>
+                  <strong>{deactivatingPhysio?.physioName}</strong> has{" "}
+                  <strong>{reassignPatients.length} active patient(s)</strong>{" "}
+                  and <strong>{reassignPendingCount} pending session(s)</strong>.
+                  Permanently reassign all to another physiotherapist before
+                  deactivating.
+                </>
+              ) : (
+                <>
+                  No active patients or pending sessions found for{" "}
+                  <strong>{deactivatingPhysio?.physioName}</strong>. Ready to
+                  deactivate.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {!loadingDeactivateCheck && needsReassignment && (
+            <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+              {reassignPatients.map((p) => (
+                <div key={p._id} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {p.patientName}
+                    </p>
+                    <p className="text-xs text-gray-400">{p.patientCode}</p>
+                  </div>
+                  <div className="w-48 shrink-0">
+                    <Select
+                      value={patientAssignments[p._id] || ""}
+                      onValueChange={(val) =>
+                        setPatientAssignments((prev) => ({
+                          ...prev,
+                          [p._id]: val,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Assign to..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {physios
+                          .filter(
+                            (ph) =>
+                              ph.isActive &&
+                              ph._id !== deactivatingPhysio?._id,
+                          )
+                          .map((ph) => (
+                            <SelectItem key={ph._id} value={ph._id}>
+                              {ph.physioName}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReassignDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDeactivate}
+              disabled={
+                loadingDeactivateCheck ||
+                (needsReassignment &&
+                  reassignPatients.some((p) => !patientAssignments[p._id]))
+              }
+            >
+              {needsReassignment ? "Reassign & Deactivate" : "Deactivate"}
             </Button>
           </DialogFooter>
         </DialogContent>
