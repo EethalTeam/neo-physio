@@ -1326,6 +1326,15 @@ const Income = () => {
     }
   };
 
+  const handleSaveBill = async (bill) => {
+    try {
+      downloadBillPdf({ bill, includeSessions: false, billedSessions: [] });
+      await handleSendBill(bill._id);
+    } catch (err) {
+      console.error("Save bill failed:", err);
+    }
+  };
+
   const sortedBills = useMemo(() => {
     const pending = [];
     const paid = [];
@@ -2537,13 +2546,27 @@ const Income = () => {
                 {billPreview.loading ? "Preparing..." : "Download PDF"}
               </Button>
             ) : (
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                onClick={handleShareWhatsAppPDF}
-              >
-                <FaWhatsapp className="h-4 w-4" />
-                Share via WhatsApp
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => handleSaveBill(billPreview.bill)}
+                  disabled={billPreview.bill?.isSend}
+                  className={
+                    billPreview.bill?.isSend
+                      ? "bg-gray-400 text-white cursor-not-allowed"
+                      : "bg-indigo-500 text-white hover:bg-indigo-600"
+                  }
+                >
+                  {billPreview.bill?.isSend ? "Saved" : "Save"}
+                </Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                  onClick={handleShareWhatsAppPDF}
+                >
+                  <FaWhatsapp className="h-4 w-4" />
+                  Share via WhatsApp
+                </Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>
