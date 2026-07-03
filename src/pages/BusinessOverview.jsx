@@ -87,6 +87,9 @@ ChartJS.register(
   ArcElement,
 );
 
+const COMPLETED_STATUS_ID = "691ec69eae0e10763c8f21e0";
+const CANCELLED_STATUS_ID = "692585f037162b40bd30a1ef";
+
 const BusinessOverview = () => {
   const navigate = useNavigate();
   const { user, getPermissionsByPath } = useAuth();
@@ -1727,36 +1730,93 @@ const BusinessOverview = () => {
     return { labels, datasets };
   }, [transactions, selectedYear]);
 
-  // Feature 4: Session count by day of week
+  // Feature 4: Session count by day of week — stacked by status
   const sessionByDayData = useMemo(() => {
     const selectedYearNumber = Number(selectedYear);
-    const dayCounts = [0, 0, 0, 0, 0, 0, 0]; // 0=Sun … 6=Sat
+    const completedCounts = [0, 0, 0, 0, 0, 0, 0];
+    const cancelledCounts = [0, 0, 0, 0, 0, 0, 0];
+    const scheduledCounts = [0, 0, 0, 0, 0, 0, 0];
 
     allSessions.forEach((session) => {
       const dateStr = session.sessionDate || session.date;
       if (!dateStr) return;
       const sDate = new Date(dateStr);
       if (sDate.getFullYear() !== selectedYearNumber) return;
-      dayCounts[sDate.getDay()]++;
+      const dayIdx = sDate.getDay(); // 0=Sun…6=Sat
+      const sid = String(session.sessionStatusId?._id || session.sessionStatusId || "");
+      if (sid === COMPLETED_STATUS_ID) {
+        completedCounts[dayIdx]++;
+      } else if (sid === CANCELLED_STATUS_ID) {
+        cancelledCounts[dayIdx]++;
+      } else {
+        scheduledCounts[dayIdx]++;
+      }
     });
 
-    // Reorder Mon→Sun
-    const ordered = [dayCounts[1],dayCounts[2],dayCounts[3],dayCounts[4],dayCounts[5],dayCounts[6],dayCounts[0]];
+    // Reorder Mon→Sun: indices [1,2,3,4,5,6,0]
+    const reorder = (arr) => [arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[0]];
 
     return {
-      labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-      datasets: [{
-        label: "Sessions",
-        data: ordered,
-        backgroundColor: ordered.map((_, i) =>
-          i >= 5 ? "rgba(239,68,68,0.5)" : "rgba(14,165,233,0.5)"
-        ),
-        borderColor: ordered.map((_, i) => i >= 5 ? "#ef4444" : "#0ea5e9"),
-        borderWidth: 1,
-        borderRadius: 6,
-      }],
+      labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      datasets: [
+        {
+          label: "Completed",
+          data: reorder(completedCounts),
+          backgroundColor: "rgba(34,197,94,0.75)",
+          borderColor: "#22c55e",
+          borderWidth: 1,
+          borderRadius: 4,
+          stack: "sessions",
+        },
+        {
+          label: "Scheduled",
+          data: reorder(scheduledCounts),
+          backgroundColor: "rgba(14,165,233,0.75)",
+          borderColor: "#0ea5e9",
+          borderWidth: 1,
+          borderRadius: 4,
+          stack: "sessions",
+        },
+        {
+          label: "Cancelled",
+          data: reorder(cancelledCounts),
+          backgroundColor: "rgba(239,68,68,0.75)",
+          borderColor: "#ef4444",
+          borderWidth: 1,
+          borderRadius: 4,
+          stack: "sessions",
+        },
+      ],
     };
   }, [allSessions, selectedYear]);
+
+  // Patient Growth: new patients registered per month
+  const patientGrowthData = useMemo(() => {
+    const selectedYearNumber = Number(selectedYear);
+    const monthCounts = Array(12).fill(0);
+
+    patientList.forEach((patient) => {
+      if (!patient.createdAt) return;
+      const d = new Date(patient.createdAt);
+      if (d.getFullYear() !== selectedYearNumber) return;
+      monthCounts[d.getMonth()]++;
+    });
+
+    return {
+      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      datasets: [{
+        label: "New Patients",
+        data: monthCounts,
+        borderColor: "#22c55e",
+        backgroundColor: "rgba(34,197,94,0.1)",
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }],
+    };
+  }, [patientList, selectedYear]);
 
   // Feature 5: New vs Returning patients per month
   const newVsReturningData = useMemo(() => {
@@ -2447,7 +2507,7 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                     Session Frequency by Day
                   </CardTitle>
                   <CardDescription>
-                    Total sessions per weekday — weekends highlighted ({selectedYear})
+                    Sessions per weekday broken down by status ({selectedYear})
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -2458,10 +2518,52 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
+                          legend: { display: true, position: "top" },
+                          tooltip: {
+                            callbacks: {
+                              label: (context) =>
+                                `${context.dataset.label}: ${context.raw}`,
+                            },
+                          },
+                        },
+                        scales: {
+                          x: { stacked: true },
+                          y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, callback: (v) => `${v}` },
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* PATIENT GROWTH TREND */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    Patient Growth Trend
+                  </CardTitle>
+                  <CardDescription>
+                    New patients registered per month ({selectedYear})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    <Line
+                      data={patientGrowthData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
                           legend: { display: false },
                           tooltip: {
                             callbacks: {
-                              label: (context) => `Sessions: ${context.raw}`,
+                              label: (context) =>
+                                `New Patients: ${context.raw}`,
                             },
                           },
                         },

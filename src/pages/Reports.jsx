@@ -39,6 +39,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   PieChart,
   Pie,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LabelList,
   Cell,
   ResponsiveContainer,
   Tooltip,
@@ -444,6 +450,10 @@ const Reports = () => {
         setPatientList(res);
       } else if (Array.isArray(res?.data)) {
         setPatientList(res.data);
+      } else if (Array.isArray(res?.Patients)) {
+        setPatientList(res.Patients);
+      } else if (Array.isArray(res?.patients)) {
+        setPatientList(res.patients);
       } else {
         setPatientList([]);
       }
@@ -673,7 +683,28 @@ const Reports = () => {
     "#ef4444",
     "#8b5cf6",
     "#06b6d4",
+    "#f97316",
+    "#a855f7",
+    "#14b8a6",
+    "#ec4899",
   ];
+
+  const [pincodeChartType, setPincodeChartType] = useState("bar");
+
+
+  const pincodeData = useMemo(() => {
+    const map = {};
+    patientList.forEach((p) => {
+      const pin =
+        p.patientPinCode?.trim() ||
+        p.patientAddress?.trim() ||
+        "Unknown";
+      map[pin] = (map[pin] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([pincode, count]) => ({ pincode, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [patientList]);
 
   const formatDate = (date) => {
     if (!date) return "N/A";
@@ -1887,6 +1918,240 @@ const Reports = () => {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pincode / Area Distribution */}
+      <div data-aos="fade-up">
+        <Card className="medical-card">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 flex-wrap">
+            <div>
+              <CardTitle>Patient Distribution by Area / Pincode</CardTitle>
+              <CardDescription>
+                Grouped by pincode · falls back to address when pincode is
+                blank · {pincodeData.length} area
+                {pincodeData.length !== 1 ? "s" : ""} · {patientList.length}{" "}
+                total patients
+              </CardDescription>
+            </div>
+            <div className="flex gap-1 border rounded-lg p-0.5 bg-gray-50 self-start">
+              <button
+                onClick={() => setPincodeChartType("bar")}
+                className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                  pincodeChartType === "bar"
+                    ? "bg-white shadow text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Bar
+              </button>
+              <button
+                onClick={() => setPincodeChartType("pie")}
+                className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+                  pincodeChartType === "pie"
+                    ? "bg-white shadow text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Pie
+              </button>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            {pincodeData.length === 0 ? (
+              <p className="text-sm text-gray-500 py-6 text-center">
+                No patient area data available
+              </p>
+            ) : pincodeChartType === "bar" ? (
+              <div
+                style={{
+                  height: Math.max(220, pincodeData.length * 44),
+                  minHeight: 220,
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    layout="vertical"
+                    data={pincodeData}
+                    margin={{ top: 4, right: 56, bottom: 4, left: 16 }}
+                    barCategoryGap="30%"
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      horizontal={false}
+                      stroke="#f0f0f0"
+                    />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 11, fill: "#6b7280" }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <YAxis
+                      dataKey="pincode"
+                      type="category"
+                      tickLine={false}
+                      axisLine={false}
+                      width={140}
+                      tick={({ x, y, payload }) => {
+                        const full = payload.value || "";
+                        const label =
+                          full.length > 20
+                            ? full.slice(0, 18) + "…"
+                            : full;
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            dy={4}
+                            textAnchor="end"
+                            fill="#374151"
+                            fontSize={11}
+                          >
+                            {label}
+                          </text>
+                        );
+                      }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#eff6ff" }}
+                      formatter={(value) => [value, "Patients"]}
+                      contentStyle={{
+                        fontSize: 12,
+                        borderRadius: 8,
+                        border: "1px solid #e5e7eb",
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#3b82f6"
+                      radius={[0, 4, 4, 0]}
+                      maxBarSize={28}
+                    >
+                      <LabelList
+                        dataKey="count"
+                        position="right"
+                        style={{
+                          fontSize: 11,
+                          fill: "#1d4ed8",
+                          fontWeight: 600,
+                        }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pincodeData}
+                      dataKey="count"
+                      nameKey="pincode"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={window.innerWidth < 640 ? 80 : 110}
+                      label={({ name, percent }) =>
+                        percent > 0.04
+                          ? `${name} (${(percent * 100).toFixed(0)}%)`
+                          : ""
+                      }
+                      labelLine={false}
+                    >
+                      {pincodeData.map((_, i) => (
+                        <Cell
+                          key={`cell-${i}`}
+                          fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [value + " patients", name]}
+                      contentStyle={{
+                        fontSize: 12,
+                        borderRadius: 8,
+                        border: "1px solid #e5e7eb",
+                      }}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: 11 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Summary table */}
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Area / Pincode
+                    </th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Patients
+                    </th>
+                    <th className="text-right py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Share
+                    </th>
+                    <th className="py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">
+                      &nbsp;
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pincodeData.map((row, i) => (
+                    <tr
+                      key={row.pincode}
+                      className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                    >
+                      <td
+                        className="py-2 px-3 font-medium text-gray-800 max-w-[200px]"
+                        title={row.pincode}
+                      >
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full mr-2 align-middle shrink-0"
+                          style={{
+                            backgroundColor:
+                              PIE_COLORS[i % PIE_COLORS.length],
+                          }}
+                        />
+                        <span className="truncate">
+                          {row.pincode.length > 28
+                            ? row.pincode.slice(0, 26) + "…"
+                            : row.pincode}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-semibold text-blue-600">
+                        {row.count}
+                      </td>
+                      <td className="py-2 px-3 text-right text-gray-500">
+                        {((row.count / patientList.length) * 100).toFixed(1)}%
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                          <div
+                            className="h-1.5 rounded-full"
+                            style={{
+                              width: `${(row.count / pincodeData[0].count) * 100}%`,
+                              backgroundColor:
+                                PIE_COLORS[i % PIE_COLORS.length],
+                            }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>
