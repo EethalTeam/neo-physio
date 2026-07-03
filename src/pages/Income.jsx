@@ -1328,8 +1328,8 @@ const Income = () => {
 
   const handleSaveBill = async (bill) => {
     try {
-      downloadBillPdf({ bill, includeSessions: false, billedSessions: [] });
       await handleSendBill(bill._id);
+      setBillPreview((s) => ({ ...s, open: false }));
     } catch (err) {
       console.error("Save bill failed:", err);
     }
