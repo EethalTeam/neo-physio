@@ -2247,6 +2247,16 @@ const PatientManagement = () => {
             ? new Date(Math.max(...dates.map((d) => d.getTime())))
             : null;
 
+        const completedSessions = sessionItems.filter(
+          (s) => s.status.toLowerCase() === "completed",
+        ).length;
+        const canceledSessions = sessionItems.filter(
+          (s) => s.status.toLowerCase() === "canceled",
+        ).length;
+        const maxSessionNo = sessionItems.length > 0
+          ? Math.max(...sessionItems.map((s) => s.displaySessionCount))
+          : 0;
+
         return {
           cycleId,
           cycleTitle:
@@ -2256,6 +2266,9 @@ const PatientManagement = () => {
           firstDate,
           lastDate,
           totalSessions: sessionItems.length,
+          completedSessions,
+          canceledSessions,
+          maxSessionNo,
           totalReviews: reviewItems.length,
           totalItems: mergedItems.length,
           sessions: mergedItems,
@@ -2299,11 +2312,16 @@ const PatientManagement = () => {
         0,
       );
 
+      const currentSessionNo = cycleHistory.length > 0
+        ? (cycleHistory[0].maxSessionNo ?? 0)
+        : 0;
+
       setSessionCount({
         totalRecords,
         completed: completedRecords,
         canceled: canceledRecords,
         reviews: totalReviews,
+        current: currentSessionNo,
       });
     } catch (error) {
       console.error("Failed to fetch history:", error);
@@ -4475,7 +4493,8 @@ const PatientManagement = () => {
                         {formatDate(cycle.lastDate)}
                       </p>
                       <p className="text-xs text-gray-500 mb-4">
-                        Sessions: {cycle.totalSessions ?? 0} | Reviews:{" "}
+                        Completed: {cycle.completedSessions ?? 0} | Canceled:{" "}
+                        {cycle.canceledSessions ?? 0} | Reviews:{" "}
                         {cycle.totalReviews ?? 0}
                       </p>
 
