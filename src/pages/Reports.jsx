@@ -163,6 +163,12 @@ const Reports = () => {
     );
   }, [selectedPhysio, normalizedRoleName]);
 
+  // True when the LOGGED-IN user is a HOD — hide all financial data for them
+  const isHodUser = useMemo(() => {
+    const role = String(user?.role || "").trim().toLowerCase();
+    return ["hod", "head of department", "head"].includes(role);
+  }, [user]);
+
   const normalize = (val) =>
     String(val || "")
       .trim()
@@ -1412,7 +1418,7 @@ const Reports = () => {
       bgColor: "bg-rose-100",
     },
 
-    !isHodSelected && {
+    !isHodSelected && !isHodUser && {
       title: "Monthly Revenue",
       value: `₹${Number(stats.monthlyRevenue || 0).toLocaleString("en-IN")}`,
       icon: DollarSign,
@@ -1421,7 +1427,7 @@ const Reports = () => {
     },
 
     !selectedPhysio ||
-      (!isHodSelected && {
+      (!isHodSelected && !isHodUser && {
         title: "Monthly Expenses",
         value: `₹${Number(stats.totalExpense || 0).toLocaleString("en-IN")}`,
         icon: Wallet,
@@ -1829,7 +1835,7 @@ const Reports = () => {
         </div>
       </div>
 
-      <div
+      {!isHodUser && <div
         data-aos="fade-up"
         className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
       >
@@ -1920,7 +1926,7 @@ const Reports = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
       {/* Pincode / Area Distribution */}
       <div data-aos="fade-up">
