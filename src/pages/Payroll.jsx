@@ -50,6 +50,7 @@ import {
   Printer,
   Trash2,
   Edit,
+  History as HistoryIcon,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
@@ -63,6 +64,10 @@ const Payroll = () => {
   const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
+  const [historyEmp, setHistoryEmp] = useState(null);
   const user = useAuth().user;
   const [editForm, setEditForm] = useState({
     basicSalary: "",
@@ -381,6 +386,28 @@ const Payroll = () => {
 
     setPayrollData(data);
   }, [employees, sessions, selectedMonth, selectedYear]);
+
+  const handleViewHistory = async (emp) => {
+    setHistoryEmp(emp);
+    setIsHistoryOpen(true);
+    setHistoryLoading(true);
+    setHistoryList([]);
+    try {
+      const res = await apiRequest("Payroll/getCalculationHistory", {
+        method: "POST",
+        body: JSON.stringify({ payrollId: emp._id }),
+      });
+      setHistoryList(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      toast({
+        title: "Failed to load history",
+        description: err?.message,
+        variant: "destructive",
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const handleViewPayslip = (employeeData) => {
     setSelectedPayslip(employeeData);
@@ -865,6 +892,15 @@ const Payroll = () => {
                               View Payslip
                             </Button>
 
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewHistory(emp)}
+                              title="Calculation history"
+                            >
+                              <HistoryIcon size={14} />
+                            </Button>
+
                             {Permissions.isEdit && (
                               <Button
                                 size="sm"
@@ -999,6 +1035,15 @@ const Payroll = () => {
                         </Button>
 
                         <div className="flex items-center justify-center sm:justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewHistory(emp)}
+                            title="Calculation history"
+                          >
+                            <HistoryIcon size={14} />
+                          </Button>
+
                           {Permissions.isEdit && (
                             <Button
                               size="sm"
@@ -1309,6 +1354,160 @@ const Payroll = () => {
             <Button onClick={handleDownload} className="w-full sm:w-auto">
               <Download size={16} className="mr-2" /> Download PDF
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">
+              Calculation History - {historyEmp?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Every time this payslip was computed, newest first - how the
+              amount was derived each time.
+            </DialogDescription>
+          </DialogHeader>
+
+          {historyLoading && (
+            <p className="text-sm text-gray-500 py-4">Loading history...</p>
+          )}
+
+          {!historyLoading && historyList.length === 0 && (
+            <p className="text-sm text-gray-500 py-4">
+              No calculation history recorded yet for this payslip.
+            </p>
+          )}
+
+          <div className="space-y-4 mt-2">
+            {historyList.map((h, idx) => (
+              <div
+                key={h._id || idx}
+                className="border rounded-lg p-3 sm:p-4 bg-gray-50"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                      {h.source === "manual-edit"
+                        ? "Manual edit"
+                        : h.source === "monthly-cron"
+                          ? "Monthly automatic run"
+                          : "Single recalculation"}
+                    </span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      by {h.calculatedBy || "System"}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {h.createdAt
+                      ? new Date(h.createdAt).toLocaleString("en-IN")
+                      : ""}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs sm:text-sm">
+                  <div>
+                    <span className="text-gray-500">Cycle days</span>
+                    <p className="font-medium">{h.totalWorkingDays}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Session days</span>
+                    <p className="font-medium">{h.completedSessionDays}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Sunday credit</span>
+                    <p className="font-medium">+{h.sundayCreditDays}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Paid leaves</span>
+                    <p className="font-medium">{h.paidLeaves}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Unpaid leaves</span>
+                    <p className="font-medium">{h.unpaidLeaves}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Attended days</span>
+                    <p className="font-medium">{h.attendedDays}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-500">Basic salary</span>
+                    <p className="font-medium">
+                      ₹{Number(h.basicSalary || 0).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Per-day rate</span>
+                    <p className="font-medium">
+                      ₹{Number(h.perDayRate || 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Earned basic</span>
+                    <p className="font-medium">
+                      ₹
+                      {Number(h.earnedBasicSalary || 0).toLocaleString(
+                        "en-IN",
+                      )}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-500">Petrol</span>
+                    <p className="font-medium">
+                      {h.petrolKm} km x ₹{h.amountPerKm} = ₹
+                      {Number(h.petrolAmount || 0).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Savings / Vehicle</span>
+                    <p className="font-medium">
+                      ₹{h.savings} / ₹{h.vehicleMaintenance}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Incentive</span>
+                    <p className="font-medium">
+                      ₹{Number(h.incentive || 0).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-500">Leave deduction</span>
+                    <p className="font-medium">
+                      ₹{Number(h.leaveDeduction || 0).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">ESI / PF</span>
+                    <p className="font-medium">
+                      ₹{h.esi} / ₹{h.pf}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Total deductions</span>
+                    <p className="font-medium">
+                      ₹
+                      {Number(h.totalDeductions || 0).toLocaleString(
+                        "en-IN",
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center mt-3 pt-2 border-t">
+                  <span className="text-sm font-semibold">
+                    Gross: ₹{Number(h.grossSalary || 0).toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-base font-bold text-blue-700">
+                    Net Salary: ₹
+                    {Number(h.netSalary || 0).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
