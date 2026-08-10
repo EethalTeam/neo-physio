@@ -191,7 +191,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         { icon: ArrowDownCircle, label: "Debit", path: "/debit" },
         { icon: ArrowUpCircle, label: "Credit", path: "/credit" },
 
-        { icon: Layers, label: "Categories", path: "/categories" },
+        { icon: Layers, label: "Expense Categories", path: "/categories" },
+        { icon: Layers, label: "Income Categories", path: "/incomeCategories" },
         { icon: AlertTriangle, label: "Red Flags", path: "/red-flags" },
         { icon: Globe, label: "Country", path: "/country" },
         { icon: MapPinned, label: "State", path: "/state" },

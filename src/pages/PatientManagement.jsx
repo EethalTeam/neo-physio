@@ -2352,6 +2352,22 @@ const PatientManagement = () => {
     return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
   }, []);
 
+  // date + time, e.g. "10 Aug 2026, 11:05 AM" - used for the session's
+  // updatedAt timestamp in Session History
+  const formatDateTime = useCallback((date) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }, []);
+
   const getBase64FromUrl = useCallback(async (url) => {
     const res = await fetch(url);
     const blob = await res.blob();
@@ -4534,6 +4550,13 @@ const PatientManagement = () => {
                                 </div>
                                 <div className="text-sm text-gray-600">
                                   Feedback: {item.feedback || "No feedback"}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  Updated Date &amp; Time:{" "}
+                                  {formatDateTime(item.updatedAt)}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  Updated By: {item.updatedBy || "-"}
                                 </div>
                               </>
                             ) : (

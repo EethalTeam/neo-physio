@@ -199,6 +199,26 @@ const BusinessOverview = () => {
     getAllSessionsData(Number(selectedYear));
   }, [selectedYear]);
 
+  // Same income classification as the transaction mapper below - used to
+  // decide whether the form shows the Income Category or Expense Category
+  // dropdown for the selected type.
+  const isIncomeTypeName = (name) => {
+    const tn = (name || "").toLowerCase();
+    return tn === "income" || tn === "revenue" || tn === "revenue from patient";
+  };
+
+  // Category master is shared: ExpenseCategoryType discriminates
+  // "Income" / "Expense" rows. Untyped legacy rows count as Expense so
+  // existing data keeps appearing where it always did.
+  const incomeCategories = useMemo(
+    () => expenseCategory.filter((c) => c.ExpenseCategoryType === "Income"),
+    [expenseCategory],
+  );
+  const expenseOnlyCategories = useMemo(
+    () => expenseCategory.filter((c) => c.ExpenseCategoryType !== "Income"),
+    [expenseCategory],
+  );
+
   const getExpense = async (data) => {
     try {
       const response = await apiRequest("Expense/getAllExpense", {
@@ -3127,7 +3147,7 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Category</Label>
+                    <Label>Expense Category</Label>
                     <Select
                       value={filterState.ExpenseCategoryId || "all"}
                       onValueChange={(val) => {
@@ -3151,11 +3171,13 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                       }}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Categories" />
+                        <SelectValue placeholder="All Expense Categories" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {categories.map((c) => (
+                        <SelectItem value="all">
+                          All Expense Categories
+                        </SelectItem>
+                        {expenseOnlyCategories.map((c) => (
                           <SelectItem key={c._id} value={c._id.toString()}>
                             {c.ExpenseCategoryName}
                           </SelectItem>
@@ -3329,9 +3351,14 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                 />
               </div>
 
-              {formState.ExpenseTypeName === "Expenses" && (
+              {(formState.ExpenseTypeName === "Expenses" ||
+                isIncomeTypeName(formState.ExpenseTypeName)) && (
                 <div className="space-y-2">
-                  <Label htmlFor="ExpenseCategoryId">Select Categories</Label>
+                  <Label htmlFor="ExpenseCategoryId">
+                    {isIncomeTypeName(formState.ExpenseTypeName)
+                      ? "Income Category"
+                      : "Expense Category"}
+                  </Label>
                   <Select
                     value={
                       formState.ExpenseCategoryId
@@ -3352,10 +3379,19 @@ const [scrChartData, setScrChartData] = useState(Array(12).fill(0));
                     }}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Category" />
+                      <SelectValue
+                        placeholder={
+                          isIncomeTypeName(formState.ExpenseTypeName)
+                            ? "Income Category"
+                            : "Expense Category"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {expenseCategory.map((expCate) => (
+                      {(isIncomeTypeName(formState.ExpenseTypeName)
+                        ? incomeCategories
+                        : expenseOnlyCategories
+                      ).map((expCate) => (
                         <SelectItem
                           key={expCate._id}
                           value={JSON.stringify({

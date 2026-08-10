@@ -47,10 +47,12 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/components/CustomComponents/apiRequest";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const { user } = useAuth();
 
   const initialSessionFormState = {
     sessionCount: "",
@@ -445,7 +447,10 @@ const SuperAdminDashboard = () => {
     try {
       const response = await apiRequest("Session/updateSession", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          updatedBy: user?.physioName || user?.name || "SuperAdmin",
+          ...data,
+        }),
       });
       return response;
     } catch (error) {

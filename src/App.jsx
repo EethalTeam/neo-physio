@@ -28,6 +28,7 @@ import PetrolAllowance from "@/pages/PetrolAllowance";
 import MonthlySummary from "@/pages/MonthlySummary";
 import BusinessOverview from "@/pages/BusinessOverview";
 import CategoryMaster from "@/pages/CategoryMaster";
+import IncomeCategoryMaster from "@/pages/IncomeCategoryMaster";
 import Country from "@/pages/Country";
 import State from "@/pages/State";
 import City from "@/pages/City";
@@ -363,6 +364,16 @@ function App() {
                 <ProtectedRoute allowedRoles={["SuperAdmin", "Admin"]}>
                   <Layout>
                     <CategoryMaster />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/incomeCategories"
+              element={
+                <ProtectedRoute allowedRoles={["SuperAdmin", "Admin"]}>
+                  <Layout>
+                    <IncomeCategoryMaster />
                   </Layout>
                 </ProtectedRoute>
               }
