@@ -658,6 +658,7 @@ const ReviewMasterForm = () => {
         body: JSON.stringify({
           _id: review._id,
           reviewDate: formattedDate,
+          updatedBy: user?.physioName || user?.name || "",
         }),
       });
 
@@ -873,7 +874,11 @@ const ReviewMasterForm = () => {
                     {filteredReviews.map((session) => (
                       <tr
                         key={session._id}
-                        className="border-b hover:bg-gray-50"
+                        className={`border-b ${
+                          session.isRescheduled
+                            ? "bg-amber-50 hover:bg-amber-100/70 border-l-4 border-l-amber-400"
+                            : "hover:bg-gray-50"
+                        }`}
                       >
                         <td className="p-2">
                           {session.patientId?.patientName}
@@ -891,15 +896,21 @@ const ReviewMasterForm = () => {
                               {new Date(session.reviewDate).toLocaleDateString(
                                 "en-IN",
                               )}
-                              {/* {session.reviewDate
-                                ? session.reviewDate
-                                    .split("T")[0]
-                                    .split("-")
-                                    .reverse()
-                                    .join("-")
-                                : "-"} */}
+                              {session.isRescheduled && (
+                                <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800 align-middle">
+                                  Rescheduled
+                                </span>
+                              )}
                             </p>
-                            <p className="text-xs text-gray-600"></p>
+                            {session.isRescheduled &&
+                              session.previousReviewDate && (
+                                <p className="text-xs text-amber-700">
+                                  from{" "}
+                                  {new Date(
+                                    session.previousReviewDate,
+                                  ).toLocaleDateString("en-IN")}
+                                </p>
+                              )}
                           </div>
                         </td>
                         {/* <td className="p-2">{session.machineId ? session.machineId.machineName : '-'}</td> */}
@@ -1110,7 +1121,11 @@ const ReviewMasterForm = () => {
             {filteredReviews.map((session) => (
               <Card
                 key={session._id}
-                className="p-4 shadow-lg rounded-2xl border"
+                className={`p-4 shadow-lg rounded-2xl border ${
+                  session.isRescheduled
+                    ? "bg-amber-50 border-l-4 border-l-amber-400"
+                    : ""
+                }`}
               >
                 {/* Top Section */}
                 <div className="mb-2">
@@ -1137,7 +1152,20 @@ const ReviewMasterForm = () => {
                           .reverse()
                           .join("-")
                       : "-"}
+                    {session.isRescheduled && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800 align-middle">
+                        Rescheduled
+                      </span>
+                    )}
                   </p>
+                  {session.isRescheduled && session.previousReviewDate && (
+                    <p className="text-xs text-amber-700">
+                      from{" "}
+                      {new Date(
+                        session.previousReviewDate,
+                      ).toLocaleDateString("en-IN")}
+                    </p>
+                  )}
                   <p className="text-sm text-gray-500">
                     {session.reviewStatusId && (
                       <span
